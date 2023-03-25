@@ -16,7 +16,7 @@ import numpy
 import matplotlib.pyplot as plt
 from pyquickhelper.loghelper import run_cmd
 from pandas import DataFrame, concat
-from mlprodict.testing.experimental_c_impl.experimental_c import (
+from onnx_extended.validation._validation import (
     benchmark_cache, benchmark_cache_tree)
 
 obs = []
