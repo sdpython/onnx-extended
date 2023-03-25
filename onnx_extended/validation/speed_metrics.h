@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <stdint.h>
 
 #if defined(_WIN32) || defined(WIN32)
 
