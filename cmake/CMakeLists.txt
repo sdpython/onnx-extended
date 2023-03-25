@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22.0)
+cmake_minimum_required(VERSION 3.24.0)
 
 project(onnx_extended VERSION 0.1.0)
 
@@ -32,9 +32,13 @@ if(NOT pybind11_POPULATED)
     add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif()
 
+# List of extensions to build.
+
 pybind11_add_module(_validation
     onnx_extended/validation/_validation.cpp
     onnx_extended/validation/speed_metrics.cpp)
+
+# Final
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

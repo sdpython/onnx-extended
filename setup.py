@@ -49,6 +49,50 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
 ########################################
 
 
+def run_subprocess(
+    args,
+    cwd=None,
+    capture_output=False,
+    dll_path=None,
+    shell=False,
+    env=None,
+    python_path=None,
+    cuda_home=None,
+    check=False,
+):
+    if env is None:
+        env = {}
+    if isinstance(args, str):
+        raise ValueError("args should be a sequence of strings, not a string")
+
+    my_env = os.environ.copy()
+    if dll_path:
+        if is_windows():
+            if "PATH" in my_env:
+                my_env["PATH"] = dll_path + os.pathsep + my_env["PATH"]
+            else:
+                my_env["PATH"] = dll_path
+        else:
+            if "LD_LIBRARY_PATH" in my_env:
+                my_env["LD_LIBRARY_PATH"] += os.pathsep + dll_path
+            else:
+                my_env["LD_LIBRARY_PATH"] = dll_path
+    # Add nvcc's folder to PATH env so that our cmake file can find nvcc
+    if cuda_home:
+        my_env["PATH"] = os.path.join(cuda_home, "bin") + os.pathsep + my_env["PATH"]
+
+    if python_path:
+        if "PYTHONPATH" in my_env:
+            my_env["PYTHONPATH"] += os.pathsep + python_path
+        else:
+            my_env["PYTHONPATH"] = python_path
+
+    my_env.update(env)
+
+    return subprocess.run(*args, cwd=cwd, capture_output=capture_output, shell=shell, env=my_env, check=check)
+
+
+
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
@@ -66,47 +110,54 @@ class cmake_build_ext(build_ext):
         except OSError:
             raise RuntimeError("Cannot find CMake executable")
 
+        cfg = "Release"
+
+
         cmake_cmd_args = []
+        build_path = os.path.abspath(self.build_temp)
 
+        path = sys.executable
+        cmake_args = [
+            f"-DPYTHON_EXECUTABLE={path}",
+            f"-DCMAKE_BUILD_TYPE={cfg}",
+        ]
+
+        cmake_args += cmake_cmd_args
+
+        if not os.path.exists(self.build_temp):
+            os.makedirs(self.build_temp)
+
+        # Builds the project.
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+        build = os.path.join(this_dir, "cmake")
+        if not os.path.exists(build):
+            os.mkdir(build)
+        
+        cmd = ["cmake", "-B", build, *cmake_args]
+        print(f"cwd={os.getcwd()!r}")
+        print(f"build_path={build_path!r}")
+        print(f"cmd={' '.join(cmd)}")
+        res = run_subprocess(cmd, cwd=build_path, capture_output=True, check=False)
+        
+        if res.stderr:
+            print("--ERROR--")
+            print(res.stderr.decode("utf-8"))
+            raise RuntimeError("Unable to build 'onnx-extended'.")
+        if res.stdout:
+            print("--OUTPUT--")
+            print(res.stdout.decode("utf-8"))
+
+        # final
+        
         for ext in self.extensions:
-
-            extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-            cfg = "Release"
-
-            cmake_args = [
-                f"-DCMAKE_BUILD_TYPE={cfg}",
-                f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{cfg.upper()}={extdir}",
-                f"-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_{cfg.upper()}={self.build_temp}",
-                f"-DPYTHON_EXECUTABLE={sys.executable}",
-            ]
-
-            if platform.system() == "Windows":
-                plat = "x64" if platform.architecture()[0] == "64bit" else "Win32"
-                cmake_args += [
-                    "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE",
-                    f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_{cfg.upper()}={extdir}",
-                ]
-                if self.compiler.compiler_type == "msvc":
-                    cmake_args += [f"-DCMAKE_GENERATOR_PLATFORM={plat}"]
-                else:
-                    cmake_args += ["-G", "MinGW Makefiles"]
-
-            cmake_args += cmake_cmd_args
-
-            if not os.path.exists(self.build_temp):
-                os.makedirs(self.build_temp)
-
-            cmd = ["cmake", "--build", ".", "--config", cfg]
-            print(f"cwd={os.getcwd()!r}")
-            print(f"build_temp={self.build_temp!r}")
-            print(f"cmd={' '.join(cmd)}")
-            out = subprocess.run(cmd, cwd=self.build_temp, capture_output=True, check=False)
-            print(out)
+            print(ext)
+            print(dir(ext))
 
 if platform.system() == "Windows":
     ext = "pyd"
 else:
     ext = "so"
+
 
 setup(
     name="onnx-extended",
