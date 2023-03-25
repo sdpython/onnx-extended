@@ -49,6 +49,7 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
 # C++ Helper
 ########################################
 
+
 def is_windows():
     return platform.platform().startswith("Windows")
 
@@ -116,9 +117,11 @@ def _run_subprocess(
             print(res.stdout.decode("ascii", errors="ignore"))
     return res
 
+
 ########################################
 # C++ CMake Extension
 ########################################
+
 
 class CMakeExtension(Extension):
     def __init__(self, name: str, library: str = "") -> None:
@@ -130,7 +133,7 @@ class cmake_build_ext(build_ext):
     def build_extensions(self):
         # Ensure that CMake is present and working
         try:
-            out = subprocess.check_output(["cmake", "--version"])
+            subprocess.check_output(["cmake", "--version"])
         except OSError:
             raise RuntimeError("Cannot find CMake executable")
 
