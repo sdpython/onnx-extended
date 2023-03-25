@@ -16,5 +16,6 @@ line-length = 88
 max-complexity = 10
 
 [tool.ruff.per-file-ignores]
-"_doc/examples/plot_first_example.py" = ["E402", "F811"]
+"onnx_extended/reference/__init__.py" = ["F401"]
+
 
