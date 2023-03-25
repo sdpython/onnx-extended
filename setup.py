@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
+import platform
+import subprocess
+import sys
+from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup, Extension
 from setuptools.command.build_ext import build_ext
 
 ######################
@@ -26,12 +30,12 @@ if len(requirements) == 0 or requirements == [""]:
 
 try:
     with open(os.path.join(here, "README.rst"), "r", encoding="utf-8") as f:
-        long_description = "onnx-array-api:" + f.read().split("onnx-array-api:")[1]
+        long_description = "onnx-extended:" + f.read().split("onnx-extended:")[1]
 except FileNotFoundError:
     long_description = ""
 
 version_str = "0.1.0"
-with open(os.path.join(here, "onnx_array_api/__init__.py"), "r") as f:
+with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
     line = [
         _
         for _ in [_.strip("\r\n ") for _ in f.readlines()]
@@ -45,6 +49,15 @@ with open(os.path.join(here, "onnx_array_api/__init__.py"), "r") as f:
 ########################################
 
 
+# A CMakeExtension needs a sourcedir instead of a file list.
+# The name must be the _single_ output extension from the CMake build.
+# If you need multiple extensions, see scikit-build.
+class CMakeExtension(Extension):
+    def __init__(self, name: str, library: str = "") -> None:
+        super().__init__(name, sources=[])
+        self.library_file = os.fspath(Path(library).resolve())
+
+
 class cmake_build_ext(build_ext):
     def build_extensions(self):
         # Ensure that CMake is present and working
@@ -53,65 +66,47 @@ class cmake_build_ext(build_ext):
         except OSError:
             raise RuntimeError("Cannot find CMake executable")
 
+        cmake_cmd_args = []
+
         for ext in self.extensions:
 
             extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-            cfg = "Debug" if options["--debug"] == "ON" else "Release"
+            cfg = "Release"
 
             cmake_args = [
-                "-DCMAKE_BUILD_TYPE=%s" % cfg,
-                # Ask CMake to place the resulting library in the directory
-                # containing the extension
-                "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}".format(cfg.upper(), extdir),
-                # Other intermediate static libraries are placed in a
-                # temporary build directory instead
-                "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_{}={}".format(
-                    cfg.upper(), self.build_temp
-                ),
-                # Hint CMake to use the same Python executable that
-                # is launching the build, prevents possible mismatching if
-                # multiple versions of Python are installed
-                "-DPYTHON_EXECUTABLE={}".format(sys.executable),
-                # Add other project-specific CMake arguments if needed
-                # ...
+                f"-DCMAKE_BUILD_TYPE={cfg}",
+                f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{cfg.upper()}={extdir}",
+                f"-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_{cfg.upper()}={self.build_temp}",
+                f"-DPYTHON_EXECUTABLE={sys.executable}",
             ]
 
-            # We can handle some platform-specific settings at our discretion
             if platform.system() == "Windows":
                 plat = "x64" if platform.architecture()[0] == "64bit" else "Win32"
                 cmake_args += [
-                    # These options are likely to be needed under Windows
                     "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE",
-                    "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_{}={}".format(
-                        cfg.upper(), extdir
-                    ),
+                    f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_{cfg.upper()}={extdir}",
                 ]
-                # Assuming that Visual Studio and MinGW are supported compilers
                 if self.compiler.compiler_type == "msvc":
-                    cmake_args += [
-                        "-DCMAKE_GENERATOR_PLATFORM=%s" % plat,
-                    ]
+                    cmake_args += [f"-DCMAKE_GENERATOR_PLATFORM={plat}"]
                 else:
-                    cmake_args += [
-                        "-G",
-                        "MinGW Makefiles",
-                    ]
+                    cmake_args += ["-G", "MinGW Makefiles"]
 
             cmake_args += cmake_cmd_args
 
             if not os.path.exists(self.build_temp):
                 os.makedirs(self.build_temp)
 
-            # Config
-            subprocess.check_call(
-                ["cmake", ext.cmake_lists_dir] + cmake_args, cwd=self.build_temp
-            )
+            cmd = ["cmake", "--build", ".", "--config", cfg]
+            print(f"cwd={os.getcwd()!r}")
+            print(f"build_temp={self.build_temp!r}")
+            print(f"cmd={' '.join(cmd)}")
+            out = subprocess.run(cmd, cwd=self.build_temp, capture_output=True, check=False)
+            print(out)
 
-            # Build
-            subprocess.check_call(
-                ["cmake", "--build", ".", "--config", cfg], cwd=self.build_temp
-            )
-
+if platform.system() == "Windows":
+    ext = "pyd"
+else:
+    ext = "so"
 
 setup(
     name="onnx-extended",
@@ -145,5 +140,10 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
     ],
-    cmdclass={"build_ext": my_build_ext},
-)
+    cmdclass={"build_ext": cmake_build_ext},
+    ext_modules = [
+        CMakeExtension(
+            "onnx_extended.validation._validation",
+            f"onnx_extended/validation/_validation.{ext}",
+        )]
+    )

@@ -7,6 +7,9 @@
 #include <chrono>
 #include <iostream>
 
+#include <omp.h>
+
+
 // source: https://stackoverflow.com/questions/9412585/
 // see-the-cache-missess-simple-c-cache-benchmark
 
