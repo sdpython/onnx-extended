@@ -4,11 +4,11 @@ import sys
 import importlib
 import subprocess
 import time
-from onnx_array_api import __file__ as onnx_array_api_file
-from onnx_array_api.ext_test_case import ExtTestCase
+from onnx_extended import __file__ as onnx_extended_file
+from onnx_extended.ext_test_case import ExtTestCase
 
 VERBOSE = 0
-ROOT = os.path.realpath(os.path.abspath(os.path.join(onnx_array_api_file, "..", "..")))
+ROOT = os.path.realpath(os.path.abspath(os.path.join(onnx_extended_file, "..", "..")))
 
 
 def import_source(module_file_path, module_name):

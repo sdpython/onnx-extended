@@ -1,7 +1,7 @@
 import os
 import sys
 
-from onnx_array_api import __version__
+from onnx_extended import __version__
 
 extensions = [
     "sphinx.ext.autodoc",

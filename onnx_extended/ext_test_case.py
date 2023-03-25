@@ -54,7 +54,7 @@ def measure_time(
     .. runpython::
         :showcode:
 
-        from onnx_array_api.ext_test_case import measure_time
+        from onnx_extended.ext_test_case import measure_time
         from math import cos
 
         res = measure_time(lambda: cos(0.5))
