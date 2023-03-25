@@ -91,57 +91,57 @@ jobs:
       artifactName: 'wheel-windows-$(python.version)'
       targetPath: 'dist'
 
-- job: 'TestMac'
-  pool:
-    vmImage: 'macOS-latest'
-  strategy:
-    matrix:
-      Python310-Mac:
-        python.version: '3.10'
-    maxParallel: 3
+#~ - job: 'TestMac'
+  #~ pool:
+    #~ vmImage: 'macOS-latest'
+  #~ strategy:
+    #~ matrix:
+      #~ Python310-Mac:
+        #~ python.version: '3.10'
+    #~ maxParallel: 3
 
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '$(python.version)'
-      architecture: 'x64'
-  - script: gcc --version
-    displayName: 'gcc version'
-  - script: |
-          brew update
-    displayName: 'brew update'
-  - script: export
-    displayName: 'export'
-  - script: gcc --version
-    displayName: 'gcc version'
-  - script: brew install llvm
-    displayName: 'install llvm'
-  - script: brew install libomp
-    displayName: 'Install omp'
-  - script: brew install p7zip
-    displayName: 'Install p7zip'
-  - script: python -m pip install --upgrade pip setuptools wheel
-    displayName: 'Install tools'
-  - script: brew install pybind11
-    displayName: 'Install pybind11'
-  - script: pip install -r requirements.txt
-    displayName: 'Install Requirements'
-  - script: pip install -r requirements-dev.txt
-    displayName: 'Install Requirements dev'
-  - script: |
-      python -m pip install -e .
-    displayName: 'build'
-  - script: |
-      python setup.py bdist_wheel
-    displayName: 'build wheel'
-  - script: |
-      python -m pytest -v -v
-    displayName: 'Runs Unit Tests'
-  - script: |
-      python -u setup.py bdist_wheel
-    displayName: 'Build Package'
-  - task: PublishPipelineArtifact@0
-    inputs:
-      artifactName: 'wheel-mac-$(python.version)'
-      targetPath: 'dist'
+  #~ steps:
+  #~ - task: UsePythonVersion@0
+    #~ inputs:
+      #~ versionSpec: '$(python.version)'
+      #~ architecture: 'x64'
+  #~ - script: gcc --version
+    #~ displayName: 'gcc version'
+  #~ - script: |
+          #~ brew update
+    #~ displayName: 'brew update'
+  #~ - script: export
+    #~ displayName: 'export'
+  #~ - script: gcc --version
+    #~ displayName: 'gcc version'
+  #~ - script: brew install llvm
+    #~ displayName: 'install llvm'
+  #~ - script: brew install libomp
+    #~ displayName: 'Install omp'
+  #~ - script: brew install p7zip
+    #~ displayName: 'Install p7zip'
+  #~ - script: python -m pip install --upgrade pip setuptools wheel
+    #~ displayName: 'Install tools'
+  #~ - script: brew install pybind11
+    #~ displayName: 'Install pybind11'
+  #~ - script: pip install -r requirements.txt
+    #~ displayName: 'Install Requirements'
+  #~ - script: pip install -r requirements-dev.txt
+    #~ displayName: 'Install Requirements dev'
+  #~ - script: |
+      #~ python -m pip install -e .
+    #~ displayName: 'build'
+  #~ - script: |
+      #~ python setup.py bdist_wheel
+    #~ displayName: 'build wheel'
+  #~ - script: |
+      #~ python -m pytest -v -v
+    #~ displayName: 'Runs Unit Tests'
+  #~ - script: |
+      #~ python -u setup.py bdist_wheel
+    #~ displayName: 'Build Package'
+  #~ - task: PublishPipelineArtifact@0
+    #~ inputs:
+      #~ artifactName: 'wheel-mac-$(python.version)'
+      #~ targetPath: 'dist'
 

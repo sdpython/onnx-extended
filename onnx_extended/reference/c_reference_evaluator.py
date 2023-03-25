@@ -11,8 +11,10 @@ class CReferenceEvaluator(ReferenceEvaluator):
     This class replaces the python implementation by C implementation
     for a short list of operators quite slow in python (such as `Conv`).
     The class automatically replaces a python implementation
-    by a C implementation if available.
+    by a C implementation if available. See example :ref:`l-example-conv`.
+
     ::
+
         from onnx.reference import ReferenceEvaluator
         from from onnx.reference.c_ops import Conv
         ref = ReferenceEvaluator(..., new_ops=[Conv])
