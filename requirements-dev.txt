@@ -1,4 +1,5 @@
 black
+clang-format
 coverage
 flake8
 furo

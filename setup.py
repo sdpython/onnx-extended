@@ -63,7 +63,6 @@ def _run_subprocess(
     env=None,
     python_path=None,
     cuda_home=None,
-    check=False,
 ):
     if env is None:
         env = {}
@@ -94,29 +93,23 @@ def _run_subprocess(
 
     my_env.update(env)
 
-    res = subprocess.run(
+    p = subprocess.Popen(
         args,
         cwd=cwd,
         shell=shell,
         env=my_env,
-        check=check,
         stdout=subprocess.PIPE if capture_output else None,
-        stderr=subprocess.PIPE if capture_output else None,
+        stderr=subprocess.STDOUT if capture_output else None,
     )
-    if res.stderr:
-        print("--ERROR--")
-        try:
-            print(res.stderr.decode("utf-8"))
-        except UnicodeDecodeError:
-            print(res.stderr.decode("ascii", errors="ignore"))
-        raise RuntimeError("Unable to build 'onnx-extended'.")
-    if res.stdout:
-        print("--OUTPUT--")
-        try:
-            print(res.stdout.decode("utf-8"))
-        except UnicodeDecodeError:
-            print(res.stdout.decode("ascii", errors="ignore"))
-    return res
+    while True:
+        output = p.stdout.readline().decode(errors="ignore")
+        if output == "" and p.poll() is not None:
+            break
+        if output:
+            sys.stdout.write(output.rstrip() + "\n")
+            sys.stdout.flush()
+    rc = p.poll()
+    return rc
 
 
 ########################################
@@ -166,7 +159,7 @@ class cmake_build_ext(build_ext):
         print(f"source_path={source_path!r}")
         print(f"build_path={build_path!r}")
         print(f"cmd={' '.join(cmd)}")
-        _run_subprocess(cmd, cwd=build_path, capture_output=True, check=True)
+        _run_subprocess(cmd, cwd=build_path, capture_output=True)
 
         # then build
         print()
@@ -174,7 +167,7 @@ class cmake_build_ext(build_ext):
         print(f"cwd={os.getcwd()!r}")
         print(f"build_path={build_path!r}")
         print(f"cmd={' '.join(cmd)}")
-        _run_subprocess(cmd, cwd=build_path, capture_output=True, check=True)
+        _run_subprocess(cmd, cwd=build_path, capture_output=True)
 
         # final
         build_lib = self.build_lib

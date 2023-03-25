@@ -1,24 +1,23 @@
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/numpy.h>
 
 #include "speed_metrics.h"
 
 namespace py = pybind11;
-
+using namespace validation;
 
 PYBIND11_MODULE(_validation, m) {
-    m.doc() =
+  m.doc() =
 #if defined(__APPLE__)
-        "C++ experimental implementations."
+      "C++ experimental implementations."
 #else
-        R"pbdoc(C++ experimental implementations.)pbdoc"
+      R"pbdoc(C++ experimental implementations.)pbdoc"
 #endif
-        ;
+      ;
 
-
-    m.def("benchmark_cache", &benchmark_cache,
-        py::arg("size"), py::arg("verbose") = true,
+  m.def("benchmark_cache", &benchmark_cache, py::arg("size"),
+        py::arg("verbose") = true,
         R"pbdoc(Runs a benchmark to measure the cache performance.
 The function measures the time for N random accesses in array of size N
 and returns the time divided by N.
@@ -30,19 +29,16 @@ See example :ref:`l-example-bench-cpu`.
 :return: average time per move
 )pbdoc");
 
-    py::class_<ElementTime> clf (m, "ElementTime");
-    clf.def(py::init<int64_t, int64_t, double>());
-    clf.def_readwrite("trial", &ElementTime::trial);
-    clf.def_readwrite("row", &ElementTime::row);
-    clf.def_readwrite("time", &ElementTime::time);
+  py::class_<ElementTime> clf(m, "ElementTime");
+  clf.def(py::init<int64_t, int64_t, double>());
+  clf.def_readwrite("trial", &ElementTime::trial);
+  clf.def_readwrite("row", &ElementTime::row);
+  clf.def_readwrite("time", &ElementTime::time);
 
-    m.def("benchmark_cache_tree", &benchmark_cache_tree,
-        py::arg("n_rows") = 100000,
-        py::arg("n_features") = 50,
-        py::arg("n_trees") = 200, 
-        py::arg("tree_size") = 4096, 
-        py::arg("max_depth") = 10, 
-        py::arg("search_step") = 64, 
+  m.def("benchmark_cache_tree", &benchmark_cache_tree,
+        py::arg("n_rows") = 100000, py::arg("n_features") = 50,
+        py::arg("n_trees") = 200, py::arg("tree_size") = 4096,
+        py::arg("max_depth") = 10, py::arg("search_step") = 64,
         R"pbdoc(Simulates the prediction of a random forest.
 Returns the time taken by every rows for a function doing
 random addition between an element from the same short buffer and
@@ -56,5 +52,4 @@ See example :ref:`l-example-bench-cpu`.
 :param search_step: evaluate every...
 :return: array of time take for every row 
 )pbdoc");
-
 }
