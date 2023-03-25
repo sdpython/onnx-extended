@@ -1,9 +1,7 @@
-name: Lint
-
+name: Black Format Checker
 on: [push, pull_request]
-
 jobs:
-  lint:
+  black-format-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

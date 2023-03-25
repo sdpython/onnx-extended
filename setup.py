@@ -171,11 +171,15 @@ class cmake_build_ext(build_ext):
 
         # final
         build_lib = self.build_lib
+        iswin = is_windows()
 
         for ext in self.extensions:
             full_name = ext._file_name
             name = os.path.split(full_name)[-1]
-            look = os.path.join(build_path, "Release", name)
+            if iswin:
+                look = os.path.join(build_path, "Release", name)
+            else:
+                look = os.path.join(build_path, name)
             if not os.path.exists(look):
                 raise FileNotFoundError(f"Unable to find {look!r}.")
             dest = os.path.join(build_lib, os.path.split(full_name)[0])
