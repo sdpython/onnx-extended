@@ -1,0 +1,5 @@
+prune _doc
+prune _unittests
+exclude *.bat
+exclude *.yml
+exclude *.git*
