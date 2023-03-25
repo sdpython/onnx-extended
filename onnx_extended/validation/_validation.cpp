@@ -25,6 +25,7 @@ It copies random elements taken from the array size to random
 position in another of the same size. It does that *size* times
 and return the average time per move.
 See example :ref:`l-example-bench-cpu`.
+
 :param size: array size
 :return: average time per move
 )pbdoc");
@@ -44,6 +45,7 @@ Returns the time taken by every rows for a function doing
 random addition between an element from the same short buffer and
 another one taken from a list of trees.
 See example :ref:`l-example-bench-cpu`.
+
 :param n_rows: number of rows of the whole batch size
 :param n_features: number of features
 :param n_trees: number of trees

@@ -8,7 +8,14 @@
 #include <stdlib.h>
 #include <time.h>
 
+#if defined(__MACOSX__) || defined(__APPLE__)
+#else
+#define USE_OMP 1
+#endif
+
+#if defined(USE_OMP)
 #include <omp.h>
+#endif
 
 // source: https://stackoverflow.com/questions/9412585/
 // see-the-cache-missess-simple-c-cache-benchmark
@@ -71,7 +78,7 @@ benchmark_cache_tree(int64_t n_rows, int64_t n_features, int64_t n_trees,
     for (int64_t batch = 0; batch < n_rows; batch += step, ++seed) {
       if (seed > 10037)
         seed = n_features * 7 + 1;
-#if USE_OPENMP
+#if defined(USE_OPENMP)
 #pragma omp parallel for
 #endif
       for (int64_t t = 0; t < n_trees; ++t) {

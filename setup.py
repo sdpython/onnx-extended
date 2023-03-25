@@ -51,7 +51,11 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
 
 
 def is_windows():
-    return platform.platform().startswith("Windows")
+    return platform.system() == "Windows"
+
+
+def is_darwin():
+    return platform.system() == "Darwin"
 
 
 def _run_subprocess(
@@ -172,11 +176,14 @@ class cmake_build_ext(build_ext):
         # final
         build_lib = self.build_lib
         iswin = is_windows()
+        isdar = is_darwin()
 
         for ext in self.extensions:
             full_name = ext._file_name
             name = os.path.split(full_name)[-1]
             if iswin:
+                look = os.path.join(build_path, "Release", name)
+            elif isdar:
                 look = os.path.join(build_path, "Release", name)
             else:
                 look = os.path.join(build_path, name)
@@ -189,8 +196,10 @@ class cmake_build_ext(build_ext):
             shutil.copy(look, dest)
 
 
-if platform.system() == "Windows":
+if is_windows():
     ext = "pyd"
+elif is_darwin():
+    ext = "dylib"
 else:
     ext = "so"
 
