@@ -2,12 +2,12 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "c_conv.h"
+#include "c_op_conv.h"
 
 namespace py = pybind11;
 using namespace onnx_c_ops;
 
-PYBIND11_MODULE(op_conv_, m) {
+PYBIND11_MODULE(c_op_conv_, m) {
   m.doc() =
 #if defined(__APPLE__)
       "C++ Reference Implementation for operator Conv."
@@ -16,20 +16,8 @@ PYBIND11_MODULE(op_conv_, m) {
 #endif
       ;
 
-  py::class_<ConvFloat16> clf(
-      c_ops, "ConvFloat16",
-      R"pbdoc(Implements float runtime for operator Conv. The code is inspired from
-`conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv.cc>`_
-in :epkg:`onnxruntime`. Supports float only.)pbdoc");
-
-  clf.def(py::init<>());
-  clf.def("init", &ConvFloat16::init,
-          "Initializes the runtime with the ONNX attributes.");
-  clf.def("compute", &ConvFloat16::compute,
-          "Computes the output for operator Conv.");
-
   py::class_<ConvFloat> clf(
-      c_ops, "ConvFloat",
+      m, "ConvFloat",
       R"pbdoc(Implements float runtime for operator Conv. The code is inspired from
 `conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv.cc>`_
 in :epkg:`onnxruntime`. Supports float only.)pbdoc");
@@ -41,7 +29,7 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
           "Computes the output for operator Conv.");
 
   py::class_<ConvDouble> cld(
-      c_ops, "ConvDouble",
+      m, "ConvDouble",
       R"pbdoc(Implements float runtime for operator Conv. The code is inspired from
 `conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv.cc>`_
 in :epkg:`onnxruntime`. Supports double only.)pbdoc");
@@ -52,5 +40,3 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
   cld.def("compute", &ConvDouble::compute,
           "Computes the output for operator Conv.");
 }
-
-} // namespace onnx_c_ops

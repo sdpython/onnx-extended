@@ -38,6 +38,10 @@ pybind11_add_module(_validation
     ../onnx_extended/validation/_validation.cpp
     ../onnx_extended/validation/speed_metrics.cpp)
 
+pybind11_add_module(c_op_conv_
+    ../onnx_extended/reference/c_ops/c_op_common.cpp
+    ../onnx_extended/reference/c_ops/c_op_conv_.cpp)
+
 # Final
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

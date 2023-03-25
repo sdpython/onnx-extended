@@ -241,6 +241,10 @@ setup(
         CMakeExtension(
             "onnx_extended.validation._validation",
             f"onnx_extended/validation/_validation.{ext}",
-        )
+        ),
+        CMakeExtension(
+            "onnx_extended.reference.c_ops.c_op_conv_",
+            f"onnx_extended/reference/c_ops/c_op_conv_.{ext}",
+        ),
     ],
 )

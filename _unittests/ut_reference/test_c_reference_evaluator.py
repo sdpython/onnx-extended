@@ -12,6 +12,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
+import onnx
 from onnx import TensorProto
 from onnx.helper import (
     make_graph,
@@ -26,12 +27,22 @@ from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import ExtTestCase
 
 
+light_model = os.path.join(
+    os.path.dirname(onnx.__file__),
+    "backend",
+    "test",
+    "data",
+    "light",
+    "light_shufflenet.onnx",
+)
+
+
 class TestCReferenceEvaluator(ExtTestCase):
-    def test_conv(self):
-        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None, None, None])
-        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None, None, None])
-        B = make_tensor_value_info("B", TensorProto.FLOAT, [None, None, None, None])
-        W = make_tensor_value_info("W", TensorProto.FLOAT, [None, None, None, None])
+    def conv_test(self, proto_dtype, dtype):
+        X = make_tensor_value_info("X", proto_dtype, [None, None, None, None])
+        Y = make_tensor_value_info("Y", proto_dtype, [None, None, None, None])
+        B = make_tensor_value_info("B", proto_dtype, [None, None, None, None])
+        W = make_tensor_value_info("W", proto_dtype, [None, None, None, None])
         node = make_node(
             "Conv",
             ["X", "W", "B"],
@@ -49,29 +60,25 @@ class TestCReferenceEvaluator(ExtTestCase):
         sH, sW = 5, 6
         for i in range(sH):
             for j in range(sW):
-                X = np.zeros((1, 1, sH, sW), dtype=np.float32)
+                X = np.zeros((1, 1, sH, sW), dtype=dtype)
                 X[0, 0, i, j] = 1.0
-                W = np.zeros((1, 1, 3, 3), dtype=np.float32)
+                W = np.zeros((1, 1, 3, 3), dtype=dtype)
                 W[0, 0, :, :] = np.minimum(2 ** np.arange(9).reshape((3, -1)), 256)
 
-                B = np.array([[[[0]]]], dtype=np.float32)
+                B = np.array([[[[0]]]], dtype=dtype)
                 expected = sess1.run(None, {"X": X, "W": W, "B": B})[0]
                 got = sess2.run(None, {"X": X, "W": W, "B": B})[0]
                 assert_allclose(expected, got)
 
+    def test_conv_float(self):
+        self.conv_test(TensorProto.FLOAT, np.float32)
+
+    def test_conv_double(self):
+        self.conv_test(TensorProto.DOUBLE, np.float64)
+
+    @unittest.skipIf(not os.path.exists(light_model), reason="onnx not recent enough")
     def test_light_model(self):
-        model = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "backend",
-            "test",
-            "data",
-            "light",
-            "light_shufflenet.onnx",
-        )
-        if not os.path.exists(model):
-            raise FileNotFoundError(os.path.abspath(model))
-        sess = CReferenceEvaluator(model)
+        sess = CReferenceEvaluator(light_model)
         name = sess.input_names[0]
         shape = [d.dim_value for d in sess.input_types[0].tensor_type.shape.dim]
         img = np.arange(np.prod(shape)).reshape(*shape) / np.prod(shape)
@@ -84,7 +91,7 @@ class TestCReferenceEvaluator(ExtTestCase):
         self.assertEqual(got[0].dtype, np.float32)
         assert_allclose(expected, got[0], atol=1e-5)
 
-        sess2 = InferenceSession(model, providers=["CPUExecutionProvider"])
+        sess2 = InferenceSession(light_model, providers=["CPUExecutionProvider"])
         got2 = sess2.run(None, {name: img})
         assert_allclose(expected, got2[0], atol=1e-5)
 

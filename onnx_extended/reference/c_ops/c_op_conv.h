@@ -1,4 +1,4 @@
-#include "c_op_common.h"
+#include "c_op_conv_common.h"
 
 namespace onnx_c_ops {
 
@@ -796,11 +796,6 @@ void Conv<T>::compute_gil_free(
     Ydata += Y_offset * group_;
   }
 }
-
-class ConvFloat16 : public Conv<half> {
-public:
-  ConvFloat16() : Conv<half>() {}
-};
 
 class ConvFloat : public Conv<float> {
 public:
