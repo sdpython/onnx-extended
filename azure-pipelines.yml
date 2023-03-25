@@ -27,14 +27,18 @@ jobs:
     displayName: 'Install Requirements'
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
-  - script: pip install onnxmltools --no-deps
-    displayName: 'Install onnxmltools'
   - script: |
       ruff .
     displayName: 'Ruff'
   - script: |
       black --diff .
     displayName: 'Black'
+  - script: |
+      pip install -e .
+    displayName: 'build'
+  - script: |
+      pip install bdist_wheel
+    displayName: 'build wheel'
   - script: |
       python -m pytest -v
     displayName: 'Runs Unit Tests'
@@ -69,8 +73,12 @@ jobs:
     displayName: 'Install Requirements'
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
-  - script: pip install onnxmltools --no-deps
-    displayName: 'Install onnxmltools'
+  - script: |
+      pip install -e .
+    displayName: 'build'
+  - script: |
+      pip install bdist_wheel
+    displayName: 'build wheel'
   - script: |
       python -m pytest -v
     displayName: 'Runs Unit Tests'
@@ -119,8 +127,12 @@ jobs:
     displayName: 'Install Requirements'
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
-  - script: pip install onnxmltools --no-deps
-    displayName: 'Install onnxmltools'
+  - script: |
+      pip install -e .
+    displayName: 'build'
+  - script: |
+      pip install bdist_wheel
+    displayName: 'build wheel'
   - script: |
       python -m pytest -v -v
     displayName: 'Runs Unit Tests'

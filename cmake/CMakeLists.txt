@@ -35,8 +35,8 @@ endif()
 # List of extensions to build.
 
 pybind11_add_module(_validation
-    onnx_extended/validation/_validation.cpp
-    onnx_extended/validation/speed_metrics.cpp)
+    ../onnx_extended/validation/_validation.cpp
+    ../onnx_extended/validation/speed_metrics.cpp)
 
 # Final
 

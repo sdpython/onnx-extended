@@ -1,6 +1,6 @@
 import unittest
-from onnx_extended.pycode import ExtTestCase
-from onnx_extended.validation.speed_metrics import benchmark_cache, benchmark_cache_tree
+from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.validation._validation import benchmark_cache, benchmark_cache_tree
 
 
 class TestSpeedMetrics(ExtTestCase):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import platform
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -45,11 +46,14 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
         version_str = line[0].split("=")[1].strip('" ')
 
 ########################################
-# C++
+# C++ Helper
 ########################################
 
+def is_windows():
+    return platform.platform().startswith("Windows")
 
-def run_subprocess(
+
+def _run_subprocess(
     args,
     cwd=None,
     capture_output=False,
@@ -89,13 +93,33 @@ def run_subprocess(
 
     my_env.update(env)
 
-    return subprocess.run(*args, cwd=cwd, capture_output=capture_output, shell=shell, env=my_env, check=check)
+    res = subprocess.run(
+        args,
+        cwd=cwd,
+        capture_output=capture_output,
+        shell=shell,
+        env=my_env,
+        check=check,
+    )
+    if res.stderr:
+        print("--ERROR--")
+        try:
+            print(res.stderr.decode("utf-8"))
+        except UnicodeDecodeError:
+            print(res.stderr.decode("ascii", errors="ignore"))
+        raise RuntimeError("Unable to build 'onnx-extended'.")
+    if res.stdout:
+        print("--OUTPUT--")
+        try:
+            print(res.stdout.decode("utf-8"))
+        except UnicodeDecodeError:
+            print(res.stdout.decode("ascii", errors="ignore"))
+    return res
 
+########################################
+# C++ CMake Extension
+########################################
 
-
-# A CMakeExtension needs a sourcedir instead of a file list.
-# The name must be the _single_ output extension from the CMake build.
-# If you need multiple extensions, see scikit-build.
 class CMakeExtension(Extension):
     def __init__(self, name: str, library: str = "") -> None:
         super().__init__(name, sources=[])
@@ -112,9 +136,7 @@ class cmake_build_ext(build_ext):
 
         cfg = "Release"
 
-
         cmake_cmd_args = []
-        build_path = os.path.abspath(self.build_temp)
 
         path = sys.executable
         cmake_args = [
@@ -129,29 +151,42 @@ class cmake_build_ext(build_ext):
 
         # Builds the project.
         this_dir = os.path.dirname(os.path.abspath(__file__))
-        build = os.path.join(this_dir, "cmake")
-        if not os.path.exists(build):
-            os.mkdir(build)
-        
-        cmd = ["cmake", "-B", build, *cmake_args]
+        build_path = os.path.abspath(self.build_temp)
+        # build_path = os.path.join(this_dir, "build")
+        if not os.path.exists(build_path):
+            os.makedirs(build_path)
+        source_path = os.path.join(this_dir, "cmake")
+
+        cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
+        print(f"cwd={os.getcwd()!r}")
+        print(f"source_path={source_path!r}")
+        print(f"build_path={build_path!r}")
+        print(f"cmd={' '.join(cmd)}")
+        _run_subprocess(cmd, cwd=build_path, capture_output=True, check=True)
+
+        # then build
+        print()
+        cmd = ["cmake", "--build", build_path, "--config", cfg]
         print(f"cwd={os.getcwd()!r}")
         print(f"build_path={build_path!r}")
         print(f"cmd={' '.join(cmd)}")
-        res = run_subprocess(cmd, cwd=build_path, capture_output=True, check=False)
-        
-        if res.stderr:
-            print("--ERROR--")
-            print(res.stderr.decode("utf-8"))
-            raise RuntimeError("Unable to build 'onnx-extended'.")
-        if res.stdout:
-            print("--OUTPUT--")
-            print(res.stdout.decode("utf-8"))
+        _run_subprocess(cmd, cwd=build_path, capture_output=True, check=True)
 
         # final
-        
+        build_lib = self.build_lib
+
         for ext in self.extensions:
-            print(ext)
-            print(dir(ext))
+            full_name = ext._file_name
+            name = os.path.split(full_name)[-1]
+            look = os.path.join(build_path, "Release", name)
+            if not os.path.exists(look):
+                raise FileNotFoundError(f"Unable to find {look!r}.")
+            dest = os.path.join(build_lib, os.path.split(full_name)[0])
+            if not os.path.exists(dest):
+                os.makedirs(dest)
+            print(f"copy {look!r} to {dest!r}")
+            shutil.copy(look, dest)
+
 
 if platform.system() == "Windows":
     ext = "pyd"
@@ -192,9 +227,10 @@ setup(
         "Programming Language :: Python :: 3.11",
     ],
     cmdclass={"build_ext": cmake_build_ext},
-    ext_modules = [
+    ext_modules=[
         CMakeExtension(
             "onnx_extended.validation._validation",
             f"onnx_extended/validation/_validation.{ext}",
-        )]
-    )
+        )
+    ],
+)
