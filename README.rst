@@ -26,5 +26,5 @@ onnx-extended: (Numpy) Array API for ONNX
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-**onnx-extended** extends the list of supported operator in onnx
-reference implementation.
+**onnx-extended** extends the list of supported operators in onnx
+reference implementation, or implements faster versions in C++.

@@ -23,7 +23,8 @@ onnx-extended: more operator for onnx
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-**onnx-extended** more operator for onnx.
+**onnx-extended** extends the list of supported operators in onnx
+reference implementation, or implements faster versions in C++.
 
 .. toctree::
     :maxdepth: 2

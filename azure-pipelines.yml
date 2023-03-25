@@ -34,10 +34,11 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      pip install -e .
+      # python -m pip install -e .
+      python setup.py build_ext --inplace
     displayName: 'build'
   - script: |
-      pip install bdist_wheel
+      python setup.py bdist_wheel
     displayName: 'build wheel'
   - script: |
       python -m pytest -v
@@ -74,10 +75,10 @@ jobs:
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: |
-      pip install -e .
+      python -m pip install -e .
     displayName: 'build'
   - script: |
-      pip install bdist_wheel
+      python setup.py bdist_wheel
     displayName: 'build wheel'
   - script: |
       python -m pytest -v
@@ -128,10 +129,10 @@ jobs:
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: |
-      pip install -e .
+      python -m pip install -e .
     displayName: 'build'
   - script: |
-      pip install bdist_wheel
+      python setup.py bdist_wheel
     displayName: 'build wheel'
   - script: |
       python -m pytest -v -v
