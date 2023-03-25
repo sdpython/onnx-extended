@@ -97,10 +97,11 @@ def _run_subprocess(
     res = subprocess.run(
         args,
         cwd=cwd,
-        capture_output=capture_output,
         shell=shell,
         env=my_env,
         check=check,
+        stdout=subprocess.PIPE if capture_output else None,
+        stderr=subprocess.PIPE if capture_output else None,
     )
     if res.stderr:
         print("--ERROR--")
