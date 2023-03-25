@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from setuptools import find_packages, setup, Extension
+from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
 ######################
@@ -17,9 +17,11 @@ from setuptools.command.build_ext import build_ext
 here = os.path.dirname(__file__)
 if here == "":
     here = "."
-packages = find_packages(where=here)
-package_dir = {k: os.path.join(here, k.replace(".", "/")) for k in packages}
-package_data = {}
+package_data = {
+    "onnx_extended.reference.c_ops": ["*.h", "*.cpp"],
+    "onnx_extended.validation": ["*.h", "*.cpp"],
+}
+
 
 try:
     with open(os.path.join(here, "requirements.txt"), "r") as f:
@@ -212,8 +214,6 @@ setup(
     author="Xavier Dupré",
     author_email="xavier.dupre@gmail.com",
     url="https://github.com/sdpython/onnx-extended",
-    packages=packages,
-    package_dir=package_dir,
     package_data=package_data,
     setup_requires=["numpy", "scipy"],
     install_requires=requirements,
