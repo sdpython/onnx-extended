@@ -9,7 +9,6 @@ from .c_op_tree_ensemble_p_ import (
 
 
 class TreeEnsembleRegressorCommon(OpRun):
-
     op_domain = "ai.onnx.ml"
 
     def __init__(
