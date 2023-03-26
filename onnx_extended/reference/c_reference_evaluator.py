@@ -4,6 +4,14 @@ from onnx import FunctionProto
 from onnx.reference import ReferenceEvaluator
 from onnx.reference.op_run import OpRun
 from onnx_extended.reference.c_ops.c_op_conv import Conv
+from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
+    TreeEnsembleRegressor_1,
+    TreeEnsembleRegressor_3,
+)
+from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+    TreeEnsembleClassifier_1,
+    TreeEnsembleClassifier_3,
+)
 
 
 class CReferenceEvaluator(ReferenceEvaluator):
@@ -20,6 +28,14 @@ class CReferenceEvaluator(ReferenceEvaluator):
         ref = ReferenceEvaluator(..., new_ops=[Conv])
     """
 
+    default_ops = [
+        Conv,
+        TreeEnsembleClassifier_1,
+        TreeEnsembleClassifier_3,
+        TreeEnsembleRegressor_1,
+        TreeEnsembleRegressor_3,
+    ]
+
     def __init__(
         self,
         proto: Any,
@@ -29,10 +45,10 @@ class CReferenceEvaluator(ReferenceEvaluator):
         new_ops: Optional[List[OpRun]] = None,
     ):
         if new_ops is None:
-            new_ops = [Conv]
+            new_ops = CReferenceEvaluator.default_ops
         else:
             new_ops = new_ops.copy()
-            new_ops.append(Conv)
+            new_ops.extend(CReferenceEvaluator.default_ops)
         ReferenceEvaluator.__init__(
             self,
             proto,
