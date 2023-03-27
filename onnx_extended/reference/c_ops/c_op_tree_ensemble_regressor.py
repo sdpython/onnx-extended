@@ -14,7 +14,7 @@ class TreeEnsembleRegressorCommon(OpRun):
     def __init__(
         self, onnx_node: NodeProto, run_params: Dict[str, Any], schema: Any = None
     ):
-        OpRun.__init__(onnx_node, run_params, schema=schema)
+        OpRun.__init__(self, onnx_node, run_params, schema=schema)
         self.parallel = (60, 128, 20)
 
     def change_parallel(self, trees: int, trees_rows: int, rows: int):
