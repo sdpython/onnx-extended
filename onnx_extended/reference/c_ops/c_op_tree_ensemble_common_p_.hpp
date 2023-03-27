@@ -664,7 +664,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
 
         #pragma omp parallel for
         for (int64_t j = 0; j < n_trees_; ++j) {
-          auto th = omp_get_thread_num();
+          auto th = ::omp_get_thread_num();
           int64_t index = th;
           for (int64_t i = batch; i < batch_end; ++i, index += nth) {
             agg.ProcessTreeNodePrediction1(
@@ -699,7 +699,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
 
         #pragma omp parallel for
         for (int64_t i = 0; i < N; ++i) {
-            auto th = omp_get_thread_num();
+            auto th = ::omp_get_thread_num();
             scores[th] = 0;
             has_scores[th] = 0;
             for (size_t j = 0; j < (size_t)n_trees_; ++j)
@@ -734,7 +734,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
 
       #pragma omp parallel for
       for (int64_t j = 0; j < n_trees_; ++j) {
-        auto th = omp_get_thread_num();
+        auto th = ::omp_get_thread_num();
         agg.ProcessTreeNodePrediction(&scores[th * n_targets_or_classes_],
                                       ProcessTreeNodeLeave(roots_[j], x_data),
                                       &has_scores[th * n_targets_or_classes_]);
@@ -779,7 +779,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
 
       #pragma omp parallel for
       for (int64_t i = 0; i < N; ++i) {
-        auto th = omp_get_thread_num();
+        auto th = ::omp_get_thread_num();
         NTYPE *p_score = &scores[th * n_targets_or_classes_];
         unsigned char *p_has_score = &has_scores[th * n_targets_or_classes_];
         std::fill(p_score, p_score + n_targets_or_classes_, (NTYPE)0);
@@ -861,7 +861,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
 
         #pragma omp parallel for
         for (int64_t j = 0; j < n_trees_; ++j) {
-          auto th = omp_get_thread_num();
+          auto th = ::omp_get_thread_num();
           const NTYPE *local_x_data = x_data + batch * stride;
           NTYPE *p_score = &local_scores[th * omp_tree_N_];
           unsigned char *p_has_score = &local_has_scores[th * omp_tree_N_];
@@ -917,7 +917,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
 
       #pragma omp parallel for
       for (int64_t i = 0; i < N; ++i) {
-        auto th = omp_get_thread_num();
+        auto th = ::omp_get_thread_num();
         scores[th] = 0;
         has_scores[th] = 0;
         for (size_t j = 0; j < (size_t)n_trees_; ++j)
@@ -996,7 +996,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
       std::vector<unsigned char> local_has_scores(local_scores.size(), 0);
       #pragma omp parallel for
       for (int64_t j = 0; j < n_trees_; ++j) {
-        auto th = omp_get_thread_num();
+        auto th = ::omp_get_thread_num();
         int64_t d = th * size_obs;
         NTYPE *p_score = &local_scores[d];
         unsigned char *p_has_score = &local_has_scores[d];
@@ -1056,7 +1056,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
       std::vector<unsigned char> local_has_scores(local_scores.size());
       #pragma omp parallel for
       for (int64_t i = 0; i < N; ++i) {
-        auto th = omp_get_thread_num();
+        auto th = ::omp_get_thread_num();
         NTYPE *p_score = &local_scores[th * n_targets_or_classes_];
         unsigned char *p_has_score =
             &local_has_scores[th * n_targets_or_classes_];

@@ -2,13 +2,14 @@ from typing import Any, Dict
 import numpy
 from onnx import NodeProto
 from onnx.reference.op_run import OpRun
+from ._op_classifier_common import _ClassifierCommon
 from .c_op_tree_ensemble_p_ import (
     RuntimeTreeEnsembleClassifierPFloat,
     RuntimeTreeEnsembleClassifierPDouble,
 )
 
 
-class TreeEnsembleClassifierCommon(OpRun):
+class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
     op_domain = "ai.onnx.ml"
 
     def __init__(
@@ -53,14 +54,23 @@ class TreeEnsembleClassifierCommon(OpRun):
         )
 
     def _run(self, x, **kwargs):
+        """
+        This is a C++ implementation coming from
+        :epkg:`onnxruntime`.
+        `tree_ensemble_classifier.cc
+        <https://github.com/microsoft/onnxruntime/blob/master/
+        onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_.
+        See class :class:`RuntimeTreeEnsembleClassifier
+        <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifier>`.
+        """
         if hasattr(x, "todense"):
             x = x.todense()
         if self.rt_ is None:
             self.init(**kwargs)
-        pred = self.rt_.compute(x)
-        if pred.shape[0] != x.shape[0]:
-            pred = pred.reshape((x.shape[0], -1))
-        return (pred,)
+        label, scores = self.rt_.compute(x)
+        if scores.shape[0] != label.shape[0]:
+            scores = scores.reshape((label.shape[0], -1))
+        return self._post_process_predicted_label(label, scores)
 
 
 class TreeEnsembleClassifier_1(TreeEnsembleClassifierCommon):

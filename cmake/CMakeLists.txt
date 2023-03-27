@@ -48,6 +48,14 @@ pybind11_add_module(c_op_tree_ensemble_p_
 
 # Final
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(c_op_tree_ensemble_p_ PUBLIC OpenMP::OpenMP_CXX)
+else()
+    error("OpenMP cannot be found.")
+endif()
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
