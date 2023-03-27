@@ -15,8 +15,9 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
     def __init__(
         self, onnx_node: NodeProto, run_params: Dict[str, Any], schema: Any = None
     ):
-        OpRun.__init__(onnx_node, run_params, schema=schema)
+        OpRun.__init__(self, onnx_node, run_params, schema=schema)
         self.parallel = (60, 128, 20)
+        self.rt_ = None
 
     def change_parallel(self, trees: int, trees_rows: int, rows: int):
         self.parallel = (trees, trees_rows, rows)
@@ -29,28 +30,27 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
             cls = RuntimeTreeEnsembleClassifierPDouble
 
         self.rt_ = cls(self.parallel[0], self.parallel[1], self.parallel[2], True, True)
+        empty_32 = numpy.array([], dtype=numpy.float32)
         self.rt_.init(
-            kwargs["aggregate_function"],
-            kwargs.get("base_values", []),
-            kwargs.get("base_values_as_tensor", []),
-            kwargs["n_targets"],
+            kwargs["aggregate_function"] or "NONE",
+            kwargs.get("base_values", empty_32) or empty_32,
+            kwargs.get("base_values_as_tensor", empty_32) or empty_32,
+            kwargs["class_ids"],
+            kwargs["class_nodeids"],
+            kwargs["class_treeids"],
+            kwargs["class_weights"],
             kwargs["nodes_falsenodeids"],
             kwargs["nodes_featureids"],
-            kwargs["nodes_hitrates"],
-            kwargs.get("nodes_hitrates_as_tensor", []),
-            kwargs.get("nodes_missing_value_tracks_true", []),
+            kwargs.get("nodes_hitrates", empty_32) or empty_32,
+            kwargs.get("nodes_hitrates_as_tensor", empty_32) or empty_32,
+            kwargs["nodes_missing_value_tracks_true"],
             kwargs["nodes_modes"],
             kwargs["nodes_nodeids"],
             kwargs["nodes_treeids"],
             kwargs["nodes_truenodeids"],
-            kwargs.get("nodes_values", []),
-            kwargs.get("nodes_values_as_tensor", []),
-            kwargs["post_transform"],
-            kwargs["target_ids"],
-            kwargs["target_nodeids"],
-            kwargs["target_treeids"],
-            kwargs.get("target_weights", []),
-            kwargs.get("target_weights_as_tensor", []),
+            kwargs["nodes_values"],
+            kwargs.get("nodes_values_as_tensor", empty_32) or empty_32,
+            kwargs["post_transform"] or "NONE",
         )
 
     def _run(self, x, **kwargs):
@@ -66,7 +66,7 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
         if hasattr(x, "todense"):
             x = x.todense()
         if self.rt_ is None:
-            self.init(**kwargs)
+            self._init(x.dtype, **kwargs)
         label, scores = self.rt_.compute(x)
         if scores.shape[0] != label.shape[0]:
             scores = scores.reshape((label.shape[0], -1))
@@ -99,6 +99,7 @@ class TreeEnsembleClassifier_1(TreeEnsembleClassifierCommon):
         return TreeEnsembleClassifierCommon._run(
             self,
             x,
+            aggregate_function=aggregate_function,
             base_values=base_values,
             class_ids=None,
             class_nodeids=class_nodeids,

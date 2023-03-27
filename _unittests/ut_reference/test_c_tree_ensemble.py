@@ -14,6 +14,7 @@ from skl2onnx import to_onnx
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+    TreeEnsembleClassifier_1,
     TreeEnsembleClassifier_3,
 )
 from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
@@ -33,8 +34,9 @@ class TestCTreeEnsemble(ExtTestCase):
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
         )
+        self.assertNotIn("nodes_values_as_tensor", str(model_def))
         oinf = CReferenceEvaluator(model_def)
-        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_3)
+        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
