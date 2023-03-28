@@ -4,6 +4,33 @@
 
 namespace onnx_c_ops {
 
+void *AllocatorDefaultAlloc(size_t size) {
+  const size_t alignment = 64;
+  void *p;
+#if _MSC_VER
+  p = _aligned_malloc(size, alignment);
+  if (p == nullptr)
+    throw std::bad_alloc();
+#elif defined(_LIBCPP_SGX_CONFIG)
+  p = memalign(alignment, size);
+  if (p == nullptr)
+    throw std::bad_alloc();
+#else
+  int ret = posix_memalign(&p, alignment, size);
+  if (ret != 0)
+    throw std::bad_alloc();
+#endif
+  return p;
+}
+
+void AllocatorDefaultFree(void *p) {
+#if _MSC_VER
+  _aligned_free(p);
+#else
+  free(p);
+#endif
+}
+
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value) {
   if (value.compare("NONE") == 0)
     return POST_EVAL_TRANSFORM::NONE;

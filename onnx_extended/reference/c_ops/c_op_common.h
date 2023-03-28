@@ -12,6 +12,27 @@
 
 namespace onnx_c_ops {
 
+void *AllocatorDefaultAlloc(size_t size);
+void AllocatorDefaultFree(void *p);
+
+class Status {
+public:
+  int code;
+  Status() : code(1) {}
+  Status(int code) : code(code) {}
+  Status &operator=(const Status &other) {
+    code = other.code;
+    return *this;
+  }
+  bool IsOK() const { return code == 1; }
+  int Code() const { return code; }
+  bool operator==(const Status &other) const { return code == other.code; }
+  bool operator!=(const Status &other) const { return !(*this == other); }
+  static Status OK() { return Status(1); }
+};
+
+template <typename T> class InlinedVector : std::vector<T> {};
+
 #if defined(_WIN32) || defined(WIN32)
 
 inline bool _isnan_(float x) { return _isnanf(x); }
@@ -57,23 +78,23 @@ typedef int64_t ssize_t;
 #endif
 
 enum class POST_EVAL_TRANSFORM {
-  NONE,
-  LOGISTIC,
-  SOFTMAX,
-  SOFTMAX_ZERO,
-  PROBIT
+  NONE = 0,
+  LOGISTIC = 1,
+  SOFTMAX = 2,
+  SOFTMAX_ZERO = 3,
+  PROBIT = 4
 };
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value);
 
-enum class NODE_MODE {
-  BRANCH_LEQ,
-  BRANCH_LT,
-  BRANCH_GTE,
-  BRANCH_GT,
-  BRANCH_EQ,
-  BRANCH_NEQ,
-  LEAF
+enum NODE_MODE : uint8_t {
+  LEAF = 1,
+  BRANCH_LEQ = 2,
+  BRANCH_LT = 4,
+  BRANCH_GTE = 6,
+  BRANCH_GT = 8,
+  BRANCH_EQ = 10,
+  BRANCH_NEQ = 12
 };
 
 NODE_MODE to_NODE_MODE(const std::string &value);
@@ -148,11 +169,10 @@ template <class NTYPE> static inline NTYPE ComputeProbit(NTYPE val) {
 
 template <class NTYPE>
 static inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
+  // ref:
+  // https://github.com/arnaudsj/libsvm/blob/eaaefac5ebd32d0e07902e1ae740e038eaaf0826/svm.cpp#L1818
   NTYPE val = score * proba + probb;
-  return 1 -
-         ComputeLogistic(
-             val); // ref:
-                   // https://github.com/arnaudsj/libsvm/blob/eaaefac5ebd32d0e07902e1ae740e038eaaf0826/svm.cpp#L1818
+  return 1 - ComputeLogistic(val);
 }
 
 template <typename NTYPE> void ComputeSoftmax(NTYPE *begin, NTYPE *end) {
@@ -468,5 +488,12 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
   MakeStringInternal(ss, args...);
   return std::string(ss.str());
 }
+
+#define _THROW(...) throw std::runtime_error(MakeString(__VA_ARGS__));
+
+#define _ENFORCE(cond, ...)                                                    \
+  if (!(cond))                                                                 \
+    throw std::runtime_error(                                                  \
+        MakeString(#cond, "failed.", MakeString(__VA_ARGS__)));
 
 } // namespace onnx_c_ops

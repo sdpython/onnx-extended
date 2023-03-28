@@ -42,16 +42,16 @@ pybind11_add_module(c_op_conv_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_conv_.cpp)
 
-pybind11_add_module(c_op_tree_ensemble_p_
+pybind11_add_module(c_op_tree_ensemble_py_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
-    ../onnx_extended/reference/c_ops/c_op_tree_ensemble_p_.cpp)
+    ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
 
 # Final
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(c_op_tree_ensemble_p_ PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(c_op_tree_ensemble_py_ PUBLIC OpenMP::OpenMP_CXX)
 else()
     error("OpenMP cannot be found.")
 endif()
