@@ -1,4 +1,6 @@
 #pragma once
+// Implements TreeEnsembleCommonAttributes, TreeEnsembleCommon,
+// TreeEnsembleCommonClassifier
 
 // Inspired from
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
@@ -101,9 +103,9 @@ public:
               const std::vector<int64_t> &target_class_treeids,
               const std::vector<float> &target_class_weights,
               const std::vector<ThresholdType> &target_class_weights_as_tensor);
-  virtual Status ComputeAgg(int64_t rows, int64_t n_features,
-                            const InputType *X, OutputType *Y,
-                            int64_t *labels) const;
+
+  Status Compute(int64_t n_rows, int64_t n_features, const InputType *X,
+                 OutputType *Y, int64_t *label) const;
 
   int omp_get_max_threads() const;
   int64_t get_sizeof() const;
@@ -544,6 +546,40 @@ int TreeEnsembleCommon<InputType, ThresholdType, OutputType>::
 }
 
 template <typename InputType, typename ThresholdType, typename OutputType>
+Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Compute(
+    int64_t n_rows, int64_t n_features, const InputType *X, OutputType *Y,
+    int64_t *label) const {
+  switch (aggregate_function_) {
+  case AGGREGATE_FUNCTION::AVERAGE:
+    ComputeAgg(n_rows, n_features, X, Y, label,
+               TreeAggregatorAverage<InputType, ThresholdType, OutputType>(
+                   roots_.size(), n_targets_or_classes_, post_transform_,
+                   base_values_));
+    return Status::OK();
+  case AGGREGATE_FUNCTION::SUM:
+    ComputeAgg(n_rows, n_features, X, Y, label,
+               TreeAggregatorSum<InputType, ThresholdType, OutputType>(
+                   roots_.size(), n_targets_or_classes_, post_transform_,
+                   base_values_));
+    return Status::OK();
+  case AGGREGATE_FUNCTION::MIN:
+    ComputeAgg(n_rows, n_features, X, Y, label,
+               TreeAggregatorMin<InputType, ThresholdType, OutputType>(
+                   roots_.size(), n_targets_or_classes_, post_transform_,
+                   base_values_));
+    return Status::OK();
+  case AGGREGATE_FUNCTION::MAX:
+    ComputeAgg(n_rows, n_features, X, Y, label,
+               TreeAggregatorMax<InputType, ThresholdType, OutputType>(
+                   roots_.size(), n_targets_or_classes_, post_transform_,
+                   base_values_));
+    return Status::OK();
+  default:
+    _THROW("Unknown aggregation function in TreeEnsemble.");
+  }
+}
+
+template <typename InputType, typename ThresholdType, typename OutputType>
 template <typename AGG>
 void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
     int64_t n_rows, int64_t n_features, const InputType *X, OutputType *Y,
@@ -846,11 +882,6 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
     }                                                                          \
   }
 
-inline bool _isnan_(float x) { return std::isnan(x); }
-inline bool _isnan_(double x) { return std::isnan(x); }
-inline bool _isnan_(int64_t) { return false; }
-inline bool _isnan_(int32_t) { return false; }
-
 template <typename InputType, typename ThresholdType>
 inline int GetLeave3IndexLEQ(InputType *features,
                              const TreeNodeElement3<ThresholdType> *node3,
@@ -1059,13 +1090,10 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
   return root;
 }
 
-// TI: input type
-// TH: threshold type, double if T==double, float otherwise
-// TO: output type
 template <typename InputType, typename ThresholdType, typename OutputType>
 class TreeEnsembleCommonClassifier
     : public TreeEnsembleCommon<InputType, ThresholdType, OutputType> {
-private:
+protected:
   bool weights_are_all_positive_;
   bool binary_case_;
   std::vector<std::string> classlabels_strings_;
@@ -1073,11 +1101,8 @@ private:
   std::vector<int64_t> class_labels_;
 
 public:
-  template <typename AGG>
-  virtual void ComputeAggClassifier(int64_t n_rows, int64_t n_features,
-                                    const InputType *X, OutputType *Y,
-                                    int64_t *labels, const AGG &agg) const;
-
+  Status Compute(int64_t n_rows, int64_t n_features, const InputType *X,
+                 OutputType *Y, int64_t *label) const;
   Status Init(int parallel_tree, int parallel_tree_N, int parallel_N,
               const std::string &aggregate_function,
               const std::vector<float> &base_values,
@@ -1101,6 +1126,12 @@ public:
               const std::vector<ThresholdType> &class_weights_as_tensor,
               const std::vector<std::string> &classlabels_strings,
               const std::vector<int64_t> &classlabels_int64s);
+
+protected:
+  template <typename AGG>
+  void ComputeAggClassifier(int64_t n_rows, int64_t n_features,
+                            const InputType *X, OutputType *Y, int64_t *labels,
+                            const AGG &agg) const;
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -1162,33 +1193,44 @@ Status TreeEnsembleCommonClassifier<InputType, ThresholdType, OutputType>::Init(
 }
 
 template <typename InputType, typename ThresholdType, typename OutputType>
-template <typename AGG>
-void ComputeAggClassifier(int64_t n_rows, int64_t n_features,
-                          const InputType *X, OutputType *Y, int64_t *labels,
-                          const AGG &agg) const {
-  if (classlabels_strings_.empty()) {
-    this->ComputeAgg(
-        ctx->GetOperatorThreadPool(), X, Z, label,
-        TreeAggregatorClassifier<InputType, ThresholdType, OutputType>(
-            this->roots_.size(), this->n_targets_or_classes_,
-            this->post_transform_, this->base_values_, classlabels_int64s_,
-            binary_case_, weights_are_all_positive_));
-  } else {
-    int64_t N = X->Shape().NumDimensions() == 1 ? 1 : X->Shape()[0];
-    Tensor label_int64(DataTypeImpl::GetType<int64_t>(), TensorShape({N}),
-                       std::move(alloc));
-    this->ComputeAgg(
-        ctx->GetOperatorThreadPool(), X, Z, &label_int64,
-        TreeAggregatorClassifier<InputType, ThresholdType, OutputType>(
-            this->roots_.size(), this->n_targets_or_classes_,
-            this->post_transform_, this->base_values_, class_labels_,
-            binary_case_, weights_are_all_positive_));
-    const int64_t *plabel = label_int64.Data<int64_t>();
-    std::string *labels = label->MutableData<std::string>();
-    for (size_t i = 0; i < (size_t)N; ++i)
-      labels[i] = classlabels_strings_[static_cast<size_t>(plabel[i])];
+Status
+TreeEnsembleCommonClassifier<InputType, ThresholdType, OutputType>::Compute(
+    int64_t n_rows, int64_t n_features, const InputType *X, OutputType *Y,
+    int64_t *label) const {
+  switch (this->aggregate_function_) {
+  case AGGREGATE_FUNCTION::AVERAGE:
+    ComputeAggClassifier(
+        n_rows, n_features, X, Y, label,
+        TreeAggregatorAverage<InputType, ThresholdType, OutputType>(
+            this->roots_.size(), this->n_targets_or_classes_, this->post_transform_,
+            this->base_values_));
+    return Status::OK();
+  case AGGREGATE_FUNCTION::SUM:
+    ComputeAggClassifier(
+        n_rows, n_features, X, Y, label,
+        TreeAggregatorSum<InputType, ThresholdType, OutputType>(
+            this->roots_.size(), this->n_targets_or_classes_, this->post_transform_,
+            this->base_values_));
+    return Status::OK();
+  default:
+    _THROW("Unknown aggregation function in TreeEnsemble.");
   }
-  return Status::OK();
+}
+
+template <typename InputType, typename ThresholdType, typename OutputType>
+template <typename AGG>
+void TreeEnsembleCommonClassifier<InputType, ThresholdType, OutputType>::
+    ComputeAggClassifier(int64_t n_rows, int64_t n_features, const InputType *X,
+                         OutputType *Y, int64_t *labels, const AGG &agg) const {
+  _ENFORCE(classlabels_strings_.empty(),
+           "This implementation does not support string labels.");
+
+  this->ComputeAgg(
+      n_rows, n_features, X, Y, labels,
+      TreeAggregatorClassifier<InputType, ThresholdType, OutputType>(
+          this->roots_.size(), this->n_targets_or_classes_,
+          this->post_transform_, this->base_values_, classlabels_int64s_,
+          binary_case_, weights_are_all_positive_));
 }
 
 } // namespace onnx_c_ops

@@ -32,6 +32,7 @@ public:
 };
 
 template <typename T> class InlinedVector : std::vector<T> {};
+template <typename T> class InlinedHashSet : std::unordered_set<T> {};
 
 #if defined(_WIN32) || defined(WIN32)
 
