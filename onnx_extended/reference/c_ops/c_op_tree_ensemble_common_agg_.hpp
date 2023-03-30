@@ -308,7 +308,7 @@ public:
       for (; it != predictions.end(); ++it)
         it->score /= this->n_trees_;
     }
-    write_scores(predictions, this->post_transform_, Z, add_second_class);
+    write_scores<ScoreValue<ThresholdType>>(predictions, this->post_transform_, Z, add_second_class);
   }
 };
 
@@ -455,7 +455,6 @@ template <typename InputType, typename ThresholdType, typename OutputType>
 class TreeAggregatorClassifier
     : public TreeAggregatorSum<InputType, ThresholdType, OutputType> {
 private:
-  const std::vector<int64_t> &class_labels_;
   bool binary_case_;
   bool weights_are_all_positive_;
   int64_t positive_label_;
@@ -464,14 +463,13 @@ private:
 public:
   TreeAggregatorClassifier(size_t n_trees, const int64_t &n_targets_or_classes,
                            POST_EVAL_TRANSFORM post_transform,
-                           const std::vector<ThresholdType> &base_values,
-                           const std::vector<int64_t> &class_labels,
+                           const std::vector<ThresholdType> &base_values,                           
                            bool binary_case, bool weights_are_all_positive,
                            int64_t positive_label = 1,
                            int64_t negative_label = 0)
       : TreeAggregatorSum<InputType, ThresholdType, OutputType>(
             n_trees, n_targets_or_classes, post_transform, base_values),
-        class_labels_(class_labels), binary_case_(binary_case),
+        binary_case_(binary_case),
         weights_are_all_positive_(weights_are_all_positive),
         positive_label_(positive_label), negative_label_(negative_label) {}
 
@@ -508,18 +506,18 @@ public:
       if (weights_are_all_positive_) {
         if (pos_weight > 0.5) {
           write_additional_scores = 0;
-          return class_labels_[1]; // positive label
+          return 1; // positive label
         } else {
           write_additional_scores = 1;
-          return class_labels_[0]; // negative label
+          return 0; // negative label
         }
       } else {
         if (pos_weight > 0) {
           write_additional_scores = 2;
-          return class_labels_[1]; // positive label
+          return 1; // positive label
         } else {
           write_additional_scores = 3;
-          return class_labels_[0]; // negative label
+          return 0; // negative label
         }
       }
     }
@@ -586,7 +584,7 @@ public:
         }
       }
       get_max_weight(predictions, maxclass, maxweight);
-      *Y = class_labels_[static_cast<size_t>(maxclass)];
+      *Y = maxclass;
     } else { // binary case
       _ENFORCE(predictions.size() == 2);
       if (this->base_values_.size() == 2) {

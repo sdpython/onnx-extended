@@ -1,7 +1,8 @@
 // Inspired from
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Classifier.cc.
 
-#include "c_op_tree_ensemble_common_py_.hpp"
+#include "c_op_tree_ensemble_py_.hpp"
+#include "c_op_tree_ensemble_py_classifier_.hpp"
 
 //////////////////////////////////////////
 // Classifier
@@ -9,22 +10,20 @@
 
 namespace onnx_c_ops {
 
-  /////////////////////////////////////////////
+/////////////////////////////////////////////
 // Regressor
 /////////////////////////////////////////////
 
 template <typename NTYPE>
 class RuntimeTreeEnsembleRegressor : public RuntimeTreeEnsembleCommon<NTYPE> {
 public:
-  RuntimeTreeEnsembleRegressor() { }
+  RuntimeTreeEnsembleRegressor(): RuntimeTreeEnsembleCommon<NTYPE>() {}
 };
-
 
 class RuntimeTreeEnsembleRegressorFloat
     : public RuntimeTreeEnsembleRegressor<float> {
 public:
-  RuntimeTreeEnsembleRegressorFloat()
-      : RuntimeTreeEnsembleRegressor<float>() {}
+  RuntimeTreeEnsembleRegressorFloat() : RuntimeTreeEnsembleRegressor<float>() {}
 };
 
 class RuntimeTreeEnsembleRegressorDouble
@@ -33,8 +32,6 @@ public:
   RuntimeTreeEnsembleRegressorDouble()
       : RuntimeTreeEnsembleRegressor<double>() {}
 };
-
-
 
 class RuntimeTreeEnsembleClassifierFloat
     : public RuntimeTreeEnsembleClassifier<float> {
@@ -68,7 +65,6 @@ onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_ in :epkg:`onnxru
 #endif
       ;
 
-
   /////////////
   // Regressor
   /////////////
@@ -86,7 +82,7 @@ in :epkg:`onnxruntime`. Supports float only.
     :epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
-  rgf.def(py::init<int, int, int>());
+  rgf.def(py::init<>());
   rgf.def("init", &RuntimeTreeEnsembleRegressorFloat::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
@@ -111,7 +107,7 @@ in :epkg:`onnxruntime`. Supports double only.
     :epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
-  rgd.def(py::init<int, int, int>());
+  rgd.def(py::init<>());
   rgd.def("init", &RuntimeTreeEnsembleRegressorDouble::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
@@ -123,7 +119,7 @@ in :epkg:`onnxruntime`. Supports double only.
   rgd.def("__sizeof__", &RuntimeTreeEnsembleRegressorDouble::get_sizeof,
           "Returns the size of the object.");
 
-/////////////
+  /////////////
   // Classifier
   /////////////
 
@@ -140,7 +136,7 @@ in :epkg:`onnxruntime`. Supports float only.
     :epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
-  clf.def(py::init<int, int, int>());
+  clf.def(py::init<>());
   clf.def("init", &RuntimeTreeEnsembleClassifierFloat::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
@@ -165,7 +161,7 @@ in :epkg:`onnxruntime`. Supports double only.
     :epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
-  cld.def(py::init<int, int, int>());
+  cld.def(py::init<>());
   cld.def("init", &RuntimeTreeEnsembleClassifierDouble::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");

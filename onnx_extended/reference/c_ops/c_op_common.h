@@ -31,8 +31,8 @@ public:
   static Status OK() { return Status(1); }
 };
 
-template <typename T> class InlinedVector : std::vector<T> {};
-template <typename T> class InlinedHashSet : std::unordered_set<T> {};
+#define InlinedVector std::vector
+#define InlinedHashSet std::unordered_set
 
 #if defined(_WIN32) || defined(WIN32)
 
@@ -429,6 +429,9 @@ void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa,
                  float pb, float val);
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k,
                  double pa, double pb, double val);
+
+inline void MakeStringInternal(std::ostringstream &ss) noexcept {
+}
 
 template <typename T>
 inline void MakeStringInternal(std::ostringstream &ss, const T &t) noexcept {
