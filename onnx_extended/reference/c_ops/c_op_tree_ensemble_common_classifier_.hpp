@@ -104,8 +104,8 @@ protected:
         n_rows, n_features, X, Y, labels,
         TreeAggregatorClassifier<InputType, ThresholdType, OutputType>(
             this->roots_.size(), this->n_targets_or_classes_,
-            this->post_transform_, this->base_values_,
-            binary_case_, weights_are_all_positive_));
+            this->post_transform_, this->base_values_, binary_case_,
+            weights_are_all_positive_));
   }
 };
 

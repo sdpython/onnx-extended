@@ -17,7 +17,7 @@ namespace onnx_c_ops {
 template <typename NTYPE>
 class RuntimeTreeEnsembleRegressor : public RuntimeTreeEnsembleCommon<NTYPE> {
 public:
-  RuntimeTreeEnsembleRegressor(): RuntimeTreeEnsembleCommon<NTYPE>() {}
+  RuntimeTreeEnsembleRegressor() : RuntimeTreeEnsembleCommon<NTYPE>() {}
 };
 
 class RuntimeTreeEnsembleRegressorFloat
@@ -51,7 +51,7 @@ public:
 
 using namespace onnx_c_ops;
 
-PYBIND11_MODULE(c_op_tree_ensemble_p_, m) {
+PYBIND11_MODULE(c_op_tree_ensemble_py_, m) {
   m.doc() =
 #if defined(__APPLE__)
       "Implements runtime for operator TreeEnsembleClassifier and "

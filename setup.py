@@ -247,8 +247,8 @@ setup(
             f"onnx_extended/reference/c_ops/c_op_conv_.{ext}",
         ),
         CMakeExtension(
-            "onnx_extended.reference.c_ops.c_op_tree_ensemble_p_",
-            f"onnx_extended/reference/c_ops/c_op_tree_ensemble_p_.{ext}",
+            "onnx_extended.reference.c_ops.c_op_tree_ensemble_py_",
+            f"onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.{ext}",
         ),
     ],
 )

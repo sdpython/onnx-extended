@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <limits>
 #include <thread>
 #include <vector>
 
@@ -45,24 +46,101 @@ template <typename T> struct SparseValue {
 template <typename T> struct ScoreValue {
   T score;
   unsigned char has_score;
-  operator T() const { return has_score ? score : 0; }
-  T operator-() { return has_score ? -score : 0; }
-  T operator*(float val) { return has_score ? score * static_cast<T>(val) : 0; }
-  T operator*(double val) {
-    return has_score ? score * static_cast<T>(val) : 0;
+  inline ScoreValue() {
+    score = static_cast<T>(0);
+    has_score = 1;
   }
-  ScoreValue<T> &operator=(ScoreValue<T> v) {
+  inline ScoreValue(float t) {
+    score = static_cast<T>(t);
+    has_score = 1;
+  }
+  inline ScoreValue(int t) {
+    score = static_cast<T>(t);
+    has_score = 1;
+  }
+  inline ScoreValue(double t) {
+    score = static_cast<T>(t);
+    has_score = 1;
+  }
+  inline ScoreValue(float t, unsigned char h) {
+    score = static_cast<T>(t);
+    has_score = h;
+  }
+  inline ScoreValue(int t, unsigned char h) {
+    score = static_cast<T>(t);
+    has_score = h;
+  }
+  inline ScoreValue(double t, unsigned char h) {
+    score = static_cast<T>(t);
+    has_score = h;
+  }
+  inline operator T() const { return has_score ? score : 0; }
+
+  inline ScoreValue<T> &operator=(ScoreValue<T> v) {
     this->score = v.score;
     this->has_score = v.has_score;
     return *this;
   }
-  ScoreValue<T> &operator=(float v) {
+  inline ScoreValue<T> &operator=(int v) {
     this->score = static_cast<T>(v);
     this->has_score = 1;
     return *this;
   }
-  ScoreValue<T> &operator=(double v) {
+  inline ScoreValue<T> &operator=(float v) {
     this->score = static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+  inline ScoreValue<T> &operator=(double v) {
+    this->score = static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+
+  inline ScoreValue<T> &operator+=(int v) {
+    this->score += static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+  inline ScoreValue<T> &operator+=(float v) {
+    this->score += static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+  inline ScoreValue<T> &operator+=(double v) {
+    this->score += static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+
+  inline ScoreValue<T> &operator/=(int v) {
+    this->score /= static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+  inline ScoreValue<T> &operator/=(float v) {
+    this->score /= static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+  inline ScoreValue<T> &operator/=(double v) {
+    this->score /= static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+
+  inline ScoreValue<T> &operator*=(int v) {
+    this->score *= static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+  inline ScoreValue<T> &operator*=(float v) {
+    this->score *= static_cast<T>(v);
+    this->has_score = 1;
+    return *this;
+  }
+  inline ScoreValue<T> &operator*=(double v) {
+    this->score *= static_cast<T>(v);
     this->has_score = 1;
     return *this;
   }
@@ -308,7 +386,7 @@ public:
       for (; it != predictions.end(); ++it)
         it->score /= this->n_trees_;
     }
-    write_scores<ScoreValue<ThresholdType>>(predictions, this->post_transform_, Z, add_second_class);
+    write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
 };
 
@@ -463,7 +541,7 @@ private:
 public:
   TreeAggregatorClassifier(size_t n_trees, const int64_t &n_targets_or_classes,
                            POST_EVAL_TRANSFORM post_transform,
-                           const std::vector<ThresholdType> &base_values,                           
+                           const std::vector<ThresholdType> &base_values,
                            bool binary_case, bool weights_are_all_positive,
                            int64_t positive_label = 1,
                            int64_t negative_label = 0)

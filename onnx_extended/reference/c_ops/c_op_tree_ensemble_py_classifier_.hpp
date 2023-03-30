@@ -164,8 +164,8 @@ private:
     auto Z_ = _mutable_unchecked1(Z);
     auto label_ = _mutable_unchecked1(label);
     const NTYPE *x_data = X.data(0);
-    NTYPE *z_data = (NTYPE*) Z_.data(0);
-    int64_t *l_data = (int64_t*) label_.data(0);
+    NTYPE *z_data = (NTYPE *)Z_.data(0);
+    int64_t *l_data = (int64_t *)label_.data(0);
 
     this->Compute(x_dims[0], x_dims[1], x_data, z_data, l_data);
   }

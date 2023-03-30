@@ -2,13 +2,10 @@ from typing import Any, Dict
 import numpy
 from onnx import NodeProto
 from onnx.reference.op_run import OpRun
-try:
-  from .c_op_tree_ensemble_p_ import (
-      RuntimeTreeEnsembleRegressorPFloat,
-      RuntimeTreeEnsembleRegressorPDouble,
-  )
-except ImportError:
-  print("Teee")
+from .c_op_tree_ensemble_py_ import (
+    RuntimeTreeEnsembleRegressorPFloat,
+    RuntimeTreeEnsembleRegressorPDouble,
+)
 
 
 class TreeEnsembleRegressorCommon(OpRun):

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <float.h>
 #include <iostream> // cout
 #include <iterator>
 #include <math.h>
@@ -177,13 +178,13 @@ static inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
 }
 
 template <typename NTYPE> void ComputeSoftmax(NTYPE *begin, NTYPE *end) {
-  NTYPE v_max = -std::numeric_limits<NTYPE>::max();
+  NTYPE v_max = -FLT_MAX;
   NTYPE *it;
   for (it = begin; it != end; ++it) {
     if (*it > v_max)
       v_max = *it;
   }
-  NTYPE this_sum = (NTYPE)0.;
+  NTYPE this_sum = 0;
   for (it = begin; it != end; ++it) {
     *it = std::exp(*it - v_max);
     this_sum += *it;
@@ -221,32 +222,33 @@ template <typename NTYPE> void ComputeSoftmaxZero(std::vector<NTYPE> &values) {
   ComputeSoftmaxZero(values.data(), values.data() + values.size());
 }
 
-template <class NTYPE>
+template <typename NTYPE, typename T>
 size_t write_scores(std::vector<NTYPE> &scores,
-                    POST_EVAL_TRANSFORM post_transform, NTYPE *Z,
+                    POST_EVAL_TRANSFORM post_transform, T *Z,
                     int add_second_class) {
   if ((scores.size() == 1) && add_second_class) {
-    scores.push_back(0);
+    scores.push_back(scores[0]);
+    scores[1] = 0.f;
     return write_scores(1, scores.data(), post_transform, Z, add_second_class);
   }
   return write_scores(scores.size(), scores.data(), post_transform, Z,
                       add_second_class);
 }
 
-template <class NTYPE>
+template <typename NTYPE, typename T>
 size_t write_scores(size_t n_classes, NTYPE *scores,
-                    POST_EVAL_TRANSFORM post_transform, NTYPE *Z,
+                    POST_EVAL_TRANSFORM post_transform, T *Z,
                     int add_second_class) {
   if (n_classes >= 2) {
     NTYPE *end = scores + n_classes;
     switch (post_transform) {
     case POST_EVAL_TRANSFORM::PROBIT:
       for (auto it = scores; it != end; ++it, ++Z)
-        *Z = ComputeProbit(*it);
+        *Z = ComputeProbit((T)*it);
       break;
     case POST_EVAL_TRANSFORM::LOGISTIC:
       for (auto it = scores; it != end; ++it, ++Z)
-        *Z = ComputeLogistic(*it);
+        *Z = ComputeLogistic((T)*it);
       break;
     case POST_EVAL_TRANSFORM::SOFTMAX:
       ComputeSoftmax(scores, end);
@@ -263,32 +265,32 @@ size_t write_scores(size_t n_classes, NTYPE *scores,
     }
   } else if (n_classes == 1) { // binary case
     if (post_transform == POST_EVAL_TRANSFORM::PROBIT) {
-      scores[0] = ComputeProbit(scores[0]);
+      scores[0] = ComputeProbit((T)scores[0]);
       *Z = scores[0];
     } else {
       switch (add_second_class) {
       case 0: // 0=all positive weights, winning class is positive
-        scores[1] = scores[0];
-        scores[0] = 1.f - scores[0]; // put opposite score in positive slot
-        *Z = scores[0];
-        *(Z + 1) = scores[1];
+        scores[1] = (T)scores[0];
+        scores[0] = 1.f - (T)scores[0]; // put opposite score in positive slot
+        *Z = (T)scores[0];
+        *(Z + 1) = (T)scores[1];
         ++n_classes;
         break;
       case 1: // 1 = all positive weights, winning class is negative
-        scores[1] = scores[0];
-        scores[0] = 1.f - scores[0]; // put opposite score in positive slot
-        *Z = scores[0];
-        *(Z + 1) = scores[1];
+        scores[1] = (T)scores[0];
+        scores[0] = 1.f - (T)scores[0]; // put opposite score in positive slot
+        *Z = (T)scores[0];
+        *(Z + 1) = (T)scores[1];
         ++n_classes;
         break;
       case 2:
       case 3: // 2 = mixed weights, winning class is positive
         if (post_transform == POST_EVAL_TRANSFORM::LOGISTIC) {
-          scores[1] = ComputeLogistic(scores[0]); // ml_logit(scores[k]);
-          scores[0] = ComputeLogistic(-scores[0]);
+          scores[1] = ComputeLogistic((T)scores[0]); // ml_logit(scores[k]);
+          scores[0] = ComputeLogistic((T)(-scores[0]));
         } else {
-          scores[1] = scores[0];
-          scores[0] = -scores[0];
+          scores[1] = (T)scores[0];
+          scores[0] = (T)(-scores[0]);
         }
         *Z = scores[0];
         *(Z + 1) = scores[1];
@@ -303,9 +305,9 @@ size_t write_scores(size_t n_classes, NTYPE *scores,
   return n_classes;
 }
 
-template <class NTYPE>
-size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform,
-                     NTYPE *Z, int add_second_class) {
+template <typename NTYPE, typename T>
+size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
+                     int add_second_class) {
   switch (post_transform) {
   case POST_EVAL_TRANSFORM::PROBIT:
     Z[0] = ComputeProbit(scores[0]);
@@ -430,8 +432,7 @@ void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa,
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k,
                  double pa, double pb, double val);
 
-inline void MakeStringInternal(std::ostringstream &ss) noexcept {
-}
+inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
 
 template <typename T>
 inline void MakeStringInternal(std::ostringstream &ss, const T &t) noexcept {
