@@ -4,8 +4,8 @@ from onnx import NodeProto
 from onnx.reference.op_run import OpRun
 from ._op_classifier_common import _ClassifierCommon
 from .c_op_tree_ensemble_py_ import (
-    RuntimeTreeEnsembleClassifierPFloat,
-    RuntimeTreeEnsembleClassifierPDouble,
+    RuntimeTreeEnsembleClassifierFloat,
+    RuntimeTreeEnsembleClassifierDouble,
 )
 
 
@@ -16,20 +16,46 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
         self, onnx_node: NodeProto, run_params: Dict[str, Any], schema: Any = None
     ):
         OpRun.__init__(self, onnx_node, run_params, schema=schema)
-        self.parallel = (60, 128, 20)
+        self.parallel = None
         self.rt_ = None
 
-    def change_parallel(self, trees: int, trees_rows: int, rows: int):
-        self.parallel = (trees, trees_rows, rows)
-        self._init(dtype=self._dtype, version=self._runtime_version)
+    def set_parallel(
+        self,
+        parallel_tree: int = -1,
+        parallel_tree_N: int = -1,
+        parallel_N: int = -1,
+        batch_size_tree: int = -1,
+        batch_size_rows: int = -1,
+        node3: int = -1,
+    ):
+        """
+        Sets the parameter for parallelization.
+        If a parameter is set to -1, its value does not change.
+
+        :param parallel_tree: parallization by trees if the number of trees is higher
+        :param parallel_tree_N: batch size (rows) if parallization by trees
+        :param parallel_N: parallization by rows if the number of rows is higher
+        :param batch_size_tree: number of trees to compute at the same time
+        :param batch_size_rows: number of rows to compute at the same time
+        :param node3: use bigger nodes
+        """
+        self.parallel = (
+            parallel_tree,
+            parallel_tree_N,
+            parallel_N,
+            batch_size_tree,
+            batch_size_rows,
+            node3,
+        )
+        if self.rt_ is not None:
+            self.rt_.set(*self.parallel)
 
     def _init(self, dtype, **kwargs):
         if dtype == numpy.float32:
-            cls = RuntimeTreeEnsembleClassifierPFloat
+            cls = RuntimeTreeEnsembleClassifierFloat
         else:
-            cls = RuntimeTreeEnsembleClassifierPDouble
+            cls = RuntimeTreeEnsembleClassifierDouble
 
-        self.rt_ = cls(self.parallel[0], self.parallel[1], self.parallel[2], True, True)
         empty_f = numpy.array([], dtype=dtype)
         empty_i = numpy.array([], dtype=numpy.int64)
         base_values = (
@@ -58,29 +84,31 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
             or empty_f
         )
         ncl = max(
-            len(kwargs.get("class_int64s", None) or empty_i),
-            len(kwargs.get("class_strings", None) or []),
-            len(kwargs["class_ids"] or empty_i),
+            len(kwargs.get("classlabels_int64s", None) or []),
+            len(kwargs.get("classlabels_strings", None) or []),
         )
+        self.rt_ = cls()
         self.rt_.init(
-            base_values,
-            kwargs["class_ids"] or numpy.arange(ncl, dtype=numpy.int64),
-            kwargs["class_nodeids"],
-            kwargs["class_treeids"],
-            cw,
-            kwargs.get("class_int64s", None) or empty_i,
-            kwargs.get("class_strings", None) or [],
-            kwargs["nodes_falsenodeids"],
-            kwargs["nodes_featureids"],
-            nodes_hitrates,
-            kwargs["nodes_missing_value_tracks_true"],
-            kwargs["nodes_modes"],
-            kwargs["nodes_nodeids"],
-            kwargs["nodes_treeids"],
-            kwargs["nodes_truenodeids"],
-            nodes_values,
-            kwargs["post_transform"] or "NONE",
+            "SUM",  # 3
+            base_values,  # 4
+            ncl,  # 5
+            kwargs["nodes_falsenodeids"],  # 6
+            kwargs["nodes_featureids"],  # 7
+            nodes_hitrates,  # 8
+            kwargs["nodes_missing_value_tracks_true"],  # 9
+            kwargs["nodes_modes"],  # 10
+            kwargs["nodes_nodeids"],  # 11
+            kwargs["nodes_treeids"],  # 12
+            kwargs["nodes_truenodeids"],  # 13
+            nodes_values,  # 14
+            kwargs["post_transform"] or "NONE",  # 15
+            kwargs["class_ids"],  # 16
+            kwargs["class_nodeids"],  # 17
+            kwargs["class_treeids"],  # 18
+            cw,  # 19
         )
+        if self.parallel is not None:
+            self.rt_.set(*self.parallel)
 
     def _run(self, x, **kwargs):
         """
@@ -95,7 +123,10 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
         label, scores = self.rt_.compute(x)
         if scores.shape[0] != label.shape[0]:
             scores = scores.reshape((label.shape[0], -1))
-        return self._post_process_predicted_label(label, scores)
+        cl = kwargs["classlabels_int64s"] or []
+        if len(cl) == 0:
+            cl = kwargs["classlabels_strings"]
+        return self._post_process_predicted_label(label, scores, cl)
 
 
 class TreeEnsembleClassifier_1(TreeEnsembleClassifierCommon):
@@ -126,7 +157,7 @@ class TreeEnsembleClassifier_1(TreeEnsembleClassifierCommon):
             x,
             aggregate_function=aggregate_function,
             base_values=base_values,
-            class_ids=None,
+            class_ids=class_ids,
             class_nodeids=class_nodeids,
             class_treeids=class_treeids,
             class_weights=class_weights,
@@ -177,7 +208,7 @@ class TreeEnsembleClassifier_3(TreeEnsembleClassifierCommon):
             x,
             base_values=base_values,
             base_values_as_tensor=base_values_as_tensor,
-            class_ids=None,
+            class_ids=class_ids,
             class_nodeids=class_nodeids,
             class_treeids=class_treeids,
             class_weights=class_weights,

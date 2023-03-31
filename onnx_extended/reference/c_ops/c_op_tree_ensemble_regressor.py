@@ -3,8 +3,8 @@ import numpy
 from onnx import NodeProto
 from onnx.reference.op_run import OpRun
 from .c_op_tree_ensemble_py_ import (
-    RuntimeTreeEnsembleRegressorPFloat,
-    RuntimeTreeEnsembleRegressorPDouble,
+    RuntimeTreeEnsembleRegressorFloat,
+    RuntimeTreeEnsembleRegressorDouble,
 )
 
 
@@ -15,50 +15,98 @@ class TreeEnsembleRegressorCommon(OpRun):
         self, onnx_node: NodeProto, run_params: Dict[str, Any], schema: Any = None
     ):
         OpRun.__init__(self, onnx_node, run_params, schema=schema)
-        self.parallel = (60, 128, 20)
+        self.parallel = None
+        self.rt_ = None
 
-    def change_parallel(self, trees: int, trees_rows: int, rows: int):
-        self.parallel = (trees, trees_rows, rows)
-        self._init(dtype=self._dtype, version=self._runtime_version)
+    def set_parallel(
+        self,
+        parallel_tree: int = -1,
+        parallel_tree_N: int = -1,
+        parallel_N: int = -1,
+        batch_size_tree: int = -1,
+        batch_size_rows: int = -1,
+        node3: int = -1,
+    ):
+        """
+        Sets the parameter for parallelization.
+        If a parameter is set to -1, its value does not change.
+
+        :param parallel_tree: parallization by trees if the number of trees is higher
+        :param parallel_tree_N: batch size (rows) if parallization by trees
+        :param parallel_N: parallization by rows if the number of rows is higher
+        :param batch_size_tree: number of trees to compute at the same time
+        :param batch_size_rows: number of rows to compute at the same time
+        :param node3: use bigger nodes
+        """
+        self.parallel = (
+            parallel_tree,
+            parallel_tree_N,
+            parallel_N,
+            batch_size_tree,
+            batch_size_rows,
+            node3,
+        )
+        if self.rt_ is not None:
+            self.rt_.set(*self.parallel)
 
     def _init(self, dtype, **kwargs):
         if dtype == numpy.float32:
-            cls = RuntimeTreeEnsembleRegressorPFloat
+            cls = RuntimeTreeEnsembleRegressorFloat
         else:
-            cls = RuntimeTreeEnsembleRegressorPDouble
+            cls = RuntimeTreeEnsembleRegressorDouble
 
-            self.rt_ = cls(
-                self.parallel[0], self.parallel[1], self.parallel[2], True, True
-            )
-            self.rt_.init(
-                kwargs["aggregate_function"],
-                kwargs.get("base_values", []),
-                kwargs.get("base_values_as_tensor", []),
-                kwargs["n_targets"],
-                kwargs["nodes_falsenodeids"],
-                kwargs["nodes_featureids"],
-                kwargs["nodes_hitrates"],
-                kwargs.get("nodes_hitrates_as_tensor", []),
-                kwargs.get("nodes_missing_value_tracks_true", []),
-                kwargs["nodes_modes"],
-                kwargs["nodes_nodeids"],
-                kwargs["nodes_treeids"],
-                kwargs["nodes_truenodeids"],
-                kwargs.get("nodes_values", []),
-                kwargs.get("nodes_values_as_tensor", []),
-                kwargs["post_transform"],
-                kwargs["target_ids"],
-                kwargs["target_nodeids"],
-                kwargs["target_treeids"],
-                kwargs.get("target_weights", []),
-                kwargs.get("target_weights_as_tensor", []),
-            )
+        self.rt_ = cls()
+
+        empty_f = numpy.array([], dtype=dtype)
+        empty_i = numpy.array([], dtype=numpy.int64)
+        base_values = numpy.array(
+            kwargs.get("base_values", None)
+            or kwargs.get("base_values_as_tensor", None)
+            or empty_f
+        )
+        nodes_values = numpy.array(
+            kwargs.get("nodes_values", None)
+            or kwargs.get("nodes_values_as_tensor", None)
+            or empty_f
+        )
+        nodes_hitrates = numpy.array(
+            kwargs.get("nodes_hitrates", None)
+            or kwargs.get("nodes_hitrates_as_tensor", None)
+            or empty_f
+        )
+        tw = numpy.array(
+            kwargs.get("target_weights", None)
+            or kwargs.get("target_weights", None)
+            or empty_f
+        )
+
+        self.rt_.init(
+            kwargs.get("aggregate_function", "SUM"),  # 3
+            base_values,  # 4
+            kwargs["n_targets"],  # 5
+            kwargs["nodes_falsenodeids"],  # 6
+            kwargs["nodes_featureids"],  # 7
+            nodes_hitrates,  # 8
+            kwargs.get("nodes_missing_value_tracks_true", []),  # 9
+            kwargs["nodes_modes"],  # 10
+            kwargs["nodes_nodeids"],  # 11
+            kwargs["nodes_treeids"],  # 12
+            kwargs["nodes_truenodeids"],  # 13
+            nodes_values,  # 14
+            kwargs["post_transform"],  # 15
+            kwargs["target_ids"],  # 16
+            kwargs["target_nodeids"],  # 17
+            kwargs["target_treeids"],  # 18
+            tw,  # 19
+        )
+        if self.parallel is not None:
+            self.rt_.set(*self.parallel)
 
     def _run(self, x, **kwargs):
         if hasattr(x, "todense"):
             x = x.todense()
         if self.rt_ is None:
-            self.init(**kwargs)
+            self._init(x.dtype, **kwargs)
         pred = self.rt_.compute(x)
         if pred.shape[0] != x.shape[0]:
             pred = pred.reshape((x.shape[0], -1))

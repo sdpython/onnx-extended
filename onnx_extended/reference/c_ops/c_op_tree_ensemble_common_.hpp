@@ -29,8 +29,33 @@ template <class Tp> struct TreeAlloc {
 
 class TreeEnsembleCommonAttributes {
 public:
+  TreeEnsembleCommonAttributes() {
+    parallel_tree_ = 80;
+    parallel_tree_N_ = 128;
+    parallel_N_ = 50;
+    batch_size_tree_ = 2;
+    batch_size_rows_ = 2;
+    use_node3_ = 0;
+  }
+
   int64_t get_target_or_class_count() const {
     return this->n_targets_or_classes_;
+  }
+
+  void set(int parallel_tree, int parallel_tree_N, int parallel_N,
+           int batch_size_tree, int batch_size_rows, int use_node3) {
+    if (parallel_tree >= 0)
+      parallel_tree_ = parallel_tree;
+    if (parallel_tree_N >= 0)
+      parallel_tree_N_ = parallel_tree_N;
+    if (parallel_N >= 0)
+      parallel_N_ = parallel_N;
+    if (batch_size_tree >= 0)
+      batch_size_tree_ = batch_size_tree;
+    if (batch_size_rows >= 0)
+      batch_size_rows_ = batch_size_rows;
+    if (use_node3 >= 0)
+      use_node3_ = use_node3;
   }
 
 protected:
@@ -50,6 +75,7 @@ protected:
                    // parallel_N_
   int batch_size_tree_;
   int batch_size_rows_;
+  int use_node3_;
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -75,15 +101,12 @@ protected:
 public:
   TreeEnsembleCommon() {}
 
-  Status Init(int parallel_tree,                                // 80
-              int parallel_tree_N,                              // 128
-              int parallel_N,                                   // 50
-              const std::string &aggregate_function,            // 3
-              const std::vector<ThresholdType> &base_values,    // 4
-              int64_t n_targets_or_classes,                     // 5
-              const std::vector<int64_t> &nodes_falsenodeids,   // 6
-              const std::vector<int64_t> &nodes_featureids,     // 7
-              const std::vector<ThresholdType> &nodes_hitrates, // 8
+  Status Init(const std::string &aggregate_function,                       // 3
+              const std::vector<ThresholdType> &base_values,               // 4
+              int64_t n_targets_or_classes,                                // 5
+              const std::vector<int64_t> &nodes_falsenodeids,              // 6
+              const std::vector<int64_t> &nodes_featureids,                // 7
+              const std::vector<ThresholdType> &nodes_hitrates,            // 8
               const std::vector<int64_t> &nodes_missing_value_tracks_true, // 9
               const std::vector<std::string> &nodes_modes,                 // 10
               const std::vector<int64_t> &nodes_nodeids,                   // 11
@@ -139,7 +162,6 @@ int TreeEnsembleCommon<InputType, ThresholdType,
 
 template <typename InputType, typename ThresholdType, typename OutputType>
 Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
-    int parallel_tree, int parallel_tree_N, int parallel_N,
     const std::string &aggregate_function,
     const std::vector<ThresholdType> &base_values, int64_t n_targets_or_classes,
     const std::vector<int64_t> &nodes_falsenodeids,
@@ -156,11 +178,6 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     const std::vector<int64_t> &target_class_nodeids,
     const std::vector<int64_t> &target_class_treeids,
     const std::vector<ThresholdType> &target_class_weights) {
-  parallel_tree_ = parallel_tree;
-  parallel_tree_N_ = parallel_tree_N;
-  parallel_N_ = parallel_N;
-  batch_size_tree_ = 2;
-  batch_size_rows_ = 2;
 
   _ENFORCE(n_targets_or_classes > 0);
   _ENFORCE(nodes_falsenodeids.size() == nodes_featureids.size());
@@ -368,8 +385,10 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     }
   }
 
-  // Use optimized implementation.
-  ConvertTreeIntoTree3();
+  if (use_node3_) {
+    // Use optimized implementation with bigger nodes.
+    ConvertTreeIntoTree3();
+  }
   return Status::OK();
 }
 

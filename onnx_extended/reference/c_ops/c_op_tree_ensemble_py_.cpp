@@ -86,6 +86,8 @@ in :epkg:`onnxruntime`. Supports float only.
   rgf.def("init", &RuntimeTreeEnsembleRegressorFloat::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
+  rgf.def("set", &RuntimeTreeEnsembleRegressorFloat::set,
+          "Updates parallelization parameters.");
   rgf.def("compute", &RuntimeTreeEnsembleRegressorFloat::compute,
           "Computes the predictions for the random forest.");
   rgf.def("omp_get_max_threads",
@@ -111,6 +113,8 @@ in :epkg:`onnxruntime`. Supports double only.
   rgd.def("init", &RuntimeTreeEnsembleRegressorDouble::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
+  rgd.def("set", &RuntimeTreeEnsembleRegressorFloat::set,
+          "Updates parallelization parameters.");
   rgd.def("compute", &RuntimeTreeEnsembleRegressorDouble::compute,
           "Computes the predictions for the random forest.");
   rgd.def("omp_get_max_threads",
@@ -140,6 +144,8 @@ in :epkg:`onnxruntime`. Supports float only.
   clf.def("init", &RuntimeTreeEnsembleClassifierFloat::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
+  clf.def("set", &RuntimeTreeEnsembleRegressorFloat::set,
+          "Updates parallelization parameters.");
   clf.def("compute", &RuntimeTreeEnsembleClassifierFloat::compute,
           "Computes the predictions for the random forest.");
   clf.def("omp_get_max_threads",
@@ -165,6 +171,8 @@ in :epkg:`onnxruntime`. Supports double only.
   cld.def("init", &RuntimeTreeEnsembleClassifierDouble::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
+  cld.def("set", &RuntimeTreeEnsembleRegressorFloat::set,
+          "Updates parallelization parameters.");
   cld.def("compute", &RuntimeTreeEnsembleClassifierDouble::compute,
           "Computes the predictions for the random forest.");
   cld.def("omp_get_max_threads",

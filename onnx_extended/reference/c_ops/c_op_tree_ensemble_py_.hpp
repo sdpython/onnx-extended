@@ -32,10 +32,7 @@ public:
   RuntimeTreeEnsembleCommon() : TreeEnsembleCommon<NTYPE, NTYPE, NTYPE>() {}
   ~RuntimeTreeEnsembleCommon() {}
 
-  void init(int parallel_tree,                     // 80
-            int parallel_tree_N,                   // 128
-            int parallel_N,                        // 50
-            const std::string &aggregate_function, // only classifier
+  void init(const std::string &aggregate_function, // only classifier
             py_array_t_ntype_t base_values,        // 4
             int64_t n_targets_or_classes,          // 5
             py_array_t_int64_t nodes_falsenodeids, // 6
@@ -89,8 +86,7 @@ public:
     array2vector(ttarget_class_treeids, target_class_treeids, int64_t);
     array2vector(ttarget_class_weights, target_class_weights, NTYPE);
 
-    init_c(parallel_tree, parallel_tree_N, parallel_N, // 0-2
-           aggregate_function,                         // 3
+    init_c(aggregate_function,                         // 3
            cbasevalues,                                // 4
            n_targets_or_classes,                       // 5
            tnodes_falsenodeids,                        // 6
@@ -110,10 +106,7 @@ public:
     );
   }
 
-  void init_c(int parallel_tree,                              // 80
-              int parallel_tree_N,                            // 128
-              int parallel_N,                                 // 50
-              const std::string &aggregate_function,          // only classifier
+  void init_c(const std::string &aggregate_function,          // only classifier
               const std::vector<NTYPE> &base_values,          // 4
               int64_t n_targets_or_classes,                   // 5
               const std::vector<int64_t> &nodes_falsenodeids, // 6
@@ -131,8 +124,7 @@ public:
               const std::vector<int64_t> &target_class_treeids,            // 18
               const std::vector<NTYPE> &target_class_weights               // 19
   ) {
-    this->Init(parallel_tree, parallel_tree_N, parallel_N, // 0-2
-               aggregate_function,                         // 3
+    this->Init(aggregate_function,                         // 3
                base_values,                                // 4
                n_targets_or_classes,                       // 5
                nodes_falsenodeids,                         // 6

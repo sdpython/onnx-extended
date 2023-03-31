@@ -499,6 +499,6 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 #define _ENFORCE(cond, ...)                                                    \
   if (!(cond))                                                                 \
     throw std::runtime_error(                                                  \
-        MakeString(#cond, "failed.", MakeString(__VA_ARGS__)));
+        MakeString("`", #cond, "` failed.", MakeString(__VA_ARGS__)));
 
 } // namespace onnx_c_ops

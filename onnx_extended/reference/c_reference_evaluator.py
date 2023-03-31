@@ -58,6 +58,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
             key = cl.op_domain, "_".join(vers[:-1])
             if key not in best or best[key][0] < v:
                 best[key] = (v, cl)
+
         modified = []
         for cl in new_ops:
             if cl.__name__ not in renamed:
@@ -69,6 +70,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
                 atts["op_schema"] = get_schema(k[1], v[0], domain=v[1].op_domain)
             new_cl = type(k[1], bases, atts)
             modified.append(new_cl)
+
         new_ops = modified
         return new_ops
 

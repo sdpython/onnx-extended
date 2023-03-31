@@ -42,8 +42,7 @@ public:
     }
   }
 
-  Status Init(int parallel_tree, int parallel_tree_N, int parallel_N, // 0-2
-              const std::string &aggregate_function,                  // 3
+  Status Init(const std::string &aggregate_function,                  // 3
               const std::vector<ThresholdType> &base_values,          // 4
               int64_t n_targets_or_classes,                           // 5
               const std::vector<int64_t> &nodes_falsenodeids,         // 6
@@ -62,7 +61,6 @@ public:
               const std::vector<ThresholdType> &class_weights              // 19
   ) {
     TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
-        parallel_tree, parallel_tree_N, parallel_N, // 0-2
         aggregate_function,                         // 3
         base_values,                                // 4
         n_targets_or_classes,                       // 5

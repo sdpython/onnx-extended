@@ -18,13 +18,14 @@ from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
     TreeEnsembleClassifier_3,
 )
 from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
+    TreeEnsembleRegressor_1,
     TreeEnsembleRegressor_3,
 )
 
 
 class TestCTreeEnsemble(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_DecisionTreeClassifier(self):
+    def test_decision_tree_classifier(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -46,7 +47,7 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqualArray(exp.astype(numpy.float32), got, atol=1e-5)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_DecisionTreeClassifier_plusten(self):
+    def test_decision_tree_classifier_plusten(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         y += 10
@@ -68,7 +69,7 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqualArray(exp.astype(numpy.float32), got, atol=1e-5)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_GradientBoostingClassifier2(self):
+    def test_gradient_boosting_classifier2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         y[y == 2] = 1
@@ -80,7 +81,7 @@ class TestCTreeEnsemble(ExtTestCase):
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
         )
         oinf = CReferenceEvaluator(model_def)
-        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_3)
+        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
@@ -90,7 +91,7 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqualArray(exp, got, decimal=3)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_GradientBoostingClassifier3(self):
+    def test_gradient_boosting_classifier3(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -101,7 +102,7 @@ class TestCTreeEnsemble(ExtTestCase):
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
         )
         oinf = CReferenceEvaluator(model_def)
-        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_3)
+        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), ["output_label", "output_probability"])
         lexp = clr.predict(X_test)
@@ -113,7 +114,7 @@ class TestCTreeEnsemble(ExtTestCase):
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
     @unittest.skipIf(True, reason="not implemented yet")
-    def test_onnxrt_python_DecisionTreeClassifier_mlabel(self):
+    def test_decision_tree_classifier_mlabel(self):
         iris = load_iris()
         X, y_ = iris.data, iris.target
         y = numpy.zeros((y_.shape[0], 3), dtype=int)
@@ -137,7 +138,7 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqualArray(lexp, y[0])
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_DecisionTreeRegressor(self):
+    def test_decision_tree_regressor(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -146,29 +147,31 @@ class TestCTreeEnsemble(ExtTestCase):
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = CReferenceEvaluator(model_def)
-        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleRegressor_3)
+        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleRegressor_1)
 
         for i in range(0, 20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
             lexp = clr.predict(X_test[i : i + 1])
             self.assertEqual(lexp.shape, y[0].shape)
-            self.assertEqualArray(lexp, y[0])
+            self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
         for i in range(0, 20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 2]})
             lexp = clr.predict(X_test[i : i + 2])
             self.assertEqual(lexp.shape, y[0].shape)
-            self.assertEqualArray(lexp, y[0])
+            self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         lexp = clr.predict(X_test)
         self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqualArray(lexp, y[0])
+        self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_DecisionTreeRegressor2(self):
+    def test_decision_tree_regressor2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
+        X = X.astype(numpy.float32)
+        y = y.astype(numpy.float32)
         y = numpy.vstack([y, y]).T
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = DecisionTreeRegressor()
@@ -179,10 +182,10 @@ class TestCTreeEnsemble(ExtTestCase):
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         lexp = clr.predict(X_test)
         self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqualArray(lexp, y[0])
+        self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_DecisionTree_depth2(self):
+    def test_decision_tree_depth2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -203,14 +206,16 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqualArray(exp, got, atol=1e-5)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_RandomForestClassifer5(self):
+    def test_random_forest_classifier5(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = RandomForestClassifier(n_estimators=4, max_depth=2, random_state=11)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test[:5].astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), ["output_label", "output_probability"])
@@ -220,218 +225,6 @@ class TestCTreeEnsemble(ExtTestCase):
         exp = clr.predict_proba(X_test[:5])
         got = y[1]
         self.assertEqualArray(exp, got, atol=1e-5)
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_openmp_compilation_p(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            RuntimeTreeEnsembleRegressorPFloat,
-        )
-
-        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, 1, False, False)
-        r = ru.runtime_options()
-        self.assertEqual("OPENMP", r)
-        nb = ru.omp_get_max_threads()
-        self.assertGreater(nb, 0)
-
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            RuntimeTreeEnsembleClassifierPFloat,
-        )
-
-        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, 1, False, False)
-        r = ru.runtime_options()
-        self.assertEqual("OPENMP", r)
-        nb2 = ru.omp_get_max_threads()
-        self.assertEqual(nb2, nb)
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_openmp_compilation_p_true(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            RuntimeTreeEnsembleRegressorPFloat,
-        )
-
-        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, 1, True, False)
-        r = ru.runtime_options()
-        self.assertEqual("OPENMP", r)
-        nb = ru.omp_get_max_threads()
-        self.assertGreater(nb, 0)
-
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            RuntimeTreeEnsembleClassifierPFloat,
-        )
-
-        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, 1, True, False)
-        r = ru.runtime_options()
-        self.assertEqual("OPENMP", r)
-        nb2 = ru.omp_get_max_threads()
-        self.assertEqual(nb2, nb)
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_average(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_average,
-        )
-
-        confs = [
-            [100, 128, 100, False, False, True],
-            [100, 128, 100, False, False, False],
-            [10, 128, 10, False, False, True],
-            [10, 128, 10, False, False, False],
-            [2, 128, 2, False, False, True],
-            [2, 128, 2, False, False, False],
-        ]
-        for conf in confs:
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_average(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_average(*(conf + [b, True]))
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_average_true(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_average,
-        )
-
-        confs = [
-            [100, 128, 100, True, False, True],
-            [100, 128, 100, True, False, False],
-            [10, 128, 10, True, False, True],
-            [10, 128, 10, True, False, False],
-            [2, 128, 2, True, False, True],
-            [2, 128, 2, True, False, False],
-        ]
-        for conf in confs:
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_average(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_average(*(conf + [b, True]))
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_sum(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_sum,
-        )
-
-        confs = [
-            [100, 128, 100, False, False, True],
-            [100, 128, 100, False, False, False],
-            [10, 128, 10, False, False, True],
-            [10, 128, 10, False, False, False],
-            [2, 128, 2, False, False, True],
-            [2, 128, 2, False, False, False],
-        ]
-        for conf in confs:
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_sum(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_sum(*(conf + [b, True]))
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_sum_true(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_sum,
-        )
-
-        confs = [
-            [100, 128, 100, True, False, True],
-            [100, 128, 100, True, False, False],
-            [10, 128, 10, True, False, True],
-            [10, 128, 10, True, False, False],
-            [2, 128, 2, True, False, True],
-            [2, 128, 2, True, False, False],
-        ]
-        for conf in confs:
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_sum(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_sum(*(conf + [b, True]))
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_min(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_min,
-        )
-
-        confs = [
-            [100, 128, 100, False, False, True],
-            [100, 128, 100, False, False, False],
-            [10, 128, 10, False, False, True],
-            [10, 128, 10, False, False, False],
-            [2, 128, 2, False, False, True],
-            [2, 128, 2, False, False, False],
-        ]
-        for conf in reversed(confs):
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_min(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_min(*(conf + [b, True]))
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_min_true(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_min,
-        )
-
-        confs = [
-            [100, 128, 100, True, False, True],
-            [100, 128, 100, True, False, False],
-            [10, 128, 10, True, False, True],
-            [10, 128, 10, True, False, False],
-            [2, 128, 2, True, False, True],
-            [2, 128, 2, True, False, False],
-        ]
-        for conf in reversed(confs):
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_min(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_min(*(conf + [b, True]))
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_max(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_max,
-        )
-
-        confs = [
-            [100, 128, 100, False, False, True],
-            [100, 128, 100, False, False, False],
-            [10, 128, 10, False, False, True],
-            [10, 128, 10, False, False, False],
-            [2, 128, 2, False, False, True],
-            [2, 128, 2, False, False, False],
-        ]
-        for conf in confs:
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_max(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_max(*(conf + [b, True]))
-
-    @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_cpp_max_true(self):
-        from onnx_extended.reference.c_ops.c_op_tree_ensemble_p_ import (
-            test_tree_regressor_multitarget_max,
-        )
-
-        confs = [
-            [100, 128, 100, True, False, True],
-            [100, 128, 100, True, False, False],
-            [10, 128, 10, True, False, True],
-            [10, 128, 10, True, False, False],
-            [2, 128, 2, True, False, True],
-            [2, 128, 2, True, False, False],
-        ]
-        for conf in confs:
-            with self.subTest(conf=tuple(conf)):
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_max(*(conf + [b, False]))
-                for b in [False, True]:
-                    test_tree_regressor_multitarget_max(*(conf + [b, True]))
 
     def common_test_onnxrt_python_tree_ensemble_runtime_version(
         self, dtype, multi=False
@@ -604,7 +397,6 @@ class TestCTreeEnsemble(ExtTestCase):
 
         for rv in [3, 2, 1]:
             oinf = CReferenceEvaluator(onx)
-            oinf.rt_nodes_[0]._init(numpy.float32, rv)
 
             for n in [1, 20, 100, 2000, 1, 1000, 10]:
                 x = numpy.empty((n, X_train.shape[1]), dtype=numpy.float32)
@@ -616,5 +408,4 @@ class TestCTreeEnsemble(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestCTreeEnsemble().test_openmp_compilation_p_true()
     unittest.main(verbosity=2)
