@@ -25,12 +25,14 @@ from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
 
 class TestCTreeEnsemble(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_decision_tree_classifier(self):
+    def test_decision_tree_classifier_bin(self):
         iris = load_iris()
-        X, y = iris.data, iris.target
+        X, y = iris.data.astype(numpy.float32), iris.target
+        y[y == 2] = 0
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = DecisionTreeClassifier()
         clr.fit(X_train, y_train)
+        X_test = X_test[2:]
 
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
@@ -39,17 +41,37 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
+        exp = clr.predict_proba(X_test)
+        print(y[1] - exp)
+        self.assertEqualArray(exp.astype(numpy.float32), y[1], atol=1e-5)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
+    @ignore_warnings((FutureWarning, DeprecationWarning))
+    def test_decision_tree_classifier_multi(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = DecisionTreeClassifier()
+        clr.fit(X_train, y_train)
+        X_test = X_test[2:]
+
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
+        self.assertNotIn("nodes_values_as_tensor", str(model_def))
+        oinf = CReferenceEvaluator(model_def)
+        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
+        y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         exp = clr.predict_proba(X_test)
-        got = y[1]
-        self.assertEqualArray(exp.astype(numpy.float32), got, atol=1e-5)
+        self.assertEqualArray(exp.astype(numpy.float32), y[1], atol=1e-5)
+        lexp = clr.predict(X_test)
+        self.assertEqualArray(lexp, y[0])
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_plusten(self):
         iris = load_iris()
-        X, y = iris.data, iris.target
+        X, y = iris.data.astype(numpy.float32), iris.target
         y += 10
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = DecisionTreeClassifier()
@@ -59,19 +81,18 @@ class TestCTreeEnsemble(ExtTestCase):
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
         )
         oinf = CReferenceEvaluator(model_def)
-        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_3)
+        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
-        lexp = clr.predict(X_test)
-        self.assertEqualArray(lexp, y[0])
 
         exp = clr.predict_proba(X_test)
-        got = y[1]
-        self.assertEqualArray(exp.astype(numpy.float32), got, atol=1e-5)
+        self.assertEqualArray(exp.astype(numpy.float32), y[1], atol=1e-5)
+        lexp = clr.predict(X_test)
+        self.assertEqualArray(lexp, y[0])
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_gradient_boosting_classifier2(self):
         iris = load_iris()
-        X, y = iris.data, iris.target
+        X, y = iris.data.astype(numpy.float32), iris.target
         y[y == 2] = 1
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = GradientBoostingClassifier()
@@ -83,17 +104,15 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
+        exp = clr.predict_proba(X_test)
+        self.assertEqualArray(exp, y[1], decimal=3)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
-
-        exp = clr.predict_proba(X_test)
-        got = y[1]
-        self.assertEqualArray(exp, got, decimal=3)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_gradient_boosting_classifier3(self):
         iris = load_iris()
-        X, y = iris.data, iris.target
+        X, y = iris.data.astype(numpy.float32), iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = GradientBoostingClassifier()
         clr.fit(X_train, y_train)
@@ -105,18 +124,16 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), ["output_label", "output_probability"])
+        exp = clr.predict_proba(X_test)
+        self.assertEqualArray(exp, y[1], decimal=3)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
-
-        exp = clr.predict_proba(X_test)
-        got = y[1]
-        self.assertEqualArray(exp, got, decimal=3)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
     @unittest.skipIf(True, reason="not implemented yet")
     def test_decision_tree_classifier_mlabel(self):
         iris = load_iris()
-        X, y_ = iris.data, iris.target
+        X, y_ = iris.data.astype(numpy.float32), iris.target
         y = numpy.zeros((y_.shape[0], 3), dtype=int)
         y[y_ == 0, 0] = 1
         y[y_ == 1, 1] = 1
@@ -148,6 +165,44 @@ class TestCTreeEnsemble(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleRegressor_1)
+
+        for i in range(0, 20):
+            y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
+            lexp = clr.predict(X_test[i : i + 1])
+            self.assertEqual(lexp.shape, y[0].shape)
+            self.assertEqualArray(lexp.astype(numpy.float32), y[0])
+
+        for i in range(0, 20):
+            y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 2]})
+            lexp = clr.predict(X_test[i : i + 2])
+            self.assertEqual(lexp.shape, y[0].shape)
+            self.assertEqualArray(lexp.astype(numpy.float32), y[0])
+
+        y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
+        lexp = clr.predict(X_test)
+        self.assertEqual(lexp.shape, y[0].shape)
+        self.assertEqualArray(lexp.astype(numpy.float32), y[0])
+
+    @ignore_warnings((FutureWarning, DeprecationWarning))
+    def test_decision_tree_regressor_double(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = DecisionTreeRegressor()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float64))
+        cl = None
+        for op in model_def.opset_import:
+            if op.domain == "ai.onnx.ml":
+                cl = (
+                    TreeEnsembleRegressor_3
+                    if op.version == 3
+                    else TreeEnsembleClassifier_1
+                )
+        self.assertNotEmpty(cl)
+        oinf = CReferenceEvaluator(model_def)
+        self.assertIsInstance(oinf.rt_nodes_[0], cl)
 
         for i in range(0, 20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
@@ -269,21 +324,21 @@ class TestCTreeEnsemble(ExtTestCase):
             )
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_float(self):
+    def test_tree_ensemble_runtime_version_float(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(numpy.float32)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_double(self):
+    def test_tree_ensemble_runtime_version_double(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(numpy.float64)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_float_multi(self):
+    def test_tree_ensemble_runtime_version_float_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float32, True
         )
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_double_multi(self):
+    def test_tree_ensemble_runtime_version_double_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float64, True
         )
@@ -346,33 +401,33 @@ class TestCTreeEnsemble(ExtTestCase):
                     self.assertEqualArray(lexp, y[1], atol=atol[dtype])
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_float_cls(self):
+    def test_tree_ensemble_runtime_version_float_cls(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(numpy.float32)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_double_cls(self):
+    def test_tree_ensemble_runtime_version_double_cls(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(numpy.float64)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_float_cls_multi(self):
+    def test_tree_ensemble_runtime_version_float_cls_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float32, True
         )
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_double_cls_multi(self):
+    def test_tree_ensemble_runtime_version_double_cls_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, True
         )
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_float_cls_single(self):
+    def test_tree_ensemble_runtime_version_float_cls_single(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float32, False, True
         )
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_onnxrt_python_tree_ensemble_runtime_version_double_cls_single(self):
+    def test_tree_ensemble_runtime_version_double_cls_single(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, False, True
         )

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <stdexcept>
 #include <omp.h>
+#include <stdexcept>
 
 namespace onnx_c_ops {
 

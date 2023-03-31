@@ -18,6 +18,8 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
         OpRun.__init__(self, onnx_node, run_params, schema=schema)
         self.parallel = None
         self.rt_ = None
+        # default is no parallelization
+        self.set_parallel(int(100e6), int(100e6), int(100e6), 1, 1, 0)
 
     def set_parallel(
         self,
@@ -57,7 +59,6 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
             cls = RuntimeTreeEnsembleClassifierDouble
 
         empty_f = numpy.array([], dtype=dtype)
-        empty_i = numpy.array([], dtype=numpy.int64)
         base_values = (
             kwargs.get("base_values", None)
             or kwargs.get("base_values_as_tensor", None)

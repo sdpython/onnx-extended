@@ -23,14 +23,8 @@ public:
   Status Compute(int64_t n_rows, int64_t n_features, const InputType *X,
                  OutputType *Y, int64_t *label) const {
     switch (this->aggregate_function_) {
-    case AGGREGATE_FUNCTION::AVERAGE:
-      ComputeAggClassifier(
-          n_rows, n_features, X, Y, label,
-          TreeAggregatorAverage<InputType, ThresholdType, OutputType>(
-              this->roots_.size(), this->n_targets_or_classes_,
-              this->post_transform_, this->base_values_));
-      return Status::OK();
     case AGGREGATE_FUNCTION::SUM:
+      DEBUG_PRINT("ComputeCl SUM")
       ComputeAggClassifier(
           n_rows, n_features, X, Y, label,
           TreeAggregatorSum<InputType, ThresholdType, OutputType>(
@@ -79,6 +73,7 @@ public:
         class_treeids,                              // 18
         class_weights                               // 19
     );
+    DEBUG_PRINT("Init")
 
     InlinedHashSet<int64_t> weights_classes;
     weights_classes.reserve(class_ids.size());
@@ -98,6 +93,7 @@ protected:
   void ComputeAggClassifier(int64_t n_rows, int64_t n_features,
                             const InputType *X, OutputType *Y, int64_t *labels,
                             const AGG &agg) const {
+    DEBUG_PRINT("ComputeAggClassifier")
     this->ComputeAgg(
         n_rows, n_features, X, Y, labels,
         TreeAggregatorClassifier<InputType, ThresholdType, OutputType>(

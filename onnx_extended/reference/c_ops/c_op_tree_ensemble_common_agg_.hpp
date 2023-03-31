@@ -277,6 +277,8 @@ public:
     }
     write_scores(predictions, post_transform_, Z, add_second_class);
   }
+
+  const char* kind() const { return "NONE"; }
 };
 
 /////////////
@@ -351,6 +353,8 @@ public:
     }
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
+
+  const char* kind() const { return "SUM"; }
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -388,6 +392,8 @@ public:
     }
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
+
+  const char* kind() const { return "AVERAGE"; }
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -455,6 +461,8 @@ public:
       }
     }
   }
+
+  const char* kind() const { return "MIN"; }
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -523,6 +531,8 @@ public:
       }
     }
   }
+
+  const char* kind() const { return "MAX"; }
 };
 
 /////////////////
@@ -647,6 +657,7 @@ public:
   void FinalizeScores(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                       OutputType *Z, int /*add_second_class*/,
                       int64_t *Y = 0) const {
+    _ENFORCE(Y != nullptr)
     ThresholdType maxweight = 0;
     int64_t maxclass = -1;
 
@@ -698,6 +709,8 @@ public:
     if (predictions.size() == 1)
       predictions.resize(2);
   }
+
+  const char* kind() const { return "CLASSIFICATION"; }
 };
 
 } // namespace onnx_c_ops
