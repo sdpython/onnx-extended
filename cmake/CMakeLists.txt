@@ -36,7 +36,8 @@ endif()
 
 pybind11_add_module(_validation
     ../onnx_extended/validation/_validation.cpp
-    ../onnx_extended/validation/speed_metrics.cpp)
+    ../onnx_extended/validation/speed_metrics.cpp
+    ../onnx_extended/validation/vector_sum.cpp)
 
 pybind11_add_module(c_op_conv_
     ../onnx_extended/reference/c_ops/c_op_common.cpp

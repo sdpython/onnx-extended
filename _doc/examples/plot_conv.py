@@ -28,7 +28,7 @@ from onnx.helper import (
 )
 from onnx.reference import ReferenceEvaluator
 from onnxruntime import InferenceSession
-from onnx_extended.ext_test_case import measure_time
+from onnx_extended.ext_test_case import measure_time, unit_test_going
 from onnx_extended.reference import CReferenceEvaluator
 
 
@@ -108,6 +108,8 @@ for i in tqdm([16, 32, 48, 64]):
     t2 = measure_time(lambda: sess2.run(None, feeds))
     obs = dict(size=i, onnx=t1["average"], onnx_extended=t2["average"])
     data.append(obs)
+    if unit_test_going() and len(data) >= 3:
+        break
 
 df = DataFrame(data)
 df
@@ -125,4 +127,6 @@ df.plot(
 df["speedup"] = df["onnx"] / df["onnx_extended"]
 ax2 = ax.twinx()
 df[["speedup"]].plot(ax=ax2, color="green")
+
+fig.savefig("plot_conv.png")
 # plt.show()

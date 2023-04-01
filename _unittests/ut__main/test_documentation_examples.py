@@ -32,6 +32,7 @@ class TestDocumentationExamples(ExtTestCase):
             sep = ";" if sys.platform == "win32" else ":"
             os.environ["PYTHONPATH"] = ppath + sep + ROOT
         perf = time.perf_counter()
+        os.environ["UNITTEST_GOING"] = "1"
         try:
             mod = import_source(fold, os.path.splitext(name)[0])
             assert mod is not None

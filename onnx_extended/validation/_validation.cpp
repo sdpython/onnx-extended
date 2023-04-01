@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 
 #include "speed_metrics.h"
+#include "vector_sum.h"
 
 namespace py = pybind11;
 using namespace validation;
@@ -53,5 +54,16 @@ See example :ref:`l-example-bench-cpu`.
 :param max_depth: depth of a tree
 :param search_step: evaluate every...
 :return: array of time take for every row 
+)pbdoc");
+
+  m.def("vector_sum", &vector_sum,
+        py::arg("n_columns"), py::arg("values"), py::arg("by_rows"),
+        R"pbdoc(Computes the sum of all elements in an array
+by rows or by columns.
+
+:param n_columns: number of columns
+:param values: all values in an array
+:param by_rows: by rows or by columns
+:return: sum of all elements
 )pbdoc");
 }
