@@ -13,10 +13,10 @@ import numpy
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 from onnx_extended.ext_test_case import measure_time, unit_test_going
-from onnx_extended.validation._validation import vector_sum
+from onnx_extended.validation._validation import vector_sum_array as vector_sum
 
 obs = []
-dims = [500, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000]
+dims = [500, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 2000]
 if unit_test_going():
     dims = dims[:3]
 for dim in tqdm(dims):
@@ -61,7 +61,6 @@ print(piv)
 
 piv_diff = df.pivot(index="dim", columns="direction", values="diff")
 piv_time = df.pivot(index="dim", columns="direction", values="time")
-print(piv_diff)
 
 fig, ax = plt.subplots(1, 3, figsize=(12, 6))
 piv.plot(ax=ax[0], logx=True, title="Comparison between two summation")
