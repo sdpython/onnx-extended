@@ -1,7 +1,6 @@
 import unittest
-
 import numpy
-
+from onnx.defs import onnx_opset_version
 from sklearn.datasets import load_iris
 from sklearn.ensemble import (
     GradientBoostingClassifier,
@@ -24,6 +23,7 @@ from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
 
 
 class TestCTreeEnsemble(ExtTestCase):
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_bin(self):
         iris = load_iris()
@@ -37,6 +37,7 @@ class TestCTreeEnsemble(ExtTestCase):
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
         )
+        print(model_def)
         self.assertNotIn("nodes_values_as_tensor", str(model_def))
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
@@ -47,6 +48,7 @@ class TestCTreeEnsemble(ExtTestCase):
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_multi(self):
         iris = load_iris()
@@ -68,6 +70,7 @@ class TestCTreeEnsemble(ExtTestCase):
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_plusten(self):
         iris = load_iris()
@@ -89,6 +92,7 @@ class TestCTreeEnsemble(ExtTestCase):
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_gradient_boosting_classifier2(self):
         iris = load_iris()
@@ -109,6 +113,7 @@ class TestCTreeEnsemble(ExtTestCase):
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_gradient_boosting_classifier3(self):
         iris = load_iris()
@@ -129,8 +134,8 @@ class TestCTreeEnsemble(ExtTestCase):
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
-    @ignore_warnings((FutureWarning, DeprecationWarning))
     @unittest.skipIf(True, reason="not implemented yet")
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_mlabel(self):
         iris = load_iris()
         X, y_ = iris.data.astype(numpy.float32), iris.target
@@ -154,6 +159,7 @@ class TestCTreeEnsemble(ExtTestCase):
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_regressor(self):
         iris = load_iris()
@@ -195,14 +201,10 @@ class TestCTreeEnsemble(ExtTestCase):
         cl = None
         for op in model_def.opset_import:
             if op.domain == "ai.onnx.ml":
-                cl = (
-                    TreeEnsembleRegressor_3
-                    if op.version == 3
-                    else TreeEnsembleClassifier_1
-                )
+                self.assertEqual(op.version, 3)
         self.assertNotEmpty(cl)
         oinf = CReferenceEvaluator(model_def)
-        self.assertIsInstance(oinf.rt_nodes_[0], cl)
+        self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleRegressor_3)
 
         for i in range(0, 20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
@@ -221,6 +223,7 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_regressor2(self):
         iris = load_iris()
@@ -239,6 +242,7 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_depth2(self):
         iris = load_iris()
@@ -260,6 +264,7 @@ class TestCTreeEnsemble(ExtTestCase):
         got = y[1]
         self.assertEqualArray(exp, got, atol=1e-5)
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_random_forest_classifier5(self):
         iris = load_iris()
@@ -303,7 +308,7 @@ class TestCTreeEnsemble(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(dtype))
         oinf = CReferenceEvaluator(model_def)
         #
-        oinf.rt_nodes_[0]._init(dtype, 1)
+        # oinf.rt_nodes_[0]._init(dtype, 1)
         y = oinf.run(None, {"X": X_test})
         lexp = clr.predict(X_test).astype(dtype)
         self.assertEqual(lexp.shape, y[0].shape)
@@ -323,20 +328,24 @@ class TestCTreeEnsemble(ExtTestCase):
                 ValueError,
             )
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_float(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(numpy.float32)
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_double(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(numpy.float64)
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_float_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float32, True
         )
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_double_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
@@ -400,38 +409,45 @@ class TestCTreeEnsemble(ExtTestCase):
                 else:
                     self.assertEqualArray(lexp, y[1], atol=atol[dtype])
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_float_cls(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(numpy.float32)
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_double_cls(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(numpy.float64)
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_float_cls_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float32, True
         )
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_double_cls_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, True
         )
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_float_cls_single(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float32, False, True
         )
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_tree_ensemble_runtime_version_double_cls_single(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, False, True
         )
 
+    @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_random_forest_with_only_one_class(self):
         rnd = numpy.random.RandomState(4)
