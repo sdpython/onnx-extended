@@ -82,7 +82,7 @@ float vector_sum_array_parallel(int nc, const py_array_float &values_array,
     */
     int nl = values_array.size() / nc;
 #pragma omp parallel for
-    for (size_t i = 0; i < nl; ++i) {
+    for (int i = 0; i < nl; ++i) {
       auto th = omp_get_thread_num();
       for (size_t j = 0; j < nc; ++j) {
         totals[th] += values[i * nc + j];
@@ -91,7 +91,7 @@ float vector_sum_array_parallel(int nc, const py_array_float &values_array,
   } else {
     int nl = values_array.size() / nc;
 #pragma omp parallel for
-    for (size_t j = 0; j < nc; ++j) {
+    for (int j = 0; j < nc; ++j) {
       auto th = omp_get_thread_num();
       for (size_t i = 0; i < nl; ++i) {
         totals[th] += values[i * nc + j];

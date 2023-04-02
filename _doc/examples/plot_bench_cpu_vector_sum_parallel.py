@@ -92,3 +92,4 @@ fig.savefig("plot_bench_cpu_vector_sum_parallel.png")
 # The summation by rows is much faster as expected.
 # That explains why it is usually more efficient to
 # transpose the first matrix before a matrix multiplication.
+# Parallelization is faster.
