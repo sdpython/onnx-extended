@@ -1,3 +1,4 @@
+import os
 import sys
 import unittest
 import warnings
@@ -8,6 +9,15 @@ from typing import Any, Callable, Dict, List, Optional
 
 import numpy
 from numpy.testing import assert_allclose
+
+
+def unit_test_going():
+    """
+    Enables a flag telling the script is running while testing it.
+    Avois unit tests to be very long.
+    """
+    going = int(os.environ.get("UNITTEST_GOING", 0))
+    return going == 1
 
 
 def ignore_warnings(warns: List[Warning]) -> Callable:

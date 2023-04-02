@@ -15,6 +15,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pyquickhelper.loghelper import run_cmd
 from pandas import DataFrame, concat
+from onnx_extended.ext_test_case import unit_test_going
 from onnx_extended.validation._validation import benchmark_cache, benchmark_cache_tree
 
 obs = []
@@ -93,6 +94,8 @@ for n in tqdm(range(10)):
     dfs.append(df)
     cols.append(df.columns[-1])
     drop.append(df.columns[0])
+    if unit_test_going() and len(dfs) >= 3:
+        break
 
 df = concat(dfs, axis=1).reset_index(drop=True)
 df["i"] = df["i0"]
@@ -129,4 +132,4 @@ df.set_index("i").drop(cols_time, axis=1).plot(
     ax=ax[0], title="TreeEnsemble Performance time per row", logy=True, linewidth=0.2
 )
 df.set_index("i")[cols_time].plot(ax=ax[1], linewidth=1.0, logy=True)
-fig.savefig("plot_benchmark_cpu_tree.png")
+fig.savefig("plot_bench_cpu.png")
