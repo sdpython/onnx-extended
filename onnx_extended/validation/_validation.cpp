@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 
 #include "speed_metrics.h"
+#include "vector_sum.h"
 
 namespace py = pybind11;
 using namespace validation;
@@ -53,5 +54,41 @@ See example :ref:`l-example-bench-cpu`.
 :param max_depth: depth of a tree
 :param search_step: evaluate every...
 :return: array of time take for every row 
+)pbdoc");
+
+  m.def("vector_sum", &vector_sum, py::arg("n_columns"), py::arg("values"),
+        py::arg("by_rows"),
+        R"pbdoc(Computes the sum of all elements in an array
+by rows or by columns. This function is slower than
+:func:`vector_sum_array <onnx_extended.validation._validation.vector_sum_array>`
+as this function copies the data from an array to a `std::vector`.
+This copy (and allocation) is bigger than the compution itself.
+
+:param n_columns: number of columns
+:param values: all values in an array
+:param by_rows: by rows or by columns
+:return: sum of all elements
+)pbdoc");
+
+  m.def("vector_sum_array", &vector_sum_array, py::arg("n_columns"),
+        py::arg("values"), py::arg("by_rows"),
+        R"pbdoc(Computes the sum of all elements in an array
+by rows or by columns.
+
+:param n_columns: number of columns
+:param values: all values in an array
+:param by_rows: by rows or by columns
+:return: sum of all elements
+)pbdoc");
+
+  m.def("vector_sum_array_parallel", &vector_sum_array_parallel,
+        py::arg("n_columns"), py::arg("values"), py::arg("by_rows"),
+        R"pbdoc(Computes the sum of all elements in an array
+by rows or by columns. The computation is parallelized.
+
+:param n_columns: number of columns
+:param values: all values in an array
+:param by_rows: by rows or by columns
+:return: sum of all elements
 )pbdoc");
 }

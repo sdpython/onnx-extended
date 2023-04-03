@@ -36,7 +36,8 @@ endif()
 
 pybind11_add_module(_validation
     ../onnx_extended/validation/_validation.cpp
-    ../onnx_extended/validation/speed_metrics.cpp)
+    ../onnx_extended/validation/speed_metrics.cpp
+    ../onnx_extended/validation/vector_sum.cpp)
 
 pybind11_add_module(c_op_conv_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
@@ -46,10 +47,13 @@ pybind11_add_module(c_op_tree_ensemble_py_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
 
+# omp
+
 # Final
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
+    target_link_libraries(_validation PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(c_op_tree_ensemble_py_ PUBLIC OpenMP::OpenMP_CXX)
 else()
