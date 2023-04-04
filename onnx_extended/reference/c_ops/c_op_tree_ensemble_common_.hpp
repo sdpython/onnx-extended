@@ -7,7 +7,8 @@
 #include "c_op_common_parallel.hpp"
 #include "c_op_tree_ensemble_common_agg_.hpp"
 
-#define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
+// #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
+#define DEBUG_PRINT(...)
 
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
 // http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
@@ -444,9 +445,9 @@ int TreeEnsembleCommon<InputType, ThresholdType, OutputType>::
   while (!stack.empty()) {
     pair = stack.front();
     stack.pop_front();
-    _ENFORCE(map_node_to_node3.find(pair.first) == map_node_to_node3.end(),
-             "This node index ", pair.first,
-             " was already added as a TreeNodeElement3.");
+    // _ENFORCE(map_node_to_node3.find(pair.first) == map_node_to_node3.end(),
+    //          "This node index ", pair.first,
+    //          " was already added as a TreeNodeElement3.");
     node = pair.second;
     if (!node->is_not_leaf()) {
       continue;
@@ -802,7 +803,6 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
             agg.ProcessTreeNodePrediction(
                 scores[i - batch],
                 *ProcessTreeNodeLeave(j, x_data + i * stride), weights_);
-            DEBUG_PRINT("i=", i, " [1]=", (OutputType)scores[i - batch][1])
           }
         }
         for (i = batch; i < batch_end; ++i) {

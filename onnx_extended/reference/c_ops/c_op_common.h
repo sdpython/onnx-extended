@@ -252,15 +252,18 @@ size_t write_scores(size_t n_classes, NTYPE *scores,
       break;
     case POST_EVAL_TRANSFORM::SOFTMAX:
       ComputeSoftmax(scores, end);
-      memcpy(Z, scores, n_classes * sizeof(NTYPE));
+      for (auto it = scores; it != end; ++it, ++Z)
+        *Z = (T)*it;
       break;
     case POST_EVAL_TRANSFORM::SOFTMAX_ZERO:
       ComputeSoftmaxZero(scores, end);
-      memcpy(Z, scores, n_classes * sizeof(NTYPE));
+      for (auto it = scores; it != end; ++it, ++Z)
+        *Z = (T)*it;
       break;
     default:
     case POST_EVAL_TRANSFORM::NONE:
-      memcpy(Z, scores, n_classes * sizeof(NTYPE));
+      for (auto it = scores; it != end; ++it, ++Z)
+        *Z = (T)*it;
       break;
     }
   } else if (n_classes == 1) { // binary case
@@ -319,15 +322,18 @@ size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
     break;
   case POST_EVAL_TRANSFORM::SOFTMAX:
     ComputeSoftmax(scores, scores + 2);
-    memcpy(Z, scores, 2 * sizeof(NTYPE));
+    Z[0] = (T)scores[0];
+    Z[1] = (T)scores[1];
     break;
   case POST_EVAL_TRANSFORM::SOFTMAX_ZERO:
     ComputeSoftmaxZero(scores, scores + 2);
-    memcpy(Z, scores, 2 * sizeof(NTYPE));
+    Z[0] = (T)scores[0];
+    Z[1] = (T)scores[1];
     break;
   default:
   case POST_EVAL_TRANSFORM::NONE:
-    memcpy(Z, scores, 2 * sizeof(NTYPE));
+    Z[0] = (T)scores[0];
+    Z[1] = (T)scores[1];
     break;
   }
   return 2;

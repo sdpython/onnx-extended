@@ -15,6 +15,15 @@ class _ClassifierCommon:
         strings.
         """
         if classlabels_int64s_string is not None and len(classlabels_int64s_string) > 0:
-            new_label = numpy.array([classlabels_int64s_string[i] for i in label])
-            return new_label, scores
+            new_label = []
+            no_array = False
+            for i in label:
+                if i >= len(classlabels_int64s_string):
+                    new_label.append(None)
+                    no_array = True
+                else:
+                    new_label.append(classlabels_int64s_string[i])
+            if no_array:
+                return new_label, scores
+            return numpy.array(new_label), scores
         return label, scores

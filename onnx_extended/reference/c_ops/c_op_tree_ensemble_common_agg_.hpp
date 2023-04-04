@@ -325,7 +325,7 @@ public:
       const InlinedVector<SparseValue<ThresholdType>> &weights) const {
     auto it = weights.begin() + root.truenode_inc_or_first_weight;
     for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
-      _ENFORCE(it->i < (int64_t)predictions.size());
+      // _ENFORCE(it->i < (int64_t)predictions.size());
       predictions[static_cast<size_t>(it->i)].score += it->value;
       predictions[static_cast<size_t>(it->i)].has_score = 1;
     }

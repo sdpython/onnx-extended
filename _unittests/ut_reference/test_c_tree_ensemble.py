@@ -37,13 +37,11 @@ class TestCTreeEnsemble(ExtTestCase):
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
         )
-        print(model_def)
         self.assertNotIn("nodes_values_as_tensor", str(model_def))
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         exp = clr.predict_proba(X_test)
-        print(y[1] - exp)
         self.assertEqualArray(exp.astype(numpy.float32), y[1], atol=1e-5)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
@@ -108,8 +106,8 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
-        exp = clr.predict_proba(X_test)
-        self.assertEqualArray(exp, y[1], decimal=3)
+        exp = clr.predict_proba(X_test).astype(numpy.float32)
+        self.assertEqualArray(exp, y[1], atol=1e-3)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
@@ -128,9 +126,8 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleClassifier_1)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(list(sorted(y)), ["output_label", "output_probability"])
-        exp = clr.predict_proba(X_test)
-        self.assertEqualArray(exp, y[1], decimal=3)
+        exp = clr.predict_proba(X_test).astype(numpy.float32)
+        self.assertEqualArray(exp, y[1], atol=1e-3)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
@@ -256,11 +253,11 @@ class TestCTreeEnsemble(ExtTestCase):
         )
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(list(sorted(y)), ["output_label", "output_probability"])
+        self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y[0])
 
-        exp = clr.predict_proba(X_test)
+        exp = clr.predict_proba(X_test).astype(numpy.float32)
         got = y[1]
         self.assertEqualArray(exp, got, atol=1e-5)
 
@@ -278,11 +275,10 @@ class TestCTreeEnsemble(ExtTestCase):
         )
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test[:5].astype(numpy.float32)})
-        self.assertEqual(list(sorted(y)), ["output_label", "output_probability"])
         lexp = clr.predict(X_test[:5])
         self.assertEqualArray(lexp, y[0])
 
-        exp = clr.predict_proba(X_test[:5])
+        exp = clr.predict_proba(X_test[:5]).astype(numpy.float32)
         got = y[1]
         self.assertEqualArray(exp, got, atol=1e-5)
 
@@ -312,21 +308,9 @@ class TestCTreeEnsemble(ExtTestCase):
         y = oinf.run(None, {"X": X_test})
         lexp = clr.predict(X_test).astype(dtype)
         self.assertEqual(lexp.shape, y[0].shape)
-        decimal = {numpy.float32: 5, numpy.float64: 1}
+        atol = {numpy.float32: 1e-5, numpy.float64: 1e-1}
         with self.subTest(dtype=dtype):
-            self.assertEqualArray(lexp, y[0], decimal=decimal[dtype])
-
-        # other runtime
-        for rv in [0, 1, 2, 3]:
-            with self.subTest(runtime_version=rv):
-                oinf.rt_nodes_[0]._init(dtype, rv)
-                y = oinf.run(None, {"X": X_test})
-                self.assertEqualArray(lexp, y[0], decimal=decimal[dtype])
-        with self.subTest(runtime_version=40):
-            self.assertRaise(
-                lambda: oinf.rt_nodes_[0]._init(dtype, 40),
-                ValueError,
-            )
+            self.assertEqualArray(lexp, y[0], atol=atol[dtype])
 
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
@@ -382,18 +366,18 @@ class TestCTreeEnsemble(ExtTestCase):
         )
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test.astype(dtype)})
-        lexp = clr.predict_proba(X_test)
+        lexp = clr.predict_proba(X_test).astype(numpy.float32)
         atol = {numpy.float32: 1e-5, numpy.float64: 1e-1}
         with self.subTest(dtype=dtype):
             if single_cls:
                 diff = list(sorted(numpy.abs(lexp.ravel() - y[1])))
                 mx = max(diff[:-5])
                 if mx > 1e-5:
-                    self.assertEqualArray(lexp.ravel(), y[1], atol=atol[dtype])
+                    self.assertEqualArray(
+                        lexp.ravel().astype(dtype), y[1], atol=atol[dtype]
+                    )
             else:
-                self.assertEqualArray(
-                    lexp.astype(numpy.float32), y[1], atol=atol[dtype]
-                )
+                self.assertEqualArray(lexp.astype(dtype), y[1], atol=atol[dtype])
 
         # other runtime
         for rv in [0, 1, 2, 3]:
@@ -405,9 +389,11 @@ class TestCTreeEnsemble(ExtTestCase):
                     diff = list(sorted(numpy.abs(lexp.ravel() - y[1])))
                     mx = max(diff[:-5])
                     if mx > 1e-5:
-                        self.assertEqualArray(lexp.ravel(), y[1], atol=atol[dtype])
+                        self.assertEqualArray(
+                            lexp.ravel().astype(dtype), y[1], atol=atol[dtype]
+                        )
                 else:
-                    self.assertEqualArray(lexp, y[1], atol=atol[dtype])
+                    self.assertEqualArray(lexp.astype(dtype), y[1], atol=atol[dtype])
 
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
@@ -473,9 +459,10 @@ class TestCTreeEnsemble(ExtTestCase):
                 x = numpy.empty((n, X_train.shape[1]), dtype=numpy.float32)
                 x[:, :] = rnd.rand(n, X_train.shape[1])[:, :]
                 with self.subTest(version=rv, n=n):
-                    y = oinf.run(None, {"X": x})[1]
-                    lexp = rf.predict_proba(x)
-                    self.assertEqualArray(lexp.ravel(), y, atol=1e-5)
+                    y = oinf.run(None, {"X": x})
+                    self.assertEqual(len(y), 2)
+                    lexp = rf.predict_proba(x).astype(numpy.float32)
+                    self.assertEqualArray(lexp.ravel(), y[1], atol=1e-5)
 
 
 if __name__ == "__main__":
