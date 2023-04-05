@@ -2,6 +2,14 @@
 Tutorial
 ========
 
+Introduction
+++++++++++++
+
+.. toctree::
+    :maxdepth: 1
+
+    usefulcmd
+
 Operators
 +++++++++
 
