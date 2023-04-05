@@ -91,13 +91,13 @@ if platform.system() == "Windows":
 
 if onnx_opset_version() < 19:
     backend_test.exclude(
-        "(test_argmin_default_axis_random"
-        "|test_argmin_keepdims_example"
-        "|test_argmin_keepdims_random"
-        "|test_argmin_negative_axis_keepdims_example"
-        "|test_argmin_negative_axis_keepdims_random"
-        "|test_argmin_no_keepdims_example"
-        "|test_argmin_no_keepdims_random"
+        "(test_argm[ai]n_default_axis_random"
+        "|test_argm[ai]n_keepdims_example"
+        "|test_argm[ai]n_keepdims_random"
+        "|test_argm[ai]n_negative_axis_keepdims_example"
+        "|test_argm[ai]n_negative_axis_keepdims_random"
+        "|test_argm[ai]n_no_keepdims_example"
+        "|test_argm[ai]n_no_keepdims_random"
         "|test_col2im_pads"
         "|test_gru_batchwise"
         "|test_gru_defaults"
