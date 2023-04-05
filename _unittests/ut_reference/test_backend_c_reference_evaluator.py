@@ -2,15 +2,14 @@ import os
 import platform
 import unittest
 from typing import Any
-
 import numpy
-
 import onnx.backend.base
 import onnx.backend.test
 import onnx.shape_inference
 import onnx.version_converter
 from onnx import ModelProto
 from onnx.backend.base import Device, DeviceType
+from onnx.defs import onnx_opset_version
 from onnx_extended.reference import CReferenceEvaluator
 
 
@@ -89,6 +88,45 @@ if platform.architecture()[0] == "32bit":
     backend_test.exclude("(test_vgg19|test_zfnet|test_bvlc_alexnet)")
 if platform.system() == "Windows":
     backend_test.exclude("test_sequence_model")
+
+if onnx_opset_version() < 19:
+    backend_test.exclude(
+        "(test_argmin_default_axis_random"
+        "|test_argmin_keepdims_example"
+        "|test_argmin_keepdims_random"
+        "|test_argmin_negative_axis_keepdims_example"
+        "|test_argmin_negative_axis_keepdims_random"
+        "|test_argmin_no_keepdims_example"
+        "|test_argmin_no_keepdims_random"
+        "|test_col2im_pads"
+        "|test_gru_batchwise"
+        "|test_gru_defaults"
+        "|test_gru_seq_length"
+        "|test_gru_with_initial_bias"
+        "|test_layer_normalization_2d_axis1_expanded"
+        "|test_layer_normalization_2d_axis_negative_1_expanded"
+        "|test_layer_normalization_3d_axis1_epsilon_expanded"
+        "|test_layer_normalization_3d_axis2_epsilon_expanded"
+        "|test_layer_normalization_3d_axis_negative_1_epsilon_expanded"
+        "|test_layer_normalization_3d_axis_negative_2_epsilon_expanded"
+        "|test_layer_normalization_4d_axis1_expanded"
+        "|test_layer_normalization_4d_axis2_expanded"
+        "|test_layer_normalization_4d_axis3_expanded"
+        "|test_layer_normalization_4d_axis_negative_1_expanded"
+        "|test_layer_normalization_4d_axis_negative_2_expanded"
+        "|test_layer_normalization_4d_axis_negative_3_expanded"
+        "|test_layer_normalization_default_axis_expanded"
+        "|test_logsoftmax_large_number_expanded"
+        "|test_lstm_batchwise"
+        "|test_lstm_defaults"
+        "|test_lstm_with_initial_bias"
+        "|test_lstm_with_peepholes"
+        "|test_mvn"
+        "|test_mvn_expanded"
+        "|test_softmax_large_number_expanded"
+        "|test_operator_reduced_mean"
+        "|test_operator_reduced_mean_keepdim)"
+    )
 
 # The following tests are not supported.
 backend_test.exclude(

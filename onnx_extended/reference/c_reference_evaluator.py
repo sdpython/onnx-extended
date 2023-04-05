@@ -52,7 +52,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
             except ValueError:
                 # not a version
                 continue
-            if v > opsets.get(cl.op_domain, 1):
+            if opsets is not None and v > opsets.get(cl.op_domain, 1):
                 continue
             renamed[cl.__name__] = cl
             key = cl.op_domain, "_".join(vers[:-1])

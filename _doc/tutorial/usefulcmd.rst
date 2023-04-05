@@ -12,6 +12,7 @@ Git
 * commit added files: `git commit -m "commit message"`
 * push modifications to the remote repository: `git push`
 * remove all current modifications: `git reset --hard`
+* show modified filed: `git status`
 
 Retrieve information about the CPU
 ++++++++++++++++++++++++++++++++++
