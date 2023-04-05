@@ -141,7 +141,7 @@ float vector_sum_array_avx_parallel(int nc,
 
   int nl = values_array.size() / nc;
 #pragma omp parallel for
-  for (size_t i = 0; i < nl; ++i) {
+  for (int i = 0; i < nl; ++i) {
     float buffer[8];
     __m256 t = _mm256_set1_ps(0);
     size_t j = 0;
