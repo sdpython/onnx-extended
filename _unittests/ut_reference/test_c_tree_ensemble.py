@@ -191,7 +191,7 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
     @ignore_warnings((FutureWarning, DeprecationWarning, UserWarning))
-    @unittest.skip(
+    @unittest.skipIf(
         onnx_opset_version() < 19, reason="ArrayFeatureExtractor has no implementation"
     )
     def test_decision_tree_regressor_double(self):
