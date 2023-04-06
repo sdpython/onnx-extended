@@ -135,6 +135,9 @@ class TestCTreeEnsemble(ExtTestCase):
 
     # @unittest.skipIf(True, reason="not implemented yet")
     @ignore_warnings((FutureWarning, DeprecationWarning))
+    @unittest.skipIf(
+        onnx_opset_version() < 19, reason="ArrayFeatureExtractor has no implementation"
+    )
     def test_decision_tree_classifier_mlabel(self):
         iris = load_iris()
         X, y_ = iris.data.astype(numpy.float32), iris.target
@@ -191,9 +194,6 @@ class TestCTreeEnsemble(ExtTestCase):
         self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
     @ignore_warnings((FutureWarning, DeprecationWarning, UserWarning))
-    @unittest.skipIf(
-        onnx_opset_version() < 19, reason="ArrayFeatureExtractor has no implementation"
-    )
     def test_decision_tree_regressor_double(self):
         iris = load_iris()
         X, y = iris.data, iris.target
