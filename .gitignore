@@ -26,3 +26,4 @@ _doc/examples/plot_*.png
 _doc/_static/require.js
 _doc/_static/viz.js
 _unittests/ut__main/*.png
+onnx_extended/validation/*.c

@@ -16,6 +16,8 @@ namespace validation {
 
 float vector_sum(int nc, const std::vector<float> &values, bool by_rows);
 
+float vector_sum(int nl, int nc, const float* values, bool by_rows);
+
 float vector_sum_array(int nc, const py_array_float &values, bool by_rows);
 
 float vector_sum_array_parallel(int nc, const py_array_float &values,
