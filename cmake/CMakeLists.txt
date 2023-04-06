@@ -55,15 +55,22 @@ pybind11_add_module(c_op_conv_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_conv_.cpp)
 
+pybind11_add_module(c_op_tree_ensemble_py_
+    ../onnx_extended/reference/c_ops/c_op_common.cpp
+    ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
+
 # omp
+
+# Final
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(_validation PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(c_op_tree_ensemble_py_ PUBLIC OpenMP::OpenMP_CXX)
+else()
+    error("OpenMP cannot be found.")
 endif()
-
-# Final
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

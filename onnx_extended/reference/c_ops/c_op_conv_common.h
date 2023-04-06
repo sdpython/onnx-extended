@@ -1,7 +1,7 @@
+#include "c_op_common.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "c_op_common.h"
 
 namespace onnx_c_ops {
 

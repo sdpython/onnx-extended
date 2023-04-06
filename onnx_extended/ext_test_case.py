@@ -23,7 +23,8 @@ def unit_test_going():
 def ignore_warnings(warns: List[Warning]) -> Callable:
     """
     Catches warnings.
-    @param      warns   warnings to ignore
+
+    :param warns:   warnings to ignore
     """
 
     def wrapper(fct):

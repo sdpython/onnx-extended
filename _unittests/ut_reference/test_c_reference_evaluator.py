@@ -23,8 +23,8 @@ from onnx.helper import (
 )
 from onnx.reference import ReferenceEvaluator
 from onnxruntime import InferenceSession
-from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.reference import CReferenceEvaluator
 
 
 light_model = os.path.join(

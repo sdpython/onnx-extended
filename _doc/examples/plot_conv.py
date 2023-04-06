@@ -45,7 +45,7 @@ node = make_node(
     strides=[2, 2],
 )
 graph = make_graph([node], "g", [X, W, B], [Y])
-onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)], ir_version=8)
 
 #########################################
 # ReferenceEvaluator and CReferenceEvaluator

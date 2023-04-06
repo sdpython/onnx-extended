@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <float.h>
 #include <iostream> // cout
 #include <iterator>
 #include <math.h>
@@ -11,6 +12,28 @@
 #include <vector>
 
 namespace onnx_c_ops {
+
+void *AllocatorDefaultAlloc(size_t size);
+void AllocatorDefaultFree(void *p);
+
+class Status {
+public:
+  int code;
+  Status() : code(1) {}
+  Status(int code) : code(code) {}
+  Status &operator=(const Status &other) {
+    code = other.code;
+    return *this;
+  }
+  bool IsOK() const { return code == 1; }
+  int Code() const { return code; }
+  bool operator==(const Status &other) const { return code == other.code; }
+  bool operator!=(const Status &other) const { return !(*this == other); }
+  static Status OK() { return Status(1); }
+};
+
+#define InlinedVector std::vector
+#define InlinedHashSet std::unordered_set
 
 #if defined(_WIN32) || defined(WIN32)
 
@@ -57,23 +80,23 @@ typedef int64_t ssize_t;
 #endif
 
 enum class POST_EVAL_TRANSFORM {
-  NONE,
-  LOGISTIC,
-  SOFTMAX,
-  SOFTMAX_ZERO,
-  PROBIT
+  NONE = 0,
+  LOGISTIC = 1,
+  SOFTMAX = 2,
+  SOFTMAX_ZERO = 3,
+  PROBIT = 4
 };
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value);
 
-enum class NODE_MODE {
-  BRANCH_LEQ,
-  BRANCH_LT,
-  BRANCH_GTE,
-  BRANCH_GT,
-  BRANCH_EQ,
-  BRANCH_NEQ,
-  LEAF
+enum NODE_MODE : uint8_t {
+  LEAF = 1,
+  BRANCH_LEQ = 2,
+  BRANCH_LT = 4,
+  BRANCH_GTE = 6,
+  BRANCH_GT = 8,
+  BRANCH_EQ = 10,
+  BRANCH_NEQ = 12
 };
 
 NODE_MODE to_NODE_MODE(const std::string &value);
@@ -148,21 +171,20 @@ template <class NTYPE> static inline NTYPE ComputeProbit(NTYPE val) {
 
 template <class NTYPE>
 static inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
+  // ref:
+  // https://github.com/arnaudsj/libsvm/blob/eaaefac5ebd32d0e07902e1ae740e038eaaf0826/svm.cpp#L1818
   NTYPE val = score * proba + probb;
-  return 1 -
-         ComputeLogistic(
-             val); // ref:
-                   // https://github.com/arnaudsj/libsvm/blob/eaaefac5ebd32d0e07902e1ae740e038eaaf0826/svm.cpp#L1818
+  return 1 - ComputeLogistic(val);
 }
 
 template <typename NTYPE> void ComputeSoftmax(NTYPE *begin, NTYPE *end) {
-  NTYPE v_max = -std::numeric_limits<NTYPE>::max();
+  NTYPE v_max = -FLT_MAX;
   NTYPE *it;
   for (it = begin; it != end; ++it) {
     if (*it > v_max)
       v_max = *it;
   }
-  NTYPE this_sum = (NTYPE)0.;
+  NTYPE this_sum = 0;
   for (it = begin; it != end; ++it) {
     *it = std::exp(*it - v_max);
     this_sum += *it;
@@ -200,74 +222,78 @@ template <typename NTYPE> void ComputeSoftmaxZero(std::vector<NTYPE> &values) {
   ComputeSoftmaxZero(values.data(), values.data() + values.size());
 }
 
-template <class NTYPE>
+template <typename NTYPE, typename T>
 size_t write_scores(std::vector<NTYPE> &scores,
-                    POST_EVAL_TRANSFORM post_transform, NTYPE *Z,
+                    POST_EVAL_TRANSFORM post_transform, T *Z,
                     int add_second_class) {
   if ((scores.size() == 1) && add_second_class) {
-    scores.push_back(0);
+    scores.push_back(scores[0]);
+    scores[1] = 0.f;
     return write_scores(1, scores.data(), post_transform, Z, add_second_class);
   }
   return write_scores(scores.size(), scores.data(), post_transform, Z,
                       add_second_class);
 }
 
-template <class NTYPE>
+template <typename NTYPE, typename T>
 size_t write_scores(size_t n_classes, NTYPE *scores,
-                    POST_EVAL_TRANSFORM post_transform, NTYPE *Z,
+                    POST_EVAL_TRANSFORM post_transform, T *Z,
                     int add_second_class) {
   if (n_classes >= 2) {
     NTYPE *end = scores + n_classes;
     switch (post_transform) {
     case POST_EVAL_TRANSFORM::PROBIT:
       for (auto it = scores; it != end; ++it, ++Z)
-        *Z = ComputeProbit(*it);
+        *Z = ComputeProbit((T)*it);
       break;
     case POST_EVAL_TRANSFORM::LOGISTIC:
       for (auto it = scores; it != end; ++it, ++Z)
-        *Z = ComputeLogistic(*it);
+        *Z = ComputeLogistic((T)*it);
       break;
     case POST_EVAL_TRANSFORM::SOFTMAX:
       ComputeSoftmax(scores, end);
-      memcpy(Z, scores, n_classes * sizeof(NTYPE));
+      for (auto it = scores; it != end; ++it, ++Z)
+        *Z = (T)*it;
       break;
     case POST_EVAL_TRANSFORM::SOFTMAX_ZERO:
       ComputeSoftmaxZero(scores, end);
-      memcpy(Z, scores, n_classes * sizeof(NTYPE));
+      for (auto it = scores; it != end; ++it, ++Z)
+        *Z = (T)*it;
       break;
     default:
     case POST_EVAL_TRANSFORM::NONE:
-      memcpy(Z, scores, n_classes * sizeof(NTYPE));
+      for (auto it = scores; it != end; ++it, ++Z)
+        *Z = (T)*it;
       break;
     }
   } else if (n_classes == 1) { // binary case
     if (post_transform == POST_EVAL_TRANSFORM::PROBIT) {
-      scores[0] = ComputeProbit(scores[0]);
+      scores[0] = ComputeProbit((T)scores[0]);
       *Z = scores[0];
     } else {
       switch (add_second_class) {
       case 0: // 0=all positive weights, winning class is positive
-        scores[1] = scores[0];
-        scores[0] = 1.f - scores[0]; // put opposite score in positive slot
-        *Z = scores[0];
-        *(Z + 1) = scores[1];
+        scores[1] = (T)scores[0];
+        scores[0] = 1.f - (T)scores[0]; // put opposite score in positive slot
+        *Z = (T)scores[0];
+        *(Z + 1) = (T)scores[1];
         ++n_classes;
         break;
       case 1: // 1 = all positive weights, winning class is negative
-        scores[1] = scores[0];
-        scores[0] = 1.f - scores[0]; // put opposite score in positive slot
-        *Z = scores[0];
-        *(Z + 1) = scores[1];
+        scores[1] = (T)scores[0];
+        scores[0] = 1.f - (T)scores[0]; // put opposite score in positive slot
+        *Z = (T)scores[0];
+        *(Z + 1) = (T)scores[1];
         ++n_classes;
         break;
       case 2:
       case 3: // 2 = mixed weights, winning class is positive
         if (post_transform == POST_EVAL_TRANSFORM::LOGISTIC) {
-          scores[1] = ComputeLogistic(scores[0]); // ml_logit(scores[k]);
-          scores[0] = ComputeLogistic(-scores[0]);
+          scores[1] = ComputeLogistic((T)scores[0]); // ml_logit(scores[k]);
+          scores[0] = ComputeLogistic((T)(-scores[0]));
         } else {
-          scores[1] = scores[0];
-          scores[0] = -scores[0];
+          scores[1] = (T)scores[0];
+          scores[0] = (T)(-scores[0]);
         }
         *Z = scores[0];
         *(Z + 1) = scores[1];
@@ -282,9 +308,9 @@ size_t write_scores(size_t n_classes, NTYPE *scores,
   return n_classes;
 }
 
-template <class NTYPE>
-size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform,
-                     NTYPE *Z, int add_second_class) {
+template <typename NTYPE, typename T>
+size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
+                     int add_second_class) {
   switch (post_transform) {
   case POST_EVAL_TRANSFORM::PROBIT:
     Z[0] = ComputeProbit(scores[0]);
@@ -296,15 +322,18 @@ size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform,
     break;
   case POST_EVAL_TRANSFORM::SOFTMAX:
     ComputeSoftmax(scores, scores + 2);
-    memcpy(Z, scores, 2 * sizeof(NTYPE));
+    Z[0] = (T)scores[0];
+    Z[1] = (T)scores[1];
     break;
   case POST_EVAL_TRANSFORM::SOFTMAX_ZERO:
     ComputeSoftmaxZero(scores, scores + 2);
-    memcpy(Z, scores, 2 * sizeof(NTYPE));
+    Z[0] = (T)scores[0];
+    Z[1] = (T)scores[1];
     break;
   default:
   case POST_EVAL_TRANSFORM::NONE:
-    memcpy(Z, scores, 2 * sizeof(NTYPE));
+    Z[0] = (T)scores[0];
+    Z[1] = (T)scores[1];
     break;
   }
   return 2;
@@ -409,6 +438,8 @@ void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa,
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k,
                  double pa, double pb, double val);
 
+inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
+
 template <typename T>
 inline void MakeStringInternal(std::ostringstream &ss, const T &t) noexcept {
   ss << t;
@@ -468,5 +499,12 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
   MakeStringInternal(ss, args...);
   return std::string(ss.str());
 }
+
+#define _THROW(...) throw std::runtime_error(MakeString(__VA_ARGS__));
+
+#define _ENFORCE(cond, ...)                                                    \
+  if (!(cond))                                                                 \
+    throw std::runtime_error(                                                  \
+        MakeString("`", #cond, "` failed.", MakeString(__VA_ARGS__)));
 
 } // namespace onnx_c_ops
