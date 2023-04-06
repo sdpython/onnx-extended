@@ -91,7 +91,8 @@ if platform.system() == "Windows":
 
 if onnx_opset_version() < 19:
     backend_test.exclude(
-        "(test_argm[ai][nx]_default_axis_random"
+        "(test_argm[ai][nx]_default_axis_example"
+        "|test_argm[ai][nx]_default_axis_random"
         "|test_argm[ai][nx]_keepdims_example"
         "|test_argm[ai][nx]_keepdims_random"
         "|test_argm[ai][nx]_negative_axis_keepdims_example"
