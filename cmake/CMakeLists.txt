@@ -5,6 +5,18 @@ project(onnx_extended VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+# AVX instructions
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
+endif()
+
+# disable warning for #pragma unroll
+if(MSVC)
+  add_compile_options(/wd4068)
+endif()
+
 # This comes to hand if we also need to use the NumPy C API
 find_package(PythonInterp 3.8 REQUIRED)
 find_package(PythonLibs "${PYTHON_VERSION_STRING}" EXACT REQUIRED)

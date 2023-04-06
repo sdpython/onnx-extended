@@ -21,4 +21,8 @@ float vector_sum_array(int nc, const py_array_float &values, bool by_rows);
 float vector_sum_array_parallel(int nc, const py_array_float &values,
                                 bool by_rows);
 
+float vector_sum_array_avx(int nc, const py_array_float &values_array);
+
+float vector_sum_array_avx_parallel(int nc, const py_array_float &values_array);
+
 } // namespace validation

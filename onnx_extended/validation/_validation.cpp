@@ -91,4 +91,28 @@ by rows or by columns. The computation is parallelized.
 :param by_rows: by rows or by columns
 :return: sum of all elements
 )pbdoc");
+
+  m.def("vector_sum_array_avx", &vector_sum_array_avx, py::arg("n_columns"),
+        py::arg("values"),
+        R"pbdoc(Computes the sum of all elements in an array
+by rows or by columns. The computation uses AVX instructions
+(see `AVX API
+<https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html>`_).
+
+:param n_columns: number of columns
+:param values: all values in an array
+:return: sum of all elements
+)pbdoc");
+
+  m.def("vector_sum_array_avx_parallel", &vector_sum_array_avx_parallel,
+        py::arg("n_columns"), py::arg("values"),
+        R"pbdoc(Computes the sum of all elements in an array
+by rows or by columns. The computation uses AVX instructions
+and parallelization (see `AVX API
+<https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html>`_).
+
+:param n_columns: number of columns
+:param values: all values in an array
+:return: sum of all elements
+)pbdoc");
 }
