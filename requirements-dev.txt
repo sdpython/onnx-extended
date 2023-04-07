@@ -1,6 +1,7 @@
 black
 clang-format
 coverage
+cython
 flake8
 furo
 isort
