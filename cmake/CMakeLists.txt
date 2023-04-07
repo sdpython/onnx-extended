@@ -76,7 +76,7 @@ pybind11_add_module(c_op_tree_ensemble_py_
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(vector_sum_cy PUBLIC OpenMP::OpenMP_CXX ${PYTHON_LIBRARIES})
+    target_link_libraries(vector_function_cy PUBLIC OpenMP::OpenMP_CXX ${PYTHON_LIBRARIES})
     target_link_libraries(_validation PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(c_op_tree_ensemble_py_ PUBLIC OpenMP::OpenMP_CXX)

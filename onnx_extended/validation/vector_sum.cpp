@@ -41,24 +41,6 @@ float vector_sum(int nc, const std::vector<float> &values, bool by_rows) {
   return total;
 }
 
-float vector_sum(int nl, int nc, const float* values, int by_rows) {
-  float total = 0;
-  if (by_rows) {
-    for (size_t i = 0; i < nl; ++i) {
-      for (size_t j = 0; j < nc; ++j) {
-        total += values[i * nc + j];
-      }
-    }
-  } else {
-    for (size_t j = 0; j < nc; ++j) {
-      for (size_t i = 0; i < nl; ++i) {
-        total += values[i * nc + j];
-      }
-    }
-  }
-  return total;
-}
-
 float vector_sum_array(int nc, const py_array_float &values_array,
                        bool by_rows) {
   const float *values = values_array.data(0);

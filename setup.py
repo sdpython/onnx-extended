@@ -239,6 +239,10 @@ setup(
     cmdclass={"build_ext": cmake_build_ext},
     ext_modules=[
         CMakeExtension(
+            "onnx_extended.validation.vector_function_cy",
+            f"onnx_extended/validation/vector_function_cy.{ext}",
+        ),
+        CMakeExtension(
             "onnx_extended.validation._validation",
             f"onnx_extended/validation/_validation.{ext}",
         ),
