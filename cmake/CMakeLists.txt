@@ -21,7 +21,7 @@ endif()
 
 # needed packages
 if(MSVC)
-  find_package(Python REQUIRED COMPONENTS NumPy)
+  find_package(Python)
 else()
   find_package(Python REQUIRED COMPONENTS NumPy)
 endif()
