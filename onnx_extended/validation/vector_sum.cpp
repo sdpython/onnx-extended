@@ -41,7 +41,7 @@ float vector_sum(int nc, const std::vector<float> &values, bool by_rows) {
   return total;
 }
 
-float vector_sum(int nl, int nc, const float* values, bool by_rows) {
+float vector_sum(int nl, int nc, const float* values, int by_rows) {
   float total = 0;
   if (by_rows) {
     for (size_t i = 0; i < nl; ++i) {

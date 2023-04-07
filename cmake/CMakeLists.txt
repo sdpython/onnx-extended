@@ -20,10 +20,10 @@ if(MSVC)
 endif()
 
 # needed packages
+find_package(Python REQUIRED COMPONENTS NumPy)
 find_package(PythonInterp 3.8 REQUIRED)
 find_package(PythonLibs "${PYTHON_VERSION_STRING}" EXACT REQUIRED)
 find_package(Cython REQUIRED)
-message(${CYTHON_EXECUTABLE})
 
 # This comes to hand if we also need to use the NumPy C API
 execute_process(
@@ -50,14 +50,14 @@ if(NOT pybind11_POPULATED)
     add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif()
 
-# List of extensions to build.
+# List of extensions cython to build.
 
-add_cython_target(vector_sum_cy CXX)
-add_library(vector_sum_cy MODULE 
-    ../onnx_extended/validation/vector_sum_cy.pyx
-    ../onnx_extended/validation/vector_sum.cpp)
-#python_extension_module(vector_sum_cy)
-install(TARGETS vector_sum_cy LIBRARY DESTINATION ../onnx_extended/validations)
+compile_cython(../onnx_extended/validation/vector_function_cy.pyx CXX)
+cython_add_module(vector_function_cy
+    ../onnx_extended/validation/vector_function_cy.cpp
+    ../onnx_extended/validation/vector_function.cpp)
+
+# List of extensions pybind11 to build.
 
 pybind11_add_module(_validation
     ../onnx_extended/validation/_validation.cpp
@@ -76,7 +76,7 @@ pybind11_add_module(c_op_tree_ensemble_py_
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(vector_sum_cy PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(vector_sum_cy PUBLIC OpenMP::OpenMP_CXX ${PYTHON_LIBRARIES})
     target_link_libraries(_validation PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(c_op_tree_ensemble_py_ PUBLIC OpenMP::OpenMP_CXX)
