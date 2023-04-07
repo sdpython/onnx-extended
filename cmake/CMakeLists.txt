@@ -20,10 +20,13 @@ if(MSVC)
 endif()
 
 # needed packages
-# find_package(Python REQUIRED COMPONENTS NumPy)
+find_package(Python REQUIRED COMPONENTS NumPy)
 find_package(PythonInterp 3.8 REQUIRED)
 find_package(PythonLibs "${PYTHON_VERSION_STRING}" EXACT REQUIRED)
 find_package(Cython REQUIRED)
+
+# Info
+message("-- Python Libraries: ${Python_LIBRARIES}")
 
 # This comes to hand if we also need to use the NumPy C API
 execute_process(
