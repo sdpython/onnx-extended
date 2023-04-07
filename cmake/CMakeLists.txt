@@ -20,7 +20,11 @@ if(MSVC)
 endif()
 
 # needed packages
-find_package(Python REQUIRED COMPONENTS NumPy)
+if(MSVC)
+  find_package(Python REQUIRED COMPONENTS NumPy)
+else()
+  find_package(Python REQUIRED COMPONENTS NumPy)
+endif()
 find_package(PythonInterp 3.8 REQUIRED)
 find_package(PythonLibs "${PYTHON_VERSION_STRING}" EXACT REQUIRED)
 find_package(Cython REQUIRED)
