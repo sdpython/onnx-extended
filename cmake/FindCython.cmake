@@ -56,6 +56,7 @@ else()
 endif()
 
 if(CYTHON_EXECUTABLE)
+  message("-- CYTHON_EXECUTABLE=${CYTHON_EXECUTABLE}")
   set(CYTHON_version_command ${CYTHON_EXECUTABLE} --version)
 
   execute_process(COMMAND ${CYTHON_version_command}
