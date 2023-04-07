@@ -37,7 +37,7 @@ cdef float _vector_sum_c(float[:, :] m, int by_rows):
 @cython.wraparound(False)
 def vector_sum_c(float[:, ::1] m, by_rows):
     """
-    Computes the sum of all coefficients in a matrix.
+    Computes the sum of all coefficients in a 2D tensor.
 
     :param m: 2D tensor
     :param by_rows: by rows or by columns

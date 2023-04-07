@@ -90,26 +90,20 @@ mark_as_advanced(CYTHON_EXECUTABLE)
 # function compile_cython
 ##########################
 
-function(compile_cython filename)
+function(compile_cython filename pyx_file_cpp)
   message("-- Cythonize '${filename}'")
-  execute_process(
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${pyx_file_cpp}
     COMMAND ${CYTHON_EXECUTABLE} -3 --cplus ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
-    OUTPUT_VARIABLE cpl
-    ERROR_VARIABLE err
-    RESULT_VARIABLE ret)
-  message("${cpl}")
-  message("${err}")
-  if (ret)
-    message(FATAL_ERROR "Cython failed with ${ret}.")
-  endif()
-  message("-- Cythonized '${filename}'.")
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+  message("-- Cythonize '${filename}' - done")
 endfunction()
 
 ############################
 # function cython_add_module
 ############################
 
-function(cython_add_module name ${pyx_file})
+function(cython_add_module name pyx_file)
   set(options "")
   set(oneValueArgs "")
   set(multiValueArgs SOURCES DEPS)
@@ -119,12 +113,7 @@ function(cython_add_module name ${pyx_file})
   
   # cythonize
 
-  file(MODIFIED_TIME ${pyx_file} MODIFIED_TIMESTAMP)
-  CHECK_IF_MODIFIED_SINCE(${MODIFIED_TIMESTAMP} IS_MODIFIED)
-  if(IS_MODIFIED)
-    compile_cython(${pyx_file} CXX)
-  endif()
-  
+  compile_cython(${pyx_file} ${pyx_dir}/${name}.cpp)
   list(APPEND ARGN ${pyx_dir}/${name}.cpp)
   
   # adding the library

@@ -76,8 +76,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 find_package(Cython REQUIRED)
 
-cython_add_module(vector_function_cy
-    ../onnx_extended/validation/vector_function_cy.pyx
+cython_add_module(vector_function_cy ../onnx_extended/validation/vector_function_cy.pyx
     ../onnx_extended/validation/vector_function.cpp)
 
 # omp
