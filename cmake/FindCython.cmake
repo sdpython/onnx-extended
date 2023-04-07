@@ -86,6 +86,10 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(Cython REQUIRED_VARS CYTHON_EXECUTABLE)
 
 mark_as_advanced(CYTHON_EXECUTABLE)
 
+##########################
+# function compile_cython
+##########################
+
 function(compile_cython filename)
   message("-- Cythonize '${filename}'")
   execute_process(
@@ -101,12 +105,31 @@ function(compile_cython filename)
   message("-- Cythonized '${filename}'.")
 endfunction()
 
-function(cython_add_module name)
+############################
+# function cython_add_module
+############################
+
+function(cython_add_module name ${pyx_file})
   set(options "")
   set(oneValueArgs "")
   set(multiValueArgs SOURCES DEPS)
-  message("-- Add cython module '${name}': ${ARGN}")
+  message("-- Add cython module '${name}': ${pyx_file}")
+  message("-- Additional files: ${ARGN}")
+  get_filename_component(pyx_dir ${pyx_file} DIRECTORY)
+  
+  # cythonize
 
+  file(MODIFIED_TIME ${pyx_file} MODIFIED_TIMESTAMP)
+  CHECK_IF_MODIFIED_SINCE(${MODIFIED_TIMESTAMP} IS_MODIFIED)
+  if(IS_MODIFIED)
+    compile_cython(${pyx_file} CXX)
+  endif()
+  
+  list(APPEND ARGN ${pyx_dir}/${name}.cpp)
+  
+  # adding the library
+  
+  message("-- All files: ${ARGN}")
   add_library(${name} SHARED ${ARGN})
 
   target_include_directories(${name} PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS})
@@ -117,10 +140,7 @@ function(cython_add_module name)
     OUTPUT_NAME "${name}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-  get_filename_component(mane_dir ${name} DIRECTORY)
-  install(TARGETS ${name} LIBRARY DESTINATION ${name_dir})
+  install(TARGETS ${name} LIBRARY DESTINATION ${pyx_dir})
 
-  #if (WIN32 AND NOT CYGWIN)
-  #  set_target_properties(${name} PROPERTIES SUFFIX ".pyd")
-  #endif()
+  message("-- Added cython module '${name}'")
 endfunction()

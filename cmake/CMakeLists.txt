@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.24.0)
 
 project(onnx_extended VERSION 0.1.0)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-
 include(CTest)
 enable_testing()
 
@@ -20,14 +18,8 @@ if(MSVC)
 endif()
 
 # needed packages
-if(MSVC)
-  find_package(Python)
-else()
-  find_package(Python REQUIRED COMPONENTS NumPy)
-endif()
 find_package(PythonInterp 3.8 REQUIRED)
 find_package(PythonLibs "${PYTHON_VERSION_STRING}" EXACT REQUIRED)
-find_package(Cython REQUIRED)
 
 # Info
 message("-- Python Libraries: ${Python_LIBRARIES}")
@@ -59,13 +51,6 @@ else()
     message(FATAL_ERROR "Pybind11 was not found.")
 endif()
 
-# List of extensions cython to build.
-
-compile_cython(../onnx_extended/validation/vector_function_cy.pyx CXX)
-cython_add_module(vector_function_cy
-    ../onnx_extended/validation/vector_function_cy.cpp
-    ../onnx_extended/validation/vector_function.cpp)
-
 # List of extensions pybind11 to build.
 
 pybind11_add_module(_validation
@@ -80,6 +65,20 @@ pybind11_add_module(c_op_conv_
 pybind11_add_module(c_op_tree_ensemble_py_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
+
+# List of extensions cython to build.
+
+if(MSVC)
+  find_package(Python)
+else()
+  find_package(Python REQUIRED COMPONENTS NumPy)
+endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+find_package(Cython REQUIRED)
+
+cython_add_module(vector_function_cy
+    ../onnx_extended/validation/vector_function_cy.pyx
+    ../onnx_extended/validation/vector_function.cpp)
 
 # omp
 
