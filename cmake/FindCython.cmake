@@ -1,90 +1,45 @@
-#.rst:
-#
-# Find ``cython`` executable.
-#
-# This module will set the following variables in your project:
-#
-#  ``CYTHON_EXECUTABLE``
-#    path to the ``cython`` program
-#
-#  ``CYTHON_VERSION``
-#    version of ``cython``
-#
-#  ``CYTHON_FOUND``
-#    true if the program was found
-#
-# For more information on the Cython project, see https://cython.org/.
-#
-# *Cython is a language that makes writing C extensions for the Python language
-# as easy as Python itself.*
-#
-#=============================================================================
-# Copyright 2011 Kitware, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#=============================================================================
 
-# Use the Cython executable that lives next to the Python executable
-# if it is a local installation.
-if(Python_EXECUTABLE)
-  get_filename_component(_python_path ${Python_EXECUTABLE} PATH)
-elseif(Python3_EXECUTABLE)
-  get_filename_component(_python_path ${Python3_EXECUTABLE} PATH)
-elseif(DEFINED PYTHON_EXECUTABLE)
-  get_filename_component(_python_path ${PYTHON_EXECUTABLE} PATH)
-endif()
+################
+# initialization
+################
+# output variables Cython_FOUND, Cython_VERSION
+# function cython_add_module
 
-if(DEFINED _python_path)
-  find_program(CYTHON_EXECUTABLE
-               NAMES cython cython.bat cython3
-               HINTS ${_python_path}
-               DOC "path to the cython executable")
+if(MSVC)
+  find_package(Python)
 else()
-  find_program(CYTHON_EXECUTABLE
-               NAMES cython cython.bat cython3
-               DOC "path to the cython executable")
+  find_package(Python REQUIRED COMPONENTS NumPy)
 endif()
 
-if(CYTHON_EXECUTABLE)
-  message("-- CYTHON_EXECUTABLE=${CYTHON_EXECUTABLE}")
-  set(CYTHON_version_command ${CYTHON_EXECUTABLE} --version)
+execute_process(COMMAND ${Python_EXECUTABLE} -m cython --version
+              OUTPUT_VARIABLE CYTHON_version_output
+              ERROR_VARIABLE CYTHON_version_error
+              RESULT_VARIABLE CYTHON_version_result
+              OUTPUT_STRIP_TRAILING_WHITESPACE
+              ERROR_STRIP_TRAILING_WHITESPACE)
 
-  execute_process(COMMAND ${CYTHON_version_command}
-                  OUTPUT_VARIABLE CYTHON_version_output
-                  ERROR_VARIABLE CYTHON_version_error
-                  RESULT_VARIABLE CYTHON_version_result
-                  OUTPUT_STRIP_TRAILING_WHITESPACE
-                  ERROR_STRIP_TRAILING_WHITESPACE)
+if(NOT ${CYTHON_version_result} EQUAL 0)
+    set(Cython_FOUND 0)
+    set(Cython_VERSION "?")
+else()
+    set(Cython_VERSION ${CYTHON_version_error})
+    set(Cython_FOUND 1)
+endif()
 
-  if(NOT ${CYTHON_version_result} EQUAL 0)
-    set(_error_msg "Command \"${CYTHON_version_command}\" failed with")
-    set(_error_msg "${_error_msg} output:\n${CYTHON_version_error}")
-    message(SEND_ERROR "${_error_msg}")
-  else()
-    if("${CYTHON_version_output}" MATCHES "^[Cc]ython version ([^,]+)")
-      set(CYTHON_VERSION "${CMAKE_MATCH_1}")
-    else()
-      if("${CYTHON_version_error}" MATCHES "^[Cc]ython version ([^,]+)")
-        set(CYTHON_VERSION "${CMAKE_MATCH_1}")
-      endif()
-    endif()
-  endif()
+execute_process(
+    COMMAND "${PYTHON_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
+    OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE NUMPY_NOT_FOUND
+)
+if(NUMPY_NOT_FOUND)
+    message(FATAL_ERROR "Numpy headers not found.")
 endif()
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Cython REQUIRED_VARS CYTHON_EXECUTABLE)
-
-mark_as_advanced(CYTHON_EXECUTABLE)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(
+    Cython
+    REQUIRED_VARS Cython_FOUND Cython_VERSION NUMPY_INCLUDE_DIR)
 
 ##########################
 # function compile_cython
@@ -94,7 +49,7 @@ function(compile_cython filename pyx_file_cpp)
   message("-- Cythonize '${filename}'")
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${pyx_file_cpp}
-    COMMAND ${CYTHON_EXECUTABLE} -3 --cplus ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+    COMMAND ${Python_EXECUTABLE} -m cython -3 --cplus ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message("-- Cythonize '${filename}' - done")
 endfunction()
