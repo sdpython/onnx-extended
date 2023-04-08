@@ -16,7 +16,7 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(MSVC)
-  find_package(Python REQUIRED COMPONENTS NumPy)
+  find_package(Python REQUIRED COMPONENTS Interpreter)
 else()
   find_package(Python REQUIRED COMPONENTS NumPy)
 endif()
@@ -33,10 +33,10 @@ endif()
 find_package(Cython REQUIRED)
 if(Cython_FOUND)
     message("-- Found Cython ${Cython_VERSION}")
+    message("-- NUMPY_INCLUDE_DIR: ${NUMPY_INCLUDE_DIR}")
 else()
     message(FATAL_ERROR "Module cython is not installed.")
 endif()
-message("-- NUMPY_INCLUDE_DIR: ${NUMPY_INCLUDE_DIR}")
 
 find_package(LocalPyBind11 REQUIRED)
 if(LocalPyBind11_FOUND)
@@ -72,16 +72,19 @@ endif()
 # pybind11 extensions
 #####################
 
-pybind11_add_module(_validation
+local_pybind11_add_module(
+    _validation
     ../onnx_extended/validation/_validation.cpp
     ../onnx_extended/validation/speed_metrics.cpp
     ../onnx_extended/validation/vector_sum.cpp)
 
-pybind11_add_module(c_op_conv_
+local_pybind11_add_module(
+    c_op_conv_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_conv_.cpp)
 
-pybind11_add_module(c_op_tree_ensemble_py_
+local_pybind11_add_module(
+    c_op_tree_ensemble_py_
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
 
@@ -96,7 +99,8 @@ cython_add_module(vector_function_cy ../onnx_extended/validation/vector_function
 # omp
 #####
 
-target_link_libraries(vector_function_cy PUBLIC OpenMP::OpenMP_CXX ${PYTHON_LIBRARIES})
+target_link_libraries(vector_function_cy PUBLIC OpenMP::OpenMP_CXX)
+
 target_link_libraries(_validation PUBLIC OpenMP::OpenMP_CXX)
 target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
 target_link_libraries(c_op_tree_ensemble_py_ PUBLIC OpenMP::OpenMP_CXX)

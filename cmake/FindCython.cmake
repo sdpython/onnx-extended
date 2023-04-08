@@ -62,8 +62,8 @@ function(cython_add_module name pyx_file)
   set(options "")
   set(oneValueArgs "")
   set(multiValueArgs SOURCES DEPS)
-  message("-- Add cython module '${name}': ${pyx_file}")
-  message("-- Additional files: ${ARGN}")
+  message("-- cython module '${name}': ${pyx_file}")
+  message("-- cython files: ${ARGN}")
   get_filename_component(pyx_dir ${pyx_file} DIRECTORY)
   
   # cythonize
@@ -73,18 +73,17 @@ function(cython_add_module name pyx_file)
   
   # adding the library
   
-  message("-- All files: ${ARGN}")
-  add_library(${name} SHARED ${ARGN})
+  message("-- cython all files: ${ARGN}")
+  add_library(${name} MODULE ${ARGN})
 
-  target_include_directories(${name} PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS})
+  target_include_directories(${name} PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
   target_link_libraries(${name} PRIVATE ${Python_LIBRARIES} ${Python_NumPy_LIBRARIES})
   
-  set_target_properties(${name} PROPERTIES
-    PREFIX "${PYTHON_MODULE_PREFIX}"
-    OUTPUT_NAME "${name}"
-    SUFFIX "${PYTHON_MODULE_EXTENSION}")
+  set_target_properties(${name}
+    PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+               SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-  install(TARGETS ${name} LIBRARY DESTINATION ${pyx_dir})
+  #install(TARGETS ${name} LIBRARY DESTINATION ${pyx_dir})
 
   message("-- Added cython module '${name}'")
 endfunction()

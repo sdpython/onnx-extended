@@ -194,6 +194,10 @@ class cmake_build_ext(build_ext):
             dest = os.path.join(build_lib, os.path.split(full_name)[0])
             if not os.path.exists(dest):
                 os.makedirs(dest)
+            if not os.path.exists(look):
+                raise FileNotFoundError(f"Unable to find {look!r}.")
+            if not os.path.exists(dest):
+                raise FileNotFoundError(f"Unable to find folder {dest!r}.")
             print(f"copy {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
