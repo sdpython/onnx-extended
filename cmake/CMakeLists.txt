@@ -40,7 +40,7 @@ endif()
 
 find_package(LocalPyBind11 REQUIRED)
 if(LocalPyBind11_FOUND)
-    message("-- Found LocalPyBind11 ${pybind11_VERSION}")
+    message("-- Found LocalPyBind11, pybind11 at ${pybind11_SOURCE_DIR}")
 else()
     message(FATAL_ERROR "Module pybind11 is not installed.")
 endif()

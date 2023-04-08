@@ -37,6 +37,7 @@ endif()
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(
     LocalPyBind11
+    VERSION_VAR pybind11_VERSION
     REQUIRED_VARS pybind11_SOURCE_DIR pybind11_BINARY_DIR)
 
 ##########
@@ -44,10 +45,16 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(
 ##########
 
 function(local_pybind11_add_module name)
-    message("-- pybind11 module '${name}': ${pyx_file}")
-    message("-- pybind11 files: ${ARGN}")
+    message("-- pybind11 module '${name}': ${pyx_file} ++ ${ARGN}")
     Python_add_library(${name} MODULE ${ARGN})
-    target_link_libraries(${name} PRIVATE pybind11::headers)
+    target_include_directories(${name} PRIVATE
+        ${Python_INCLUDE_DIRS}
+        ${Python_NumPy_INCLUDE_DIRS}
+        ${NUMPY_INCLUDE_DIR})
+    target_link_libraries(${name} PRIVATE
+        pybind11::headers
+        ${Python_LIBRARIES}
+        ${Python_NumPy_LIBRARIES})
     set_target_properties(${name}
         PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON
                    CXX_VISIBILITY_PRESET ON
@@ -55,5 +62,5 @@ function(local_pybind11_add_module name)
     set_target_properties(${name}
         PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                    SUFFIX "${PYTHON_MODULE_EXTENSION}")
-
+    message("-- pybind11 added module '${name}'")
 endfunction()
