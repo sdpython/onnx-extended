@@ -19,11 +19,11 @@ execute_process(COMMAND ${Python_EXECUTABLE} -m cython --version
               ERROR_STRIP_TRAILING_WHITESPACE)
 
 if(NOT ${CYTHON_version_result} EQUAL 0)
-    set(Cython_FOUND 0)
+    set(Cython_FOUND "0")
     set(Cython_VERSION "?")
 else()
     set(Cython_VERSION ${CYTHON_version_error})
-    set(Cython_FOUND 1)
+    set(Cython_FOUND "1")
 endif()
 
 execute_process(
@@ -39,7 +39,7 @@ endif()
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(
     Cython
-    REQUIRED_VARS Cython_FOUND Cython_VERSION NUMPY_INCLUDE_DIR)
+    REQUIRED_VARS Cython_VERSION NUMPY_INCLUDE_DIR)
 
 ##########################
 # function compile_cython
