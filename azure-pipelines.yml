@@ -59,7 +59,7 @@ jobs:
     vmImage: 'windows-latest'
   strategy:
     matrix:
-      Python310-Windows:
+      Python311-Windows:
         python.version: '3.11'
     maxParallel: 3
 

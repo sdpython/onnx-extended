@@ -50,6 +50,10 @@ class TestDocumentationExamples(ExtTestCase):
                     if verbose:
                         print(f"failed: {name!r} due to missing dot.")
                     return 0
+                if "No module named 'onnxruntime'" in st:
+                    if verbose:
+                        print(f"failed: {name!r} due to missing onnxruntime.")
+                    return 0
                 raise AssertionError(
                     "Example '{}' (cmd: {} - exec_prefix='{}') "
                     "failed due to\n{}"
