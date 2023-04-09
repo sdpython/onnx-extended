@@ -32,7 +32,7 @@ public:
               this->post_transform_, this->base_values_));
       return Status::OK();
     default:
-      _THROW("Unknown aggregation function in TreeEnsemble.");
+      EXT_THROW("Unknown aggregation function in TreeEnsemble.");
     }
   }
 

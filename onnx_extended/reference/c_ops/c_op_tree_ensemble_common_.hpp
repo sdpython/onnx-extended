@@ -183,16 +183,16 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     const std::vector<ThresholdType> &target_class_weights) {
 
   DEBUG_PRINT("Init")
-  _ENFORCE(n_targets_or_classes > 0);
-  _ENFORCE(nodes_falsenodeids.size() == nodes_featureids.size());
-  _ENFORCE(nodes_falsenodeids.size() == nodes_modes.size());
-  _ENFORCE(nodes_falsenodeids.size() == nodes_nodeids.size());
-  _ENFORCE(nodes_falsenodeids.size() == nodes_treeids.size());
-  _ENFORCE(nodes_falsenodeids.size() == nodes_truenodeids.size());
-  _ENFORCE(nodes_falsenodeids.size() == nodes_values.size());
-  _ENFORCE(target_class_ids.size() == target_class_nodeids.size());
-  _ENFORCE(target_class_ids.size() == target_class_treeids.size());
-  _ENFORCE(target_class_ids.size() == target_class_treeids.size());
+  EXT_ENFORCE(n_targets_or_classes > 0);
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_featureids.size());
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_modes.size());
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_nodeids.size());
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_treeids.size());
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_truenodeids.size());
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_values.size());
+  EXT_ENFORCE(target_class_ids.size() == target_class_nodeids.size());
+  EXT_ENFORCE(target_class_ids.size() == target_class_treeids.size());
+  EXT_ENFORCE(target_class_ids.size() == target_class_treeids.size());
 
   aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);
   post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
@@ -202,7 +202,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
   }
   n_targets_or_classes_ = n_targets_or_classes;
   max_tree_depth_ = 1000;
-  _ENFORCE(nodes_modes.size() < std::numeric_limits<uint32_t>::max());
+  EXT_ENFORCE(nodes_modes.size() < std::numeric_limits<uint32_t>::max());
 
   // additional members
   size_t limit;
@@ -262,7 +262,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     auto p =
         idi.insert(std::pair<TreeNodeElementId, uint32_t>(node_tree_id, i));
     if (!p.second) {
-      _THROW("Node ", node_tree_id.node_id, " in tree ", node_tree_id.tree_id,
+      EXT_THROW("Node ", node_tree_id.node_id, " in tree ", node_tree_id.tree_id,
              " is already there.");
     }
     nodes_.emplace_back(node);
@@ -284,28 +284,28 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     TreeNodeElementId &node_tree_id = node_tree_ids[i];
     coor.tree_id = node_tree_id.tree_id;
     coor.node_id = static_cast<int>(nodes_truenodeids[i]);
-    _ENFORCE((coor.node_id >= 0 && coor.node_id < n_nodes_));
+    EXT_ENFORCE((coor.node_id >= 0 && coor.node_id < n_nodes_));
 
     auto found = idi.find(coor);
     if (found == idi.end()) {
-      _THROW("Unable to find node ", coor.tree_id, "-", coor.node_id,
+      EXT_THROW("Unable to find node ", coor.tree_id, "-", coor.node_id,
              " (truenode).");
     }
     if (found->second == truenode_ids.size()) {
-      _THROW("A node cannot point to itself: ", coor.tree_id, "-",
+      EXT_THROW("A node cannot point to itself: ", coor.tree_id, "-",
              node_tree_id.node_id, " (truenode).");
     }
     truenode_ids.emplace_back(found->second);
 
     coor.node_id = static_cast<int>(nodes_falsenodeids[i]);
-    _ENFORCE((coor.node_id >= 0 && coor.node_id < n_nodes_));
+    EXT_ENFORCE((coor.node_id >= 0 && coor.node_id < n_nodes_));
     found = idi.find(coor);
     if (found == idi.end()) {
-      _THROW("Unable to find node ", coor.tree_id, "-", coor.node_id,
+      EXT_THROW("Unable to find node ", coor.tree_id, "-", coor.node_id,
              " (falsenode).");
     }
     if (found->second == falsenode_ids.size()) {
-      _THROW("A node cannot point to itself: ", coor.tree_id, "-",
+      EXT_THROW("A node cannot point to itself: ", coor.tree_id, "-",
              node_tree_id.node_id, " (falsenode).");
     }
     falsenode_ids.emplace_back(found->second);
@@ -333,7 +333,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     i = indices[indi].second;
     auto found = idi.find(ind);
     if (found == idi.end()) {
-      _THROW("Unable to find node ", ind.tree_id, "-", ind.node_id,
+      EXT_THROW("Unable to find node ", ind.tree_id, "-", ind.node_id,
              " (weights).");
     }
 
@@ -341,7 +341,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     if (leaf.is_not_leaf()) {
       // An exception should be raised in that case. But this case may happen
       // in models converted with an old version of onnxmltools. These weights
-      // are ignored. _THROW("Node ", ind.tree_id, "-", ind.node_id, " is
+      // are ignored. EXT_THROW("Node ", ind.tree_id, "-", ind.node_id, " is
       // not a leaf.");
       continue;
     }
@@ -364,16 +364,16 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     previous = node_tree_ids[i].tree_id;
     if (!nodes_[i].is_not_leaf()) {
       if (nodes_[i].falsenode_inc_or_n_weights == 0) {
-        _THROW("Target is missing for leaf ", ind.tree_id, "-", ind.node_id,
+        EXT_THROW("Target is missing for leaf ", ind.tree_id, "-", ind.node_id,
                ".");
       }
       continue;
     }
-    _ENFORCE(truenode_ids[i] != i); // That would mean the left node is
+    EXT_ENFORCE(truenode_ids[i] != i); // That would mean the left node is
                                     // itself, leading to an infinite loop.
     nodes_[i].truenode_inc_or_first_weight =
         static_cast<int32_t>(truenode_ids[i] - i);
-    _ENFORCE(falsenode_ids[i] != i); // That would mean the right node is
+    EXT_ENFORCE(falsenode_ids[i] != i); // That would mean the right node is
                                      // itself, leading to an infinite loop.
     nodes_[i].falsenode_inc_or_n_weights =
         static_cast<int32_t>(falsenode_ids[i] - i);
@@ -445,7 +445,7 @@ int TreeEnsembleCommon<InputType, ThresholdType, OutputType>::
   while (!stack.empty()) {
     pair = stack.front();
     stack.pop_front();
-    // _ENFORCE(map_node_to_node3.find(pair.first) == map_node_to_node3.end(),
+    // EXT_ENFORCE(map_node_to_node3.find(pair.first) == map_node_to_node3.end(),
     //          "This node index ", pair.first,
     //          " was already added as a TreeNodeElement3.");
     node = pair.second;
@@ -572,7 +572,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Compute(
                    base_values_));
     return Status::OK();
   default:
-    _THROW("Unknown aggregation function in TreeEnsemble.");
+    EXT_THROW("Unknown aggregation function in TreeEnsemble.");
   }
 }
 
@@ -973,7 +973,7 @@ inline int GetLeave3IndexLEQ(float* features, const TreeNodeElement3<float>* nod
   auto exp = features[1] <= node3->thresholds[1]
                  ? (features[2] <= node3->thresholds[2] ? 3 : 2)
                  : (features[0] <= node3->thresholds[0] ? 1 : 0);
-  _ENFORCE(exp == ind2, "\n--exp=", exp, " ind=", ind, " ind2=", ind2, " FF\n",
+  EXT_ENFORCE(exp == ind2, "\n--exp=", exp, " ind=", ind, " ind2=", ind2, " FF\n",
               features[0], "<=", node3->thresholds[0], " -- ",
               features[1], "<=", node3->thresholds[1], " -- ",
               features[2], "<=", node3->thresholds[2], " -- ",
@@ -991,17 +991,17 @@ template <typename InputType, typename ThresholdType, typename OutputType>
 const TreeNodeElement<ThresholdType> *
 TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave3(
     size_t root_id, const InputType *x_data) const {
-  _ENFORCE(same_mode_, "This optimization is only available when all node "
+  EXT_ENFORCE(same_mode_, "This optimization is only available when all node "
                        "follow the same mode.");
   const TreeNodeElement3<ThresholdType> *root3 = roots3_[root_id];
   const TreeNodeElement<ThresholdType> *root;
-  _ENFORCE(root3 != nullptr, "No optimization for tree ", root_id, ".");
+  EXT_ENFORCE(root3 != nullptr, "No optimization for tree ", root_id, ".");
   InputType features[4];
   int node_id;
   switch (root3->mode()) {
   case NODE_MODE::BRANCH_LEQ:
     if (has_missing_tracks_) {
-      _THROW("TreeNodeElement3 not yet implement with has_missing_tracks_.");
+      EXT_THROW("TreeNodeElement3 not yet implement with has_missing_tracks_.");
     } else {
       while (root3->children_are_tree_element3()) {
         node_id = GetLeave3IndexLEQ(features, root3, x_data);
@@ -1018,7 +1018,7 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave3(
     }
     break;
   default:
-    _THROW("TreeNodeElement3 not yet implement with mode ", root3->mode(), ".");
+    EXT_THROW("TreeNodeElement3 not yet implement with mode ", root3->mode(), ".");
   }
 }
 

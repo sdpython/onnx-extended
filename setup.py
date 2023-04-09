@@ -4,7 +4,15 @@ import platform
 import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
+
+try:
+    import numpy
+except ImportError as e:
+    raise ImportError(
+        f"Numpy is not installed, python _executable=f{sys.executable}."
+    ) from e
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -138,14 +146,34 @@ class cmake_build_ext(build_ext):
             raise RuntimeError("Cannot find CMake executable")
 
         cfg = "Release"
+        iswin = is_windows()
+        isdar = is_darwin()
 
         cmake_cmd_args = []
 
         path = sys.executable
+        vers = (
+            f"{sys.version_info.major}."
+            f"{sys.version_info.minor}."
+            f"{sys.version_info.micro}"
+        )
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
+            f"-DPYTHON_VERSION={vers}",
         ]
+        if iswin:
+            include_dir = sysconfig.get_path("include").replace("\\", "/")
+            lib_dir = sysconfig.get_config_var("LIBDIR") or ""
+            lib_dir = lib_dir.replace("\\", "/")
+            numpy_include_dir = numpy.get_include().replace("\\", "/")
+            cmake_args.extend(
+                [
+                    f"-DPYTHON_INCLUDE_DIR={include_dir}",
+                    f"-DPYTHON_LIBRARIES={lib_dir}",
+                    f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
+                ]
+            )
 
         cmake_args += cmake_cmd_args
 
@@ -161,24 +189,24 @@ class cmake_build_ext(build_ext):
         source_path = os.path.join(this_dir, "cmake")
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
-        print(f"cwd={os.getcwd()!r}")
-        print(f"source_path={source_path!r}")
-        print(f"build_path={build_path!r}")
-        print(f"cmd={' '.join(cmd)}")
+        print(f"-- setup: version={sys.version_info!r}")
+        print(f"-- setup: cwd={os.getcwd()!r}")
+        print(f"-- setup: source_path={source_path!r}")
+        print(f"-- setup: build_path={build_path!r}")
+        print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
 
         # then build
         print()
         cmd = ["cmake", "--build", build_path, "--config", cfg]
-        print(f"cwd={os.getcwd()!r}")
-        print(f"build_path={build_path!r}")
-        print(f"cmd={' '.join(cmd)}")
+        print(f"-- setup: cwd={os.getcwd()!r}")
+        print(f"-- setup: build_path={build_path!r}")
+        print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
+        print("-- setup: done.")
 
         # final
         build_lib = self.build_lib
-        iswin = is_windows()
-        isdar = is_darwin()
 
         for ext in self.extensions:
             full_name = ext._file_name
@@ -194,7 +222,11 @@ class cmake_build_ext(build_ext):
             dest = os.path.join(build_lib, os.path.split(full_name)[0])
             if not os.path.exists(dest):
                 os.makedirs(dest)
-            print(f"copy {look!r} to {dest!r}")
+            if not os.path.exists(look):
+                raise FileNotFoundError(f"Unable to find {look!r}.")
+            if not os.path.exists(dest):
+                raise FileNotFoundError(f"Unable to find folder {dest!r}.")
+            print(f"-- copy {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
 
@@ -238,6 +270,10 @@ setup(
     ],
     cmdclass={"build_ext": cmake_build_ext},
     ext_modules=[
+        CMakeExtension(
+            "onnx_extended.validation.vector_function_cy",
+            f"onnx_extended/validation/vector_function_cy.{ext}",
+        ),
         CMakeExtension(
             "onnx_extended.validation._validation",
             f"onnx_extended/validation/_validation.{ext}",

@@ -9,9 +9,17 @@ from onnx_extended.validation._validation import (
     vector_sum_array_avx,
     vector_sum_array_avx_parallel,
 )
+from onnx_extended.validation.vector_function_cy import vector_sum_c
 
 
 class TestVectorSum(ExtTestCase):
+    def test_vector_sum_c(self):
+        values = numpy.array([[10, 1, 4, 5, 6, 7]], dtype=numpy.float32)
+        t1 = vector_sum_c(values, True)
+        t2 = vector_sum_c(values, False)
+        self.assertEqual(t1, 33)
+        self.assertEqual(t2, 33)
+
     def test_vector_sum(self):
         values = [10, 1, 4, 5, 6, 7]
         t1 = vector_sum(1, values, True)
