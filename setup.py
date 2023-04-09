@@ -6,6 +6,7 @@ import subprocess
 import sys
 import sysconfig
 from pathlib import Path
+import numpy
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -139,18 +140,26 @@ class cmake_build_ext(build_ext):
             raise RuntimeError("Cannot find CMake executable")
 
         cfg = "Release"
+        iswin = is_windows()
+        isdar = is_darwin()
 
         cmake_cmd_args = []
 
         path = sys.executable
-        include_dir = sysconfig.get_path('include')
-        lib_dir = sysconfig.get_config_var('LIBDIR')
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
-            f"-DPYTHON_INCLUDE_DIR={include_dir}",
-            f"-DPYTHON_LIBRARY={lib_dir}",
         ]
+        if iswin:
+            include_dir = sysconfig.get_path('include').replace("\\", "/")
+            lib_dir = sysconfig.get_config_var('LIBDIR') or ""
+            lib_dir = lib_dir.replace("\\", "/")
+            numpy_include_dir = numpy.get_include().replace("\\", "/")
+            cmake_args.extend([
+                f"-DPYTHON_INCLUDE_DIR={include_dir}",
+                f"-DPYTHON_LIBRARIES={lib_dir}",
+                f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
+            ])
 
         cmake_args += cmake_cmd_args
 
@@ -166,24 +175,22 @@ class cmake_build_ext(build_ext):
         source_path = os.path.join(this_dir, "cmake")
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
-        print(f"cwd={os.getcwd()!r}")
-        print(f"source_path={source_path!r}")
-        print(f"build_path={build_path!r}")
-        print(f"cmd={' '.join(cmd)}")
+        print(f"-- setup: cwd={os.getcwd()!r}")
+        print(f"-- setup: source_path={source_path!r}")
+        print(f"-- setup: build_path={build_path!r}")
+        print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
 
         # then build
         print()
         cmd = ["cmake", "--build", build_path, "--config", cfg]
-        print(f"cwd={os.getcwd()!r}")
-        print(f"build_path={build_path!r}")
-        print(f"cmd={' '.join(cmd)}")
+        print(f"-- setup: cwd={os.getcwd()!r}")
+        print(f"-- setup: build_path={build_path!r}")
+        print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
 
         # final
         build_lib = self.build_lib
-        iswin = is_windows()
-        isdar = is_darwin()
 
         for ext in self.extensions:
             full_name = ext._file_name

@@ -41,10 +41,11 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(
 ##########
 
 function(local_pybind11_add_module name omp_lib)
-    message("-- pybind11 module '${name}': ${pyx_file} ++ ${ARGN}")
+    message(STATUS "pybind11 module '${name}': ${pyx_file} ++ ${ARGN}")
     Python_add_library(${name} MODULE ${ARGN})
     target_include_directories(${name} PRIVATE
         ${Python_INCLUDE_DIRS}
+        ${PYTHON_INCLUDE_DIR}
         ${Python_NumPy_INCLUDE_DIRS}
         ${NUMPY_INCLUDE_DIR})
     target_link_libraries(${name} PRIVATE
@@ -59,5 +60,5 @@ function(local_pybind11_add_module name omp_lib)
     set_target_properties(${name}
         PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                    SUFFIX "${PYTHON_MODULE_EXTENSION}")
-    message("-- pybind11 added module '${name}'")
+    message(STATUS "pybind11 added module '${name}'")
 endfunction()

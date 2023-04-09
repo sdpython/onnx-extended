@@ -47,12 +47,12 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(
 ##########################
 
 function(compile_cython filename pyx_file_cpp)
-  message("-- cython cythonize '${filename}'")
+  message(STATUS "cython cythonize '${filename}'")
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${pyx_file_cpp}
     COMMAND ${Python_EXECUTABLE} -m cython -3 --cplus ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-  message("-- cython cythonize '${filename}' - done")
+  message(STATUS "cython cythonize '${filename}' - done")
 endfunction()
 
 ############################
@@ -63,7 +63,7 @@ function(cython_add_module name pyx_file omp_lib)
   set(options "")
   set(oneValueArgs "")
   set(multiValueArgs SOURCES DEPS)
-  message("-- cython module '${name}': ${pyx_file} ++ ${ARGN}")
+  message(STATUS "cython module '${name}': ${pyx_file} ++ ${ARGN}")
   get_filename_component(pyx_dir ${pyx_file} DIRECTORY)
   
   # cythonize
@@ -73,11 +73,12 @@ function(cython_add_module name pyx_file omp_lib)
   
   # adding the library
   
-  message("-- cython all files: ${ARGN}")
+  message(STATUS "cython all files: ${ARGN}")
   add_library(${name} MODULE ${ARGN})
 
   target_include_directories(${name} PRIVATE
     ${Python_INCLUDE_DIRS}
+    ${PYTHON_INCLUDE_DIR}
     ${Python_NumPy_INCLUDE_DIRS}
     ${NUMPY_INCLUDE_DIR})
   target_link_libraries(${name} PRIVATE
@@ -91,5 +92,5 @@ function(cython_add_module name pyx_file omp_lib)
 
   #install(TARGETS ${name} LIBRARY DESTINATION ${pyx_dir})
 
-  message("-- cython added module '${name}'")
+  message(STATUS "cython added module '${name}'")
 endfunction()
