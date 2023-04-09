@@ -266,7 +266,7 @@ public:
 
   void FinalizeScores(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                       OutputType *Z, int add_second_class, int64_t *) const {
-    _ENFORCE(predictions.size() == (size_t)n_targets_or_classes_);
+    EXT_ENFORCE(predictions.size() == (size_t)n_targets_or_classes_);
     ThresholdType val;
     auto it = predictions.begin();
     for (size_t jt = 0; jt < static_cast<size_t>(n_targets_or_classes_);
@@ -325,7 +325,7 @@ public:
       const InlinedVector<SparseValue<ThresholdType>> &weights) const {
     auto it = weights.begin() + root.truenode_inc_or_first_weight;
     for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
-      // _ENFORCE(it->i < (int64_t)predictions.size());
+      // EXT_ENFORCE(it->i < (int64_t)predictions.size());
       predictions[static_cast<size_t>(it->i)].score += it->value;
       predictions[static_cast<size_t>(it->i)].has_score = 1;
     }
@@ -334,7 +334,7 @@ public:
   void MergePrediction(
       InlinedVector<ScoreValue<ThresholdType>> &predictions,
       const InlinedVector<ScoreValue<ThresholdType>> &predictions2) const {
-    _ENFORCE(predictions.size() == predictions2.size());
+    EXT_ENFORCE(predictions.size() == predictions2.size());
     for (size_t i = 0; i < predictions.size(); ++i) {
       if (predictions2[i].has_score) {
         predictions[i].score += predictions2[i].score;
@@ -380,7 +380,7 @@ public:
   void FinalizeScores(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                       OutputType *Z, int add_second_class, int64_t *) const {
     if (this->use_base_values_) {
-      _ENFORCE(this->base_values_.size() == predictions.size());
+      EXT_ENFORCE(this->base_values_.size() == predictions.size());
       auto it = predictions.begin();
       auto it2 = this->base_values_.cbegin();
       for (; it != predictions.end(); ++it, ++it2)
@@ -449,7 +449,7 @@ public:
   void MergePrediction(
       InlinedVector<ScoreValue<ThresholdType>> &predictions,
       const InlinedVector<ScoreValue<ThresholdType>> &predictions2) const {
-    _ENFORCE(predictions.size() == predictions2.size());
+    EXT_ENFORCE(predictions.size() == predictions2.size());
     for (size_t i = 0; i < predictions.size(); ++i) {
       if (predictions2[i].has_score) {
         predictions[i].score =
@@ -519,7 +519,7 @@ public:
   void MergePrediction(
       InlinedVector<ScoreValue<ThresholdType>> &predictions,
       const InlinedVector<ScoreValue<ThresholdType>> &predictions2) const {
-    _ENFORCE(predictions.size() == predictions2.size());
+    EXT_ENFORCE(predictions.size() == predictions2.size());
     for (size_t i = 0; i < predictions.size(); ++i) {
       if (predictions2[i].has_score) {
         predictions[i].score =
@@ -576,7 +576,7 @@ public:
   int64_t _set_score_binary(
       int &write_additional_scores,
       const InlinedVector<ScoreValue<ThresholdType>> &classes) const {
-    _ENFORCE(classes.size() == 2 || classes.size() == 1);
+    EXT_ENFORCE(classes.size() == 2 || classes.size() == 1);
     return (classes.size() == 2 && classes[1].has_score)
                ? _set_score_binary(write_additional_scores, classes[0].score,
                                    classes[0].has_score, classes[1].score,
@@ -657,7 +657,7 @@ public:
   void FinalizeScores(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                       OutputType *Z, int /*add_second_class*/,
                       int64_t *Y = 0) const {
-    _ENFORCE(Y != nullptr)
+    EXT_ENFORCE(Y != nullptr)
     ThresholdType maxweight = 0;
     int64_t maxclass = -1;
 
@@ -675,7 +675,7 @@ public:
       get_max_weight(predictions, maxclass, maxweight);
       *Y = maxclass;
     } else { // binary case
-      _ENFORCE(predictions.size() == 2);
+      EXT_ENFORCE(predictions.size() == 2);
       if (this->base_values_.size() == 2) {
         // add base values
         if (predictions[1].has_score) {

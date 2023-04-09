@@ -1,6 +1,7 @@
 black
 clang-format
 coverage
+cython
 flake8
 furo
 isort
@@ -9,7 +10,7 @@ lightgbm
 matplotlib
 ml-dtypes
 onnxmltools
-onnxruntime
+onnxruntime; python_version < '3.11'
 pandas
 psutil
 pyquickhelper

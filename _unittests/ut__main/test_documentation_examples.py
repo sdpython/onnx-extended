@@ -44,12 +44,10 @@ class TestDocumentationExamples(ExtTestCase):
             out, err = res
             st = err.decode("ascii", errors="ignore")
             if len(st) > 0 and "Traceback" in st:
-                if '"dot" not found in path.' in st:
-                    # dot not installed, this part
-                    # is tested in onnx framework
+                if "No module named 'onnxruntime'" in st:
                     if verbose:
-                        print(f"failed: {name!r} due to missing dot.")
-                    return 0
+                        print(f"failed: {name!r} due to missing onnxruntime.")
+                    return 1
                 raise AssertionError(
                     "Example '{}' (cmd: {} - exec_prefix='{}') "
                     "failed due to\n{}"

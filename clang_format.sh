@@ -12,7 +12,13 @@ clang-format --length 88 -i onnx_extended/reference/c_ops/c_op_tree_ensemble_com
 clang-format --length 88 -i onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp
 clang-format --length 88 -i onnx_extended/reference/c_ops/c_op_tree_ensemble_py_classifier_.hpp
 
-clang-format --length 88 -i onnx_extended/validation/_validation.cpp
+clang-format --length 88 -i onnx_extended/validation/vector_function.h
+clang-format --length 88 -i onnx_extended/validation/vector_function.cpp
+clang-format --length 88 -i onnx_extended/validation/vector_sum.h
+clang-format --length 88 -i onnx_extended/validation/vector_sum.cpp
+
 clang-format --length 88 -i onnx_extended/validation/speed_metrics.cpp
 clang-format --length 88 -i onnx_extended/validation/speed_metrics.h
+
+clang-format --length 88 -i onnx_extended/validation/_validation.cpp
 

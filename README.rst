@@ -35,6 +35,7 @@ Source are available on `github/onnx-extended
 
 .. code-block:: python
 
+    import timeit
     import numpy as np
     from onnx import TensorProto
     from onnx.helper import (
@@ -78,3 +79,13 @@ Source are available on `github/onnx-extended
     diff = np.abs(expected - got).max()
     print(f"difference: {diff}")
 
+    f1 = lambda: sess1.run(None, {"X": X, "W": W, "B": B})[0]
+    f2 = lambda: sess2.run(None, {"X": X, "W": W, "B": B})[0]
+    print("onnx:", timeit.timeit(f1, globals=globals(), number=5))
+    print("onnx-extended:", timeit.timeit(f2, globals=globals(), number=5))
+
+::
+
+    difference: 0.0
+    onnx: 0.024006774998269975
+    onnx-extended: 0.0002316169993719086

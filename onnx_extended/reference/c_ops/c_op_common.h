@@ -500,11 +500,17 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
   return std::string(ss.str());
 }
 
-#define _THROW(...) throw std::runtime_error(MakeString(__VA_ARGS__));
+#if !defined(_THROW_DEFINED)
+#define EXT_THROW(...) throw std::runtime_error(MakeString(__VA_ARGS__));
+#define _THROW_DEFINED
+#endif
 
-#define _ENFORCE(cond, ...)                                                    \
+#if !defined(_ENFORCE_DEFINED)
+#define EXT_ENFORCE(cond, ...)                                                    \
   if (!(cond))                                                                 \
     throw std::runtime_error(                                                  \
         MakeString("`", #cond, "` failed.", MakeString(__VA_ARGS__)));
+#define _ENFORCE_DEFINED
+#endif
 
 } // namespace onnx_c_ops
