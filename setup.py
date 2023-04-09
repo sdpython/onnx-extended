@@ -7,6 +7,8 @@ import sys
 import sysconfig
 from pathlib import Path
 
+print(sysconfig.get_config_var("LIBDIR"))
+
 try:
     import numpy
 except ImportError as e:
@@ -152,9 +154,15 @@ class cmake_build_ext(build_ext):
         cmake_cmd_args = []
 
         path = sys.executable
+        vers = (
+            f"{sys.version_info.major}."
+            f"{sys.version_info.minor}."
+            f"{sys.version_info.micro}"
+        )
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
+            f"-DPYTHON_VERSION={vers}",
         ]
         if iswin:
             include_dir = sysconfig.get_path("include").replace("\\", "/")
@@ -183,6 +191,7 @@ class cmake_build_ext(build_ext):
         source_path = os.path.join(this_dir, "cmake")
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
+        print(f"-- setup: version={sys.version_info!r}")
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: source_path={source_path!r}")
         print(f"-- setup: build_path={build_path!r}")
