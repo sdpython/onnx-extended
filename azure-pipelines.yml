@@ -72,39 +72,23 @@ jobs:
     displayName: Add conda to PATH
 
   - script: |
-      conda create --yes --quiet --name py$(python.version) python=$(python.version)
-      conda install -n py$(python.version) -y -c conda-forge numpy libprotobuf==3.21.5
-    displayName: Create Anaconda environment
-
-  #~ - script: |
-        #~ call activate py$(python.version)
-        #~ python -m pip install --upgrade pip setuptools wheel
-    #~ displayName: 'Install tools'
-  - script: |
-        # call activate py$(python.version)
         pip install -r requirements.txt
     displayName: 'Install Requirements'
   - script: |
-        # call activate py$(python.version)
         pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: set
     displayName: 'set'
   - script: |
-        # call activate py$(python.version)
-        python -m pip install numpy
-        python -m pip install -e .
+        python setup.py build_ext --inplace
     displayName: 'build'
   - script: |
-        # call activate py$(python.version)
         python setup.py bdist_wheel
     displayName: 'build wheel'
   - script: |
-        # call activate py$(python.version)
         python -m pytest -v
     displayName: 'Runs Unit Tests'
   - script: |
-        # call activate py$(python.version)
         python -u setup.py bdist_wheel
     displayName: 'Build Package'
   - task: PublishPipelineArtifact@0
