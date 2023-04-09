@@ -124,3 +124,14 @@ cython_add_module(vector_function_cy
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+#############################
+# Affiche la liste des cibles
+#############################
+
+get_property(targets_list GLOBAL PROPERTY PACKAGES_FOUND)
+message(STATUS "-------------------")
+message(STATUS "list of found packages")
+foreach(target ${targets_list})
+  message(STATUS "  ${target}")
+endforeach()

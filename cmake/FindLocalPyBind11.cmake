@@ -30,6 +30,10 @@ else()
     message(FATAL_ERROR "Pybind11 was not found.")
 endif()
 
+message(STATUS "PYBIND11_OPT_SIZE=${PYBIND11_OPT_SIZE}")
+message(STATUS "pybind11_INCLUDE_DIR=${pybind11_INCLUDE_DIR}")
+message(STATUS "pybind11_VERSION=${pybind11_VERSION}")
+
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(
     LocalPyBind11
@@ -47,17 +51,18 @@ function(local_pybind11_add_module name omp_lib)
         ${Python_INCLUDE_DIRS}
         ${PYTHON_INCLUDE_DIR}
         ${Python_NumPy_INCLUDE_DIRS}
+        ${pybind11_INCLUDE_DIR}
         ${NUMPY_INCLUDE_DIR})
     target_link_libraries(${name} PRIVATE
-        pybind11::module  # pybind11::headers
+        pybind11::headers
         ${Python_LIBRARIES}
         ${Python_NumPy_LIBRARIES}
         ${omp_lib})
-    if(MSVC)
-        target_link_libraries(${target_name} PRIVATE
-            pybind11::windows_extras
-            pybind11::lto)
-    endif()
+    #if(MSVC)
+    #    target_link_libraries(${target_name} PRIVATE
+    #        pybind11::windows_extras
+    #        pybind11::lto)
+    #endif()
     set_target_properties(${name}
         PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON
                    CXX_VISIBILITY_PRESET ON

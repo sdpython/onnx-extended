@@ -196,6 +196,7 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
+        print(f"-- setup: done.")
 
         # final
         build_lib = self.build_lib
@@ -218,7 +219,7 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(f"Unable to find {look!r}.")
             if not os.path.exists(dest):
                 raise FileNotFoundError(f"Unable to find folder {dest!r}.")
-            print(f"copy {look!r} to {dest!r}")
+            print(f"-- copy {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
 
