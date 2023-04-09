@@ -23,15 +23,23 @@ endif()
 find_package(PythonInterp 3.8 REQUIRED)
 find_package(PythonLibs "${PYTHON_VERSION_STRING}" EXACT REQUIRED)
 if (Python_FOUND)
-    message("-- Found Python ${Python_VERSION}.")
+    message("-------------------")
+    message("-- Python_VERSION=${Python_VERSION}.")
+    message("-- Python_EXECUTABLE=${Python_EXECUTABLE}")
     message("-- Python_INCLUDE_DIRS=${Python_INCLUDE_DIRS}")
-    message("-- Python Libraries: ${Python_LIBRARIES}")
+    message("-- Python_LIBRARIES=${Python_LIBRARIES}")
+    message("-- Python_LINK_OPTIONS=${Python_LINK_OPTIONS}")
+    message("-- Python_NumPy_FOUND=${Python_NumPy_FOUND}")
+    message("-- Python_NumPy_INCLUDE_DIRS=${Python_NumPy_INCLUDE_DIRS}")
+    message("-- Python_NumPy_VERSION=${Python_NumPy_VERSION}")
+    message("-- Python_Development_FOUND=${Python_Development_FOUND}")
 else()
     message(FATAL_ERROR "Python was not found.")
 endif()
 
 find_package(Cython REQUIRED)
 if(Cython_FOUND)
+    message("-------------------")
     message("-- Found Cython ${Cython_VERSION}")
     message("-- NUMPY_INCLUDE_DIR: ${NUMPY_INCLUDE_DIR}")
 else()
@@ -40,6 +48,7 @@ endif()
 
 find_package(LocalPyBind11 REQUIRED)
 if(LocalPyBind11_FOUND)
+    message("-------------------")
     message("-- Found LocalPyBind11, pybind11 at ${pybind11_SOURCE_DIR}")
 else()
     message(FATAL_ERROR "Module pybind11 is not installed.")
@@ -47,6 +56,7 @@ endif()
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
+    message("-------------------")
     message("-- Found OpenMP ${OpenMP_VERSION}")
 else()
     message(FATAL_ERROR "OpenMP cannot be found.")
@@ -74,17 +84,20 @@ endif()
 
 local_pybind11_add_module(
     _validation
+    OpenMP::OpenMP_CXX
     ../onnx_extended/validation/_validation.cpp
     ../onnx_extended/validation/speed_metrics.cpp
     ../onnx_extended/validation/vector_sum.cpp)
 
 local_pybind11_add_module(
     c_op_conv_
+    OpenMP::OpenMP_CXX
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_conv_.cpp)
 
 local_pybind11_add_module(
     c_op_tree_ensemble_py_
+    OpenMP::OpenMP_CXX
     ../onnx_extended/reference/c_ops/c_op_common.cpp
     ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
 
@@ -92,18 +105,10 @@ local_pybind11_add_module(
 # cython extensions
 ###################
 
-cython_add_module(vector_function_cy ../onnx_extended/validation/vector_function_cy.pyx
+cython_add_module(vector_function_cy
+    ../onnx_extended/validation/vector_function_cy.pyx
+    OpenMP::OpenMP_CXX
     ../onnx_extended/validation/vector_function.cpp)
-
-#####
-# omp
-#####
-
-target_link_libraries(vector_function_cy PUBLIC OpenMP::OpenMP_CXX)
-
-target_link_libraries(_validation PUBLIC OpenMP::OpenMP_CXX)
-target_link_libraries(c_op_conv_ PUBLIC OpenMP::OpenMP_CXX)
-target_link_libraries(c_op_tree_ensemble_py_ PUBLIC OpenMP::OpenMP_CXX)
 
 #######
 # Final

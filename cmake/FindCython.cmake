@@ -47,19 +47,19 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(
 ##########################
 
 function(compile_cython filename pyx_file_cpp)
-  message("-- Cythonize '${filename}'")
+  message("-- cython cythonize '${filename}'")
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${pyx_file_cpp}
     COMMAND ${Python_EXECUTABLE} -m cython -3 --cplus ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-  message("-- Cythonize '${filename}' - done")
+  message("-- cython cythonize '${filename}' - done")
 endfunction()
 
 ############################
 # function cython_add_module
 ############################
 
-function(cython_add_module name pyx_file)
+function(cython_add_module name pyx_file omp_lib)
   set(options "")
   set(oneValueArgs "")
   set(multiValueArgs SOURCES DEPS)
@@ -82,7 +82,8 @@ function(cython_add_module name pyx_file)
     ${NUMPY_INCLUDE_DIR})
   target_link_libraries(${name} PRIVATE
     ${Python_LIBRARIES}
-    ${Python_NumPy_LIBRARIES})
+    ${Python_NumPy_LIBRARIES}
+    ${omp_lib})
   
   set_target_properties(${name}
     PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"

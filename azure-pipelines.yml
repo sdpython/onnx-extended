@@ -74,6 +74,8 @@ jobs:
     displayName: 'Install Requirements'
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
+  - script: set
+    displayName: 'set'
   - script: |
       python -m pip install -e .
     displayName: 'build'

@@ -4,6 +4,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 
 from setuptools import setup, Extension
@@ -142,9 +143,13 @@ class cmake_build_ext(build_ext):
         cmake_cmd_args = []
 
         path = sys.executable
+        include_dir = sysconfig.get_path('include')
+        lib_dir = sysconfig.get_config_var('LIBDIR')
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
+            f"-DPYTHON_INCLUDE_DIR={include_dir}",
+            f"-DPYTHON_LIBRARY={lib_dir}",
         ]
 
         cmake_args += cmake_cmd_args
