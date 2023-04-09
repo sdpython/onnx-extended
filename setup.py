@@ -6,6 +6,7 @@ import subprocess
 import sys
 import sysconfig
 from pathlib import Path
+
 try:
     import numpy
 except ImportError as e:
@@ -156,15 +157,17 @@ class cmake_build_ext(build_ext):
             f"-DCMAKE_BUILD_TYPE={cfg}",
         ]
         if iswin:
-            include_dir = sysconfig.get_path('include').replace("\\", "/")
-            lib_dir = sysconfig.get_config_var('LIBDIR') or ""
+            include_dir = sysconfig.get_path("include").replace("\\", "/")
+            lib_dir = sysconfig.get_config_var("LIBDIR") or ""
             lib_dir = lib_dir.replace("\\", "/")
             numpy_include_dir = numpy.get_include().replace("\\", "/")
-            cmake_args.extend([
-                f"-DPYTHON_INCLUDE_DIR={include_dir}",
-                f"-DPYTHON_LIBRARIES={lib_dir}",
-                f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
-            ])
+            cmake_args.extend(
+                [
+                    f"-DPYTHON_INCLUDE_DIR={include_dir}",
+                    f"-DPYTHON_LIBRARIES={lib_dir}",
+                    f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
+                ]
+            )
 
         cmake_args += cmake_cmd_args
 
