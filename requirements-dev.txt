@@ -10,7 +10,7 @@ lightgbm
 matplotlib
 ml-dtypes
 onnxmltools
-onnxruntime
+onnxruntime; python_version < '3.11'
 pandas
 psutil
 pyquickhelper
