@@ -7,8 +7,6 @@ import sys
 import sysconfig
 from pathlib import Path
 
-print(sysconfig.get_config_var("LIBDIR"))
-
 try:
     import numpy
 except ImportError as e:
