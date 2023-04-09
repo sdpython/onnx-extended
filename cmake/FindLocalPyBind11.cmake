@@ -49,10 +49,15 @@ function(local_pybind11_add_module name omp_lib)
         ${Python_NumPy_INCLUDE_DIRS}
         ${NUMPY_INCLUDE_DIR})
     target_link_libraries(${name} PRIVATE
-        pybind11::headers
+        pybind11::module  # pybind11::headers
         ${Python_LIBRARIES}
         ${Python_NumPy_LIBRARIES}
         ${omp_lib})
+    if(MSVC)
+        target_link_libraries(${target_name} PRIVATE
+            pybind11::windows_extras
+            pybind11::lto)
+    endif()
     set_target_properties(${name}
         PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON
                    CXX_VISIBILITY_PRESET ON
@@ -60,5 +65,6 @@ function(local_pybind11_add_module name omp_lib)
     set_target_properties(${name}
         PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                    SUFFIX "${PYTHON_MODULE_EXTENSION}")
+    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
     message(STATUS "pybind11 added module '${name}'")
 endfunction()

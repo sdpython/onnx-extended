@@ -6,7 +6,12 @@ import subprocess
 import sys
 import sysconfig
 from pathlib import Path
-import numpy
+try:
+    import numpy
+except ImportError as e:
+    raise ImportError(
+        f"Numpy is not installed, python _executable=f{sys.executable}."
+    ) from e
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
