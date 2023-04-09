@@ -131,6 +131,7 @@ include(CPack)
 
 get_property(targets_list GLOBAL PROPERTY PACKAGES_FOUND)
 message(STATUS "-------------------")
+message(STATUS "CMAKE_PROJECT_NAME = ${CMAKE_PROJECT_NAME}")
 message(STATUS "list of found packages")
 foreach(target ${targets_list})
   message(STATUS "  ${target}")

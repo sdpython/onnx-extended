@@ -196,7 +196,7 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
-        print(f"-- setup: done.")
+        print("-- setup: done.")
 
         # final
         build_lib = self.build_lib
