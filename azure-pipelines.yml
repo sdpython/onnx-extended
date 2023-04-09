@@ -60,7 +60,7 @@ jobs:
   strategy:
     matrix:
       Python310-Windows:
-        python.version: '3.10'
+        python.version: '3.11'
     maxParallel: 3
 
   steps:
