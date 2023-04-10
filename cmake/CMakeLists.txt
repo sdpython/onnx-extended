@@ -30,7 +30,7 @@ if(Python_FOUND)
   message(STATUS "Python_VERSION=${Python_VERSION}")
   message(STATUS "Python_EXECUTABLE=${Python_EXECUTABLE}")
   message(STATUS "Python_INCLUDE_DIRS=${Python_INCLUDE_DIRS}")
-  message(STATUS "Python_LIBRARIES=${Python_LIBRARIES}")
+  # message(STATUS "Python_LIBRARIES=${Python_LIBRARIES}")
   message(STATUS "Python_LINK_OPTIONS=${Python_LINK_OPTIONS}")
   message(STATUS "Python_NumPy_FOUND=${Python_NumPy_FOUND}")
   message(STATUS "Python_NumPy_INCLUDE_DIRS=${Python_NumPy_INCLUDE_DIRS}")
@@ -90,10 +90,15 @@ endif()
 # pybind11 extensions
 #
 
-local_pybind11_add_module(
-  _validation OpenMP::OpenMP_CXX ../onnx_extended/validation/_validation.cpp
+add_library(_validation_cpp STATIC
   ../onnx_extended/validation/speed_metrics.cpp
+  ../onnx_extended/validation/vector_function.cpp)
+
+local_pybind11_add_module(
+  _validation OpenMP::OpenMP_CXX
+  ../onnx_extended/validation/_validation.cpp
   ../onnx_extended/validation/vector_sum.cpp)
+target_link_libraries(_validation PRIVATE _validation_cpp)
 
 local_pybind11_add_module(
   c_op_conv_ OpenMP::OpenMP_CXX
@@ -118,9 +123,10 @@ cython_add_module(
 #
 
 set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
-add_executable(test_vector_sum ../_unittests/ut_validation/test_vector_sum.cpp)
-target_include_directories(test_vector_sum PRIVATE ${ROOT_INCLUDE_PATH})
-add_test(_validation test_vector_sum)
+add_executable(test_validation_cpp ../_unittests/ut_validation/test_vector_sum.cpp)
+target_include_directories(test_validation_cpp PRIVATE ${ROOT_INCLUDE_PATH})
+target_link_libraries(test_validation_cpp PRIVATE _validation_cpp)
+add_test(test_validation_cpp test_validation_cpp)
 
 #
 # Final

@@ -115,6 +115,7 @@ def _run_subprocess(
         stdout=subprocess.PIPE if capture_output else None,
         stderr=subprocess.STDOUT if capture_output else None,
     )
+    raise_exception = False
     while True:
         output = p.stdout.readline().decode(errors="ignore")
         if output == "" and p.poll() is not None:
@@ -123,11 +124,13 @@ def _run_subprocess(
             out = output.rstrip()
             sys.stdout.write(out + "\n")
             sys.stdout.flush()
-            if "fatal error:" in output:
-                raise RuntimeError(
-                    "'fatal error:' was found in the output. " "The build is stopped."
-                )
+            if "fatal error" in output or "CMake Error" in output:
+                raise_exception = True
     rc = p.poll()
+    if raise_exception:
+        raise RuntimeError(
+            "'fatal error:' was found in the output. The build is stopped."
+        )
     return rc
 
 
@@ -169,13 +172,13 @@ class cmake_build_ext(build_ext):
         ]
         if iswin:
             include_dir = sysconfig.get_path("include").replace("\\", "/")
-            lib_dir = sysconfig.get_config_var("LIBDIR") or ""
-            lib_dir = lib_dir.replace("\\", "/")
+            # lib_dir = sysconfig.get_config_var("LIBDIR") or ""
+            # lib_dir = lib_dir.replace("\\", "/")
             numpy_include_dir = numpy.get_include().replace("\\", "/")
             cmake_args.extend(
                 [
                     f"-DPYTHON_INCLUDE_DIR={include_dir}",
-                    f"-DPYTHON_LIBRARIES={lib_dir}",
+                    # f"-DPYTHON_LIBRARIES={lib_dir}",
                     f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
                 ]
             )
