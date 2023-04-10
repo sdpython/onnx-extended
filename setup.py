@@ -120,8 +120,13 @@ def _run_subprocess(
         if output == "" and p.poll() is not None:
             break
         if output:
-            sys.stdout.write(output.rstrip() + "\n")
+            out = output.rstrip()
+            sys.stdout.write(out + "\n")
             sys.stdout.flush()
+            if "fatal error:" in output:
+                raise RuntimeError(
+                    "'fatal error:' was found in the output. " "The build is stopped."
+                )
     rc = p.poll()
     return rc
 
