@@ -72,6 +72,13 @@ class TestVectorSum(ExtTestCase):
         res = t1 + t2
         got = vector_add_c(t1, t2)
         self.assertEqualArray(res, got)
+        t0 = numpy.array([[0]], dtype=numpy.float32)
+        self.assertRaise(lambda: vector_add_c(t0, t1), ValueError)
+        t0 = numpy.array([0], dtype=numpy.float32)
+        self.assertRaise(lambda: vector_add_c(t0, t1), ValueError)
+        t0 = numpy.array([0], dtype=numpy.float32)
+        t1i = t1.astype(numpy.int32)
+        self.assertRaise(lambda: vector_add_c(t1i, t2), TypeError)
 
 
 if __name__ == "__main__":
