@@ -90,15 +90,16 @@ endif()
 # pybind11 extensions
 #
 
-add_library(_validation_cpp STATIC
+add_library(lib_validation_cpp STATIC
   ../onnx_extended/validation/speed_metrics.cpp
   ../onnx_extended/validation/vector_function.cpp)
+set_property(TARGET lib_validation_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 local_pybind11_add_module(
   _validation OpenMP::OpenMP_CXX
   ../onnx_extended/validation/_validation.cpp
   ../onnx_extended/validation/vector_sum.cpp)
-target_link_libraries(_validation PRIVATE _validation_cpp)
+target_link_libraries(_validation PRIVATE lib_validation_cpp)
 
 local_pybind11_add_module(
   c_op_conv_ OpenMP::OpenMP_CXX
@@ -126,7 +127,7 @@ set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
 add_executable(test_validation_cpp
   ../_unittests/ut_validation/test_vector_sum.cpp)
 target_include_directories(test_validation_cpp PRIVATE ${ROOT_INCLUDE_PATH})
-target_link_libraries(test_validation_cpp PRIVATE _validation_cpp)
+target_link_libraries(test_validation_cpp PRIVATE lib_validation_cpp)
 add_test(NAME test_validation_cpp COMMAND test_validation_cpp)
 
 #
