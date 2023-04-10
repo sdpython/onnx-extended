@@ -22,8 +22,15 @@ message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
-find_package(Python ${PYTHON_VERSION} REQUIRED COMPONENTS Interpreter
-                                                          Development NumPy)
+if(APPLE)
+  find_package(Python ${PYTHON_VERSION} REQUIRED
+    COMPONENTS Interpreter Development)
+  set(Python_NumPy_INCLUDE_DIRS ${PYTHON_NUMPY_INCLUDE_DIR})
+else()
+  find_package(Python ${PYTHON_VERSION} REQUIRED
+    COMPONENTS Interpreter Development NumPy)
+endif()
+
 if(Python_FOUND)
   message(STATUS "-------------------")
   message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
