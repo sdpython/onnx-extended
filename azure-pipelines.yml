@@ -103,8 +103,8 @@ jobs:
     vmImage: 'macOS-latest'
   strategy:
     matrix:
-      Python311-Mac:
-        python.version: '3.11'
+      Python310-Mac:
+        python.version: '3.10'
     maxParallel: 3
 
   steps:
