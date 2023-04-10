@@ -117,6 +117,14 @@ cython_add_module(vector_function_cy
     ../onnx_extended/validation/vector_function.cpp)
 
 #######
+# test
+#######
+
+add_executable(test_vector_sum ../_unittests/ut_validation/test_vector_sum.cpp)
+target_include_directories(test_vector_sum PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+add_test(_validation test_vector_sum)
+
+#######
 # Final
 #######
 
