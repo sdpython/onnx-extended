@@ -96,8 +96,7 @@ jobs:
     displayName: 'build wheel'
   - powershell: |
         $contents = Get-Content -Path ".build_path.txt"
-        [Environment]::SetEnvironmentVariable("BUILD_PATH", $contents, "User")
-        cd $BUILD_PATH
+        cd $contents
         ctest
     displayName: 'Runs C++ Unit Tests'
   - script: |
