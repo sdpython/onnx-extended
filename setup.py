@@ -191,6 +191,8 @@ class cmake_build_ext(build_ext):
         # Builds the project.
         this_dir = os.path.dirname(os.path.abspath(__file__))
         build_path = os.path.abspath(self.build_temp)
+        with open(os.path.join(os.path.dirname(__file__), ".build_path.txt"), "w", encoding="utf-8") as f:
+            f.write(build_path)
         # build_path = os.path.join(this_dir, "build")
         if not os.path.exists(build_path):
             os.makedirs(build_path)

@@ -43,6 +43,13 @@ jobs:
   - script: |
       python setup.py bdist_wheel
     displayName: 'build wheel'
+  - bash: |
+      contents=$(cat .build_path.txt)
+      export BUILD_PATH="$contents"
+      cd $BUILD_PATH
+      ctest
+    displayName: 'Run C++ Unit Tests'
+
   - script: |
       python -m pytest -v
     displayName: 'Runs Unit Tests'
@@ -87,6 +94,12 @@ jobs:
   - script: |
         python setup.py bdist_wheel
     displayName: 'build wheel'
+  - powershell: |
+        $contents = Get-Content -Path ".build_path.txt"
+        [Environment]::SetEnvironmentVariable("BUILD_PATH", $contents, "User")
+        cd $BUILD_PATH
+        ctest
+    displayName: 'Runs C++ Unit Tests'
   - script: |
         python -m pytest -v
     displayName: 'Runs Unit Tests'
