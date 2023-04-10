@@ -17,11 +17,9 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
 
 if(NOT ${CYTHON_version_result} EQUAL 0)
-  set(Cython_found_var 0)
   set(Cython_VERSION "?")
 else()
   set(Cython_VERSION ${CYTHON_version_error})
-  set(Cython_found_var 1)
 endif()
 
 execute_process(
@@ -40,9 +38,11 @@ find_package_handle_standard_args(
   REQUIRED_VARS NUMPY_INCLUDE_DIR)
 
 #
-# function compile_cython
+#! compile_cython : compile a pyx file into cpp
 #
-
+# \arg:filename extension name
+# \arg:pyx_file_cpp output pyx file name
+#
 function(compile_cython filename pyx_file_cpp)
   message(STATUS "cython cythonize '${filename}'")
   set(fullfilename "${CMAKE_CURRENT_SOURCE_DIR}/${filename}")
@@ -54,9 +54,13 @@ function(compile_cython filename pyx_file_cpp)
 endfunction()
 
 #
-# function cython_add_module
+#! cython_add_module : compile a pyx file into cpp
 #
-
+# \arg:name extension name
+# \arg:pyx_file pyx file name
+# \arg:omp_lib omp library to link with
+# \argn: additional c++ files to compile
+#
 function(cython_add_module name pyx_file omp_lib)
   set(options "")
   set(oneValueArgs "")

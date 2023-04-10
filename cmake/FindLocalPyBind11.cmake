@@ -38,9 +38,12 @@ find_package_handle_standard_args(
   REQUIRED_VARS pybind11_SOURCE_DIR pybind11_BINARY_DIR)
 
 #
-# function local_pybind11_add_module
+#! local_pybind11_add_module : compile a pybind11 extension
 #
-
+# \arg:name extension name
+# \arg:omp_lib omp library to link with
+# \argn: additional c++ files to compile
+#
 function(local_pybind11_add_module name omp_lib)
   message(STATUS "pybind11 module '${name}': ${pyx_file} ++ ${ARGN}")
   python_add_library(${name} MODULE ${ARGN})
