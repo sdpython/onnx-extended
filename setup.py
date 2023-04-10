@@ -174,6 +174,7 @@ class cmake_build_ext(build_ext):
                     f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
                 ]
             )
+            os.environ["PYTHON_NUMPY_INCLUDE_DIR"] = numpy_include_dir
 
         cmake_args += cmake_cmd_args
 
