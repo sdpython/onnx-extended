@@ -6,12 +6,14 @@
 *.tcl
 *.sln
 *.cmake
+.build_path.txt
 coverage.html/*
 _cache/*
 _deps/*
 .vs/*
 *.dir/*
 Release/*
+Testing/*
 x64/*
 CMakeFiles/*
 dist/*
