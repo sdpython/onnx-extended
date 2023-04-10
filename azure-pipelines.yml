@@ -97,7 +97,7 @@ jobs:
   - powershell: |
         $contents = Get-Content -Path ".build_path.txt"
         cd $contents
-        ctest
+        ctest -C Release
     displayName: 'Runs C++ Unit Tests'
   - script: |
         python -m pytest -v
