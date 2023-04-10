@@ -162,7 +162,7 @@ class cmake_build_ext(build_ext):
             f"-DCMAKE_BUILD_TYPE={cfg}",
             f"-DPYTHON_VERSION={vers}",
         ]
-        if iswin or isdar:
+        if iswin:
             include_dir = sysconfig.get_path("include").replace("\\", "/")
             lib_dir = sysconfig.get_config_var("LIBDIR") or ""
             lib_dir = lib_dir.replace("\\", "/")
