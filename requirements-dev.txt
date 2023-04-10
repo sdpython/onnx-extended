@@ -1,5 +1,6 @@
 black
 clang-format
+cmakelang
 coverage
 cython
 flake8
