@@ -125,7 +125,7 @@ jobs:
   - bash: |
       source activate myEnvironment
       conda install --yes --quiet --name myEnvironment scipy
-  displayName: Install Anaconda packages
+    displayName: Install Anaconda packages
   
   - script: |
       source activate myEnvironment
