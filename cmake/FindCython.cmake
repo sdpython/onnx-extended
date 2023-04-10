@@ -5,6 +5,8 @@
 
 if(MSVC)
   find_package(Python)
+elseif(APPLE)
+  find_package(Python)
 else()
   find_package(Python REQUIRED COMPONENTS NumPy)
 endif()
