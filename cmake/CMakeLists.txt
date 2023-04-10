@@ -121,7 +121,8 @@ cython_add_module(vector_function_cy
 #######
 
 add_executable(test_vector_sum ../_unittests/ut_validation/test_vector_sum.cpp)
-target_include_directories(test_vector_sum PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(test_vector_sum PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..)
 add_test(_validation test_vector_sum)
 
 #######
