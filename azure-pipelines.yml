@@ -120,12 +120,6 @@ jobs:
     displayName: Take ownership of conda installation
   - bash: conda create --yes --quiet --name myEnvironment
     displayName: Create Anaconda environment
-  - script: conda env create --quiet --file environment.yml
-    displayName: Create Anaconda environment
-  - bash: |
-      source activate myEnvironment
-      conda install --yes --quiet --name myEnvironment scipy
-    displayName: Install Anaconda packages
   
   - script: |
       source activate myEnvironment
