@@ -23,6 +23,13 @@ message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(APPLE)
+
+  message(STATUS "APPLE: set env var for open mp: CC, CCX, LDFLAGS, CPPFLAGS")
+  set(ENV{CC} "/usr/local/opt/llvm/bin/clang")
+  set(ENV{CXX} "/usr/local/opt/llvm/bin/clang++")
+  set(ENV{LDFLAGS} "-L/usr/local/opt/llvm/lib")
+  set(ENV{CPPFLAGS} "-I/usr/local/opt/llvm/include")
+
   find_package(Python ${PYTHON_VERSION} REQUIRED
     COMPONENTS Interpreter Development)
   set(Python_NumPy_INCLUDE_DIRS ${PYTHON_NUMPY_INCLUDE_DIR})
