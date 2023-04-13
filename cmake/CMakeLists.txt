@@ -32,7 +32,7 @@ if(APPLE)
   set(ENV{CPPFLAGS} "-I/usr/local/opt/llvm/include")
 
   find_package(Python3 ${PYTHON_VERSION} COMPONENTS
-               Interpreter NumPy Development.Module
+               Interpreter Development.Module
                REQUIRED)
   set(Python_NumPy_INCLUDE_DIRS ${PYTHON_NUMPY_INCLUDE_DIR})
 else()
