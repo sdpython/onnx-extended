@@ -14,54 +14,64 @@ enable_testing()
 #
 
 message(STATUS "-------------------")
+message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
 message(STATUS "PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(STATUS "PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}")
 message(STATUS "PYTHON_LIBRARY=${PYTHON_LIBRARY}")
 message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
+message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON3_MODULE_EXTENSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(APPLE)
-
   message(STATUS "APPLE: set env var for open mp: CC, CCX, LDFLAGS, CPPFLAGS")
   set(ENV{CC} "/usr/local/opt/llvm/bin/clang")
   set(ENV{CXX} "/usr/local/opt/llvm/bin/clang++")
   set(ENV{LDFLAGS} "-L/usr/local/opt/llvm/lib")
   set(ENV{CPPFLAGS} "-I/usr/local/opt/llvm/include")
 
-  find_package(Python ${PYTHON_VERSION} REQUIRED
-    COMPONENTS Interpreter Development)
+  find_package(Python3 ${PYTHON_VERSION} COMPONENTS
+               Interpreter NumPy Development.Module
+               REQUIRED)
   set(Python_NumPy_INCLUDE_DIRS ${PYTHON_NUMPY_INCLUDE_DIR})
 else()
-  find_package(Python ${PYTHON_VERSION} REQUIRED
-    COMPONENTS Interpreter Development NumPy)
+  find_package(Python3 ${PYTHON_VERSION} COMPONENTS
+               Interpreter NumPy Development.Module
+               REQUIRED)
 endif()
 
-if(Python_FOUND)
-  message(STATUS "-------------------")
+if(Python3_Interpreter_FOUND)
+  message(STATUS "Python3_Interpreter_FOUND=${Python3_Interpreter_FOUND}")
+  message(STATUS "Python3_NumPy_VERSION=${Python3_NumPy_VERSION}")
   message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
-  message(STATUS "Python_VERSION=${Python_VERSION}")
-  message(STATUS "Python_EXECUTABLE=${Python_EXECUTABLE}")
-  message(STATUS "Python_INCLUDE_DIRS=${Python_INCLUDE_DIRS}")
-  # message(STATUS "Python_LIBRARIES=${Python_LIBRARIES}")
-  message(STATUS "Python_LINK_OPTIONS=${Python_LINK_OPTIONS}")
-  message(STATUS "Python_NumPy_FOUND=${Python_NumPy_FOUND}")
-  message(STATUS "Python_NumPy_INCLUDE_DIRS=${Python_NumPy_INCLUDE_DIRS}")
-  message(STATUS "Python_NumPy_VERSION=${Python_NumPy_VERSION}")
-  message(STATUS "Python_Development_FOUND=${Python_Development_FOUND}")
+  message(STATUS "Python3_VERSION=${Python3_VERSION}")
+  message(STATUS "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+  message(STATUS "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+  message(STATUS "Python3_LIBRARIES=${Python3_LIBRARIES}")
+  message(STATUS "Python3_LINK_OPTIONS=${Python3_LINK_OPTIONS}")
+  message(STATUS "Python3_NumPy_FOUND=${Python3_NumPy_FOUND}")
+  message(STATUS "Python3_NumPy_INCLUDE_DIRS=${Python3_NumPy_INCLUDE_DIRS}")
+  message(STATUS "Python3_NumPy_VERSION=${Python3_NumPy_VERSION}")
+  message(STATUS "Python3_Development_FOUND=${Python3_Development_FOUND}")
+  message(STATUS "Python3_MODULE_EXTENSION=${Python3_MODULE_EXTENSION}")
+  message(STATUS "Python3_MODULE_PREFIX=${Python3_MODULE_PREFIX}")
+  message(STATUS "Python3_SOABI=${Python3_SOABI}")
+  message(STATUS "Python3_SOSABI=${Python3_SOSABI}")
 else()
+  message(STATUS "-------------------")
+  message(STATUS "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
   message(FATAL_ERROR "Python was not found.")
 endif()
 
-if(NOT ${PYTHON_VERSION} MATCHES ${Python_VERSION})
+if(NOT ${PYTHON_VERSION} MATCHES ${Python3_VERSION})
   message(FATAL_ERROR "cmake selects a different python version "
-                      "${Python_VERSION} than ${PYTHON_VERSION}.")
+                      "${Python3_VERSION} than ${PYTHON_VERSION}.")
 endif()
 
+message(STATUS "-------------------")
 find_package(OpenMP)
-if(OpenMP_FOUND)
-  message(STATUS "-------------------")
+if(OpenMP_CXX_FOUND)
   message(STATUS "Found OpenMP ${OpenMP_VERSION}")
 else()
   # see https://github.com/microsoft/LightGBM/blob/master/CMakeLists.txt#L148
@@ -76,7 +86,6 @@ else()
   set(OpenMP_omp_LIBRARY ${HOMEBREW_LIBOMP_PREFIX}/lib/libomp.dylib)
   find_package(OpenMP REQUIRED)
   if(OpenMP_FOUND)
-    message(STATUS "-------------------")
     message(STATUS "Found(2) OpenMP ${OpenMP_VERSION}")
   else()
     message(FATAL_ERROR "OpenMP cannot be found.")
@@ -85,20 +94,21 @@ endif()
 
 find_package(Cython REQUIRED)
 if(Cython_FOUND)
-  message(STATUS "-------------------")
   message(STATUS "Cython_VERSION=${Cython_VERSION}")
   message(STATUS "NUMPY_INCLUDE_DIR: ${NUMPY_INCLUDE_DIR}")
 else()
   message(FATAL_ERROR "Module cython is not installed.")
 endif()
 
+message(STATUS "-------------------")
 find_package(LocalPyBind11 REQUIRED)
 if(LocalPyBind11_FOUND)
-  message(STATUS "-------------------")
   message(STATUS "Found LocalPyBind11, pybind11 at ${pybind11_SOURCE_DIR}")
 else()
   message(FATAL_ERROR "Module pybind11 is not installed.")
 endif()
+
+message(STATUS "-------------------")
 
 #
 # Compiling options

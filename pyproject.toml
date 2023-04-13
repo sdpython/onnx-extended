@@ -1,3 +1,6 @@
+[build-system]
+requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx", "cmake"]
+
 [tool.ruff]
 
 # Exclude a variety of commonly ignored directories.
