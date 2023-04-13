@@ -60,11 +60,26 @@ if(NOT ${PYTHON_VERSION} MATCHES ${Python_VERSION})
 endif()
 
 find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
+if(OpenMP_FOUND)
   message(STATUS "-------------------")
   message(STATUS "Found OpenMP ${OpenMP_VERSION}")
 else()
-  message(FATAL_ERROR "OpenMP cannot be found.")
+  # see https://github.com/microsoft/LightGBM/blob/master/CMakeLists.txt#L148
+  execute_process(COMMAND brew --prefix libomp
+                  OUTPUT_VARIABLE HOMEBREW_LIBOMP_PREFIX
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
+  set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
+  set(OpenMP_C_LIB_NAMES omp)
+  set(OpenMP_CXX_LIB_NAMES omp)
+  set(OpenMP_omp_LIBRARY ${HOMEBREW_LIBOMP_PREFIX}/lib/libomp.dylib)
+  find_package(OpenMP REQUIRED)
+  if(OpenMP_FOUND)
+    message(STATUS "-------------------")
+    message(STATUS "Found(2) OpenMP ${OpenMP_VERSION}")
+  else()
+    message(FATAL_ERROR "OpenMP cannot be found.")
+  endif()
 endif()
 
 find_package(Cython REQUIRED)
