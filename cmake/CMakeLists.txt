@@ -29,7 +29,6 @@ find_package(Python3 ${PYTHON_VERSION} COMPONENTS
              Interpreter NumPy Development.Module
              REQUIRED)
 if(Python3_Interpreter_FOUND)
-  message(STATUS "Python3_Development.Module_FOUND=${Python3_Development.Module_FOUND}")
   message(STATUS "Python3_Interpreter_FOUND=${Python3_Interpreter_FOUND}")
   message(STATUS "Python3_NumPy_VERSION=${Python3_NumPy_VERSION}")
   message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
