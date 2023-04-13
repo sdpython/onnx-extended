@@ -68,8 +68,9 @@ else()
   execute_process(COMMAND brew --prefix libomp
                   OUTPUT_VARIABLE HOMEBREW_LIBOMP_PREFIX
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
-  set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
-  set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
+  set(MAC_FLAGS "-Xpreprocessor -fopenmp")
+  set(OpenMP_C_FLAGS "${MAC_FLAGS} -I${HOMEBREW_LIBOMP_PREFIX}/include")
+  set(OpenMP_CXX_FLAGS "${MAC_FLAGS} -I${HOMEBREW_LIBOMP_PREFIX}/include")
   set(OpenMP_C_LIB_NAMES omp)
   set(OpenMP_CXX_LIB_NAMES omp)
   set(OpenMP_omp_LIBRARY ${HOMEBREW_LIBOMP_PREFIX}/lib/libomp.dylib)
