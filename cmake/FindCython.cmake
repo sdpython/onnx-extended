@@ -4,13 +4,17 @@
 # output variables Cython_FOUND, Cython_VERSION function cython_add_module
 
 if(MSVC)
-  find_package(Python)
+  find_package(Python3)
+elseif(APPLE)
+  find_package(Python3)
 else()
-  find_package(Python REQUIRED COMPONENTS NumPy)
+  find_package(Python3 ${PYTHON_VERSION} COMPONENTS
+               Interpreter NumPy Development.Module
+               REQUIRED)
 endif()
 
 execute_process(
-  COMMAND ${Python_EXECUTABLE} -m cython --version
+  COMMAND ${Python3_EXECUTABLE} -m cython --version
   OUTPUT_VARIABLE CYTHON_version_output
   ERROR_VARIABLE CYTHON_version_error
   RESULT_VARIABLE CYTHON_version_result
@@ -23,7 +27,7 @@ else()
 endif()
 
 execute_process(
-  COMMAND "${PYTHON_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
+  COMMAND "${Python3_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
   OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
   OUTPUT_STRIP_TRAILING_WHITESPACE
   RESULT_VARIABLE NUMPY_NOT_FOUND)
@@ -48,7 +52,7 @@ function(compile_cython filename pyx_file_cpp)
   set(fullfilename "${CMAKE_CURRENT_SOURCE_DIR}/${filename}")
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${pyx_file_cpp}
-    COMMAND ${Python_EXECUTABLE} -m cython -3 --cplus ${fullfilename}
+    COMMAND ${Python3_EXECUTABLE} -m cython -3 --cplus ${fullfilename}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(STATUS "cython cythonize '${filename}' - done")
 endfunction()
@@ -79,11 +83,11 @@ function(cython_add_module name pyx_file omp_lib)
   add_library(${name} MODULE ${ARGN})
 
   target_include_directories(
-    ${name} PRIVATE ${Python_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR}
-                    ${Python_NumPy_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
+    ${name} PRIVATE ${Python3_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR}
+                    ${Python3_NumPy_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
 
-  target_link_libraries(${name} PRIVATE ${Python_LIBRARIES}
-                                        ${Python_NumPy_LIBRARIES} ${omp_lib})
+  target_link_libraries(${name} PRIVATE ${Python3_LIBRARIES}
+                                        ${Python3_NumPy_LIBRARIES} ${omp_lib})
 
   target_compile_definitions(${name} PUBLIC NPY_NO_DEPRECATED_API)
 
