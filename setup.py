@@ -166,7 +166,7 @@ class cmake_build_ext(build_ext):
             f"{sys.version_info.minor}."
             f"{sys.version_info.micro}"
         )
-        module_ext = distutils.sysconfig.get_config_var('EXT_SUFFIX')
+        module_ext = distutils.sysconfig.get_config_var("EXT_SUFFIX")
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
