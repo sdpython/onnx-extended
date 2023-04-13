@@ -78,8 +78,6 @@ jobs:
     inputs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
-  - script: brew install llvm
-    displayName: 'Install llvm'
   - script: python -m pip install --upgrade pip setuptools wheel
     displayName: 'Install tools'
   - script: |
@@ -137,6 +135,8 @@ jobs:
   
   - script: brew install libomp
     displayName: 'Install omp'
+  - script: brew install llvm
+    displayName: 'Install llvm'
   - script: |
       source activate myEnvironment
       pip install -r requirements.txt
