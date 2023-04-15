@@ -174,7 +174,7 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
         ]
         if iswin or isdar:
-            include_dir = sysconfig.get_path("include").replace("\\", "/")
+            include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
             # lib_dir = sysconfig.get_config_var("LIBDIR") or ""
             # lib_dir = lib_dir.replace("\\", "/")
             numpy_include_dir = numpy.get_include().replace("\\", "/")
@@ -183,6 +183,8 @@ class cmake_build_ext(build_ext):
                     f"-DPYTHON_INCLUDE_DIR={include_dir}",
                     # f"-DPYTHON_LIBRARIES={lib_dir}",
                     f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
+                    f"-DUSE_SETUP_PYTHON=1",
+                    f"-DPYTHON_NUMPY_VERSION={numpy.__version__}",
                 ]
             )
             os.environ["PYTHON_NUMPY_INCLUDE_DIR"] = numpy_include_dir

@@ -4,13 +4,6 @@
 # defines LocalPyBind11 pybind11_SOURCE_DIR pybind11_BINARY_DIR define
 # local_pybind11_add_module
 
-find_package(Python3 ${PYTHON_VERSION} COMPONENTS
-             Interpreter NumPy Development.Module
-             REQUIRED)
-if(NOT Python3_Interpreter_FOUND)
-  message(FATAL_ERROR "Python was not found.")
-endif()
-
 #
 # pybind11
 #
@@ -59,11 +52,11 @@ function(local_pybind11_add_module name omp_lib)
   # if(MSVC) target_link_libraries(${target_name} PRIVATE
   # pybind11::windows_extras pybind11::lto) endif()
   set_target_properties(
-    ${name}
-    PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON
-               CXX_VISIBILITY_PRESET "hidden"
-               VISIBILITY_INLINES_HIDDEN ON
-               PREFIX "${PYTHON_MODULE_PREFIX}"
-               SUFFIX "${PYTHON_MODULE_EXTENSION}")
+    ${name} PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION ON
+    CXX_VISIBILITY_PRESET "hidden"
+    VISIBILITY_INLINES_HIDDEN ON
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_EXTENSION}")
   message(STATUS "pybind11 added module '${name}'")
 endfunction()

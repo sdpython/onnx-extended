@@ -3,16 +3,6 @@
 #
 # output variables Cython_FOUND, Cython_VERSION function cython_add_module
 
-if(MSVC)
-  find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
-elseif(APPLE)
-  find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
-else()
-  find_package(Python3 ${PYTHON_VERSION} COMPONENTS
-               Interpreter NumPy Development.Module
-               REQUIRED)
-endif()
-
 execute_process(
   COMMAND ${Python3_EXECUTABLE} -m cython --version
   OUTPUT_VARIABLE CYTHON_version_output
@@ -97,8 +87,10 @@ function(cython_add_module name pyx_file omp_lib)
 
   target_compile_definitions(${name} PUBLIC NPY_NO_DEPRECATED_API)
 
-  set_target_properties(${name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                           SUFFIX "${PYTHON_MODULE_EXTENSION}")
+  set_target_properties(
+    ${name} PROPERTIES
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
   # install(TARGETS ${name} LIBRARY DESTINATION ${pyx_dir})
 
