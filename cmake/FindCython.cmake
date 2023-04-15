@@ -5,7 +5,8 @@
 
 if(APPLE)
   # installation of cython
-  COMMAND ${Python3_EXECUTABLE} -m pip install cython
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -m pip install cython
     OUTPUT_VARIABLE CYTHONINST_version_output
     ERROR_VARIABLE CYTHONINST_version_error
     RESULT_VARIABLE CYTHONINST_version_result)
