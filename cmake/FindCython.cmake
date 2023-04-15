@@ -123,4 +123,6 @@ function(cython_add_module name pyx_file omp_lib)
   # install(TARGETS ${name} LIBRARY DESTINATION ${pyx_dir})
 
   message(STATUS "cython added module '${name}'")
+  get_target_property(prop ${name} BINARY_DIR)
+  message(STATUS "cython added into '${prop}'.")
 endfunction()

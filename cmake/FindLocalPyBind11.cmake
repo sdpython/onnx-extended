@@ -66,4 +66,6 @@ function(local_pybind11_add_module name omp_lib)
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}")
   message(STATUS "pybind11 added module '${name}'")
+  get_target_property(prop ${name} BINARY_DIR)
+  message(STATUS "cython added into '${prop}'.")
 endfunction()
