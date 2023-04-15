@@ -33,6 +33,17 @@ find_package(MyPython)
 if(NOT ${PYTHON_VERSION} MATCHES ${Python3_VERSION})
   message(WARNING "cmake selects a different python version "
                   "${Python3_VERSION} than ${PYTHON_VERSION}.")
+
+  # installation of cython, numpy
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -m pip install cython numpy
+    OUTPUT_VARIABLE install_version_output
+    ERROR_VARIABLE install_version_error
+    RESULT_VARIABLE install_version_result)
+  message(STATUS "install_version_output=${install_version_output}")
+  message(STATUS "install_version_error=${install_version_error}")
+  message(STATUS "install_version_result=${install_version_result}")
+
 endif()
 if(MyPython_FOUND)
   message(STATUS "Found Python3 ${Python3_VERSION}")

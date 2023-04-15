@@ -3,18 +3,6 @@
 #
 # output variables Cython_FOUND, Cython_VERSION function cython_add_module
 
-if(APPLE)
-  # installation of cython
-  execute_process(
-    COMMAND ${Python3_EXECUTABLE} -m pip install cython numpy
-    OUTPUT_VARIABLE CYTHONINST_version_output
-    ERROR_VARIABLE CYTHONINST_version_error
-    RESULT_VARIABLE CYTHONINST_version_result)
-  message(STATUS "CYTHONINST_version_output=${CYTHONINST_version_output}")
-  message(STATUS "CYTHONINST_version_error=${CYTHONINST_version_error}")
-  message(STATUS "CYTHONINST_version_result=${CYTHONINST_version_result}")
-endif()
-
 execute_process(
   COMMAND ${Python3_EXECUTABLE} -m cython --version
   OUTPUT_VARIABLE CYTHON_version_output
@@ -91,11 +79,17 @@ function(cython_add_module name pyx_file omp_lib)
   add_library(${name} MODULE ${ARGN})
 
   target_include_directories(
-    ${name} PRIVATE ${Python3_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR}
-                    ${Python3_NumPy_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
+    ${name} PRIVATE
+    ${Python3_INCLUDE_DIRS}
+    ${PYTHON_INCLUDE_DIR}
+    ${Python3_NumPy_INCLUDE_DIRS}
+    ${NUMPY_INCLUDE_DIR}
+    ${OMP_INCLUDE_DIR})
 
-  target_link_libraries(${name} PRIVATE ${Python3_LIBRARIES}
-                                        ${Python3_NumPy_LIBRARIES} ${omp_lib})
+  target_link_libraries(
+    ${name} PRIVATE
+    ${Python3_LIBRARIES}
+    ${Python3_NumPy_LIBRARIES} ${omp_lib})
 
   target_compile_definitions(${name} PUBLIC NPY_NO_DEPRECATED_API)
 

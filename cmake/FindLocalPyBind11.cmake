@@ -43,10 +43,13 @@ function(local_pybind11_add_module name omp_lib)
   message(STATUS "pybind11 module '${name}': ${pyx_file} ++ ${ARGN}")
   python3_add_library(${name} MODULE ${ARGN})
   target_include_directories(
-    ${name}
-    PRIVATE ${Python3_INCLUDE_DIRS} ${PYTHON3_INCLUDE_DIR}
-            ${Python3_NumPy_INCLUDE_DIRS} ${pybind11_INCLUDE_DIR}
-            ${NUMPY_INCLUDE_DIR})
+    ${name} PRIVATE
+    ${Python3_INCLUDE_DIRS}
+    ${PYTHON3_INCLUDE_DIR}
+    ${Python3_NumPy_INCLUDE_DIRS}
+    ${pybind11_INCLUDE_DIR}
+    ${NUMPY_INCLUDE_DIR}
+    ${OMP_INCLUDE_DIR})
   target_link_libraries(${name} PRIVATE pybind11::headers ${Python3_LIBRARIES}
                                         ${Python3_NumPy_LIBRARIES} ${omp_lib})
   # if(MSVC) target_link_libraries(${target_name} PRIVATE
