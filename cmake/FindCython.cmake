@@ -9,12 +9,33 @@ execute_process(
   ERROR_VARIABLE CYTHON_version_error
   RESULT_VARIABLE CYTHON_version_result
   OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
-
 message(STATUS "CYTHON_version_output=${CYTHON_version_output}")
 message(STATUS "CYTHON_version_error=${CYTHON_version_error}")
 message(STATUS "CYTHON_version_result=${CYTHON_version_result}")
+
 if(NOT ${CYTHON_version_result} EQUAL 0)
-  set(Cython_VERSION "?")
+  # installation of cython, numpy
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -m pip install cython numpy
+    OUTPUT_VARIABLE install_version_output
+    ERROR_VARIABLE install_version_error
+    RESULT_VARIABLE install_version_result)
+  message(STATUS "install_version_output=${install_version_output}")
+  message(STATUS "install_version_error=${install_version_error}")
+  message(STATUS "install_version_result=${install_version_result}")
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -m cython --version
+    OUTPUT_VARIABLE CYTHON_version_output
+    ERROR_VARIABLE CYTHON_version_error
+    RESULT_VARIABLE CYTHON_version_result
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
+  message(STATUS "CYTHON_version_output=${CYTHON_version_output}")
+  message(STATUS "CYTHON_version_error=${CYTHON_version_error}")
+  message(STATUS "CYTHON_version_result=${CYTHON_version_result}")
+  if(NOT ${CYTHON_version_result} EQUAL 0)
+    message(FATAL_ERROR("Unable to find cython for '${PYTHON_EXECUTABLE}'."))
+  endif()
+  set(Cython_VERSION ${CYTHON_version_error})
 else()
   set(Cython_VERSION ${CYTHON_version_error})
 endif()
