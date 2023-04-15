@@ -3,36 +3,53 @@
 #
 # output variables Cython_FOUND, Cython_VERSION function cython_add_module
 
-if(MSVC)
-  find_package(Python3)
-elseif(APPLE)
-  find_package(Python3)
-else()
-  find_package(Python3 ${PYTHON_VERSION} COMPONENTS
-               Interpreter NumPy Development.Module
-               REQUIRED)
-endif()
-
 execute_process(
   COMMAND ${Python3_EXECUTABLE} -m cython --version
   OUTPUT_VARIABLE CYTHON_version_output
   ERROR_VARIABLE CYTHON_version_error
   RESULT_VARIABLE CYTHON_version_result
   OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
+message(STATUS "CYTHON_version_output=${CYTHON_version_output}")
+message(STATUS "CYTHON_version_error=${CYTHON_version_error}")
+message(STATUS "CYTHON_version_result=${CYTHON_version_result}")
 
 if(NOT ${CYTHON_version_result} EQUAL 0)
-  set(Cython_VERSION "?")
+  # installation of cython, numpy
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -m pip install cython numpy
+    OUTPUT_VARIABLE install_version_output
+    ERROR_VARIABLE install_version_error
+    RESULT_VARIABLE install_version_result)
+  message(STATUS "install_version_output=${install_version_output}")
+  message(STATUS "install_version_error=${install_version_error}")
+  message(STATUS "install_version_result=${install_version_result}")
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -m cython --version
+    OUTPUT_VARIABLE CYTHON_version_output
+    ERROR_VARIABLE CYTHON_version_error
+    RESULT_VARIABLE CYTHON_version_result
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
+  message(STATUS "CYTHON_version_output=${CYTHON_version_output}")
+  message(STATUS "CYTHON_version_error=${CYTHON_version_error}")
+  message(STATUS "CYTHON_version_result=${CYTHON_version_result}")
+  if(NOT ${CYTHON_version_result} EQUAL 0)
+    message(FATAL_ERROR("Unable to find cython for '${PYTHON_EXECUTABLE}'."))
+  endif()
+  set(Cython_VERSION ${CYTHON_version_error})
 else()
   set(Cython_VERSION ${CYTHON_version_error})
 endif()
 
 execute_process(
-  COMMAND "${Python3_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
+  COMMAND "${Python3_EXECUTABLE}" -c "import numpy;print(numpy.get_include())"
   OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
   OUTPUT_STRIP_TRAILING_WHITESPACE
   RESULT_VARIABLE NUMPY_NOT_FOUND)
 if(NUMPY_NOT_FOUND)
-  message(FATAL_ERROR "Numpy headers not found.")
+  message(FATAL_ERROR
+          "Numpy headers not found with "
+          "Python3_EXECUTABLE='${Python3_EXECUTABLE}' and "
+          "Cython_VERSION=${Cython_VERSION}.")
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -80,21 +97,32 @@ function(cython_add_module name pyx_file omp_lib)
   # adding the library
 
   message(STATUS "cython all files: ${ARGN}")
-  add_library(${name} MODULE ${ARGN})
+  python3_add_library(${name} MODULE ${ARGN})
 
   target_include_directories(
-    ${name} PRIVATE ${Python3_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR}
-                    ${Python3_NumPy_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
+    ${name} PRIVATE
+    ${Python3_INCLUDE_DIRS}
+    ${PYTHON_INCLUDE_DIR}
+    ${Python3_NumPy_INCLUDE_DIRS}
+    ${NUMPY_INCLUDE_DIR}
+    ${OMP_INCLUDE_DIR})
 
-  target_link_libraries(${name} PRIVATE ${Python3_LIBRARIES}
-                                        ${Python3_NumPy_LIBRARIES} ${omp_lib})
+  target_link_libraries(
+    ${name} PRIVATE
+    ${Python3_LIBRARIES}
+    ${Python3_NumPy_LIBRARIES}
+    ${omp_lib})
 
   target_compile_definitions(${name} PUBLIC NPY_NO_DEPRECATED_API)
 
-  set_target_properties(${name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                           SUFFIX "${PYTHON_MODULE_EXTENSION}")
+  set_target_properties(
+    ${name} PROPERTIES
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
   # install(TARGETS ${name} LIBRARY DESTINATION ${pyx_dir})
 
   message(STATUS "cython added module '${name}'")
+  get_target_property(prop ${name} BINARY_DIR)
+  message(STATUS "cython added into '${prop}'.")
 endfunction()

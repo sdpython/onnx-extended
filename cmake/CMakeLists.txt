@@ -14,47 +14,69 @@ enable_testing()
 #
 
 message(STATUS "-------------------")
+message(STATUS "USE_SETUP_PYTHON=${USE_SETUP_PYTHON}")
+message(STATUS "USE_PYTHON_SETUP=${USE_PYTHON_SETUP}")
 message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
 message(STATUS "PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(STATUS "PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}")
 message(STATUS "PYTHON_LIBRARY=${PYTHON_LIBRARY}")
+message(STATUS "PYTHON_LIBRARY_DIR=${PYTHON_LIBRARY_DIR}")
 message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
+message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON_MODULE_EXTENSION}")
+message(STATUS "PYTHON_NUMPY_VERSION=${PYTHON_NUMPY_VERSION}")
 message(STATUS "ENV-PATH=$ENV{PATH}")
 message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 message(STATUS "-------------------")
-find_package(Python3 ${PYTHON_VERSION} COMPONENTS
-             Interpreter NumPy Development.Module
-             REQUIRED)
-if(Python3_Interpreter_FOUND)
-  message(STATUS "Python3_Interpreter_FOUND=${Python3_Interpreter_FOUND}")
-  message(STATUS "Python3_NumPy_VERSION=${Python3_NumPy_VERSION}")
-  message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
-  message(STATUS "Python3_VERSION=${Python3_VERSION}")
-  message(STATUS "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
-  message(STATUS "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
-  message(STATUS "Python3_LIBRARIES=${Python3_LIBRARIES}")
-  message(STATUS "Python3_LINK_OPTIONS=${Python3_LINK_OPTIONS}")
-  message(STATUS "Python3_NumPy_FOUND=${Python3_NumPy_FOUND}")
-  message(STATUS "Python3_NumPy_INCLUDE_DIRS=${Python3_NumPy_INCLUDE_DIRS}")
-  message(STATUS "Python3_NumPy_VERSION=${Python3_NumPy_VERSION}")
-  message(STATUS "Python3_Development_FOUND=${Python3_Development_FOUND}")
-  message(STATUS "Python3_MODULE_EXTENSION=${Python3_MODULE_EXTENSION}")
-  message(STATUS "Python3_MODULE_PREFIX=${Python3_MODULE_PREFIX}")
-  message(STATUS "Python3_SOABI=${Python3_SOABI}")
-  message(STATUS "Python3_SOSABI=${Python3_SOSABI}")
+find_package(MyPython)
+if(NOT ${PYTHON_VERSION} MATCHES ${Python3_VERSION})
+  message(WARNING "cmake selects a different python version "
+                  "${Python3_VERSION} than ${PYTHON_VERSION}.")
+
+  # installation of cython, numpy
+  execute_process(
+    COMMAND ${Python3_EXECUTABLE} -m pip install cython numpy
+    OUTPUT_VARIABLE install_version_output
+    ERROR_VARIABLE install_version_error
+    RESULT_VARIABLE install_version_result)
+  message(STATUS "install_version_output=${install_version_output}")
+  message(STATUS "install_version_error=${install_version_error}")
+  message(STATUS "install_version_result=${install_version_result}")
+endif()
+if(MyPython_FOUND)
+  message(STATUS "Found Python3 ${Python3_VERSION}")
 else()
-  message(STATUS "-------------------")
-  message(STATUS "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
-  message(FATAL_ERROR "Python was not found.")
+  message(FATAL_ERROR "Unable to find Python through MyPython.")
 endif()
 
-if(NOT ${PYTHON_VERSION} MATCHES ${Python3_VERSION})
-  message(FATAL_ERROR "cmake selects a different python version "
-                      "${Python3_VERSION} than ${PYTHON_VERSION}.")
+message(STATUS "-------------------")
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  message(STATUS "Found OpenMP ${OpenMP_VERSION}")
+  set(OMP_INCLUDE_DIR "")
+else()
+  # see https://github.com/microsoft/LightGBM/blob/master/CMakeLists.txt#L148
+  execute_process(COMMAND brew --prefix libomp
+                  OUTPUT_VARIABLE HOMEBREW_LIBOMP_PREFIX
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(MAC_FLAGS "-Xpreprocessor -fopenmp")
+  set(OpenMP_C_FLAGS "${MAC_FLAGS} -I${HOMEBREW_LIBOMP_PREFIX}/include")
+  set(OpenMP_CXX_FLAGS "${MAC_FLAGS} -I${HOMEBREW_LIBOMP_PREFIX}/include")
+  set(OpenMP_C_LIB_NAMES omp)
+  set(OpenMP_CXX_LIB_NAMES omp)
+  set(OMP_INCLUDE_DIR ${HOMEBREW_LIBOMP_PREFIX}/include)
+  set(OpenMP_omp_LIBRARY ${HOMEBREW_LIBOMP_PREFIX}/lib/libomp.dylib)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  find_package(OpenMP REQUIRED)
+  if(OpenMP_FOUND)
+    message(STATUS "Found(2) OpenMP ${OpenMP_VERSION}")
+  else()
+    message(FATAL_ERROR "OpenMP cannot be found.")
+  endif()
 endif()
 
 message(STATUS "-------------------")
@@ -75,13 +97,6 @@ else()
 endif()
 
 message(STATUS "-------------------")
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-  message(STATUS "Found OpenMP ${OpenMP_VERSION}")
-else()
-  message(FATAL_ERROR "OpenMP cannot be found.")
-endif()
-message(STATUS "-------------------")
 
 #
 # Compiling options
@@ -90,10 +105,15 @@ message(STATUS "-------------------")
 # AVX instructions
 if(MSVC)
   # disable warning for #pragma unroll
-  add_compile_options(/wd4068)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
+  add_compile_options(/wd4068)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
+endif()
+
+if(APPLE)
+  set(ENV(LDFLAGS) "-L/usr/local/opt/llvm/lib")
+  set(ENV(CPPFLAGS) "-I/usr/local/opt/llvm/include")
 endif()
 
 #
