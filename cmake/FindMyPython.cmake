@@ -16,6 +16,7 @@ if(USE_SETUP_PYTHON)
   set(Python3_Development_FOUND 1)
   set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIR})
   set(Python3_LIBRARIES ${PYTHON_LIBRARY})
+  set(Python3_LIBRARY_DIRS ${PYTHON_LIBRARY_DIR})
   set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
   set(Python3_MODULE_EXTENSION ${PYTHON_MODULE_EXTENSION})
   set(Python3_MODULE_PREFIX "")
@@ -79,12 +80,23 @@ else()
   endif()
 
   if(Python3_Interpreter_FOUND)
+    if(NOT Python3_LIBRARIES)
+      set(Python3_LIBRARIES ${PYTHON_LIBRARY})
+    endif()
+    if(NOT Python3_MODULE_EXTENSION)
+      set(Python3_MODULE_EXTENSION ${PYTHON_MODULE_EXTENSION})
+    endif()
+    if(NOT Python3_MODULE_PREFIX)
+      set(Python3_MODULE_PREFIX "")
+    endif()
+
     message(STATUS "Python3_Interpreter_FOUND=${Python3_Interpreter_FOUND}")
     message(STATUS "Python3_NumPy_VERSION=${Python3_NumPy_VERSION}")
     message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
     message(STATUS "Python3_VERSION=${Python3_VERSION}")
     message(STATUS "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
     message(STATUS "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+    message(STATUS "Python3_LIBRARY_DIRS=${Python3_LIBRARY_DIRS}")
     message(STATUS "Python3_LIBRARIES=${Python3_LIBRARIES}")
     message(STATUS "Python3_LINK_OPTIONS=${Python3_LINK_OPTIONS}")
     message(STATUS "Python3_NumPy_FOUND=${Python3_NumPy_FOUND}")
@@ -109,5 +121,4 @@ find_package_handle_standard_args(
   VERSION_VAR MyPython_VERSION
   REQUIRED_VARS Python3_VERSION Python3_EXECUTABLE Python3_INCLUDE_DIRS
                 Python3_LIBRARIES Python3_MODULE_EXTENSION
-                Python3_MODULE_PREFIX Python3_LINK_OPTIONS
                 Python3_NumPy_INCLUDE_DIRS Python3_NumPy_VERSION)
