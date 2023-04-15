@@ -27,6 +27,11 @@ if(USE_SETUP_PYTHON)
   #
   #! python3_add_library : add a python library
   #
+  # The function fails because it is not adding Python3{version}.lib.
+  # The code is here:
+  # https://github.com/Kitware/CMake/blob/
+  # master/Modules/FindPython/Support.cmake.
+  #
   # \arg:name extension name
   # \arg:prefix MODULE,SHARED,STATIC
   #

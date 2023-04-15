@@ -3,6 +3,17 @@
 #
 # output variables Cython_FOUND, Cython_VERSION function cython_add_module
 
+if(APPLE)
+  # installation of cython
+  COMMAND ${Python3_EXECUTABLE} -m pip install cython
+    OUTPUT_VARIABLE CYTHONINST_version_output
+    ERROR_VARIABLE CYTHONINST_version_error
+    RESULT_VARIABLE CYTHONINST_version_result)
+  message(STATUS "CYTHONINST_version_output=${CYTHONINST_version_output}")
+  message(STATUS "CYTHONINST_version_error=${CYTHONINST_version_error}")
+  message(STATUS "CYTHONINST_version_result=${CYTHONINST_version_result}")
+endif()
+
 execute_process(
   COMMAND ${Python3_EXECUTABLE} -m cython --version
   OUTPUT_VARIABLE CYTHON_version_output
