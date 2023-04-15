@@ -152,7 +152,6 @@ jobs:
       python -c "import sys;print('PYTHON', sys.version_info)"
       python -c "import numpy;print('numpy', numpy.__version__)"
       python -c "import cython;print('cython', cython.__version__)"
-      python -c "import pybind11;print('pybind11', pybind11.__version__)"
     displayName: 'Print'
   - script: |
       python setup.py build_ext --inplace
