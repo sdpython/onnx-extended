@@ -32,6 +32,11 @@ if(NOT ${PYTHON_VERSION} MATCHES ${Python3_VERSION})
   message(FATAL_ERROR "cmake selects a different python version "
                       "${Python3_VERSION} than ${PYTHON_VERSION}.")
 endif()
+if(MyPython_FOUND)
+  message(STATUS "Found Python3 ${Python3_VERSION}")
+else()
+  message(FATAL_ERROR "Unable to find Python through MyPython.")
+endif()
 
 message(STATUS "-------------------")
 find_package(OpenMP)
