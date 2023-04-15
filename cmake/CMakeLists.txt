@@ -24,14 +24,15 @@ message(STATUS "PYTHON_LIBRARY=${PYTHON_LIBRARY}")
 message(STATUS "PYTHON_LIBRARY_DIR=${PYTHON_LIBRARY_DIR}")
 message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
 message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON_MODULE_EXTENSION}")
+message(STATUS "PYTHON_NUMPY_VERSION=${PYTHON_NUMPY_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 message(STATUS "-------------------")
 find_package(MyPython)
 if(NOT ${PYTHON_VERSION} MATCHES ${Python3_VERSION})
-  message(FATAL_ERROR "cmake selects a different python version "
-                      "${Python3_VERSION} than ${PYTHON_VERSION}.")
+  message(WARNING "cmake selects a different python version "
+                  "${Python3_VERSION} than ${PYTHON_VERSION}.")
 endif()
 if(MyPython_FOUND)
   message(STATUS "Found Python3 ${Python3_VERSION}")
