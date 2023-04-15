@@ -32,7 +32,10 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
   RESULT_VARIABLE NUMPY_NOT_FOUND)
 if(NUMPY_NOT_FOUND)
-  message(FATAL_ERROR "Numpy headers not found.")
+  message(FATAL_ERROR
+          "Numpy headers not found with "
+          "Python3_EXECUTABLE='${Python3_EXECUTABLE}' and "
+          "Cython_VERSION=${Cython_VERSION}.")
 endif()
 
 include(FindPackageHandleStandardArgs)
