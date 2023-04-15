@@ -4,9 +4,9 @@
 # output variables Cython_FOUND, Cython_VERSION function cython_add_module
 
 if(MSVC)
-  find_package(Python3)
+  find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 elseif(APPLE)
-  find_package(Python3)
+  find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 else()
   find_package(Python3 ${PYTHON_VERSION} COMPONENTS
                Interpreter NumPy Development.Module
@@ -20,6 +20,9 @@ execute_process(
   RESULT_VARIABLE CYTHON_version_result
   OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
 
+message(STATUS "CYTHON_version_output=${CYTHON_version_output}")
+message(STATUS "CYTHON_version_error=${CYTHON_version_error}")
+message(STATUS "CYTHON_version_result=${CYTHON_version_result}")
 if(NOT ${CYTHON_version_result} EQUAL 0)
   set(Cython_VERSION "?")
 else()
@@ -27,7 +30,7 @@ else()
 endif()
 
 execute_process(
-  COMMAND "${Python3_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
+  COMMAND "${Python3_EXECUTABLE}" -c "import numpy;print(numpy.get_include())"
   OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
   OUTPUT_STRIP_TRAILING_WHITESPACE
   RESULT_VARIABLE NUMPY_NOT_FOUND)
