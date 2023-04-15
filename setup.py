@@ -173,18 +173,25 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_VERSION={vers}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
         ]
-        if iswin:
-            include_dir = sysconfig.get_path("include").replace("\\", "/")
-            # lib_dir = sysconfig.get_config_var("LIBDIR") or ""
-            # lib_dir = lib_dir.replace("\\", "/")
+        if iswin or isdar:
+            include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
+            lib_dir = (
+                sysconfig.get_config_var("LIBDIR")
+                or sysconfig.get_paths()["stdlib"]
+                or ""
+            ).replace("\\", "/")
             numpy_include_dir = numpy.get_include().replace("\\", "/")
             cmake_args.extend(
                 [
                     f"-DPYTHON_INCLUDE_DIR={include_dir}",
                     # f"-DPYTHON_LIBRARIES={lib_dir}",
+                    f"-DPYTHON_LIBRARY_DIR={lib_dir}",
                     f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
+                    # "-DUSE_SETUP_PYTHON=1",
+                    f"-DPYTHON_NUMPY_VERSION={numpy.__version__}",
                 ]
             )
+            os.environ["PYTHON_NUMPY_INCLUDE_DIR"] = numpy_include_dir
 
         cmake_args += cmake_cmd_args
 
@@ -230,12 +237,13 @@ class cmake_build_ext(build_ext):
             name = os.path.split(full_name)[-1]
             if iswin:
                 look = os.path.join(build_path, "Release", name)
-            elif isdar:
-                look = os.path.join(build_path, "Release", name)
             else:
                 look = os.path.join(build_path, name)
             if not os.path.exists(look):
-                raise FileNotFoundError(f"Unable to find {look!r}.")
+                content = os.listdir(build_path)
+                raise FileNotFoundError(
+                    f"Unable to find {look!r}, " f"build_path contains {content}."
+                )
             dest = os.path.join(build_lib, os.path.split(full_name)[0])
             if not os.path.exists(dest):
                 os.makedirs(dest)
