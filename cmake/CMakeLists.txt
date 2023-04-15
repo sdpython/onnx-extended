@@ -20,7 +20,8 @@ message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(STATUS "PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}")
 message(STATUS "PYTHON_LIBRARY=${PYTHON_LIBRARY}")
 message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
-message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON3_MODULE_EXTENSION}")
+message(STATUS "ENV-PATH=$ENV{PATH}")
+message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -88,14 +89,11 @@ message(STATUS "-------------------")
 
 # AVX instructions
 if(MSVC)
+  # disable warning for #pragma unroll
+  add_compile_options(/wd4068)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
-endif()
-
-# disable warning for #pragma unroll
-if(MSVC)
-  add_compile_options(/wd4068)
 endif()
 
 #
