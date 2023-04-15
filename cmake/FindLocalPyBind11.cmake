@@ -50,8 +50,12 @@ function(local_pybind11_add_module name omp_lib)
     ${pybind11_INCLUDE_DIR}
     ${NUMPY_INCLUDE_DIR}
     ${OMP_INCLUDE_DIR})
-  target_link_libraries(${name} PRIVATE pybind11::headers ${Python3_LIBRARIES}
-                                        ${Python3_NumPy_LIBRARIES} ${omp_lib})
+  target_link_libraries(
+    ${name} PRIVATE
+    pybind11::headers
+    ${Python3_LIBRARIES}
+    ${Python3_NumPy_LIBRARIES}
+    ${omp_lib})
   # if(MSVC) target_link_libraries(${target_name} PRIVATE
   # pybind11::windows_extras pybind11::lto) endif()
   set_target_properties(

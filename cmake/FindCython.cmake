@@ -97,7 +97,7 @@ function(cython_add_module name pyx_file omp_lib)
   # adding the library
 
   message(STATUS "cython all files: ${ARGN}")
-  add_library(${name} MODULE ${ARGN})
+  python3_add_library(${name} MODULE ${ARGN})
 
   target_include_directories(
     ${name} PRIVATE
@@ -110,7 +110,8 @@ function(cython_add_module name pyx_file omp_lib)
   target_link_libraries(
     ${name} PRIVATE
     ${Python3_LIBRARIES}
-    ${Python3_NumPy_LIBRARIES} ${omp_lib})
+    ${Python3_NumPy_LIBRARIES}
+    ${omp_lib})
 
   target_compile_definitions(${name} PUBLIC NPY_NO_DEPRECATED_API)
 
