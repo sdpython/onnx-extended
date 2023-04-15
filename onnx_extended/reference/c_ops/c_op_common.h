@@ -1,11 +1,9 @@
 #pragma once
 
 #include <algorithm>
-#include <cmath>
 #include <float.h>
 #include <iostream> // cout
 #include <iterator>
-#include <cmath>
 #include <pybind11/pybind11.h>
 #include <sstream>
 #include <thread>
