@@ -120,5 +120,5 @@ find_package_handle_standard_args(
   MyPython
   VERSION_VAR MyPython_VERSION
   REQUIRED_VARS Python3_VERSION Python3_EXECUTABLE Python3_INCLUDE_DIRS
-                Python3_LIBRARIES Python3_MODULE_EXTENSION
+                Python3_MODULE_EXTENSION
                 Python3_NumPy_INCLUDE_DIRS Python3_NumPy_VERSION)
