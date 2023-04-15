@@ -116,14 +116,16 @@ message(STATUS "-------------------")
 
 # AVX instructions
 if(MSVC)
+  # disable warning for #pragma unroll
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
+  add_compile_options(/wd4068)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
 endif()
 
-# disable warning for #pragma unroll
-if(MSVC)
-  add_compile_options(/wd4068)
+if(APPLE)
+  set(ENV(LDFLAGS) "-L/usr/local/opt/llvm/lib")
+  set(ENV(CPPFLAGS) "-I/usr/local/opt/llvm/include")
 endif()
 
 #

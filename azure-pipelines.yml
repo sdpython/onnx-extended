@@ -138,19 +138,15 @@ jobs:
   - script: brew install llvm
     displayName: 'Install llvm'
   - script: |
-      source activate myEnvironment
       pip install -r requirements.txt
     displayName: 'Install Requirements'
   - script: |
-      source activate myEnvironment
       pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: |
-      source activate myEnvironment
       python setup.py build_ext --inplace
     displayName: 'build'
   - script: |
-      source activate myEnvironment
       python setup.py bdist_wheel
     displayName: 'build wheel'
   - script: |
@@ -158,7 +154,6 @@ jobs:
       python -m pytest -v
     displayName: 'Runs Unit Tests'
   - script: |
-      source activate myEnvironment
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
   - task: PublishPipelineArtifact@0
