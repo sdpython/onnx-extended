@@ -183,7 +183,7 @@ class cmake_build_ext(build_ext):
                     f"-DPYTHON_INCLUDE_DIR={include_dir}",
                     # f"-DPYTHON_LIBRARIES={lib_dir}",
                     f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
-                    f"-DUSE_SETUP_PYTHON=1",
+                    "-DUSE_SETUP_PYTHON=1",
                     f"-DPYTHON_NUMPY_VERSION={numpy.__version__}",
                 ]
             )
