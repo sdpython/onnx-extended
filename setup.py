@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import distutils
 import os
 import platform
 import shutil
@@ -95,6 +96,14 @@ def _run_subprocess(
                 my_env["LD_LIBRARY_PATH"] += os.pathsep + dll_path
             else:
                 my_env["LD_LIBRARY_PATH"] = dll_path
+
+    if is_windows():
+        py_path = os.path.dirname(sys.executable)
+        if "PATH" in my_env:
+            my_env["PATH"] = py_path + os.pathsep + my_env["PATH"]
+        else:
+            my_env["PATH"] = py_path
+
     # Add nvcc's folder to PATH env so that our cmake file can find nvcc
     if cuda_home:
         my_env["PATH"] = os.path.join(cuda_home, "bin") + os.pathsep + my_env["PATH"]
@@ -115,14 +124,22 @@ def _run_subprocess(
         stdout=subprocess.PIPE if capture_output else None,
         stderr=subprocess.STDOUT if capture_output else None,
     )
+    raise_exception = False
     while True:
         output = p.stdout.readline().decode(errors="ignore")
         if output == "" and p.poll() is not None:
             break
         if output:
-            sys.stdout.write(output.rstrip() + "\n")
+            out = output.rstrip()
+            sys.stdout.write(out + "\n")
             sys.stdout.flush()
+            if "fatal error" in output or "CMake Error" in output:
+                raise_exception = True
     rc = p.poll()
+    if raise_exception:
+        raise RuntimeError(
+            "'fatal error:' was found in the output. The build is stopped."
+        )
     return rc
 
 
@@ -157,23 +174,32 @@ class cmake_build_ext(build_ext):
             f"{sys.version_info.minor}."
             f"{sys.version_info.micro}"
         )
+        module_ext = distutils.sysconfig.get_config_var("EXT_SUFFIX")
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
             f"-DPYTHON_VERSION={vers}",
+            f"-DPYTHON_MODULE_EXTENSION={module_ext}",
         ]
-        if iswin:
-            include_dir = sysconfig.get_path("include").replace("\\", "/")
-            lib_dir = sysconfig.get_config_var("LIBDIR") or ""
-            lib_dir = lib_dir.replace("\\", "/")
+        if iswin or isdar:
+            include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
+            lib_dir = (
+                sysconfig.get_config_var("LIBDIR")
+                or sysconfig.get_paths()["stdlib"]
+                or ""
+            ).replace("\\", "/")
             numpy_include_dir = numpy.get_include().replace("\\", "/")
             cmake_args.extend(
                 [
                     f"-DPYTHON_INCLUDE_DIR={include_dir}",
-                    f"-DPYTHON_LIBRARIES={lib_dir}",
+                    # f"-DPYTHON_LIBRARIES={lib_dir}",
+                    f"-DPYTHON_LIBRARY_DIR={lib_dir}",
                     f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",
+                    # "-DUSE_SETUP_PYTHON=1",
+                    f"-DPYTHON_NUMPY_VERSION={numpy.__version__}",
                 ]
             )
+            os.environ["PYTHON_NUMPY_INCLUDE_DIR"] = numpy_include_dir
 
         cmake_args += cmake_cmd_args
 
@@ -183,6 +209,12 @@ class cmake_build_ext(build_ext):
         # Builds the project.
         this_dir = os.path.dirname(os.path.abspath(__file__))
         build_path = os.path.abspath(self.build_temp)
+        with open(
+            os.path.join(os.path.dirname(__file__), ".build_path.txt"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            f.write(build_path)
         # build_path = os.path.join(this_dir, "build")
         if not os.path.exists(build_path):
             os.makedirs(build_path)
@@ -213,12 +245,13 @@ class cmake_build_ext(build_ext):
             name = os.path.split(full_name)[-1]
             if iswin:
                 look = os.path.join(build_path, "Release", name)
-            elif isdar:
-                look = os.path.join(build_path, "Release", name)
             else:
                 look = os.path.join(build_path, name)
             if not os.path.exists(look):
-                raise FileNotFoundError(f"Unable to find {look!r}.")
+                content = os.listdir(build_path)
+                raise FileNotFoundError(
+                    f"Unable to find {look!r}, " f"build_path contains {content}."
+                )
             dest = os.path.join(build_lib, os.path.split(full_name)[0])
             if not os.path.exists(dest):
                 os.makedirs(dest)

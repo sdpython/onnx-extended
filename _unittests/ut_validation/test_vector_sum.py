@@ -9,7 +9,10 @@ from onnx_extended.validation._validation import (
     vector_sum_array_avx,
     vector_sum_array_avx_parallel,
 )
-from onnx_extended.validation.vector_function_cy import vector_sum_c
+from onnx_extended.validation.vector_function_cy import (
+    vector_sum_c,
+    vector_add_c,
+)
 
 
 class TestVectorSum(ExtTestCase):
@@ -79,6 +82,20 @@ class TestVectorSum(ExtTestCase):
         v3 = vector_add(v1, v2)
         self.assertEqual(v3.shape, (3, 4))
         # Adds some code to check the addition is ok.
+
+    def test_vector_add(self):
+        t1 = numpy.arange(10).reshape((2, 5)).astype(numpy.float32)
+        t2 = numpy.arange(10).reshape((2, 5)).astype(numpy.float32)
+        res = t1 + t2
+        got = vector_add_c(t1, t2)
+        self.assertEqualArray(res, got)
+        t0 = numpy.array([[0]], dtype=numpy.float32)
+        self.assertRaise(lambda: vector_add_c(t0, t1), ValueError)
+        t0 = numpy.array([0], dtype=numpy.float32)
+        self.assertRaise(lambda: vector_add_c(t0, t1), ValueError)
+        t0 = numpy.array([0], dtype=numpy.float32)
+        t1i = t1.astype(numpy.int32)
+        self.assertRaise(lambda: vector_add_c(t1i, t2), TypeError)
 
 
 if __name__ == "__main__":

@@ -34,12 +34,22 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
+      cmake-lint cmake/*  --disabled-codes C0103 C0113
+    displayName: 'cmake-lint'
+  - script: |
       # python -m pip install -e .
       python setup.py build_ext --inplace
     displayName: 'build'
   - script: |
       python setup.py bdist_wheel
     displayName: 'build wheel'
+  - bash: |
+      contents=$(cat .build_path.txt)
+      export BUILD_PATH="$contents"
+      cd $BUILD_PATH
+      ctest
+    displayName: 'Run C++ Unit Tests'
+
   - script: |
       python -m pytest -v
     displayName: 'Runs Unit Tests'
@@ -84,6 +94,11 @@ jobs:
   - script: |
         python setup.py bdist_wheel
     displayName: 'build wheel'
+  - powershell: |
+        $contents = Get-Content -Path ".build_path.txt"
+        cd $contents
+        ctest -C Release
+    displayName: 'Runs C++ Unit Tests'
   - script: |
         python -m pytest -v
     displayName: 'Runs Unit Tests'
@@ -95,57 +110,63 @@ jobs:
       artifactName: 'wheel-windows-$(python.version)'
       targetPath: 'dist'
 
-#~ - job: 'TestMac'
-  #~ pool:
-    #~ vmImage: 'macOS-latest'
-  #~ strategy:
-    #~ matrix:
-      #~ Python310-Mac:
-        #~ python.version: '3.10'
-    #~ maxParallel: 3
+- job: 'TestMac'
+  pool:
+    vmImage: 'macOS-latest'
+  strategy:
+    matrix:
+      Python311-Mac:
+        python.version: '3.11'
+    maxParallel: 3
 
-  #~ steps:
-  #~ - task: UsePythonVersion@0
-    #~ inputs:
-      #~ versionSpec: '$(python.version)'
-      #~ architecture: 'x64'
-  #~ - script: gcc --version
-    #~ displayName: 'gcc version'
-  #~ - script: |
-          #~ brew update
-    #~ displayName: 'brew update'
-  #~ - script: export
-    #~ displayName: 'export'
-  #~ - script: gcc --version
-    #~ displayName: 'gcc version'
-  #~ - script: brew install llvm
-    #~ displayName: 'install llvm'
-  #~ - script: brew install libomp
-    #~ displayName: 'Install omp'
-  #~ - script: brew install p7zip
-    #~ displayName: 'Install p7zip'
-  #~ - script: python -m pip install --upgrade pip setuptools wheel
-    #~ displayName: 'Install tools'
-  #~ - script: brew install pybind11
-    #~ displayName: 'Install pybind11'
-  #~ - script: pip install -r requirements.txt
-    #~ displayName: 'Install Requirements'
-  #~ - script: pip install -r requirements-dev.txt
-    #~ displayName: 'Install Requirements dev'
-  #~ - script: |
-      #~ python -m pip install -e .
-    #~ displayName: 'build'
-  #~ - script: |
-      #~ python setup.py bdist_wheel
-    #~ displayName: 'build wheel'
-  #~ - script: |
-      #~ python -m pytest -v -v
-    #~ displayName: 'Runs Unit Tests'
-  #~ - script: |
-      #~ python -u setup.py bdist_wheel
-    #~ displayName: 'Build Package'
-  #~ - task: PublishPipelineArtifact@0
-    #~ inputs:
-      #~ artifactName: 'wheel-mac-$(python.version)'
-      #~ targetPath: 'dist'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
 
+  # use anaconda
+  # - bash: echo "##vso[task.prependpath]$CONDA/bin"
+  #   displayName: Add conda to PATH
+  # - bash: sudo chown -R $USER $CONDA
+  #   displayName: Take ownership of conda installation
+  # - bash: conda create --yes --quiet --name myEnvironment
+  #   displayName: Create Anaconda environment
+  
+  - script: |
+      python -c "import sys;print(sys.executable)"
+      python -c "import sys;print(sys.version_info)"
+    displayName: 'Print'
+  - script: brew install libomp
+    displayName: 'Install omp'
+  - script: brew install llvm
+    displayName: 'Install llvm'
+  - script: |
+      pip install -r requirements.txt
+    displayName: 'Install Requirements'
+  - script: |
+      pip install -r requirements-dev.txt
+    displayName: 'Install Requirements dev'
+  - script: |
+      python -c "import sys;print('PYTHON', sys.executable)"
+      python -c "import sys;print('PYTHON', sys.version_info)"
+      python -c "import numpy;print('numpy', numpy.__version__)"
+      python -c "import cython;print('cython', cython.__version__)"
+    displayName: 'Print'
+  - script: |
+      python setup.py build_ext --inplace
+    displayName: 'build'
+  - script: |
+      python setup.py bdist_wheel
+    displayName: 'build wheel'
+  - script: |
+      source activate myEnvironment
+      python -m pytest -v
+    displayName: 'Runs Unit Tests'
+  - script: |
+      python -u setup.py bdist_wheel
+    displayName: 'Build Package'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'wheel-mac-$(python.version)'
+      targetPath: 'dist'
