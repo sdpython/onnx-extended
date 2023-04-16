@@ -11,14 +11,6 @@ namespace validation {
 inline bool _isnan_(float x) { return _isnanf(x); }
 inline bool _isnan_(double x) { return _isnan(x); }
 
-#elif defined(__MACOSX__) || defined(__APPLE__)
-
-#include <cmath>
-#include <math.h>
-
-inline bool _isnan_(float x) { return (float)::isnan((double)x); }
-inline bool _isnan_(double x) { return ::isnan(x); }
-
 #else
 
 // See
@@ -34,7 +26,11 @@ inline bool _isnan_(double x) {
          0x7ff00000;
 }
 
-inline bool _isnan_(float x) { return _isnan_((double)x); }
+inline bool _isnan_(float x) {
+  uint32_t* pv = reinterpret_cast<uint32_t*>(&x);
+  uint32_t b = *pv;
+  return (b & 0x7fc00000) == 0x7fc00000;
+}
 
 #endif
 
