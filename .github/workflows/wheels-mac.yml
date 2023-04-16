@@ -1,6 +1,10 @@
 name: Build Wheel MacOS
 
-on: push
+on:
+  push:
+    branches:
+      - main
+      - 'releases/**'
 
 jobs:
   build_wheels:
