@@ -96,6 +96,14 @@ def _run_subprocess(
                 my_env["LD_LIBRARY_PATH"] += os.pathsep + dll_path
             else:
                 my_env["LD_LIBRARY_PATH"] = dll_path
+
+    if is_windows():
+        py_path = os.path.dirname(sys.executable)
+        if "PATH" in my_env:
+            my_env["PATH"] = py_path + os.pathsep + my_env["PATH"]
+        else:
+            my_env["PATH"] = py_path
+
     # Add nvcc's folder to PATH env so that our cmake file can find nvcc
     if cuda_home:
         my_env["PATH"] = os.path.join(cuda_home, "bin") + os.pathsep + my_env["PATH"]
