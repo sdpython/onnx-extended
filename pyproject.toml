@@ -4,16 +4,18 @@ requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx
 [tool.cibuildwheel]
 build = "*"
 manylinux-x86_64-image = "manylinux2014"
-skip = "cp36-* cp37-* cp38-* cp39-*"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
+skip = "cp36-* cp37-* cp38-* cp39-*"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
+skip = "cp36-* cp37-* cp38-* cp39-* cp310-*"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
+skip = "cp36-* cp37-* cp38-* cp39-*"
 
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
