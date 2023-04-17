@@ -12,10 +12,12 @@ skip = "cp36-* cp37-* cp38-* cp39-* cp311-* pypy* *musllinux*"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
-skip = "cp36-* cp37-* cp38-* cp39-* cp310-* pypy*"
+build = "cp*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp310-* pypy* pp*"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
+build = "cp*"
 skip = "cp36-* cp37-* cp38-* cp39-* pypy*"
 
 [tool.ruff]
