@@ -2,7 +2,8 @@
 requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx", "cmake"]
 
 [tool.cibuildwheel]
-architectures = "x86_64"
+build = "*"
+archs = ["x86_64"]
 manylinux-x86_64-image = "manylinux2014"
 skip = "cp36-* cp37-* cp38-* cp39-*"
 
