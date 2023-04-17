@@ -16,7 +16,7 @@ skip = "cp36-* cp37-* cp38-* cp39-* cp310-*"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
-skip = "cp36-* cp37-* cp38-* cp39-*"
+skip = "cp36-* cp37-* cp38-* cp39-* pypy*"
 
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
