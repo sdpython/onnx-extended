@@ -13,6 +13,8 @@
 namespace py = pybind11;
 
 namespace validation {
+    
+// vector_sum
 
 float vector_sum(int nc, const std::vector<float> &values, bool by_rows);
 
@@ -24,5 +26,9 @@ float vector_sum_array_parallel(int nc, const py_array_float &values,
 float vector_sum_array_avx(int nc, const py_array_float &values_array);
 
 float vector_sum_array_avx_parallel(int nc, const py_array_float &values_array);
+
+// vector_add
+
+py_array_float vector_add(const py_array_float &v1, const py_array_float &v2);
 
 } // namespace validation
