@@ -192,6 +192,10 @@ py_array_float vector_add(const py_array_float &v1, const py_array_float &v2) {
     }
 
     // Here the addition.
+    int64_t size = v1.size();
+    for(int64_t i = 0; i < size; ++i) {      
+      pr[i] = p1[i] + p2[i];
+    }
     
     return result;
 }

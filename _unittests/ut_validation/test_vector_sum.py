@@ -78,12 +78,12 @@ class TestVectorSum(ExtTestCase):
 
     def test_vector_add(self):
         v1 = numpy.ones((3, 4), dtype=numpy.float32)
-        v2 = numpy.ones((3, 4), dtype=numpy.float32)
+        v2 = (numpy.ones((3, 4)) * 10).astype(numpy.float32)
         v3 = vector_add(v1, v2)
         self.assertEqual(v3.shape, (3, 4))
-        # Adds some code to check the addition is ok.
+        self.assertEqualArray(v1 + v2, v3)
 
-    def test_vector_add(self):
+    def test_vector_add_c(self):
         t1 = numpy.arange(10).reshape((2, 5)).astype(numpy.float32)
         t2 = numpy.arange(10).reshape((2, 5)).astype(numpy.float32)
         res = t1 + t2
