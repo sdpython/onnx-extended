@@ -34,10 +34,12 @@ message(STATUS "-------------------")
 find_package(MyPython)
 if(NOT ${PYTHON_VERSION} MATCHES ${Python3_VERSION})
   string(LENGTH PYTHON_VERSION_MM PYTHON_VERSION_MM_LENGTH)
-  string(SUBSTRING Python3_VERSION 0 PYTHON_VERSION_MM_LENGTH Python3_VERSION_MM)
+  string(SUBSTRING Python3_VERSION
+         0 PYTHON_VERSION_MM_LENGTH
+         Python3_VERSION_MM)
   if(${PYTHON_VERSION_MM} MATCHES ${Python3_VERSION_MM})
     message(WARNING
-            "cmake selects a different python micro version "
+            "cmake selects a different python micr  o version "
             "${Python3_VERSION} than ${PYTHON_VERSION}.")
   else()
     message(FATAL_ERROR
