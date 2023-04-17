@@ -8,7 +8,7 @@ manylinux-x86_64-image = "manylinux2014"
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp311-* pypy* musllinux*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp311-* pypy* *musllinux*"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
