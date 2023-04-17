@@ -1,3 +1,6 @@
+[project]
+requires-python = ">=3.9"
+
 [build-system]
 requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx", "cmake"]
 
@@ -9,7 +12,7 @@ skip = "cp36-* cp37-* cp38-* cp39-*"
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 
-[tool.cibuildwheel.macOS]
+[tool.cibuildwheel.macos]
 archs = ["x86_64"]
 
 [tool.cibuildwheel.windows]
