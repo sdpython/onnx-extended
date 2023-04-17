@@ -9,8 +9,11 @@ skip = "cp36-* cp37-* cp38-* cp39-*"
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 
+[tool.cibuildwheel.macOS]
+archs = ["x86_64"]
+
 [tool.cibuildwheel.windows]
-archs = ["amd64"]
+archs = ["AMD64"]
 
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
