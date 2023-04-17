@@ -174,11 +174,16 @@ class cmake_build_ext(build_ext):
             f"{sys.version_info.minor}."
             f"{sys.version_info.micro}"
         )
+        versmm = (
+            f"{sys.version_info.major}."
+            f"{sys.version_info.minor}."
+        )
         module_ext = distutils.sysconfig.get_config_var("EXT_SUFFIX")
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
             f"-DPYTHON_VERSION={vers}",
+            f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
         ]
         if iswin or isdar:
