@@ -3,9 +3,14 @@ requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx
 
 [tool.cibuildwheel]
 build = "*"
-archs = ["x86_64"]
 manylinux-x86_64-image = "manylinux2014"
 skip = "cp36-* cp37-* cp38-* cp39-*"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+
+[tool.cibuildwheel.windows]
+archs = ["amd64"]
 
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
