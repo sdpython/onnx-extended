@@ -2,23 +2,11 @@
 requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx", "cmake"]
 
 [tool.ruff]
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".eggs",
-    ".git",
-    "build",
-    "dist",
-]
-
-# Same as Black.
+exclude = [".eggs", ".git", "build", "dist"]
 line-length = 88
 
 [tool.ruff.mccabe]
-# Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
 [tool.ruff.per-file-ignores]
 "onnx_extended/reference/__init__.py" = ["F401"]
-
-
