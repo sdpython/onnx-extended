@@ -115,4 +115,15 @@ and parallelization (see `AVX API
 :param values: all values in an array
 :return: sum of all elements
 )pbdoc");
+
+  m.def("vector_add", &vector_add,
+        py::arg("v1"), py::arg("v2"),
+        R"pbdoc(Computes the addition of 2 vectors of any dimensions.
+It assumes both vectors have the same dimensions (no broadcast).).
+
+:param v1: first vector
+:param v2: second vector
+:return: new vector
+)pbdoc");
+
 }

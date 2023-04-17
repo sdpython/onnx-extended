@@ -1,24 +1,31 @@
 [build-system]
 requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx", "cmake"]
 
+[tool.cibuildwheel]
+build = "*"
+manylinux-x86_64-image = "manylinux2014"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+build = "cp*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp311-* pypy* *musllinux*"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64"]
+build = "cp*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp310-* pypy* pp*"
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
+build = "cp*"
+skip = "cp36-* cp37-* cp38-* cp39-* pypy*"
+
 [tool.ruff]
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".eggs",
-    ".git",
-    "build",
-    "dist",
-]
-
-# Same as Black.
+exclude = [".eggs", ".git", "build", "dist"]
 line-length = 88
 
 [tool.ruff.mccabe]
-# Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
 [tool.ruff.per-file-ignores]
 "onnx_extended/reference/__init__.py" = ["F401"]
-
-
