@@ -61,7 +61,7 @@ __global__ void kernel_sum_reduce0(float *g_idata, float *g_odata, unsigned int 
 
   // load shared mem
   unsigned int tid = threadIdx.x;
-  unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+  unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
   sdata[tid] = (i < n) ? g_idata[i] : 0;
 
@@ -86,21 +86,27 @@ float kernel_vector_sum_reduce(float* gpu_ptr, unsigned int size, int maxThreads
   dim3 dimBlock(threads, 1, 1);
   dim3 dimGrid(blocks, 1, 1);
   float* gpu_block_ptr;
-  checkCudaErrors(cudaMalloc((void **) &gpu_block_ptr, blocks * sizeof(float)));
+  checkCudaErrors(cudaMalloc(&gpu_block_ptr, blocks * sizeof(float)));
   int smemSize = (threads <= 32) ? 2 * threads * sizeof(float) : threads * sizeof(float);
   kernel_sum_reduce0<<<dimGrid, dimBlock, smemSize>>>(gpu_ptr, gpu_block_ptr, size);
+
+  // the last reduction happens on CPU, the first step is to move
+  // the data from GPU to CPU.
+  float* cpu_ptr = new float[blocks];
+  checkCudaErrors(cudaMemcpy(cpu_ptr, gpu_block_ptr, blocks * sizeof(float), cudaMemcpyDeviceToHost));
   float gpu_result = 0;
-  for (int i=0; i<blocks; i++) {
-    gpu_result += gpu_block_ptr[i];
+  for (int i = 0; i < blocks; ++i) {
+    gpu_result += cpu_ptr[i];
   }
   checkCudaErrors(cudaFree(gpu_block_ptr));
+  delete[] cpu_ptr;
   return gpu_result;
 }
 
 float vector_sum(unsigned int size, const float* ptr, int maxThreads, int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
-  checkCudaErrors(cudaSetDevice(cudaDevice));
   float *gpu_ptr;
+  checkCudaErrors(cudaSetDevice(cudaDevice));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
   checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
 

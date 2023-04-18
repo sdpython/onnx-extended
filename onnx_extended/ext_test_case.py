@@ -173,6 +173,19 @@ class ExtTestCase(unittest.TestCase):
         self.assertEqual(expected.shape, value.shape)
         assert_allclose(expected, value, atol=atol, rtol=rtol)
 
+    def assertAlmostEqual(
+        self,
+        expected: numpy.ndarray,
+        value: numpy.ndarray,
+        atol: float = 0,
+        rtol: float = 0,
+    ):
+        if not isinstance(expected, numpy.ndarray):
+            expected = numpy.array(expected)
+        if not isinstance(value, numpy.ndarray):
+            value = numpy.array(value).astype(expected.dtype)
+        self.assertEqualArray(expected, value, atol=atol, rtol=rtol)
+
     def assertRaise(self, fct: Callable, exc_type: Exception):
         try:
             fct()
