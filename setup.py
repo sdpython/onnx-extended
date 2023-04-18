@@ -61,6 +61,23 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
 ########################################
 
 
+def find_cuda():
+    p = subprocess.Popen(
+        "nvidia-smi",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    while True:
+        output = p.stdout.readline().decode(errors="ignore")
+        if output == "" and p.poll() is not None:
+            break
+        if output:
+            if "CUDA Version:" in output:
+                return True
+    p.poll()
+    return False
+
+
 def is_windows():
     return platform.system() == "Windows"
 
@@ -272,12 +289,17 @@ elif is_darwin():
 else:
     ext = "so"
 
-cuda_extensions = [
-    CMakeExtension(
-        "onnx_extended.validation.cuda_example_py",
-        f"onnx_extended/validation/cuda_example_py.{ext}",
-    ),
-]
+cuda_extensions = []
+has_cuda = find_cuda()
+if has_cuda:
+    cuda_extensions.extend(
+        [
+            CMakeExtension(
+                "onnx_extended.validation.cuda_example_py",
+                f"onnx_extended/validation/cuda_example_py.{ext}",
+            )
+        ]
+    )
 
 setup(
     name="onnx-extended",
