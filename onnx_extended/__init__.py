@@ -12,6 +12,7 @@ def has_cuda():
     Tells if cuda is available.
     """
     from ._config import HAS_CUDA
+
     return HAS_CUDA == 1
 
 
@@ -22,4 +23,5 @@ def cuda_version():
     if not has_cuda():
         raise RuntimeError("CUDA extensions are not available.")
     from ._config import CUDA_VERSION
+
     return CUDA_VERSION
