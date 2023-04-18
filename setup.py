@@ -272,6 +272,12 @@ elif is_darwin():
 else:
     ext = "so"
 
+cuda_extensions = [
+    CMakeExtension(
+        "onnx_extended.validation.cuda_example_py",
+        f"onnx_extended/validation/cuda_example_py.{ext}",
+    ),
+]
 
 setup(
     name="onnx-extended",
@@ -320,5 +326,6 @@ setup(
             "onnx_extended.reference.c_ops.c_op_tree_ensemble_py_",
             f"onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.{ext}",
         ),
+        *cuda_extensions,
     ],
 )
