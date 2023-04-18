@@ -17,7 +17,8 @@ PYBIND11_MODULE(cuda_example_py, m) {
 #endif
       ;
 
-  m.def("vector_add", [](const py_array_float& v1, const py_array_float& v2) -> py_array_float {
+  m.def("vector_add", [](const py_array_float& v1, const py_array_float& v2,
+                         int cuda_device) -> py_array_float {
       if (v1.size() != v2.size()) {
         throw std::runtime_error("Vectors v1 and v2 have different number of elements.");
       }
@@ -37,23 +38,28 @@ PYBIND11_MODULE(cuda_example_py, m) {
       if (ptr1 == nullptr || ptr2 == nullptr || pr == nullptr) {
         throw std::runtime_error("One vector is empty.");
       }
-      vector_add(v1.size(), ptr1, ptr2, pr);
+      vector_add(v1.size(), ptr1, ptr2, pr, cuda_device);
       return result;
-    }, py::arg("v1"), py::arg("v2"), R"pbdoc(Computes the additions of two vectors
+    }, py::arg("v1"), py::arg("v2"), py::arg("cuda_device") = 0,
+    R"pbdoc(Computes the additions of two vectors
 of the same size with CUDA.
 
 :param v1: array
 :param v2: array
+:param cuda_device: device id (if mulitple one)
 :return: addition of the two arrays
 )pbdoc");
 
-  m.def("vector_sum", [](const py_array_float& vect) {
+  m.def("vector_sum", [](const py_array_float& vect, int max_threads, int cuda_device) {
       auto ha = vect.request();
       float* ptr = reinterpret_cast<float*>(ha.ptr);
-      return vector_sum(vect.size(), ptr)  ;
-    }, py::arg("vect"), R"pbdoc(Computes the sum of all coefficients with CUDA.
+      return vector_sum(vect.size(), ptr, max_threads, cuda_device)  ;
+    }, py::arg("vect"), py::arg("max_threads") = 256, py::arg("cuda_device") = 0,
+    R"pbdoc(Computes the sum of all coefficients with CUDA.
 
 :param vect: array
+:param max_threads: number of threads to use (it must be a power of 2)
+:param cuda_device: device id (if mulitple one)
 :return: sum
 )pbdoc");
 

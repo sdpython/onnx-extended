@@ -1,11 +1,12 @@
-#include "cuda_example.cuh"
-#include "cuda_utils.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <sstream>
+#include "cuda_example.cuh"
+#include "cuda_utils.h"
 
 // https://github.com/mark-poscablo/gpu-sum-reduction/blob/master/sum_reduction/reduce.cu
 // https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
+// https://github.com/zchee/cuda-sample/blob/master/6_Advanced/reduction/reduction_kernel.cu
 
 namespace cuda_example {
 
@@ -22,8 +23,9 @@ void kernel_vector_add(unsigned int size, const float* gpu_ptr1, const float* gp
   block_vector_add<<<numBlocks, blockSize>>>(gpu_ptr1, gpu_ptr2, gpu_res, size);  
 }
 
-void vector_add(size_t size, const float* ptr1, const float* ptr2, float* br) {
+void vector_add(unsigned int size, const float* ptr1, const float* ptr2, float* br, int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
+  checkCudaErrors(cudaSetDevice(cudaDevice));
   float *gpu_ptr1, *gpu_ptr2, *gpu_res;
   checkCudaErrors(cudaMalloc(&gpu_ptr1, size * sizeof(float)));
   checkCudaErrors(cudaMemcpy(gpu_ptr1, ptr1, size * sizeof(float), cudaMemcpyHostToDevice));
@@ -44,111 +46,66 @@ void vector_add(size_t size, const float* ptr1, const float* ptr2, float* br) {
   checkCudaErrors(cudaFree(gpu_res));
 }
 
-template <unsigned int blockSize>
-__device__ void warpReduce(volatile float *sdata, unsigned int tid) {
-  if (blockSize >= 64) sdata[tid] += sdata[tid + 32];
-  if (blockSize >= 32) sdata[tid] += sdata[tid + 16];
-  if (blockSize >= 16) sdata[tid] += sdata[tid + 8];
-  if (blockSize >= 8) sdata[tid] += sdata[tid + 4];
-  if (blockSize >= 4) sdata[tid] += sdata[tid + 2];
-  if (blockSize >= 2) sdata[tid] += sdata[tid + 1];
+unsigned int nextPow2(unsigned int x) {
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return ++x;
 }
 
-template <unsigned int blockSize>
-__global__ void block_sum_reduce(float *g_idata, float *g_odata, unsigned int n) {
+__global__ void kernel_sum_reduce0(float *g_idata, float *g_odata, unsigned int n) {
   extern __shared__ float sdata[];
-  
-  unsigned int tid = threadIdx.x;
-  unsigned int i = blockIdx.x*(blockSize*2) + tid;
-  unsigned int gridSize = blockSize*2*gridDim.x;
-  sdata[tid] = 0;
 
-  while (i < n) {
-    sdata[tid] += g_idata[i] + g_idata[i+blockSize];
-    i += gridSize; 
-  }
+  // load shared mem
+  unsigned int tid = threadIdx.x;
+  unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+  sdata[tid] = (i < n) ? g_idata[i] : 0;
+
   __syncthreads();
 
-  if (blockSize >= 512) { 
-    if (tid < 256) { 
-      sdata[tid] += sdata[tid + 256]; 
+  for (unsigned int s=1; s < blockDim.x; s *= 2) {
+    // modulo arithmetic is slow!
+    if ((tid % (2*s)) == 0) {
+      sdata[tid] += sdata[tid + s];
     }
     __syncthreads();
   }
-  if (blockSize >= 256) { 
-    if (tid < 128) { 
-      sdata[tid] += sdata[tid + 128]; 
-    }
-    __syncthreads();
-  }
-  if (blockSize >= 128) { 
-    if (tid < 64) { 
-      sdata[tid] += sdata[tid + 64]; 
-    } 
-    __syncthreads(); 
-  }
-  if (tid < 32) {
-    warpReduce<blockSize>(sdata, tid);
-  }
+
   if (tid == 0) {
     g_odata[blockIdx.x] = sdata[0];
   }
 }
 
-float kernel_vector_sum_reduce(float* d_in, unsigned int d_in_len) {
-	float total_sum = 0;
-
-	constexpr unsigned int block_sz = 512; // maximum number of thread
-	constexpr unsigned int max_elems_per_block = block_sz * 2;
-	
-	unsigned int grid_sz = 0;
-	if (d_in_len <= max_elems_per_block) {
-		grid_sz = (unsigned int)std::ceil(float(d_in_len) / float(max_elems_per_block));
-	}
-	else {
-		grid_sz = d_in_len / max_elems_per_block;
-		if (d_in_len % max_elems_per_block != 0)
-			grid_sz++;
-	}
-
-	float* d_block_sums;
-	checkCudaErrors(cudaMalloc(&d_block_sums, sizeof(float) * grid_sz));
-	checkCudaErrors(cudaMemset(d_block_sums, 0, sizeof(float) * grid_sz));
-
-	block_sum_reduce<max_elems_per_block><<<grid_sz, block_sz>>>(d_block_sums, d_in, d_in_len);
-
-	if (grid_sz <= max_elems_per_block) {
-		float* d_total_sum;
-		checkCudaErrors(cudaMalloc(&d_total_sum, sizeof(unsigned int)));
-		checkCudaErrors(cudaMemset(d_total_sum, 0, sizeof(unsigned int)));
-		block_sum_reduce<max_elems_per_block><<<1, block_sz>>>(d_total_sum, d_block_sums, grid_sz);
-		//reduce4<<<1, block_sz, sizeof(unsigned int) * block_sz>>>(d_total_sum, d_block_sums, grid_sz);
-		checkCudaErrors(cudaMemcpy(&total_sum, d_total_sum, sizeof(unsigned int), cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaFree(d_total_sum));
-	}
-	else {
-		float* d_in_block_sums;
-		checkCudaErrors(cudaMalloc(&d_in_block_sums, sizeof(unsigned int) * grid_sz));
-		checkCudaErrors(cudaMemcpy(d_in_block_sums, d_block_sums, sizeof(unsigned int) * grid_sz, cudaMemcpyDeviceToDevice));
-		total_sum = kernel_vector_sum_reduce(d_in_block_sums, grid_sz);
-		checkCudaErrors(cudaFree(d_in_block_sums));
-	}
-
-	checkCudaErrors(cudaFree(d_block_sums));
-	return total_sum;
+float kernel_vector_sum_reduce(float* gpu_ptr, unsigned int size, int maxThreads) {
+  int threads = (size < maxThreads) ? nextPow2(size) : maxThreads;
+  int blocks = (size + threads - 1) / threads;  
+  dim3 dimBlock(threads, 1, 1);
+  dim3 dimGrid(blocks, 1, 1);
+  float* gpu_block_ptr;
+  checkCudaErrors(cudaMalloc((void **) &gpu_block_ptr, blocks * sizeof(float)));
+  int smemSize = (threads <= 32) ? 2 * threads * sizeof(float) : threads * sizeof(float);
+  kernel_sum_reduce0<<<dimGrid, dimBlock, smemSize>>>(gpu_ptr, gpu_block_ptr, size);
+  float gpu_result = 0;
+  for (int i=0; i<blocks; i++) {
+    gpu_result += gpu_block_ptr[i];
+  }
+  checkCudaErrors(cudaFree(gpu_block_ptr));
+  return gpu_result;
 }
 
-float vector_sum(size_t size, const float* ptr) {
+float vector_sum(unsigned int size, const float* ptr, int maxThreads, int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
+  checkCudaErrors(cudaSetDevice(cudaDevice));
   float *gpu_ptr;
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
   checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
 
   // execute the code
-  float result = kernel_vector_sum_reduce(gpu_ptr, size);
-
-  // no need to copy the result back from CUDA memory to CPU memory.
-  // checkCudaErrors(cudaMemcpy(ptr, gpu_ptr, size * sizeof(float), cudaMemcpyDeviceToHost));
+  float result = kernel_vector_sum_reduce(gpu_ptr, size, maxThreads);
 
   // free the allocated vectors
   checkCudaErrors(cudaFree(gpu_ptr));

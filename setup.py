@@ -153,7 +153,11 @@ def _run_subprocess(
             out = output.rstrip()
             sys.stdout.write(out + "\n")
             sys.stdout.flush()
-            if "fatal error" in output or "CMake Error" in output:
+            if (
+                "fatal error" in output
+                or "CMake Error" in output
+                or "gmake: ***" in output
+            ):
                 raise_exception = True
     rc = p.poll()
     if raise_exception:
