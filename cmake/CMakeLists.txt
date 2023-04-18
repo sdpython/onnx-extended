@@ -123,8 +123,10 @@ if(CudaExtension_FOUND)
   message(STATUS "CUDA_cusparse_LIBRARY=${CUDA_cusparse_LIBRARY}")
   message(STATUS "CUDA_nvToolsExt_LIBRARY=${CUDA_nvToolsExt_LIBRARY}")
   message(STATUS "CUDA_OpenCL_LIBRARY=${CUDA_OpenCL_LIBRARY}")
+  set(CUDA_AVAILABLE 1)
 else()
-  message(FATAL_ERROR "Module CudaExtension is not installed.")
+  message(STATUS "Module CudaExtension is not installed.")
+  set(CUDA_AVAILABLE 1)
 endif()
 message(STATUS "-------------------")
 
@@ -172,11 +174,20 @@ local_pybind11_add_module(
   ../onnx_extended/reference/c_ops/c_op_common.cpp
   ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
 
-cuda_pybind11_add_module(
-    cuda_example_py
-    ../onnx_extended/validation/cuda_example_py.cpp
-    ../onnx_extended/validation/cuda_example.cpp
-    ../onnx_extended/validation/cuda_example.cu)
+if(CUDA_AVAILABLE)
+
+  set(config_content "HAS_CUDA = 1\nCUDA_VERSION = '${CUDA_VERSION}'")
+  cuda_pybind11_add_module(
+      cuda_example_py
+      ../onnx_extended/validation/cuda_example_py.cpp
+      ../onnx_extended/validation/cuda_example.cpp
+      ../onnx_extended/validation/cuda_example.cu)
+
+else()
+  set(config_content "HAS_CUDA = 0")
+endif()
+
+file(WRITE "../onnx_extended/_config.py" "${config_content}")
 
 #
 # cython extensions
