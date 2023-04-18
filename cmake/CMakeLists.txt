@@ -109,7 +109,7 @@ endif()
 message(STATUS "-------------------")
 
 find_package(CudaExtension)
-if(CudaExtension_FOUND)
+if(CUDA_FOUND)
   message(STATUS "CUDA_VERSION=${CUDA_VERSION}")
   message(STATUS "CUDA_HAS_FP16=${CUDA_HAS_FP16}")
   message(STATUS "CUDA_LIBRARIES=${CUDA_LIBRARIES}")

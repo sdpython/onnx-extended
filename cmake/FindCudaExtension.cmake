@@ -7,12 +7,23 @@
 #
 
 find_package(CUDA)
-
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(
-  CudaExtension
-  VERSION_VAR "0.1"
-  REQUIRED_VARS CUDA_VERSION CUDA_LIBRARIES)
+
+if(CUDA_FOUND)
+
+  find_package_handle_standard_args(
+    CudaExtension
+    VERSION_VAR "0.1"
+    REQUIRED_VARS CUDA_FOUND CUDA_VERSION CUDA_LIBRARIES)
+
+else()
+
+  find_package_handle_standard_args(
+    CudaExtension
+    VERSION_VAR "0.1"
+    REQUIRED_VARS CUDA_NOTFOUND CUDA_VERSION CUDA_LIBRARIES)
+
+endif()
 
 #
 #! cuda_pybind11_add_module : compile a pyx file into cpp
