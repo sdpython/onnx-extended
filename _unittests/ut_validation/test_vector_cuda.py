@@ -1,7 +1,7 @@
 import unittest
 import numpy
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended import has_cuda
+from onnx_extended import has_cuda, compiled_with_cuda, cuda_version
 
 if has_cuda():
     from onnx_extended.validation.cuda_example_py import vector_sum, vector_add
@@ -11,12 +11,18 @@ else:
 
 
 class TestVectorCuda(ExtTestCase):
-    @unittest.skipIf(vector_add is None, reason="CUDA not available")
     def test_cuda_version(self):
-        from onnx_extended import cuda_version
+        if vector_add is not None:
+            self.assertTrue(has_cuda())
+            self.assertNotEmpty(cuda_version())
+        else:
+            self.assertFalse(has_cuda())
 
-        self.assertTrue(has_cuda())
-        self.assertNotEmpty(cuda_version())
+    def test_compiled_with_cuda(self):
+        if vector_add is not None:
+            self.assertTrue(compiled_with_cuda())
+        else:
+            self.assertFalse(compiled_with_cuda())
 
     @unittest.skipIf(vector_add is None, reason="CUDA not available")
     def test_vector_add_cuda(self):

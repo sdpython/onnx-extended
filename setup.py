@@ -62,11 +62,14 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
 
 
 def find_cuda():
-    p = subprocess.Popen(
-        "nvidia-smi",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
+    try:
+        p = subprocess.Popen(
+            "nvidia-smi",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+    except FileNotFoundError:
+        return False
     while True:
         output = p.stdout.readline().decode(errors="ignore")
         if output == "" and p.poll() is not None:
