@@ -9,6 +9,41 @@
 
 namespace cuda_example {
 
+__global__ void block_vector_add(const float *a, const float *b, float *c, int n) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < n) {
+    c[i] = a[i] + b[i];
+  }
+}
+
+void kernel_vector_add(unsigned int size, const float* gpu_ptr1, const float* gpu_ptr2, float* gpu_res) {
+  constexpr int blockSize = 256;
+  int numBlocks = (size + blockSize - 1) / blockSize;
+  block_vector_add<<<numBlocks, blockSize>>>(gpu_ptr1, gpu_ptr2, gpu_res, size);  
+}
+
+void vector_add(size_t size, const float* ptr1, const float* ptr2, float* br) {
+  // copy memory from CPU memory to CUDA memory
+  float *gpu_ptr1, *gpu_ptr2, *gpu_res;
+  checkCudaErrors(cudaMalloc(&gpu_ptr1, size * sizeof(float)));
+  checkCudaErrors(cudaMemcpy(gpu_ptr1, ptr1, size * sizeof(float), cudaMemcpyHostToDevice));
+
+  checkCudaErrors(cudaMalloc(&gpu_ptr2, size * sizeof(float)));
+  checkCudaErrors(cudaMemcpy(gpu_ptr2, ptr2, size * sizeof(float), cudaMemcpyHostToDevice));
+
+  checkCudaErrors(cudaMalloc(&gpu_res, size * sizeof(float)));
+
+  // execute the code
+  kernel_vector_add(size, gpu_ptr1, gpu_ptr2, gpu_res);
+
+  checkCudaErrors(cudaMemcpy(br, gpu_res, size * sizeof(float), cudaMemcpyDeviceToHost));
+
+  // free the allocated vectors
+  checkCudaErrors(cudaFree(gpu_ptr1));
+  checkCudaErrors(cudaFree(gpu_ptr2));
+  checkCudaErrors(cudaFree(gpu_res));
+}
+
 template <unsigned int blockSize>
 __device__ void warpReduce(volatile float *sdata, unsigned int tid) {
   if (blockSize >= 64) sdata[tid] += sdata[tid + 32];
@@ -101,6 +136,23 @@ float kernel_vector_sum_reduce(float* d_in, unsigned int d_in_len) {
 
 	checkCudaErrors(cudaFree(d_block_sums));
 	return total_sum;
+}
+
+float vector_sum(size_t size, const float* ptr) {
+  // copy memory from CPU memory to CUDA memory
+  float *gpu_ptr;
+  checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
+  checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
+
+  // execute the code
+  float result = kernel_vector_sum_reduce(gpu_ptr, size);
+
+  // no need to copy the result back from CUDA memory to CPU memory.
+  // checkCudaErrors(cudaMemcpy(ptr, gpu_ptr, size * sizeof(float), cudaMemcpyDeviceToHost));
+
+  // free the allocated vectors
+  checkCudaErrors(cudaFree(gpu_ptr));
+  return result;
 }
 
 } // namespace cuda_example
