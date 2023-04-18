@@ -127,7 +127,7 @@ if(CUDA_FOUND)
   set(CUDA_AVAILABLE 1)
 else()
   message(STATUS "Module CudaExtension is not installed.")
-  set(CUDA_AVAILABLE 1)
+  set(CUDA_AVAILABLE 0)
 endif()
 message(STATUS "-------------------")
 
