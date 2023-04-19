@@ -1,4 +1,5 @@
 #include "cuda_example.cuh"
+#include "cuda_example_reduce.cuh"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -73,6 +74,21 @@ of the same size with CUDA.
       return vector_sum_atomic(static_cast<unsigned int>(vect.size()), ptr, max_threads, cuda_device);
     }, py::arg("vect"), py::arg("max_threads") = 256, py::arg("cuda_device") = 0,
     R"pbdoc(Computes the sum of all coefficients with CUDA. Uses atomicAdd
+
+:param vect: array
+:param max_threads: number of threads to use (it must be a power of 2)
+:param cuda_device: device id (if mulitple one)
+:return: sum
+)pbdoc");
+
+  m.def("vector_sum6", [](const py_array_float& vect, int max_threads, int cuda_device) -> float {
+      if (vect.size() == 0)
+        return 0;
+      auto ha = vect.request();
+      const float* ptr = reinterpret_cast<float*>(ha.ptr);
+      return vector_sum6(static_cast<unsigned int>(vect.size()), ptr, max_threads, cuda_device);
+    }, py::arg("vect"), py::arg("max_threads") = 256, py::arg("cuda_device") = 0,
+    R"pbdoc(Computes the sum of all coefficients with CUDA. More efficient method.
 
 :param vect: array
 :param max_threads: number of threads to use (it must be a power of 2)

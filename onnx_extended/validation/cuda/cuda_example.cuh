@@ -1,5 +1,7 @@
 namespace cuda_example {
 
+unsigned int nextPow2(unsigned int x);
+
 void vector_add(unsigned int size, const float *ptr1, const float *ptr2,
                 float *ptr3, int cudaDevice);
 
