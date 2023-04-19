@@ -26,11 +26,22 @@ from setuptools.command.build_ext import build_ext
 here = os.path.dirname(__file__)
 if here == "":
     here = "."
+known_extensions = [
+    "*.cc",
+    "*.cpp",
+    "*.cu",
+    "*.cuh",
+    "*.dylib",
+    "*.h",
+    "*.hpp",
+    "*.pyd",
+    "*.so",
+]
 package_data = {
-    "onnx_extended.reference.c_ops.cpu": ["*.h", "*.cpp"],
-    "onnx_extended.validation.cpu": ["*.h", "*.cpp", "*.cc", "*.hpp"],
-    "onnx_extended.validation.cython": ["*.h", "*.cpp", "*.cc", "*.hpp", "*.pyx"],
-    "onnx_extended.validation.cuda": ["*.h", "*.cpp", "*.cc", "*.hpp", "*.cu", "*.cuh"],
+    "onnx_extended.reference.c_ops.cpu": known_extensions,
+    "onnx_extended.validation.cpu": known_extensions,
+    "onnx_extended.validation.cython": known_extensions,
+    "onnx_extended.validation.cuda": known_extensions,
 }
 
 
