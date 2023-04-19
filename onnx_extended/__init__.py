@@ -32,7 +32,7 @@ def compiled_with_cuda():
     Checks it was compiled with CUDA.
     """
     try:
-        from .validation import cuda_example_py
+        from .validation.cuda import cuda_example_py
 
         return cuda_example_py is not None
     except ImportError:

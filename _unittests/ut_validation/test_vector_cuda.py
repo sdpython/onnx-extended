@@ -4,7 +4,7 @@ from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended import has_cuda, compiled_with_cuda, cuda_version
 
 if has_cuda():
-    from onnx_extended.validation.cuda_example_py import (
+    from onnx_extended.validation.cuda.cuda_example_py import (
         vector_sum0,
         vector_add,
         vector_sum_atomic,

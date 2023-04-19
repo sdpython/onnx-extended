@@ -1,5 +1,5 @@
 #include "_unittests/test_common.h"
-#include "onnx_extended/validation/vector_function.h"
+#include "onnx_extended/validation/cpu/vector_function.h"
 
 using namespace validation;
 

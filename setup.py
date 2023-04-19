@@ -27,8 +27,10 @@ here = os.path.dirname(__file__)
 if here == "":
     here = "."
 package_data = {
-    "onnx_extended.reference.c_ops": ["*.h", "*.cpp"],
-    "onnx_extended.validation": ["*.h", "*.cpp"],
+    "onnx_extended.reference.c_ops.cpu": ["*.h", "*.cpp"],
+    "onnx_extended.validation.cpu": ["*.h", "*.cpp", "*.cc", "*.hpp"],
+    "onnx_extended.validation.cython": ["*.h", "*.cpp", "*.cc", "*.hpp", "*.pyx"],
+    "onnx_extended.validation.cuda": ["*.h", "*.cpp", "*.cc", "*.hpp", "*.cu", "*.cuh"],
 }
 
 
@@ -302,8 +304,8 @@ if has_cuda:
     cuda_extensions.extend(
         [
             CMakeExtension(
-                "onnx_extended.validation.cuda_example_py",
-                f"onnx_extended/validation/cuda_example_py.{ext}",
+                "onnx_extended.validation.cuda.cuda_example_py",
+                f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
             )
         ]
     )
@@ -340,20 +342,20 @@ setup(
     cmdclass={"build_ext": cmake_build_ext},
     ext_modules=[
         CMakeExtension(
-            "onnx_extended.validation.vector_function_cy",
-            f"onnx_extended/validation/vector_function_cy.{ext}",
+            "onnx_extended.validation.cython.vector_function_cy",
+            f"onnx_extended/validation/cython/vector_function_cy.{ext}",
         ),
         CMakeExtension(
-            "onnx_extended.validation._validation",
-            f"onnx_extended/validation/_validation.{ext}",
+            "onnx_extended.validation.cpu._validation",
+            f"onnx_extended/validation/cpu/_validation.{ext}",
         ),
         CMakeExtension(
-            "onnx_extended.reference.c_ops.c_op_conv_",
-            f"onnx_extended/reference/c_ops/c_op_conv_.{ext}",
+            "onnx_extended.reference.c_ops.cpu.c_op_conv_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_conv_.{ext}",
         ),
         CMakeExtension(
-            "onnx_extended.reference.c_ops.c_op_tree_ensemble_py_",
-            f"onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.{ext}",
+            "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
         ),
         *cuda_extensions,
     ],
