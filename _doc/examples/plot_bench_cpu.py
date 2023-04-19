@@ -16,7 +16,10 @@ import matplotlib.pyplot as plt
 from pyquickhelper.loghelper import run_cmd
 from pandas import DataFrame, concat
 from onnx_extended.ext_test_case import unit_test_going
-from onnx_extended.validation._validation import benchmark_cache, benchmark_cache_tree
+from onnx_extended.validation.cpu._validation import (
+    benchmark_cache,
+    benchmark_cache_tree,
+)
 
 obs = []
 step = 2**12
