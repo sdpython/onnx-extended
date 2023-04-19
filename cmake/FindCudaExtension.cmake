@@ -7,6 +7,14 @@
 #
 
 find_package(CUDA)
+
+if(USE_CUDA_PROFILE)
+  find_package(NVTX)
+  message(STATUS "NTVX_FOUND=${NTVX_FOUND}")
+  message(STATUS "NVTX_LIBRARIES=${NVTX_LIBRARIES}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -G -lineinfo") # Ajouter les options de profilage
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --generate-line-info") # Ajouter les options de profilage CUDA
+endif()
 include(FindPackageHandleStandardArgs)
 
 if(CUDA_FOUND)
