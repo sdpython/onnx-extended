@@ -23,6 +23,7 @@ from onnx_extended.validation._validation import (
 try:
     from onnx_extended.validation.cuda_example_py import (
         vector_sum0,
+        vector_sum_atomic,
     )
 except ImportError:
     # CUDA is not available
@@ -90,6 +91,20 @@ for dim in tqdm(dims):
             size=values.size,
             time=res["average"],
             direction="0cuda128",
+            time_per_element=res["average"] / dim**2,
+            diff=diff,
+        )
+    )
+
+    diff = abs(vector_sum_atomic(values, 32) - dim**2)
+    res = measure_time(lambda: vector_sum_atomic(values, 32), max_time=0.5)
+
+    obs.append(
+        dict(
+            dim=dim,
+            size=values.size,
+            time=res["average"],
+            direction="Acuda32",
             time_per_element=res["average"] / dim**2,
             diff=diff,
         )

@@ -1,8 +1,8 @@
+#include "cuda_example.cuh"
+#include "cuda_utils.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <sstream>
-#include "cuda_example.cuh"
-#include "cuda_utils.h"
 
 // https://github.com/mark-poscablo/gpu-sum-reduction/blob/master/sum_reduction/reduce.cu
 // https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
@@ -103,12 +103,14 @@ float kernel_vector_sum_reduce0(float* gpu_ptr, unsigned int size, int maxThread
   return gpu_result;
 }
 
-float vector_sum0(unsigned int size, const float* ptr, int maxThreads, int cudaDevice) {
+float vector_sum0(unsigned int size, const float* ptr, int maxThreads,
+                  int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
   float *gpu_ptr;
   checkCudaErrors(cudaSetDevice(cudaDevice));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
-  checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float),
+                             cudaMemcpyHostToDevice));
 
   // execute the code
   float result = kernel_vector_sum_reduce0(gpu_ptr, size, maxThreads);
@@ -117,5 +119,32 @@ float vector_sum0(unsigned int size, const float* ptr, int maxThreads, int cudaD
   checkCudaErrors(cudaFree(gpu_ptr));
   return result;
 }
+
+__global__ void vector_sum(float *input, float *output, unsigned int size) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    float sum = 0.0f;
+    for (int i = tid; i < size; i += stride) {
+        sum += input[i];
+    }
+    atomicAdd(output, sum);
+}
+
+float vector_sum_atomic(unsigned int size, const float* ptr,
+                        int maxThreads, int cudaDevice) {
+  float *input, *output;
+  float sum = 0.0f;
+  cudaMalloc(&input, size * sizeof(float));
+  checkCudaErrors(cudaMemcpy(input, ptr, size * sizeof(float),
+                             cudaMemcpyHostToDevice));
+  cudaMalloc(&output, sizeof(float));
+  cudaMemcpy(output, &sum, sizeof(float), cudaMemcpyHostToDevice);
+  vector_sum<<<size, maxThreads>>>(input, output, size);
+  cudaMemcpy(&sum, output, sizeof(float), cudaMemcpyDeviceToHost);
+  cudaFree(input);
+  cudaFree(output);
+  return sum;
+}
+
 
 } // namespace cuda_example
