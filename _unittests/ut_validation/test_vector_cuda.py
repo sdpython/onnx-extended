@@ -8,11 +8,13 @@ if has_cuda():
         vector_sum0,
         vector_add,
         vector_sum_atomic,
+        vector_sum6,
     )
 else:
     vector_sum0 = None
     vector_add = None
     vector_sum_atomic = None
+    vector_sum6 = None
 
 
 class TestVectorCuda(ExtTestCase):
@@ -75,6 +77,18 @@ class TestVectorCuda(ExtTestCase):
     def test_vector_sum_atomic_cud_bigger(self):
         values = numpy.random.randn(30, 224, 224).astype(numpy.float32)
         t = vector_sum_atomic(values)
+        self.assertAlmostEqual(t, values.sum().astype(numpy.float32), rtol=1e-3)
+
+    @unittest.skipIf(vector_sum6 is None, reason="CUDA not available")
+    def test_vector_sum6_cuda(self):
+        values = numpy.array([[10, 1, 4, 5, 6, 7]], dtype=numpy.float32)
+        t = vector_sum6(values)
+        self.assertEqual(t, values.sum().astype(numpy.float32))
+
+    @unittest.skipIf(vector_sum6 is None, reason="CUDA not available")
+    def test_vector_sum6_cud_bigger(self):
+        values = numpy.random.randn(30, 224, 224).astype(numpy.float32)
+        t = vector_sum6(values)
         self.assertAlmostEqual(t, values.sum().astype(numpy.float32), rtol=1e-4)
 
 

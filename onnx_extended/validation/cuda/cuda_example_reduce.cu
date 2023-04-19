@@ -19,7 +19,7 @@ namespace cuda_example {
     __syncthreads();
 
 template <typename T, unsigned int blockSize, bool nIsPow2>
-__global__ void kernel_reduce6(T *g_idata, T *g_odata, unsigned int n) {
+__global__ void kernel_reduce6(const T *g_idata, T *g_odata, unsigned int n) {
   extern __shared__ T sdata[];
 
   unsigned int tid = threadIdx.x;
@@ -56,7 +56,7 @@ __global__ void kernel_reduce6(T *g_idata, T *g_odata, unsigned int n) {
     // Reduce final warp using shuffle
     for (int offset = warpSize / 2; offset > 0; offset /= 2) {
       // https://developer.nvidia.com/blog/faster-parallel-reductions-kepler/
-      mySum += __shfl_down(mySum, offset);
+      mySum += __shfl_down_sync(0xFFFFFFFF, mySum, offset);
     }
   }
 #else
@@ -75,19 +75,18 @@ __global__ void kernel_reduce6(T *g_idata, T *g_odata, unsigned int n) {
   }
 }
 
-#define case_vector_sum_6_block(T, I, B)  \
-  case I:  \
-      kernel_reduce6<T, I, B><<<dimGrid, dimBlock, smemSize>>>(d_idata, d_odata, size); \
-      break;
-
 bool isPow2(unsigned int n) {
   if (n == 0)
     return false;
   return (n & (n - 1)) == 0;
 }
 
-float kernel_vector_sum_6(unsigned int size, const float* ptr,
-                          int maxThreads, int cudaDevice) {
+#define case_vector_sum_6_block(T, I, B)  \
+  case I:  \
+      kernel_reduce6<T, I, B><<<dimGrid, dimBlock, smemSize>>>(gpu_ptr, gpu_block_ptr, size); \
+      break;
+
+float kernel_vector_sum_6(unsigned int size, const float* gpu_ptr, int maxThreads) {
 
   int threads = (size < maxThreads) ? nextPow2(size) : maxThreads;
   int blocks = (size + threads - 1) / threads;  
@@ -150,7 +149,7 @@ float vector_sum6(unsigned int size, const float* ptr, int maxThreads,
                              cudaMemcpyHostToDevice));
 
   // execute the code
-  float result = kernel_vector_sum_6(gpu_ptr, size, maxThreads);
+  float result = kernel_vector_sum_6(size, gpu_ptr, maxThreads);
 
   // free the allocated vectors
   checkCudaErrors(cudaFree(gpu_ptr));

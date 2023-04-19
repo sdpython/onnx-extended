@@ -23,6 +23,7 @@ from onnx_extended.validation.cpu._validation import (
 try:
     from onnx_extended.validation.cuda.cuda_example_py import (
         vector_sum0,
+        vector_sum6,
         vector_sum_atomic,
     )
 except ImportError:
@@ -82,20 +83,6 @@ for dim in tqdm(dims):
         )
     )
 
-    diff = abs(vector_sum0(values, 128) - dim**2)
-    res = measure_time(lambda: vector_sum0(values, 128), max_time=0.5)
-
-    obs.append(
-        dict(
-            dim=dim,
-            size=values.size,
-            time=res["average"],
-            direction="0cuda128",
-            time_per_element=res["average"] / dim**2,
-            diff=diff,
-        )
-    )
-
     diff = abs(vector_sum_atomic(values, 32) - dim**2)
     res = measure_time(lambda: vector_sum_atomic(values, 32), max_time=0.5)
 
@@ -105,6 +92,34 @@ for dim in tqdm(dims):
             size=values.size,
             time=res["average"],
             direction="Acuda32",
+            time_per_element=res["average"] / dim**2,
+            diff=diff,
+        )
+    )
+
+    diff = abs(vector_sum6(values, 32) - dim**2)
+    res = measure_time(lambda: vector_sum6(values, 32), max_time=0.5)
+
+    obs.append(
+        dict(
+            dim=dim,
+            size=values.size,
+            time=res["average"],
+            direction="6cuda32",
+            time_per_element=res["average"] / dim**2,
+            diff=diff,
+        )
+    )
+
+    diff = abs(vector_sum6(values, 256) - dim**2)
+    res = measure_time(lambda: vector_sum6(values, 128), max_time=0.5)
+
+    obs.append(
+        dict(
+            dim=dim,
+            size=values.size,
+            time=res["average"],
+            direction="6cuda256",
             time_per_element=res["average"] / dim**2,
             diff=diff,
         )
@@ -126,7 +141,7 @@ fig, ax = plt.subplots(1, 3, figsize=(12, 6))
 piv.plot(ax=ax[0], logx=True, title="Comparison between two summation")
 piv_diff.plot(ax=ax[1], logx=True, logy=True, title="Summation errors")
 piv_time.plot(ax=ax[2], logx=True, logy=True, title="Total time")
-fig.savefig("plot_bench_cpu_vector_sum_avx_parallel.png")
+fig.savefig("plot_bench_gpu_vector_sum_gpu.png")
 
 ##############################################
 # AVX is faster.
