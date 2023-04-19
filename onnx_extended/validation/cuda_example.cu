@@ -80,7 +80,7 @@ __global__ void kernel_sum_reduce0(float *g_idata, float *g_odata, unsigned int 
   }
 }
 
-float kernel_vector_sum_reduce(float* gpu_ptr, unsigned int size, int maxThreads) {
+float kernel_vector_sum_reduce0(float* gpu_ptr, unsigned int size, int maxThreads) {
   int threads = (size < maxThreads) ? nextPow2(size) : maxThreads;
   int blocks = (size + threads - 1) / threads;  
   dim3 dimBlock(threads, 1, 1);
@@ -103,7 +103,7 @@ float kernel_vector_sum_reduce(float* gpu_ptr, unsigned int size, int maxThreads
   return gpu_result;
 }
 
-float vector_sum(unsigned int size, const float* ptr, int maxThreads, int cudaDevice) {
+float vector_sum0(unsigned int size, const float* ptr, int maxThreads, int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
   float *gpu_ptr;
   checkCudaErrors(cudaSetDevice(cudaDevice));
@@ -111,7 +111,7 @@ float vector_sum(unsigned int size, const float* ptr, int maxThreads, int cudaDe
   checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
 
   // execute the code
-  float result = kernel_vector_sum_reduce(gpu_ptr, size, maxThreads);
+  float result = kernel_vector_sum_reduce0(gpu_ptr, size, maxThreads);
 
   // free the allocated vectors
   checkCudaErrors(cudaFree(gpu_ptr));

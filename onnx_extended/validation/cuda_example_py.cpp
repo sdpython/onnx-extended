@@ -50,12 +50,12 @@ of the same size with CUDA.
 :return: addition of the two arrays
 )pbdoc");
 
-  m.def("vector_sum", [](const py_array_float& vect, int max_threads, int cuda_device) -> float {
+  m.def("vector_sum0", [](const py_array_float& vect, int max_threads, int cuda_device) -> float {
       if (vect.size() == 0)
         return 0;
       auto ha = vect.request();
       const float* ptr = reinterpret_cast<float*>(ha.ptr);
-      return vector_sum(static_cast<unsigned int>(vect.size()), ptr, max_threads, cuda_device);
+      return vector_sum0(static_cast<unsigned int>(vect.size()), ptr, max_threads, cuda_device);
     }, py::arg("vect"), py::arg("max_threads") = 256, py::arg("cuda_device") = 0,
     R"pbdoc(Computes the sum of all coefficients with CUDA.
 
