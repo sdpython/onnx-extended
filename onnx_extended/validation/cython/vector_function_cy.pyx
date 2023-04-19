@@ -25,7 +25,7 @@ def vector_sum_cy(float[:, :] m):
     return total
 
 
-cdef extern from "vector_function.h" namespace "validation":
+cdef extern from "../cpu/vector_function.h" namespace "validation":
     float vector_sum(int nl, int nc, const float* values, int by_rows);
 
 

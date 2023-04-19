@@ -4,7 +4,7 @@ import numpy as np
 
 from onnx import NodeProto
 from onnx.reference.op_run import OpRun
-from onnx_extended.reference.c_ops.c_op_conv_ import ConvDouble, ConvFloat
+from .cpu.c_op_conv_ import ConvDouble, ConvFloat
 
 
 class Conv(OpRun):

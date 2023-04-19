@@ -1,7 +1,7 @@
 import unittest
 import numpy
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.validation._validation import (
+from onnx_extended.validation.cpu._validation import (
     vector_add,
     vector_sum,
     vector_sum_array,
@@ -9,7 +9,7 @@ from onnx_extended.validation._validation import (
     vector_sum_array_avx,
     vector_sum_array_avx_parallel,
 )
-from onnx_extended.validation.vector_function_cy import (
+from onnx_extended.validation.cython.vector_function_cy import (
     vector_sum_c,
     vector_add_c,
 )

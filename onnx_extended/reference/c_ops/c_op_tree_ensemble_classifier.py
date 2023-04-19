@@ -3,7 +3,7 @@ import numpy
 from onnx import NodeProto
 from onnx.reference.op_run import OpRun
 from ._op_classifier_common import _ClassifierCommon
-from .c_op_tree_ensemble_py_ import (
+from .cpu.c_op_tree_ensemble_py_ import (
     RuntimeTreeEnsembleClassifierFloat,
     RuntimeTreeEnsembleClassifierDouble,
 )

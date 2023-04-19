@@ -155,34 +155,34 @@ endif()
 #
 
 add_library(lib_validation_cpp STATIC
-  ../onnx_extended/validation/speed_metrics.cpp
-  ../onnx_extended/validation/vector_function.cpp)
+  ../onnx_extended/validation/cpu/speed_metrics.cpp
+  ../onnx_extended/validation/cpu/vector_function.cpp)
 set_property(TARGET lib_validation_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 local_pybind11_add_module(
   _validation OpenMP::OpenMP_CXX
-  ../onnx_extended/validation/_validation.cpp
-  ../onnx_extended/validation/vector_sum.cpp)
+  ../onnx_extended/validation/cpu/_validation.cpp
+  ../onnx_extended/validation/cpu/vector_sum.cpp)
 target_link_libraries(_validation PRIVATE lib_validation_cpp)
 
 local_pybind11_add_module(
   c_op_conv_ OpenMP::OpenMP_CXX
-  ../onnx_extended/reference/c_ops/c_op_common.cpp
-  ../onnx_extended/reference/c_ops/c_op_conv_.cpp)
+  ../onnx_extended/reference/c_ops/cpu/c_op_common.cpp
+  ../onnx_extended/reference/c_ops/cpu/c_op_conv_.cpp)
 
 local_pybind11_add_module(
   c_op_tree_ensemble_py_ OpenMP::OpenMP_CXX
-  ../onnx_extended/reference/c_ops/c_op_common.cpp
-  ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
+  ../onnx_extended/reference/c_ops/cpu/c_op_common.cpp
+  ../onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.cpp)
 
 if(CUDA_AVAILABLE)
 
   set(config_content "HAS_CUDA = 1\nCUDA_VERSION = '${CUDA_VERSION}'")
   cuda_pybind11_add_module(
-      cuda_example_py
-      ../onnx_extended/validation/cuda_example_py.cpp
-      ../onnx_extended/validation/cuda_example.cpp
-      ../onnx_extended/validation/cuda_example.cu)
+    cuda_example_py
+    ../onnx_extended/validation/cuda/cuda_example_py.cpp
+    ../onnx_extended/validation/cuda/cuda_example.cpp
+    ../onnx_extended/validation/cuda/cuda_example.cu)
 
 else()
   set(config_content "HAS_CUDA = 0")
@@ -195,8 +195,10 @@ file(WRITE "../onnx_extended/_config.py" "${config_content}")
 #
 
 cython_add_module(
-  vector_function_cy ../onnx_extended/validation/vector_function_cy.pyx
-  OpenMP::OpenMP_CXX ../onnx_extended/validation/vector_function.cpp)
+  vector_function_cy
+  ../onnx_extended/validation/cython/vector_function_cy.pyx
+  OpenMP::OpenMP_CXX
+  ../onnx_extended/validation/cpu/vector_function.cpp)
 
 #
 # test
