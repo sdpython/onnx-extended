@@ -17,6 +17,7 @@ message(STATUS "-------------------")
 message(STATUS "USE_SETUP_PYTHON=${USE_SETUP_PYTHON}")
 message(STATUS "USE_PYTHON_SETUP=${USE_PYTHON_SETUP}")
 message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
+message(STATUS "PYTHON_VERSION_MM=${PYTHON_VERSION_MM}")
 message(STATUS "PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(STATUS "PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}")
@@ -108,6 +109,28 @@ endif()
 
 message(STATUS "-------------------")
 
+find_package(CudaExtension)
+if(CUDA_FOUND)
+  message(STATUS "CUDA_VERSION=${CUDA_VERSION}")
+  message(STATUS "CUDA_HAS_FP16=${CUDA_HAS_FP16}")
+  message(STATUS "CUDA_LIBRARIES=${CUDA_LIBRARIES}")
+  message(STATUS "CUDA_CUBLAS_LIBRARIES=${CUDA_CUBLAS_LIBRARIES}")
+  message(STATUS "CUDA_TOOLKIT_ROOT_DIR=${CUDA_TOOLKIT_ROOT_DIR}")
+  message(STATUS "CUDA_cudart_static_LIBRARY=${CUDA_cudart_static_LIBRARY}")
+  message(STATUS "CUDA_cudadevrt_LIBRARY=${CUDA_cudadevrt_LIBRARY}")
+  message(STATUS "CUDA_cupti_LIBRARY=${CUDA_cupti_LIBRARY}")
+  message(STATUS "CUDA_curand_LIBRARY=${CUDA_curand_LIBRARY}")
+  message(STATUS "CUDA_cusolver_LIBRARY=${CUDA_cusolver_LIBRARY}")
+  message(STATUS "CUDA_cusparse_LIBRARY=${CUDA_cusparse_LIBRARY}")
+  message(STATUS "CUDA_nvToolsExt_LIBRARY=${CUDA_nvToolsExt_LIBRARY}")
+  message(STATUS "CUDA_OpenCL_LIBRARY=${CUDA_OpenCL_LIBRARY}")
+  set(CUDA_AVAILABLE 1)
+else()
+  message(STATUS "Module CudaExtension is not installed.")
+  set(CUDA_AVAILABLE 0)
+endif()
+message(STATUS "-------------------")
+
 #
 # Compiling options
 #
@@ -120,6 +143,7 @@ if(MSVC)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
 endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 if(APPLE)
   set(ENV(LDFLAGS) "-L/usr/local/opt/llvm/lib")
@@ -150,6 +174,21 @@ local_pybind11_add_module(
   c_op_tree_ensemble_py_ OpenMP::OpenMP_CXX
   ../onnx_extended/reference/c_ops/c_op_common.cpp
   ../onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.cpp)
+
+if(CUDA_AVAILABLE)
+
+  set(config_content "HAS_CUDA = 1\nCUDA_VERSION = '${CUDA_VERSION}'")
+  cuda_pybind11_add_module(
+      cuda_example_py
+      ../onnx_extended/validation/cuda_example_py.cpp
+      ../onnx_extended/validation/cuda_example.cpp
+      ../onnx_extended/validation/cuda_example.cu)
+
+else()
+  set(config_content "HAS_CUDA = 0")
+endif()
+
+file(WRITE "../onnx_extended/_config.py" "${config_content}")
 
 #
 # cython extensions

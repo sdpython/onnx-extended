@@ -61,6 +61,26 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
 ########################################
 
 
+def find_cuda():
+    try:
+        p = subprocess.Popen(
+            "nvidia-smi",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+    except FileNotFoundError:
+        return False
+    while True:
+        output = p.stdout.readline().decode(errors="ignore")
+        if output == "" and p.poll() is not None:
+            break
+        if output:
+            if "CUDA Version:" in output:
+                return True
+    p.poll()
+    return False
+
+
 def is_windows():
     return platform.system() == "Windows"
 
@@ -133,7 +153,11 @@ def _run_subprocess(
             out = output.rstrip()
             sys.stdout.write(out + "\n")
             sys.stdout.flush()
-            if "fatal error" in output or "CMake Error" in output:
+            if (
+                "fatal error" in output
+                or "CMake Error" in output
+                or "gmake: ***" in output
+            ):
                 raise_exception = True
     rc = p.poll()
     if raise_exception:
@@ -272,6 +296,17 @@ elif is_darwin():
 else:
     ext = "so"
 
+cuda_extensions = []
+has_cuda = find_cuda()
+if has_cuda:
+    cuda_extensions.extend(
+        [
+            CMakeExtension(
+                "onnx_extended.validation.cuda_example_py",
+                f"onnx_extended/validation/cuda_example_py.{ext}",
+            )
+        ]
+    )
 
 setup(
     name="onnx-extended",
@@ -320,5 +355,6 @@ setup(
             "onnx_extended.reference.c_ops.c_op_tree_ensemble_py_",
             f"onnx_extended/reference/c_ops/c_op_tree_ensemble_py_.{ext}",
         ),
+        *cuda_extensions,
     ],
 )

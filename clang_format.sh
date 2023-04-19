@@ -22,3 +22,9 @@ clang-format --length 88 -i onnx_extended/validation/speed_metrics.h
 
 clang-format --length 88 -i onnx_extended/validation/_validation.cpp
 
+clang-format --length 88 -i onnx_extended/validation/cuda_utils.h
+clang-format --length 88 -i onnx_extended/validation/cuda_example.h
+clang-format --length 88 -i onnx_extended/validation/cuda_example.cpp
+clang-format --length 88 -i onnx_extended/validation/cuda_example.cu
+clang-format --length 88 -i onnx_extended/validation/cuda_example.cuh
+clang-format --length 88 -i onnx_extended/validation/cuda_example_py.cpp
