@@ -19,6 +19,7 @@ from onnx_extended.validation._validation import (
     vector_sum_array_avx as vector_sum_avx,
     vector_sum_array_avx_parallel as vector_sum_avx_parallel,
 )
+
 try:
     from onnx_extended.validation.cuda_example_py import (
         vector_sum0,
