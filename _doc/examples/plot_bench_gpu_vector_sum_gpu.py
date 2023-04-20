@@ -177,7 +177,9 @@ fig.savefig("plot_bench_gpu_vector_sum_gpu.png")
 # to GPU takes more time than processing it with CPU and AVX instructions.
 #
 # GPU is useful for deep learning because many operations can be chained and
-# the data stays on GPU memory until the very end.
+# the data stays on GPU memory until the very end. When multiple tools are involved,
+# torch, numpy, onnxruntime, the `DLPack <https://github.com/dmlc/dlpack>`_
+# avoids copying the data when switching.
 #
 # The copy of a big tensor can happens by block. The computation may start
 # before the data is fully copied.
