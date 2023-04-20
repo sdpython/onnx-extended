@@ -144,4 +144,40 @@ piv_time.plot(ax=ax[2], logx=True, logy=True, title="Total time")
 fig.savefig("plot_bench_gpu_vector_sum_gpu.png")
 
 ##############################################
-# AVX is faster.
+# The results should look like the following.
+#
+# .. image:: images/vector_sum6_results.png
+#
+# AVX is still faster. Let's try to understand why.
+#
+# Profiling
+# +++++++++
+#
+# The profiling indicates where the program is most of the time.
+# It shows when the GPU is waiting and when the memory is copied from
+# from host (CPU) to device (GPU) and the other way around. There are
+# the two steps we need to reduce or avoid to make use of the GPU.
+#
+# Profiling with `nsight-compute <https://developer.nvidia.com/nsight-compute>`_:
+#
+# ::
+#
+#     nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx,openmp python <file>
+#
+# If `nsys` fails to find `python`, the command `which python` should locate it.
+# `<file> can be `plot_bench_gpu_vector_sum_gpu.py` for example.
+#
+# Then command `nsys-ui` starts the Visual Interface interface of the profiling.
+# A screen shot shows the following after loading the profiling.
+#
+# .. image:: images/vector_sum6.png
+#
+# Most of time is spent in copy the data from CPU memory to GPU memory.
+# In our case, GPU is not really useful because just copying the data from CPU
+# to GPU takes more time than processing it with CPU and AVX instructions.
+#
+# GPU is useful for deep learning because many operations can be chained and
+# the data stays on GPU memory until the very end.
+#
+# The copy of a big tensor can happens by block. The computation may start
+# before the data is fully copied.

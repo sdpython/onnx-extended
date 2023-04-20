@@ -210,7 +210,7 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
         ]
         if os.environ.get("USE_CUDA_PROFILE", "0") in (1, "1"):
-            cmake_args.append(f"-DUSE_CUDA_PROFILE=1")
+            cmake_args.append("-DUSE_CUDA_PROFILE=1")
         if iswin or isdar:
             include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
             lib_dir = (
