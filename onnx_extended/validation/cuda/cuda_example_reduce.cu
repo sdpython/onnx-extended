@@ -1,5 +1,6 @@
-#include "cuda_example_reduce.cuh"
 #include "cuda_example.cuh"
+#include "cuda_example_reduce.cuh"
+#include "cuda_nvtx.cuh"
 #include "cuda_utils.h"
 #include <cuda_runtime.h>
 #include <iostream>
@@ -142,6 +143,7 @@ float kernel_vector_sum_6(unsigned int size, const float* gpu_ptr, int maxThread
 float vector_sum6(unsigned int size, const float* ptr, int maxThreads,
                   int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
+  NVTX_SCOPE("vector_sum6")
   float *gpu_ptr;
   checkCudaErrors(cudaSetDevice(cudaDevice));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));

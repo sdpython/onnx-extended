@@ -8,17 +8,29 @@
 
 find_package(CUDA)
 
-if(USE_CUDA_PROFILE)
-  find_package(NVTX)
-  message(STATUS "NTVX_FOUND=${NTVX_FOUND}")
-  message(STATUS "NVTX_LIBRARIES=${NVTX_LIBRARIES}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -G -lineinfo") # Ajouter les options de profilage
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --generate-line-info") # Ajouter les options de profilage CUDA
-endif()
-include(FindPackageHandleStandardArgs)
-
 if(CUDA_FOUND)
 
+  if(USE_NVTX)
+    # see https://github.com/NVIDIA/NVTX
+    include(CPM.cmake)
+
+    CPMAddPackage(
+        NAME NVTX
+        GITHUB_REPOSITORY NVIDIA/NVTX
+        GIT_TAG v3.1.0-c-cpp
+        GIT_SHALLOW TRUE)
+
+    message(STATUS "CUDA NTVX_FOUND=${NTVX_FOUND}")
+    set(NVTX_LINK_C "nvtx3-c")
+    set(NVTX_LINK_CPP "nvtx3-cpp")
+    add_compile_definitions("ENABLE_NVTX")
+  else()
+    set(NVTX_LINK_C "")
+    set(NVTX_LINK_CPP "")
+    message(STATUS "CUDA NTVX not added.")
+  endif()
+
+  include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
     CudaExtension
     VERSION_VAR "0.1"

@@ -112,7 +112,7 @@ for dim in tqdm(dims):
     )
 
     diff = abs(vector_sum6(values, 256) - dim**2)
-    res = measure_time(lambda: vector_sum6(values, 128), max_time=0.5)
+    res = measure_time(lambda: vector_sum6(values, 256), max_time=0.5)
 
     obs.append(
         dict(

@@ -1,4 +1,5 @@
 #include "cuda_example.cuh"
+#include "cuda_nvtx.cuh"
 #include "cuda_utils.h"
 #include <cuda_runtime.h>
 #include <iostream>
@@ -25,6 +26,7 @@ void kernel_vector_add(unsigned int size, const float* gpu_ptr1, const float* gp
 
 void vector_add(unsigned int size, const float* ptr1, const float* ptr2, float* br, int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
+  NVTX_SCOPE("vector_add")
   checkCudaErrors(cudaSetDevice(cudaDevice));
   float *gpu_ptr1, *gpu_ptr2, *gpu_res;
   checkCudaErrors(cudaMalloc(&gpu_ptr1, size * sizeof(float)));
@@ -106,6 +108,7 @@ float kernel_vector_sum_reduce0(float* gpu_ptr, unsigned int size, int maxThread
 float vector_sum0(unsigned int size, const float* ptr, int maxThreads,
                   int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
+  NVTX_SCOPE("vector_sum0")
   float *gpu_ptr;
   checkCudaErrors(cudaSetDevice(cudaDevice));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
@@ -132,6 +135,7 @@ __global__ void vector_sum(float *input, float *output, unsigned int size) {
 
 float vector_sum_atomic(unsigned int size, const float* ptr,
                         int maxThreads, int cudaDevice) {
+  NVTX_SCOPE("vector_sum_atomic")
   float *input, *output;
   float sum = 0.0f;
   cudaMalloc(&input, size * sizeof(float));
