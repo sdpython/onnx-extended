@@ -146,7 +146,7 @@ fig.savefig("plot_bench_gpu_vector_sum_gpu.png")
 ##############################################
 # The results should look like the following.
 #
-# .. image:: images/vector_sum6_results.png
+# .. image:: ../_static/vector_sum6_results.png
 #
 # AVX is still faster. Let's try to understand why.
 #
@@ -170,7 +170,7 @@ fig.savefig("plot_bench_gpu_vector_sum_gpu.png")
 # Then command `nsys-ui` starts the Visual Interface interface of the profiling.
 # A screen shot shows the following after loading the profiling.
 #
-# .. image:: images/vector_sum6.png
+# .. image:: ../_static/vector_sum6.png
 #
 # Most of time is spent in copy the data from CPU memory to GPU memory.
 # In our case, GPU is not really useful because just copying the data from CPU
