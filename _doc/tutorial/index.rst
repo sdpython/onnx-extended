@@ -16,7 +16,7 @@ Operators
 .. toctree::
     :maxdepth: 1
 
-    ../autoexemples/plot_conv
+    ../auto_examples/plot_conv
 
 Validation, Experiments
 +++++++++++++++++++++++
@@ -24,7 +24,8 @@ Validation, Experiments
 .. toctree::
     :maxdepth: 1
 
-    ../autoexemples/plot_bench_cpu
-    ../autoexemples/plot_bench_cpu_vector_sum
-    ../autoexemples/plot_bench_cpu_vector_sum_parallel
-    ../autoexemples/plot_bench_cpu_vector_sum_avx_parallel
+    ../auto_examples/plot_bench_cpu
+    ../auto_examples/plot_bench_cpu_vector_sum
+    ../auto_examples/plot_bench_cpu_vector_sum_parallel
+    ../auto_examples/plot_bench_cpu_vector_sum_avx_parallel
+    ../auto_examples/plot_bench_gpu_vector_sum_gpu

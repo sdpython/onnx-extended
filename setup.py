@@ -192,6 +192,22 @@ class CMakeExtension(Extension):
 
 
 class cmake_build_ext(build_ext):
+    user_options = [
+        *build_ext.user_options,
+        ("enable-nvtx=", None, "Enables compilation with NVTX events."),
+    ]
+
+    def initialize_options(self):
+        self.enable_nvtx = None
+        build_ext.initialize_options(self)
+
+    def finalize_options(self):
+        b_values = {None, 0, 1, "1", "0", True, False}
+        if self.enable_nvtx not in b_values:
+            raise ValueError(f"enable_nvtx={self.enable_nvtx!r} must be in {b_values}.")
+        self.enable_nvtx = self.enable_nvtx in {1, "1", True, "True"}
+        build_ext.finalize_options(self)
+
     def build_extensions(self):
         # Ensure that CMake is present and working
         try:
@@ -220,6 +236,8 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
         ]
+        if os.environ.get("USE_NVTX", "0") in (1, "1") or self.enable_nvtx:
+            cmake_args.append("-DUSE_NVTX=1")
         if iswin or isdar:
             include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
             lib_dir = (

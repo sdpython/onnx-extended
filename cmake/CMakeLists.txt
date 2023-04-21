@@ -26,6 +26,7 @@ message(STATUS "PYTHON_LIBRARY_DIR=${PYTHON_LIBRARY_DIR}")
 message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
 message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON_MODULE_EXTENSION}")
 message(STATUS "PYTHON_NUMPY_VERSION=${PYTHON_NUMPY_VERSION}")
+message(STATUS "USE_NVTX=${USE_NVTX}")
 message(STATUS "ENV-PATH=$ENV{PATH}")
 message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
 
@@ -124,6 +125,8 @@ if(CUDA_FOUND)
   message(STATUS "CUDA_cusparse_LIBRARY=${CUDA_cusparse_LIBRARY}")
   message(STATUS "CUDA_nvToolsExt_LIBRARY=${CUDA_nvToolsExt_LIBRARY}")
   message(STATUS "CUDA_OpenCL_LIBRARY=${CUDA_OpenCL_LIBRARY}")
+  message(STATUS "CUDA NVTX_LINK_C=${NVTX_LINK_C}")
+  message(STATUS "CUDA NVTX_LINK_CPP=${NVTX_LINK_CPP}")
   set(CUDA_AVAILABLE 1)
 else()
   message(STATUS "Module CudaExtension is not installed.")
@@ -182,7 +185,8 @@ if(CUDA_AVAILABLE)
     cuda_example_py
     ../onnx_extended/validation/cuda/cuda_example_py.cpp
     ../onnx_extended/validation/cuda/cuda_example.cpp
-    ../onnx_extended/validation/cuda/cuda_example.cu)
+    ../onnx_extended/validation/cuda/cuda_example.cu
+    ../onnx_extended/validation/cuda/cuda_example_reduce.cu)
 
 else()
   set(config_content "HAS_CUDA = 0")

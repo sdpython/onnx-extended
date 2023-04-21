@@ -20,6 +20,10 @@ ai.onnx
 ai.onnx.ml
 ++++++++++
 
-.. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier.TreeEnsembleClassifier
+.. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier.TreeEnsembleClassifier_1
 
-.. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor.TreeEnsembleRegresspr
+.. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier.TreeEnsembleClassifier_3
+
+.. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor.TreeEnsembleRegressor_1
+
+.. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor.TreeEnsembleRegressor_3
