@@ -187,11 +187,6 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/validation/cuda/cuda_example.cpp
     ../onnx_extended/validation/cuda/cuda_example.cu
     ../onnx_extended/validation/cuda/cuda_example_reduce.cu)
-  if(USE_NVTX)
-    message(STATUS "*************** ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include")
-    target_include_directories(cuda_example_py PRIVATE ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include)
-    target_link_libraries(cuda_example_py PRIVATE nvtx3-cpp)
-  endif()
 
 else()
   set(config_content "HAS_CUDA = 0")

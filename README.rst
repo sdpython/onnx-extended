@@ -33,6 +33,9 @@ Documentation `onnx-extended
 Source are available on `github/onnx-extended
 <https://github.com/sdpython/onnx-extended>`_.
 
+Use C++ implementation of existing operators
+++++++++++++++++++++++++++++++++++++++++++++
+
 .. code-block:: python
 
     import timeit
@@ -89,3 +92,25 @@ Source are available on `github/onnx-extended
     difference: 0.0
     onnx: 0.024006774998269975
     onnx-extended: 0.0002316169993719086
+
+Build with CUDA, openmp
++++++++++++++++++++++++
+
+The package also contains some dummy example on how to
+build with C++ functions (`pybind11 <https://github.com/pybind/pybind11>`_,
+`cython <https://cython.org/>`_), with `openmp
+<https://www.openmp.org/>`_,
+with or without CUDA.
+The build will automatically link with CUDA if it is found.
+If not, some extensions might not be available.
+
+::
+
+    python setup.py build_ext --inplace
+
+`NVTX <https://github.com/NVIDIA/NVTX>`_
+can be enabled with the following command:
+
+::
+
+    python setup.py build_ext --inplace --enable_nvtx 1
