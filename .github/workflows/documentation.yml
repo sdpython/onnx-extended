@@ -16,16 +16,17 @@ jobs:
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel
+      - script: |
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+        displayName: 'Install Requirements'
 
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
-        # to supply options, put them in 'env', like:
-        env:
-          CIBW_BEFORE_BUILD: pip install -r requirements-dev.txt
+      - script: python -m pip install -e .
+        displayName: 'Install'
+
+      - script: python -m sphinx _doc dist/html
+        displayName: 'Documentation'
 
       - uses: actions/upload-artifact@v3
         with:
-          path: ./wheelhouse/*.whl
-
+          path: ./dist/html/**
