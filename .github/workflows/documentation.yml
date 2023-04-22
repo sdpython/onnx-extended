@@ -16,16 +16,17 @@ jobs:
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
 
-      - script: |
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
-        displayName: 'Install Requirements'
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt
 
-      - script: python -m pip install -e .
-        displayName: 'Install'
+      - name: Install requirements-dev.txt
+        run: python -m pip install -r requirements-dev.txt
 
-      - script: python -m sphinx _doc dist/html
-        displayName: 'Documentation'
+      - name: Install
+        run: python -m pip install -e .
+
+      - name: Documentation
+        run: python -m sphinx ./_doc ./dist/html
 
       - uses: actions/upload-artifact@v3
         with:
