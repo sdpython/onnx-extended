@@ -132,7 +132,20 @@ else()
   message(STATUS "Module CudaExtension is not installed.")
   set(CUDA_AVAILABLE 0)
 endif()
+
 message(STATUS "-------------------")
+find_package(Ort REQUIRED)
+if(Ort_FOUND)
+  message(STATUS "Ort_VERSION=${Ort_VERSION}")
+  message(STATUS "ORT_URL=${ORT_URL}")
+  message(STATUS "ORT_DEST=${ORT_DEST}")
+  message(STATUS "ORT_DEST_DIR=${ORT_DEST_DIR}")
+  message(STATUS "ORT_DIR=${ORT_DIR}")
+else()
+  message(FATAL_ERROR "onnxruntime is not installed.")
+endif()
+message(STATUS "-------------------")
+
 
 #
 # Compiling options
