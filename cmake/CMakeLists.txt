@@ -138,14 +138,22 @@ find_package(Ort REQUIRED)
 if(Ort_FOUND)
   message(STATUS "Ort_VERSION=${Ort_VERSION}")
   message(STATUS "ORT_URL=${ORT_URL}")
-  message(STATUS "ORT_DEST=${ORT_DEST}")
-  message(STATUS "ORT_DEST_DIR=${ORT_DEST_DIR}")
-  message(STATUS "ORT_DIR=${ORT_DIR}")
+  message(STATUS "ONNXRUNTIME_INCLUDE_DIR=${ONNXRUNTIME_INCLUDE_DIR}")
+  message(STATUS "ONNXRUNTIME_LIB_DIR=${ONNXRUNTIME_LIB_DIR}")
 else()
   message(FATAL_ERROR "onnxruntime is not installed.")
 endif()
 message(STATUS "-------------------")
 
+#
+# constant
+#
+
+set(TEST_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../_unittests")
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_constants.h.in
+  ${TEST_FOLDER}/test_constants.h
+)
 
 #
 # Compiling options
@@ -167,13 +175,21 @@ if(APPLE)
 endif()
 
 #
-# pybind11 extensions
+# static libraries
 #
 
 add_library(lib_validation_cpp STATIC
   ../onnx_extended/validation/cpu/speed_metrics.cpp
   ../onnx_extended/validation/cpu/vector_function.cpp)
 set_property(TARGET lib_validation_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(lib_ortapi STATIC ../onnx_extended/ortcy/wrap/ortapi.cpp)
+target_include_directories(lib_ortapi PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
+#target_link_libraries(lib_ortapi PRIVATE onnxruntime)
+
+#
+# pybind11 extensions
+#
 
 local_pybind11_add_module(
   _validation OpenMP::OpenMP_CXX
@@ -197,7 +213,6 @@ if(CUDA_AVAILABLE)
   cuda_pybind11_add_module(
     cuda_example_py
     ../onnx_extended/validation/cuda/cuda_example_py.cpp
-    ../onnx_extended/validation/cuda/cuda_example.cpp
     ../onnx_extended/validation/cuda/cuda_example.cu
     ../onnx_extended/validation/cuda/cuda_example_reduce.cu)
 
@@ -218,15 +233,28 @@ cython_add_module(
   ../onnx_extended/validation/cpu/vector_function.cpp)
 
 #
+# onnxruntime
+#
+
+#
 # test
 #
 
 set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
-add_executable(test_validation_cpp
-  ../_unittests/ut_validation/test_vector_sum.cpp)
+
+add_executable(test_validation_cpp ../_unittests/ut_validation/test_vector_sum.cpp)
 target_include_directories(test_validation_cpp PRIVATE ${ROOT_INCLUDE_PATH})
 target_link_libraries(test_validation_cpp PRIVATE lib_validation_cpp)
 add_test(NAME test_validation_cpp COMMAND test_validation_cpp)
+
+add_executable(test_ortcy_inference_cpp ../_unittests/ut_ortcy/test_inference.cpp)
+target_include_directories(
+  test_ortcy_inference_cpp PRIVATE
+  ${ROOT_INCLUDE_PATH}
+  ${ORT_DIR}/include)
+target_link_directories(test_ortcy_inference_cpp PRIVATE ${ONNXRUNTIME_LIB_DIR})
+target_link_libraries(test_ortcy_inference_cpp PRIVATE lib_ortapi onnxruntime)
+add_test(NAME test_ortcy_inference_cpp COMMAND test_ortcy_inference_cpp)
 
 #
 # Final

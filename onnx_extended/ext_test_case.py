@@ -162,6 +162,10 @@ def measure_time(
 class ExtTestCase(unittest.TestCase):
     _warns = []
 
+    def assertExists(self, name):
+        if not os.path.exists(name):
+            raise AssertionError(f"File or folder {name!r} does not exists.")
+
     def assertEqualArray(
         self,
         expected: numpy.ndarray,
