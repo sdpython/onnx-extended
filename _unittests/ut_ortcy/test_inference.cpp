@@ -16,8 +16,8 @@ void test_inference() {
   session_options.SetLogSeverityLevel(0);
 
   std::filesystem::path cwd = TEST_FOLDER;
-  std::string model = (cwd / "ut_ortcy/data/add.onnx").string();
-  Ort::Session session{*ort_env, model.c_str(), session_options};
+  std::wstring model = (cwd / "ut_ortcy/data/add.onnx").wstring();
+  Ort::Session session(* ort_env, model.c_str(), session_options);
 
   const char* input_names[] = {"X", "Y"};
   const char* output_names[] = {"Z"};
@@ -48,7 +48,7 @@ void test_inference() {
 }
 
 
-int main(int, char**) {
+void main() {
   testAssertTrue();
   test_inference();
 }

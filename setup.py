@@ -171,6 +171,7 @@ def _run_subprocess(
                 "fatal error" in output
                 or "CMake Error" in output
                 or "gmake: ***" in output
+                or "): error C" in output
             ):
                 raise_exception = True
     rc = p.poll()

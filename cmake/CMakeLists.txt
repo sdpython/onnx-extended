@@ -3,14 +3,7 @@ cmake_minimum_required(VERSION 3.24.0)
 project(onnx_extended VERSION 0.1.0)
 
 #
-# Test
-#
-
-include(CTest)
-enable_testing()
-
-#
-# Packages
+# initialisation
 #
 
 message(STATUS "-------------------")
@@ -31,6 +24,20 @@ message(STATUS "ENV-PATH=$ENV{PATH}")
 message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+
+#
+# C++ 17
+#
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+endif()
+
+#
+# Packages
+#
 
 message(STATUS "-------------------")
 find_package(MyPython)
@@ -240,6 +247,8 @@ cython_add_module(
 # test
 #
 
+include(CTest)
+enable_testing()
 set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_executable(test_validation_cpp ../_unittests/ut_validation/test_vector_sum.cpp)
@@ -275,3 +284,4 @@ message(STATUS "list of found packages")
 foreach(target ${targets_list})
   message(STATUS "  ${target}")
 endforeach()
+message(STATUS "-------------------")
