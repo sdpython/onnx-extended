@@ -197,8 +197,12 @@ class cmake_build_ext(build_ext):
     user_options = [
         *build_ext.user_options,
         ("enable-nvtx=", None, "Enables compilation with NVTX events."),
-        ("with-cuda=", None, "If cuda is available, CUDA is "
-                            "used by default unless this option is set to 0"),
+        (
+            "with-cuda=",
+            None,
+            "If cuda is available, CUDA is "
+            "used by default unless this option is set to 0",
+        ),
     ]
 
     def initialize_options(self):
@@ -347,7 +351,7 @@ if has_cuda:
     add_cuda = True
     if "--with-cuda" in sys.argv:
         pos = sys.argv.index("--with-cuda")
-        if len(sys.argv) > pos + 1 and sys.argv[pos+1] in ("0", 0, False, "False"):
+        if len(sys.argv) > pos + 1 and sys.argv[pos + 1] in ("0", 0, False, "False"):
             add_cuda = False
     if add_cuda:
         cuda_extensions.extend(
