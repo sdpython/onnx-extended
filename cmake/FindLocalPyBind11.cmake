@@ -53,7 +53,7 @@ function(local_pybind11_add_module name omp_lib)
   target_link_libraries(
     ${name} PRIVATE
     pybind11::headers
-    ${Python3_LIBRARIES}
+    ${Python3_LIBRARY_RELEASE}  # use ${Python3_LIBRARIES} if python debug
     ${Python3_NumPy_LIBRARIES}
     ${omp_lib})
   # if(MSVC) target_link_libraries(${target_name} PRIVATE

@@ -37,13 +37,39 @@ FetchContent_makeAvailable(onnxruntime)
 set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)
 set(ONNXRUNTIME_LIB_DIR ${onnxruntime_SOURCE_DIR}/lib)
 
+if(MSVC)
+  set(ext "dll")
+elseif(APPLE)
+  set(ext "dylib")
+else()
+  set(ext "so")
+endif()
+
+file(GLOB ORT_LIB_FILES ${onnxruntime_SOURCE_DIR}/lib/*.${ext})
+file(GLOB ORT_LIB_HEADER ${onnxruntime_SOURCE_DIR}/include/*.h)
+
 find_library(ONNXRUNTIME onnxruntime HINTS "${ONNXRUNTIME_LIB_DIR}")
 if(ONNXRUNTIME-NOTFOUND)
     message(FATAL_ERROR "onnxruntime cannot be found at ${ONNXRUNTIME_LIB_DIR}.")
 endif()
 
+#
+#! ort_add_dependency : copies necessary onnxruntime assembly
+#                       to the location a target is build
+#
+# \arg:name target name
+#
+function(ort_add_dependency name)
+  get_target_property(target_output_directory ${name} BINARY_DIR)
+  message(STATUS "ort copy from '${ONNXRUNTIME_LIB_DIR}'")
+  message(STATUS "ort copy to '${target_output_directory}'")
+  file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
+endfunction()
+
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
   Ort
   VERSION_VAR Ort_VERSION
-  REQUIRED_VARS ORT_URL ONNXRUNTIME_INCLUDE_DIR ONNXRUNTIME_LIB_DIR)
+  REQUIRED_VARS ORT_URL ONNXRUNTIME_INCLUDE_DIR ONNXRUNTIME_LIB_DIR
+                ORT_LIB_FILES ORT_LIB_HEADER)

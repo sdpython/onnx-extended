@@ -197,17 +197,23 @@ class cmake_build_ext(build_ext):
     user_options = [
         *build_ext.user_options,
         ("enable-nvtx=", None, "Enables compilation with NVTX events."),
+        ("with-cuda=", None, "If cuda is available, CUDA is "
+                            "used by default unless this option is set to 0"),
     ]
 
     def initialize_options(self):
         self.enable_nvtx = None
+        self.with_cuda = None
         build_ext.initialize_options(self)
 
     def finalize_options(self):
         b_values = {None, 0, 1, "1", "0", True, False}
         if self.enable_nvtx not in b_values:
             raise ValueError(f"enable_nvtx={self.enable_nvtx!r} must be in {b_values}.")
+        if self.with_cuda not in b_values:
+            raise ValueError(f"with_cuda={self.with_cuda!r} must be in {b_values}.")
         self.enable_nvtx = self.enable_nvtx in {1, "1", True, "True"}
+        self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
         build_ext.finalize_options(self)
 
     def build_extensions(self):
@@ -238,8 +244,14 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
         ]
+
         if os.environ.get("USE_NVTX", "0") in (1, "1") or self.enable_nvtx:
             cmake_args.append("-DUSE_NVTX=1")
+        if os.environ.get("USE_CUDA", "1") in (0, "0") or not self.with_cuda:
+            cmake_args.append("-DUSE_CUDA=0")
+        else:
+            cmake_args.append("-DUSE_CUDA=1")
+
         if iswin or isdar:
             include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
             lib_dir = (
@@ -332,14 +344,20 @@ else:
 cuda_extensions = []
 has_cuda = find_cuda()
 if has_cuda:
-    cuda_extensions.extend(
-        [
-            CMakeExtension(
-                "onnx_extended.validation.cuda.cuda_example_py",
-                f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
-            )
-        ]
-    )
+    add_cuda = True
+    if "--with-cuda" in sys.argv:
+        pos = sys.argv.index("--with-cuda")
+        if len(sys.argv) > pos + 1 and sys.argv[pos+1] in ("0", 0, False, "False"):
+            add_cuda = False
+    if add_cuda:
+        cuda_extensions.extend(
+            [
+                CMakeExtension(
+                    "onnx_extended.validation.cuda.cuda_example_py",
+                    f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
+                )
+            ]
+        )
 
 setup(
     name="onnx-extended",
