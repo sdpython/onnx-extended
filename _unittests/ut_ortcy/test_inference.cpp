@@ -19,7 +19,11 @@ void test_inference() {
   session_options.SetLogSeverityLevel(0);
 
   std::filesystem::path cwd = TEST_FOLDER;
+  #ifdef _WIN32
   std::wstring model = (cwd / "ut_ortcy/data/add.onnx").wstring();
+  #else
+  std::string model = (cwd / "ut_ortcy/data/add.onnx").string();
+  #endif
   Ort::Session session(* ort_env, model.c_str(), session_options);
 
   const char* input_names[] = {"X", "Y"};
@@ -51,7 +55,7 @@ void test_inference() {
 }
 
 
-void main() {
+int main(int, char**) {
   testAssertTrue();
   test_inference();
 }
