@@ -1,6 +1,7 @@
 # coding: utf-8
 """
-More operator for onnx reference implementation.
+More operators for onnx reference implementation.
+Experimentation with openmp, CUDA.
 """
 
 __version__ = "0.2.0"
