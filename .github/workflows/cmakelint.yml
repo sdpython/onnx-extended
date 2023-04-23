@@ -1,4 +1,4 @@
-name: Run cmake-format linter
+name: Cmake Format Checker
 
 on: [push]
 

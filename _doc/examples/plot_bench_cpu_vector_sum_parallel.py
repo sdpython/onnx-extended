@@ -1,5 +1,5 @@
 """
-.. _l-example-bench-cpu-vector-sum:
+.. _l-example-bench-cpu-vector-sum-parallel:
 
 Measuring CPU performance with a parallelized vector sum
 ========================================================
