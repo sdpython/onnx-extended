@@ -14,7 +14,7 @@ onnxmltools
 onnxruntime; python_version < '3.11'
 pandas
 psutil
-pyquickhelper>=1.12.3819
+pyquickhelper>=1.12.3821
 pytest
 pytest-cov
 ruff
