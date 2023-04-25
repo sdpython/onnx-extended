@@ -250,6 +250,14 @@ cython_add_module(
   OpenMP::OpenMP_CXX
   ../onnx_extended/validation/cpu/vector_function.cpp)
 
+cython_add_module(
+  ortinf
+  ../onnx_extended/ortcy/wrap/ortinf.pyx
+  OpenMP::OpenMP_CXX)
+target_link_directories(ortinf PRIVATE ${ONNXRUNTIME_LIB_DIR})
+target_link_libraries(ortinf PRIVATE lib_ortapi onnxruntime)
+ort_add_dependency(ortinf ${CMAKE_CURRENT_SOURCE_DIR}/../onnx_extended/ortcy/wrap/)
+    
 #
 # onnxruntime
 #
@@ -274,7 +282,7 @@ target_include_directories(
   ${ORT_DIR}/include)
 target_link_directories(test_ortcy_inference_cpp PRIVATE ${ONNXRUNTIME_LIB_DIR})
 target_link_libraries(test_ortcy_inference_cpp PRIVATE lib_ortapi onnxruntime)
-ort_add_dependency(test_ortcy_inference_cpp)
+ort_add_dependency(test_ortcy_inference_cpp "")
 add_test(NAME test_ortcy_inference_cpp COMMAND test_ortcy_inference_cpp)
 
 #

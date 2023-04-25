@@ -32,3 +32,4 @@ _unittests/test_constants.h
 onnx_extended/_config.py
 onnx_extended/validation/cython/*.c
 onnx_extended/validation/cython/vector_function_cy.c*
+onnx_extended/ortcy/wrap/ortinf.c*

@@ -59,7 +59,7 @@ endif()
 #
 # \arg:name target name
 #
-function(ort_add_dependency name)
+function(ort_add_dependency name folder_copy)
   get_target_property(target_output_directory ${name} BINARY_DIR)
   message(STATUS "ort copy from '${ONNXRUNTIME_LIB_DIR}'")
   if(MSVC)
@@ -72,6 +72,11 @@ function(ort_add_dependency name)
     add_custom_command(
       TARGET ${name} POST_BUILD
       COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
+    if(folder_copy)
+      add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
+    endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
 endfunction()

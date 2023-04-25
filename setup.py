@@ -410,6 +410,10 @@ setup(
             "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
             f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
         ),
+        CMakeExtension(
+            "onnx_extended.ortcy.wrap.ortinf",
+            f"onnx_extended.ortcy.wrap.ortinf.{ext}",
+        ),
         *cuda_extensions,
     ],
 )
