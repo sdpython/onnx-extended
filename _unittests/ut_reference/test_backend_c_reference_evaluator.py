@@ -149,8 +149,16 @@ backend_test.exclude("(test_scatter_with_axis|test_scatter_without)")
 # (see onnx.reference.op_run.to_array_extended).
 backend_test.exclude(
     "(test_cast_FLOAT_to_BFLOAT16"
+    "|test_cast_BFLOAT16_to_FLOAT"
+    "|test_cast_BFLOAT16_to_FLOAT"
+    "|test_castlike_BFLOAT16_to_FLOAT"
     "|test_castlike_FLOAT_to_BFLOAT16"
     "|test_castlike_FLOAT_to_BFLOAT16_expanded"
+    "|test_cast_no_saturate_"
+    "|_to_FLOAT8"
+    "|_FLOAT8"
+    "|test_quantizelinear_e4m3fn"
+    "|test_quantizelinear_e5m2"
     ")"
 )
 
