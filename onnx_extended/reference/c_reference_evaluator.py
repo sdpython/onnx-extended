@@ -89,11 +89,23 @@ class CReferenceEvaluator(ReferenceEvaluator):
             new_ops.extend(CReferenceEvaluator.default_ops)
         new_ops = CReferenceEvaluator.filter_ops(proto, new_ops, opsets)
 
-        ReferenceEvaluator.__init__(
-            self,
-            proto,
-            opsets=opsets,
-            functions=functions,
-            verbose=verbose,
-            new_ops=new_ops,
-        )
+        try:
+            ReferenceEvaluator.__init__(
+                self,
+                proto,
+                opsets=opsets,
+                functions=functions,
+                verbose=verbose,
+                new_ops=new_ops,
+                optimized=False,
+            )
+        except AttributeError:
+            # old version
+            ReferenceEvaluator.__init__(
+                self,
+                proto,
+                opsets=opsets,
+                functions=functions,
+                verbose=verbose,
+                new_ops=new_ops,
+            )
