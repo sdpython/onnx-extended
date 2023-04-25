@@ -62,8 +62,18 @@ endif()
 function(ort_add_dependency name)
   get_target_property(target_output_directory ${name} BINARY_DIR)
   message(STATUS "ort copy from '${ONNXRUNTIME_LIB_DIR}'")
-  message(STATUS "ort copy to '${target_output_directory}'")
-  file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
+  if(MSVC)
+    set(destination_dir ${target_output_directory}/${CMAKE_BUILD_TYPE})
+  else()
+    set(destination_dir ${target_output_directory})
+  endif()
+  message(STATUS "ort copy to '${destination_dir}'")
+  foreach(file_i ${ORT_LIB_FILES})
+    add_custom_command(
+      TARGET ${name} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
+  endforeach()
+  # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
 endfunction()
 
 
