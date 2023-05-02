@@ -383,6 +383,10 @@ setup(
             f"onnx_extended/reference/c_ops/cpu/c_op_conv_.{ext}",
         ),
         CMakeExtension(
+            "onnx_extended.reference.c_ops.cpu.c_op_deform_conv_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_deform_conv_.{ext}",
+        ),
+        CMakeExtension(
             "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
             f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
         ),
