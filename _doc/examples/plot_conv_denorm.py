@@ -126,6 +126,10 @@ expected = sess2.run(None, feeds)[0]
 if torch is not None:
     tx = torch.from_numpy(X)
 
+sess_options0 = SessionOptions()
+sess_options0.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
+sess_options0.add_session_config_entry("session.set_denormal_as_zero", "1")
+
 for scale in tqdm(scales):
     w, b, new_onx = modify(onx, scale)
     # sess1 = CReferenceEvaluator(new_onx)
@@ -135,16 +139,24 @@ for scale in tqdm(scales):
     sess3 = InferenceSession(
         new_onx.SerializeToString(), providers=["CPUExecutionProvider"]
     )
+    sess4 = InferenceSession(
+        new_onx.SerializeToString(), sess_options0, providers=["CPUExecutionProvider"]
+    )
 
     # sess1.run(None, feeds)
     got = sess2.run(None, feeds)[0]
     diff = np.abs(got / scale - expected).max()
     sess3.run(None, feeds)
+    got0 = sess4.run(None, feeds)[0]
+    diff0 = np.abs(got0 / scale - expected).max()
 
-    t1 = measure_time(lambda: sess1.run(None, feeds), repeat=2, number=5)
+    # t1 = measure_time(lambda: sess1.run(None, feeds), repeat=2, number=5)
     t2 = measure_time(lambda: sess2.run(None, feeds), repeat=2, number=5)
     t3 = measure_time(lambda: sess3.run(None, feeds), repeat=2, number=5)
-    obs = dict(scale=scale, ort=t2["average"], diff=diff)
+    t4 = measure_time(lambda: sess4.run(None, feeds), repeat=2, number=5)
+    obs = dict(
+        scale=scale, ort=t2["average"], diff=diff, diff0=diff0, ort0=t4["average"]
+    )
     # obs["ref"]=t1["average"]
     obs["ort-opt"] = t3["average"]
 
@@ -189,11 +201,11 @@ print(df)
 ##########################################
 # Finally.
 
-df = df.drop("diff", axis=1).set_index("scale")
+df = df.drop(["diff", "diff0"], axis=1).set_index("scale")
 fig, ax = plt.subplots(1, 1, figsize=(10, 4))
 df.plot(ax=ax, logx=True, logy=True, title="Comparison Conv in a weird case")
 
-fig.savefig("plot_conv_weird.png")
+fig.savefig("plot_conv_denorm.png")
 # plt.show()
 
 
@@ -201,5 +213,4 @@ fig.savefig("plot_conv_weird.png")
 # Conclusion
 # ++++++++++
 #
-# The weight scale seems to have an import on the latency with
-# almost no discrepancies at all.
+#
