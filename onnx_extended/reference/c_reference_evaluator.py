@@ -99,7 +99,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
                 new_ops=new_ops,
                 optimized=False,
             )
-        except AttributeError:
+        except (AttributeError, TypeError):
             # old version
             ReferenceEvaluator.__init__(
                 self,
