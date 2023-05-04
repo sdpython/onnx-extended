@@ -4,24 +4,35 @@
 How float format has an impact on speed computation
 ===================================================
 
-An example with Conv.
+An example with Conv. The floats followed the IEEE standard
+`Single-precision floating-point format
+<https://en.wikipedia.org/wiki/Single-precision_floating-point_format>`_.
+The number is interprated in a different whether the exponent is null
+or not. When it is null, it is called a denormalized number
+or `subnormal number <https://en.wikipedia.org/wiki/Subnormal_number>`_.
+Let's see their impact on the computation time through the operator Conv.
 
-Imports a specific model
-++++++++++++++++++++++++
+Create one model
+++++++++++++++++
 """
-import os
-import urllib.request as ur
-from zipfile import ZipFile
-import numpy as np
+import struct
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 from tqdm import tqdm
-from onnx import load
-from onnx.helper import make_graph, make_model
+import numpy
+from onnx import TensorProto
+from onnx.helper import (
+    make_model,
+    make_node,
+    make_graph,
+    make_tensor_value_info,
+    make_opsetid,
+)
+from onnx.checker import check_model
 from onnx.numpy_helper import to_array, from_array
 from onnxruntime import (
     InferenceSession,
-    get_all_providers,
+    get_available_providers,
     OrtValue,
     SessionOptions,
     GraphOptimizationLevel,
@@ -37,33 +48,49 @@ except ImportError:
     print("torch is not available")
     torch = None
 
-name = "slow_conv.zip"
-if not os.path.exists(name):
-    print("download {url!r}")
-    url = f"https://github.com/microsoft/onnxruntime/files/11388184/{name}"
-    ur.urlretrieve(url, name)
 
-onnx_file = "slow_conv.onnx"
-if not os.path.exists(onnx_file):
-    print("unzip f{onnx_file}")
-    with ZipFile(name) as z:
-        print(z.namelist())
-        with z.open(z.namelist()[0]) as f:
-            with open(name, "wb") as g:
-                g.write(f.read())
+def _denorm(x):
+    i = int.from_bytes(struct.pack("<f", numpy.float32(x)), "little")
+    i &= 0x807FFFFF
+    return numpy.uint32(i).view(numpy.float32)
+
+
+denorm = numpy.vectorize(_denorm)
+
+
+def create_model():
+    X = make_tensor_value_info("X", TensorProto.FLOAT, [1, 256, 14, 14])
+    Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None, None, None])
+    B = from_array(numpy.zeros([256], dtype=numpy.float32), name="B")
+    w = numpy.random.randn(256, 256, 3, 3).astype(numpy.float32)
+
+    # let's randomly denormalize some number
+    mask = (numpy.random.randint(2, size=w.shape) % 2).astype(numpy.float32)
+    d = denorm(w)
+    w = w * mask - (mask - 1) * d
+    W = from_array(w, name="W")
+
+    node1 = make_node(
+        "Conv", ["X", "W", "B"], ["Y"], kernel_shape=[3, 3], pads=[1, 1, 1, 1]
+    )
+    graph = make_graph([node1], "lr", [X], [Y], [W, B])
+    onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)])
+    check_model(onnx_model)
+    return onnx_model
+
+
+onx = create_model()
+onnx_file = "conv_denorm.onnx"
+with open(onnx_file, "wb") as f:
+    f.write(onx.SerializeToString())
 
 ###################################################
 # The model looks like:
 
-with open(onnx_file, "rb") as f:
-    onx = load(f)
-
 print(onnx_simple_text_plot(onx))
-
 
 onnx_model = onnx_file
 input_shape = (1, 256, 14, 14)
-X = np.ones(input_shape, dtype=np.float32)
 
 #########################################
 # CReferenceEvaluator and InferenceSession
@@ -77,9 +104,11 @@ sess_options.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
 sess1 = CReferenceEvaluator(onnx_model)
 sess2 = InferenceSession(onnx_model, sess_options, providers=["CPUExecutionProvider"])
 
+X = numpy.ones(input_shape, dtype=numpy.float32)
+
 expected = sess1.run(None, {"X": X})[0]
 got = sess2.run(None, {"X": X})[0]
-diff = np.abs(expected - got).max()
+diff = numpy.abs(expected - got).max()
 print(f"difference: {diff}")
 
 #####################################################
@@ -102,14 +131,14 @@ print(f"InferenceSession: {t2['average']}s")
 #
 # Let's modify the the weight of the model and multiply everything by a scalar.
 # Let's choose an random input.
-has_cuda = "CUDAExecutionProvider" in get_all_providers()
-X = np.random.random(X.shape).astype(X.dtype)
+has_cuda = "CUDAExecutionProvider" in get_available_providers()
+X = numpy.random.random(X.shape).astype(X.dtype)
 
 
 def modify(onx, scale):
     t = to_array(onx.graph.initializer[0])
     b = to_array(onx.graph.initializer[1]).copy()
-    t = (t * scale).astype(np.float32)
+    t = (t * scale).astype(numpy.float32)
     graph = make_graph(
         onx.graph.node,
         onx.graph.name,
@@ -133,6 +162,8 @@ sess_options0.add_session_config_entry("session.set_denormal_as_zero", "1")
 
 for scale in tqdm(scales):
     w, b, new_onx = modify(onx, scale)
+    n_denorm = (w == denorm(w)).astype(numpy.int32).sum() / w.size
+
     # sess1 = CReferenceEvaluator(new_onx)
     sess2 = InferenceSession(
         new_onx.SerializeToString(), sess_options, providers=["CPUExecutionProvider"]
@@ -146,17 +177,22 @@ for scale in tqdm(scales):
 
     # sess1.run(None, feeds)
     got = sess2.run(None, feeds)[0]
-    diff = np.abs(got / scale - expected).max()
+    diff = numpy.abs(got / scale - expected).max()
     sess3.run(None, feeds)
     got0 = sess4.run(None, feeds)[0]
-    diff0 = np.abs(got0 / scale - expected).max()
+    diff0 = numpy.abs(got0 / scale - expected).max()
 
     # t1 = measure_time(lambda: sess1.run(None, feeds), repeat=2, number=5)
     t2 = measure_time(lambda: sess2.run(None, feeds), repeat=2, number=5)
     t3 = measure_time(lambda: sess3.run(None, feeds), repeat=2, number=5)
     t4 = measure_time(lambda: sess4.run(None, feeds), repeat=2, number=5)
     obs = dict(
-        scale=scale, ort=t2["average"], diff=diff, diff0=diff0, ort0=t4["average"]
+        scale=scale,
+        ort=t2["average"],
+        diff=diff,
+        diff0=diff0,
+        ort0=t4["average"],
+        n_denorm=n_denorm,
     )
     # obs["ref"]=t1["average"]
     obs["ort-opt"] = t3["average"]
@@ -197,14 +233,15 @@ for scale in tqdm(scales):
 df = DataFrame(data)
 df
 
-print(df)
-
 ##########################################
 # Finally.
 
-df = df.drop(["diff", "diff0"], axis=1).set_index("scale")
-fig, ax = plt.subplots(1, 1, figsize=(10, 4))
-df.plot(ax=ax, logx=True, logy=True, title="Comparison Conv in a weird case")
+dfp = df.drop(["diff", "diff0", "n_denorm"], axis=1).set_index("scale")
+fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+dfp.plot(ax=ax[0], logx=True, logy=True, title="Comparison of Conv processing time")
+df[["n_denorm"]].plot(
+    ax=ax[1], logx=True, logy=True, title="Ratio of denormalized numbers"
+)
 
 fig.savefig("plot_conv_denorm.png")
 # plt.show()
@@ -214,4 +251,4 @@ fig.savefig("plot_conv_denorm.png")
 # Conclusion
 # ++++++++++
 #
-#
+# Denormalized numbers should be avoided.
