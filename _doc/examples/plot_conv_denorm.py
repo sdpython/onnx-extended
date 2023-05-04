@@ -1,9 +1,10 @@
 """
-.. _l-example-conv-weird:
+.. _l-example-conv-denorm:
 
-Speed of Conv implementation
-============================
+How float format has an impact on speed computation
+===================================================
 
+An example with Conv.
 
 Imports a specific model
 ++++++++++++++++++++++++
