@@ -32,6 +32,12 @@ class TestOrtCy(ExtTestCase):
                 f.write(onnx_model.SerializeToString())
         self.assertExists(name)
 
+    def test_session_options(self):
+        from onnx_extended.ortcy.wrap.ortinf import OrtSessionOptions
+
+        opt = OrtSessionOptions()
+        self.assertNotEmpty(opt)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

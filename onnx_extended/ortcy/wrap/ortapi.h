@@ -5,6 +5,15 @@
 
 namespace ortapi {
 
+void *ort_create_env();
+void ort_delete_env(void*);
+
+void* ort_create_session_options();
+void ort_delete_session_options(void*);
+
+void* ort_create_session(const char* filename, void* env, void* sess_options);
+void ort_delete_session(void *session);
+
 class OrtShape {
 private:
   int64_t size_;
