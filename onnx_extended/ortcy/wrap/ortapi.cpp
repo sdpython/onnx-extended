@@ -26,7 +26,17 @@ void* ort_create_session(const char* filename, void* env, void* sess_options) {
     if (sess_options == nullptr)
         throw std::runtime_error("sess_options cannot be null.");
     const auto& api = Ort::GetApi();
-    Ort::Session* session = new Ort::Session(*(Ort::Env*)env, filename, *(Ort::SessionOptions*)sess_options);
+    #if _WIN32
+    std::string name(filename);
+    std::wstring(name.begin(), name.end());
+    Ort::Session* session = new Ort::Session(*(Ort::Env*)env,
+                                             (ORTCHAR_T*)name.c_str(),
+                                             *(Ort::SessionOptions*)sess_options);
+    #else
+    Ort::Session* session = new Ort::Session(*(Ort::Env*)env,
+                                             filename,
+                                             *(Ort::SessionOptions*)sess_options);
+    #endif
     return (void*) session;
 }
 
