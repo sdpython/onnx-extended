@@ -11,6 +11,7 @@ joblib
 lightgbm
 matplotlib
 ml-dtypes
+onnx-array-api
 onnxmltools
 onnxruntime; python_version < '3.11'
 pandas
@@ -20,7 +21,7 @@ pytest
 pytest-cov
 ruff
 scikit-learn
-skl2onnx
+skl2onnx @ git+https://github.com/onnx/sklearn-onnx
 sphinx
 sphinx-gallery
 tqdm
