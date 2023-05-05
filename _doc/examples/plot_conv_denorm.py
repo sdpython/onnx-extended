@@ -146,7 +146,8 @@ def modify(onx, scale):
         onx.graph.output,
         [from_array(t, name=onx.graph.initializer[0].name), onx.graph.initializer[1]],
     )
-    return t, b, make_model(graph, opset_imports=onx.opset_import)
+    model = make_model(graph, opset_imports=onx.opset_import, ir_version=onx.ir_version)
+    return t, b, model
 
 
 scales = [2**p for p in range(0, 31, 2)]
