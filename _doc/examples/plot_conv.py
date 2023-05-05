@@ -114,7 +114,6 @@ for i in tqdm([16, 32, 48, 64]):
 df = DataFrame(data)
 df
 
-print(df)
 
 ##########################################
 # Finally.
