@@ -74,7 +74,7 @@ def create_model():
         "Conv", ["X", "W", "B"], ["Y"], kernel_shape=[3, 3], pads=[1, 1, 1, 1]
     )
     graph = make_graph([node1], "lr", [X], [Y], [W, B])
-    onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)])
+    onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)], ir_version=8)
     check_model(onnx_model)
     return onnx_model
 
@@ -146,7 +146,8 @@ def modify(onx, scale):
         onx.graph.output,
         [from_array(t, name=onx.graph.initializer[0].name), onx.graph.initializer[1]],
     )
-    return t, b, make_model(graph, opset_imports=onx.opset_import)
+    model = make_model(graph, opset_imports=onx.opset_import, ir_version=onx.ir_version)
+    return t, b, model
 
 
 scales = [2**p for p in range(0, 31, 2)]

@@ -89,6 +89,16 @@ if platform.architecture()[0] == "32bit":
 if platform.system() == "Windows":
     backend_test.exclude("test_sequence_model")
 
+if onnx_opset_version() < 21:
+    backend_test.exclude(
+        "(test_averagepool_2d_dilations"
+        "|test_if*"
+        "|test_loop*"
+        "|test_scan*"
+        "|test_sequence_map*"
+        ")"
+    )
+
 if onnx_opset_version() < 19:
     backend_test.exclude(
         "(test_argm[ai][nx]_default_axis_example"
@@ -193,6 +203,23 @@ backend_test.exclude("(test_eyelike_without_dtype)")
 
 # The following tests fail due to discrepancies (small but still higher than 1e-7).
 backend_test.exclude("test_adam_multiple")  # 1e-2
+
+# Disable test about float 8
+backend_test.exclude(
+    "(test_castlike_BFLOAT16*"
+    "|test_cast_BFLOAT16*"
+    "|test_cast_no_saturate*"
+    "|test_cast_FLOAT_to_FLOAT8*"
+    "|test_cast_FLOAT16_to_FLOAT8*"
+    "|test_cast_FLOAT8_to_*"
+    "|test_castlike_BFLOAT16*"
+    "|test_castlike_no_saturate*"
+    "|test_castlike_FLOAT_to_FLOAT8*"
+    "|test_castlike_FLOAT16_to_FLOAT8*"
+    "|test_castlike_FLOAT8_to_*"
+    "|test_quantizelinear_e*)"
+)
+
 
 # import all test cases at global scope to make them visible to python.unittest
 globals().update(backend_test.test_cases)

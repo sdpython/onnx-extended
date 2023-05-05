@@ -52,7 +52,7 @@ jobs:
     displayName: 'Run C++ Unit Tests'
 
   - script: |
-      python -m pytest -v
+      python -m pytest
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel
@@ -101,7 +101,7 @@ jobs:
         ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
-        python -m pytest -v
+        python -m pytest
     displayName: 'Runs Unit Tests'
   - script: |
         python -u setup.py bdist_wheel
@@ -162,7 +162,7 @@ jobs:
     displayName: 'build wheel'
   - script: |
       source activate myEnvironment
-      python -m pytest -v
+      python -m pytest
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel
