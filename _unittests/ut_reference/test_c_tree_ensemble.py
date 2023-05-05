@@ -141,7 +141,7 @@ class TestCTreeEnsemble(ExtTestCase):
     def test_decision_tree_classifier_mlabel(self):
         iris = load_iris()
         X, y_ = iris.data.astype(numpy.float32), iris.target
-        y = numpy.zeros((y_.shape[0], 3), dtype=int)
+        y = numpy.zeros((y_.shape[0], 3), dtype=numpy.int64)
         y[y_ == 0, 0] = 1
         y[y_ == 1, 1] = 1
         y[y_ == 2, 2] = 1
