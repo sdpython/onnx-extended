@@ -37,6 +37,7 @@ class TestOrtCy(ExtTestCase):
 
         opt = OrtSessionOptions()
         self.assertNotEmpty(opt)
+        self.assertIn("Wrapper around `Ort::SessionOptions`", opt.__doc__)
 
 
 if __name__ == "__main__":

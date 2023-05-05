@@ -22,6 +22,9 @@ cdef extern from "ortapi.h" namespace "ortapi":
 
 
 cdef class OrtSessionOptions:
+    """
+    Wrapper around `Ort::SessionOptions`.
+    """
 
     cdef void* pointer
 
@@ -33,6 +36,9 @@ cdef class OrtSessionOptions:
 
 
 cdef class OrtInference:
+    """
+    Wrapper around `Ort::Session`.
+    """
 
     cdef void* pointer
     cdef void* env;
