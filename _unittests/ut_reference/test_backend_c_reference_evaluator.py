@@ -89,8 +89,15 @@ if platform.architecture()[0] == "32bit":
 if platform.system() == "Windows":
     backend_test.exclude("test_sequence_model")
 
-if onnx_opset_version() < 20:
-    backend_test.exclude("test_averagepool_2d_dilations")
+if onnx_opset_version() < 21:
+    backend_test.exclude(
+        "(test_averagepool_2d_dilations"
+        "|test_if*"
+        "|test_loop*"
+        "|test_scan*"
+        "|test_sequence_map*"
+        ")"
+    )
 
 if onnx_opset_version() < 19:
     backend_test.exclude(
@@ -202,7 +209,7 @@ backend_test.exclude(
     "|test_castlike_FLOAT_to_FLOAT8*"
     "|test_castlike_FLOAT16_to_FLOAT8*"
     "|test_castlike_FLOAT8_to_*"
-    "|test_quantizelinear_e*"
+    "|test_quantizelinear_e*)"
 )
 
 
