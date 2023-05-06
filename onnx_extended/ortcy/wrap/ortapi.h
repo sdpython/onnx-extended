@@ -3,7 +3,10 @@
 #include "onnxruntime_c_api.h"
 #include "onnxruntime_cxx_api.h"
 
+#define OrtAllocatorType void
 #define OrtEnvType void
+#define OrtMemoryInfoType void
+#define OrtSessionInfoType void
 #define OrtSessionOptionsType void
 #define OrtSessionType void
 
@@ -17,6 +20,12 @@ void ort_delete_session_options(OrtSessionOptionsType*);
 
 OrtSessionType* ort_create_session(const char* filename, OrtEnvType* env, OrtSessionOptionsType* sess_options);
 void ort_delete_session(OrtSessionType* session);
+
+OrtMemoryInfoType* ort_create_memory_info_cpu();
+void ort_delete_memory_info(OrtMemoryInfoType*);
+
+size_t ort_get_input_count(OrtSessionType*);
+size_t ort_get_output_count(OrtSessionType*);
 
 class OrtShape {
 private:
@@ -50,5 +59,8 @@ class OrtValue {
         inline Ort::Value& value() const { return *ptr_ov; }
 
 };
+
+OrtSessionInfoType* ort_create_session_info(OrtSessionType*);
+void ort_delete_session_info(OrtSessionType*);
 
 } // namespace ortapi

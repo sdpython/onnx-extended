@@ -13,7 +13,16 @@ from onnx_extended.ext_test_case import ExtTestCase
 
 
 class TestOrtCy(ExtTestCase):
-    def test_add(self):
+    def test_session_options(self):
+        from onnx_extended.ortcy.wrap.ortinf import OrtSessionOptions
+
+        opt = OrtSessionOptions()
+        self.assertNotEmpty(opt)
+        self.assertIn("Wrapper around `Ort::SessionOptions`", opt.__doc__)
+
+    def test_session(self):
+        from onnx_extended.ortcy.wrap.ortinf import OrtSession
+
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
@@ -32,12 +41,9 @@ class TestOrtCy(ExtTestCase):
                 f.write(onnx_model.SerializeToString())
         self.assertExists(name)
 
-    def test_session_options(self):
-        from onnx_extended.ortcy.wrap.ortinf import OrtSessionOptions
-
-        opt = OrtSessionOptions()
-        self.assertNotEmpty(opt)
-        self.assertIn("Wrapper around `Ort::SessionOptions`", opt.__doc__)
+        session = OrtSession(name)
+        self.assertEqual(session.get_input_count(), 2)
+        self.assertEqual(session.get_output_count(), 1)
 
 
 if __name__ == "__main__":
