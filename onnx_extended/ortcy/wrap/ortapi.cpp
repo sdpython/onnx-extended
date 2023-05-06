@@ -2,27 +2,27 @@
 
 namespace ortapi {
 
-void *ort_create_env() {
-    return (void*) new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "ortcy");
+OrtEnvType* ort_create_env() {
+    return (OrtEnvType*) new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "ortcy");
 }
 
-void ort_delete_env(void* ptr) {
+void ort_delete_env(OrtEnvType* ptr) {
     if (ptr == nullptr)
         throw std::runtime_error("ptr is null and cannot be deleted (ort_delete_env).");
     delete (Ort::Env*)ptr;
 }
 
-void* ort_create_session_options() {
-    return (void*) new Ort::SessionOptions();
+OrtSessionOptionsType* ort_create_session_options() {
+    return (OrtSessionOptionsType*) new Ort::SessionOptions();
 }
 
-void ort_delete_session_options(void* ptr) {
+void ort_delete_session_options(OrtSessionOptionsType* ptr) {
     if (ptr == nullptr)
         throw std::runtime_error("ptr is null and cannot be deleted (ort_delete_session_options).");
     delete (Ort::SessionOptions*)ptr;
 }
 
-void* ort_create_session(const char* filename, void* env, void* sess_options) {
+OrtSessionType* ort_create_session(const char* filename, OrtEnvType* env, OrtSessionOptionsType* sess_options) {
     if (sess_options == nullptr)
         throw std::runtime_error("sess_options cannot be null.");
     const auto& api = Ort::GetApi();
@@ -37,10 +37,10 @@ void* ort_create_session(const char* filename, void* env, void* sess_options) {
                                              filename,
                                              *(Ort::SessionOptions*)sess_options);
     #endif
-    return (void*) session;
+    return (OrtSessionType*) session;
 }
 
-void ort_delete_session(void *ptr) {
+void ort_delete_session(OrtSessionType *ptr) {
     if (ptr == nullptr)
         throw std::runtime_error("ptr is null and cannot be deleted (ort_delete_session).");
     delete (Ort::Session*)ptr;

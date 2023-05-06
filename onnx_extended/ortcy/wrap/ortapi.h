@@ -3,16 +3,20 @@
 #include "onnxruntime_c_api.h"
 #include "onnxruntime_cxx_api.h"
 
+#define OrtEnvType void
+#define OrtSessionOptionsType void
+#define OrtSessionType void
+
 namespace ortapi {
 
-void *ort_create_env();
-void ort_delete_env(void*);
+OrtEnvType* ort_create_env();
+void ort_delete_env(OrtEnvType*);
 
-void* ort_create_session_options();
-void ort_delete_session_options(void*);
+OrtSessionOptionsType* ort_create_session_options();
+void ort_delete_session_options(OrtSessionOptionsType*);
 
-void* ort_create_session(const char* filename, void* env, void* sess_options);
-void ort_delete_session(void *session);
+OrtSessionType* ort_create_session(const char* filename, OrtEnvType* env, OrtSessionOptionsType* sess_options);
+void ort_delete_session(OrtSessionType* session);
 
 class OrtShape {
 private:
@@ -22,7 +26,7 @@ private:
 public:
   inline OrtShape(const std::vector<int> &shape) {
     if (shape.size() > 8)
-      throw std::runtime_error("shape cannot have move than 8 dimensions.");
+      throw std::runtime_error("shape cannot have more than 8 dimensions.");
     size_ = static_cast<int64_t>(shape.size());
     memcpy(dims_, shape.data(), size_ * sizeof(int64_t));
   }
