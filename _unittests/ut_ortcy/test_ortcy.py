@@ -13,6 +13,14 @@ from onnx_extended.ext_test_case import ExtTestCase
 
 
 class TestOrtCy(ExtTestCase):
+    def test_ort_get_available_providers(self):
+        from onnx_extended.ortcy.wrap.ortinf import ort_get_available_providers
+
+        res = ort_get_available_providers()
+        self.assertIsInstance(res, list)
+        self.assertGreater(len(res), 1)
+        self.assertIn("CPUExecutionProvider", res)
+
     def test_session(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
 
@@ -35,6 +43,12 @@ class TestOrtCy(ExtTestCase):
         self.assertExists(name)
 
         session = OrtSession(name)
+        self.assertEqual(session.get_input_count(), 2)
+        self.assertEqual(session.get_output_count(), 1)
+
+        data = onnx_model.SerializeToString()
+        self.assertIsInstance(data, bytes)
+        session = OrtSession(data)
         self.assertEqual(session.get_input_count(), 2)
         self.assertEqual(session.get_output_count(), 1)
 

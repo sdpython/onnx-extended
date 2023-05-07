@@ -15,22 +15,22 @@ def vector_sum_cy(float[:, :] m):
     :return: sum
     """
     cdef int i, j
-    cdef int I = m.shape[0]
+    cdef int N = m.shape[0]
     cdef int J = m.shape[1]
-    cdef float total = 0;
+    cdef float total = 0
     with nogil:
-        for i in range(0, I):
+        for i in range(0, N):
             for j in range(0, J):
                 total += m[i, j]
     return total
 
 
 cdef extern from "../cpu/vector_function.h" namespace "validation":
-    float vector_sum(int nl, int nc, const float* values, int by_rows);
+    float vector_sum(int nl, int nc, const float* values, int by_rows)
 
 
 cdef float _vector_sum_c(float[:, :] m, int by_rows):
-    return vector_sum(m.shape[0], m.shape[1], &(m[0,0]), by_rows);
+    return vector_sum(m.shape[0], m.shape[1], &(m[0, 0]), by_rows)
 
 
 @cython.boundscheck(False)
@@ -43,7 +43,7 @@ def vector_sum_c(float[:, ::1] m, by_rows):
     :param by_rows: by rows or by columns
     :return: sum
     """
-    return _vector_sum_c(m, by_rows);
+    return _vector_sum_c(m, by_rows)
 
 
 def vector_add_c(v1, v2):

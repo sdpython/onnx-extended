@@ -1,8 +1,6 @@
 #include "ortapi.h"
 #include "helpers.h"
 #include <stdexcept>
-#include <string>
-#include <vector>
 
 // https://onnxruntime.ai/docs/api/c/
 
@@ -21,18 +19,18 @@ inline void ThrowOnError(OrtStatus* ort_status) {
     if (ort_status) {
         std::string message(GetOrtApi()->GetErrorMessage(ort_status));
         OrtErrorCode code = GetOrtApi()->GetErrorCode(ort_status);
-        throw std::runtime_error(MakeString(
-            "One call to onnxruntime failed due to (", code, ") ", message));
+        throw std::runtime_error(MakeString("error: onnxruntime(", code, "), ", message));
     }
 }
 
-inline std::vector<std::string> GetAvailableProviders() {
-  int len;
-  char** providers;
-  ThrowOnError(GetOrtApi()->GetAvailableProviders(&providers, &len));
-  std::vector<std::string> available_providers(providers, providers + len);
-  ThrowOnError(GetOrtApi()->ReleaseAvailableProviders(providers, len));
-  return available_providers;
+
+std::vector<std::string> get_available_providers() {
+    int len;
+    char** providers;
+    ThrowOnError(GetOrtApi()->GetAvailableProviders(&providers, &len));
+    std::vector<std::string> available_providers(providers, providers + len);
+    ThrowOnError(GetOrtApi()->ReleaseAvailableProviders(providers, len));
+    return available_providers;
 }
 
 class OrtInference {
@@ -54,7 +52,7 @@ public:
         #ifdef _WIN32
         std::string name(filepath);
         std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
-        std::wstring wname(cvt.from_bytes(name);
+        std::wstring wname(cvt.from_bytes(name));
         ThrowOnError(GetOrtApi()->CreateSession(env_, wname.c_str(), sess_options_, &sess_));
         #else
         ThrowOnError(GetOrtApi()->CreateSession(env_, filepath, sess_options_, &sess_));
@@ -128,6 +126,9 @@ void delete_session(OrtSessionType* ptr) {
     delete (OrtInference*)ptr;
 }
 void session_load_from_file(OrtSessionType* ptr, const char* filename) { ((OrtInference*)ptr)->LoadFromFile(filename); }
+void session_load_from_bytes(OrtSessionType* ptr, const void* buffer, size_t size) {
+    ((OrtInference*)ptr)->LoadFromBytes(buffer, size);
+}
 size_t get_input_count(OrtSessionType* ptr) { return ((OrtInference*)ptr)->GetInputCount(); }
 size_t get_output_count(OrtSessionType* ptr) { return ((OrtInference*)ptr)->GetOutputCount(); }
 
