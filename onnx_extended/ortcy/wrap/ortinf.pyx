@@ -20,16 +20,17 @@ cdef extern from "ortapi.h" namespace "ortapi":
 
 
 
-cdef class OrtInference:
+cdef class OrtSession:
     """
-    Wrapper around `Ort::Session`.
+    Wrapper around `onnxruntime C API
+    <https://onnxruntime.ai/docs/api/c/>`_.
     """
 
     cdef void* session;
 
-    def __init__(self, filename):
-        self.session = create_session();
-        session_load_from_file(self.session, filename);
+    def __init__(self, str filename):
+        self.session = <void*>create_session();
+        session_load_from_file(self.session, filename.encode('utf-8'));
 
     def __dealloc__(self):
         delete_session(self.session)
@@ -44,7 +45,7 @@ cdef class OrtInference:
 @cython.boundscheck(False)
 @cython.nonecheck(False)
 @cython.wraparound(False)
-def run_inference_float(OrtInference inst, numpy.ndarray value):
+def run_inference_float(OrtSession inst, numpy.ndarray value):
     """
     Runs the inference on one value only.
     """

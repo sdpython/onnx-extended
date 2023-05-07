@@ -13,13 +13,6 @@ from onnx_extended.ext_test_case import ExtTestCase
 
 
 class TestOrtCy(ExtTestCase):
-    def test_session_options(self):
-        from onnx_extended.ortcy.wrap.ortinf import OrtSessionOptions
-
-        opt = OrtSessionOptions()
-        self.assertNotEmpty(opt)
-        self.assertIn("Wrapper around `Ort::SessionOptions`", opt.__doc__)
-
     def test_session(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
 

@@ -42,10 +42,15 @@ public:
         ThrowOnError(GetOrtApi()->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "ortcy", &env_));
         ThrowOnError(GetOrtApi()->CreateSessionOptions(&sess_options_));
         ThrowOnError(GetOrtApi()->CreateRunOptions(&run_options_));
-        ThrowOnError(GetOrtApi()->CreateCpuMemoryInfo(OrtArenaAllocator , OrtMemTypeCPU , &cpu_memory_info_));
+        ThrowOnError(GetOrtApi()->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &cpu_memory_info_));
+        sess_ = nullptr;
+        cpu_allocator_ = nullptr;
     }
 
     void LoadFromFile(const char* filepath) {
+        EXT_ENFORCE(filepath != nullptr);
+        EXT_ENFORCE(env_ != nullptr);
+        EXT_ENFORCE(sess_options_ != nullptr);
         ThrowOnError(GetOrtApi()->CreateSession(env_, filepath, sess_options_, &sess_));
         LoadFinalize();
     }
@@ -56,10 +61,10 @@ public:
     }
 
     ~OrtInference() {
+        if (cpu_allocator_ != nullptr) GetOrtApi()->ReleaseAllocator(cpu_allocator_);
+        if (sess_ != nullptr) GetOrtApi()->ReleaseSession(sess_);
         GetOrtApi()->ReleaseSessionOptions(sess_options_);
         GetOrtApi()->ReleaseRunOptions(run_options_);
-        GetOrtApi()->ReleaseAllocator(cpu_allocator_);
-        GetOrtApi()->ReleaseSession(sess_);
         GetOrtApi()->ReleaseMemoryInfo(cpu_memory_info_);
         GetOrtApi()->ReleaseEnv(env_);
     }
@@ -69,33 +74,37 @@ public:
 
 protected:
     void LoadFinalize() {
+        EXT_ENFORCE(cpu_memory_info_ != nullptr);
         ThrowOnError(GetOrtApi()->CreateAllocator(sess_, cpu_memory_info_ , &cpu_allocator_));
-        ThrowOnError(GetOrtApi()->SessionGetInputCount(sess_, &n_outputs_));
+        EXT_ENFORCE(cpu_allocator_ != nullptr);
         ThrowOnError(GetOrtApi()->SessionGetInputCount(sess_, &n_inputs_));
+        ThrowOnError(GetOrtApi()->SessionGetOutputCount(sess_, &n_outputs_));
         input_names_.reserve(n_inputs_);
         output_names_.reserve(n_outputs_);
         
+        char* name;
         for(size_t i = 0; i < n_inputs_; ++i) {
-            char* name;
-            ThrowOnError(GetOrtApi()->SessionGetOutputName(sess_, i, cpu_allocator_, &name));
+            ThrowOnError(GetOrtApi()->SessionGetInputName(sess_, i, cpu_allocator_, &name));
             input_names_.emplace_back(std::string(name));
-            GetOrtApi()->AllocatorFree(cpu_allocator_, name);
+            ThrowOnError(GetOrtApi()->AllocatorFree(cpu_allocator_, name));
+        }
+        for(size_t i = 0; i < n_outputs_; ++i) {
             ThrowOnError(GetOrtApi()->SessionGetOutputName(sess_, i, cpu_allocator_, &name));
             output_names_.emplace_back(std::string(name));
-            GetOrtApi()->AllocatorFree(cpu_allocator_, name);
+            ThrowOnError(GetOrtApi()->AllocatorFree(cpu_allocator_, name));
         }
     }
 
 private:
     // before loading the model
     OrtEnv* env_;
-    OrtSession* sess_;
     OrtSessionOptions* sess_options_;
     OrtRunOptions* run_options_;
     OrtMemoryInfo* cpu_memory_info_;
 
 private:
     // after loading the model
+    OrtSession* sess_;
     OrtAllocator* cpu_allocator_;
     size_t n_inputs_;
     size_t n_outputs_;
@@ -150,6 +159,5 @@ class OrtValue {
         //inline Ort::Value& value() const { return *ptr_ov; }
 
 };
-
 
 } // namespace ortapi
