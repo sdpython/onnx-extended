@@ -51,7 +51,14 @@ public:
         EXT_ENFORCE(filepath != nullptr);
         EXT_ENFORCE(env_ != nullptr);
         EXT_ENFORCE(sess_options_ != nullptr);
+        #ifdef _WIN32
+        std::string name(filepath);
+        std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+        std::wstring wname(cvt.from_bytes(name);
+        ThrowOnError(GetOrtApi()->CreateSession(env_, wname.c_str(), sess_options_, &sess_));
+        #else
         ThrowOnError(GetOrtApi()->CreateSession(env_, filepath, sess_options_, &sess_));
+        #endif
         LoadFinalize();
     }
 

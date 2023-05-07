@@ -2,6 +2,7 @@
 *.pyd
 *.dylib
 *.so
+*.dll
 *.vcxproj*
 *.tcl
 *.sln
