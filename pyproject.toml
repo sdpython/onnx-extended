@@ -20,6 +20,9 @@ archs = ["AMD64"]
 build = "cp*"
 skip = "cp36-* cp37-* cp38-* cp39-* pypy*"
 
+[tool.cython-lint]
+max-line-length = 88
+
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
 line-length = 88

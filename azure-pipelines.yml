@@ -38,6 +38,9 @@ jobs:
       cmake-lint cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
     displayName: 'cmake-lint'
   - script: |
+      cython-lint .
+    displayName: 'cython-lint'
+  - script: |
       # python -m pip install -e .
       python setup.py build_ext --inplace
     displayName: 'build'

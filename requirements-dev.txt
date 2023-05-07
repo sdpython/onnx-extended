@@ -4,6 +4,7 @@ clang-format
 cmakelang
 coverage
 cython
+cython-lint
 flake8
 furo
 isort
