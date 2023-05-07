@@ -6,23 +6,11 @@ numpy.import_array()
 
 cdef extern from "ortapi.h" namespace "ortapi":
 
-    void *ort_create_env();
-    void ort_delete_env(void*);
-
-    void* ort_create_session_options();
-    void ort_delete_session_options(void*);
-
-    void* ort_create_session(const char* filename, void* env, void* sess_options);
-    void ort_delete_session(void *session);
-
-    size_t ort_get_input_count(void*);
-    size_t ort_get_output_count(void*);
-
-    void* ort_create_memory_info_cpu();
-    void ort_delete_memory_info(void*);
-
-    void* ort_create_session_info(void*);
-    void ort_delete_session_info(void*);
+    void* create_session();
+    void delete_session(void*);
+    size_t get_input_count(void*);
+    size_t get_output_count(void*);
+    void session_load_from_file(void*, const char* filename);
 
     # void* ort_run_inference(void* inst, int n_inputs, const char** input_names, void* ort_values, int& n_outputs);
 
@@ -32,47 +20,25 @@ cdef extern from "ortapi.h" namespace "ortapi":
 
 
 
-cdef class OrtSessionOptions:
-    """
-    Wrapper around `Ort::SessionOptions`.
-    """
-
-    cdef void* pointer
-
-    def __init__(self):
-        self.pointer = ort_create_session_options()
-
-    def __dealloc__(self):
-        ort_delete_session_options(self.pointer)
-
-
 cdef class OrtInference:
     """
     Wrapper around `Ort::Session`.
     """
 
-    cdef void* pointer
-    cdef void* env;
-    cdef void* memory_info_cpu;
-    cdef void* session_info;
+    cdef void* session;
 
-    def __init__(self, filename, OrtSessionOptions sess_options):
-        self.env = ort_create_env();
-        self.pointer = ort_create_session(filename, self.env, sess_options.pointer)
-        self.memory_info_cpu = ort_create_memory_info_cpu();
-        self.session_info = ort_create_session_info(self.pointer);
+    def __init__(self, filename):
+        self.session = create_session();
+        session_load_from_file(self.session, filename);
 
     def __dealloc__(self):
-        ort_delete_session(self.pointer)
-        ort_delete_env(self.env)
-        ort_delete_memory_info(self.memory_info_cpu)
-        ort_delete_session_info(self.session_info)
+        delete_session(self.session)
 
     def get_input_count(self):
-        return ort_get_input_count(self.pointer)
+        return get_input_count(self.session)
 
     def get_output_count(self):
-        return ort_get_output_count(self.pointer)
+        return get_output_count(self.session)
 
 
 @cython.boundscheck(False)
