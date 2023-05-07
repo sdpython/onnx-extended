@@ -1,6 +1,10 @@
 #include "ortapi.h"
 #include "helpers.h"
 #include <stdexcept>
+#ifdef _WIN32
+#include <locale>
+#include <codecvt>
+#endif
 
 // https://onnxruntime.ai/docs/api/c/
 
