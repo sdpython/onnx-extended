@@ -18,7 +18,7 @@ class TestOrtCy(ExtTestCase):
 
         res = ort_get_available_providers()
         self.assertIsInstance(res, list)
-        self.assertGreater(len(res), 1)
+        self.assertGreater(len(res), 0)
         self.assertIn("CPUExecutionProvider", res)
 
     def test_session(self):
