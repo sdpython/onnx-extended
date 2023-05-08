@@ -1,6 +1,7 @@
 import numpy
 cimport numpy
 cimport cython
+from libc.stdint cimport int64_t
 from cpython cimport Py_buffer
 from cpython.buffer cimport (
     PyObject_GetBuffer,
@@ -43,11 +44,21 @@ cdef extern from "<vector>" namespace "std":
 
 cdef extern from "ortapi.h" namespace "ortapi":
 
+    cdef cppclass OrtShape:
+        OrtShape()
+        void init(size_t)
+        size_t ndim()
+        void set(size_t i, int64_t dim)
+
+    cdef cppclass OrtCpuValue:
+        OrtCpuValue()
+        void init(size_t size, int elem_type, void* data)
+
     vector[string] get_available_providers()
     void* create_session()
     void delete_session(void*)
-    size_t get_input_count(void*)
-    size_t get_output_count(void*)
+    size_t session_get_input_count(void*)
+    size_t session_get_output_count(void*)
     void session_load_from_file(void*, const char* filename)
     void session_load_from_bytes(void*, const void* buffer, size_t size)
     void session_initialize(void*,
@@ -58,12 +69,12 @@ cdef extern from "ortapi.h" namespace "ortapi":
                             int set_denormal_as_zero,
                             int intra_op_num_threads,
                             int inter_op_num_threads)
-    # void* ort_run_inference(void* inst, int n_inputs,
-    # const char** input_names, void* ort_values, int& n_outputs);
-
-    # https://stackoverflow.com/questions/46510654/using-pycapsule-in-cython
-    # https://github.com/microsoft/onnxruntime-inference-examples/blob/main/c_cxx/squeezenet/main.cpp
-
+    size_t session_run(void*,
+                       size_t n_inputs,
+                       const OrtShape* shapes,
+                       const OrtCpuValue* values,
+                       size_t max_outputs,
+                       const OrtCpuValue* out_ptr)
 
 cdef list _ort_get_available_providers():
     """
@@ -151,28 +162,42 @@ cdef class OrtSession:
 
     def get_input_count(self):
         "Returns the number of inputs."
-        return get_input_count(self.session)
+        return session_get_input_count(self.session)
 
     def get_output_count(self):
         "Returns the number of outputs."
-        return get_output_count(self.session)
+        return session_get_output_count(self.session)
 
+    @cython.boundscheck(False)
+    @cython.nonecheck(False)
+    @cython.wraparound(False)
+    def run_float_2(
+        self,
+        numpy.ndarray[numpy.float32_t] input1,
+        numpy.ndarray[numpy.float32_t] input2
+    ):
+        """
+        Runs the inference assuming the model has two inputs.
+        """
+        cdef OrtShape shapes[2]
 
-@cython.boundscheck(False)
-@cython.nonecheck(False)
-@cython.wraparound(False)
-def run_inference_float(OrtSession inst, numpy.ndarray value):
-    """
-    Runs the inference on one value only.
-    """
-    raise NotImplementedError()
+        shapes[0].init(input1.ndim)
+        for i in range(input1.ndim):
+            shapes[0].set(i, input1.shape[i])
 
+        shapes[1].init(input2.ndim)
+        for i in range(input2.ndim):
+            shapes[1].set(i, input2.shape[i])
 
-@cython.boundscheck(False)
-@cython.nonecheck(False)
-@cython.wraparound(False)
-def run_inference(inst, input_names, values):
-    """
-    Runs inference and returns the results.
-    """
-    raise NotImplementedError()
+        cdef numpy.ndarray[numpy.float32_t] value1 = numpy.ascontiguousarray(input1)
+        cdef numpy.ndarray[numpy.float32_t] value2 = numpy.ascontiguousarray(input2)
+
+        cdef OrtCpuValue in_values[2];
+        in_values[0].init(value1.size(), 1, value1.data)
+        in_values[1].init(value2.size(), 1, value2.data)
+
+        cdef OrtCpuValue out_values[10];
+
+        cdef size_t n_outputs = session_run(self.session, 2, shapes, in_values, 10, out_values)
+
+        # how to avoid a copy

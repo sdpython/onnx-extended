@@ -1,6 +1,5 @@
 #include "ortapi.h"
 #include "helpers.h"
-#include <stdexcept>
 #ifdef _WIN32
 #include <codecvt>
 #include <locale>
@@ -81,7 +80,7 @@ public:
     size_t GetInputCount() const { return n_inputs_; }
     size_t GetOutputCount() const { return n_outputs_; }
 
-    void initialize(const char* optimized_file_path = nullptr,
+    void Initialize(const char* optimized_file_path = nullptr,
                     int graph_optimization_level = -1,
                     int enable_cuda = 0,
                     int cuda_device_id = 0,
@@ -95,8 +94,15 @@ public:
         if (optimized_file_path != nullptr) {
             std::string path(optimized_file_path);
             if (!path.empty()) {
+                #ifdef _WIN32
+                std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+                std::wstring wpath(cvt.from_bytes(path));
+                ThrowOnError(GetOrtApi()->SetOptimizedModelFilePath(
+                    sess_options_, wpath.c_str()));
+                #else
                 ThrowOnError(GetOrtApi()->SetOptimizedModelFilePath(
                     sess_options_, path.c_str()));
+                #endif
             }
         }
         if (enable_cuda) {
@@ -120,30 +126,40 @@ public:
         }
     }
 
-    /*
-    
+    size_t Run(size_t n_inputs,
+                       OrtShape* shapes,
+                       OrtCpuValue* values,
+                       size_t max_outputs,
+                       OrtCpuValue* out_ptr) {
+        if (max_outputs > n_outputs_)
+            EXT_THROW("Not enough expected outputs, max_outputs=",
+                      max_outputs, " > ", n_outputs_, ".");
+        if (n_inputs > n_inputs_)
+            EXT_THROW("Too many inputs, n_inputs=", n_inputs, " > ", n_inputs, ".");
+        std::vector<OrtValue*> ort_values(n_inputs);
+        
+        for(size_t i = 0; i < n_inputs; ++i) {
+            ThrowOnError(GetOrtApi()->CreateTensorWithDataAsOrtValue(
+                cpu_memory_info_, values[i].data(), values[i].size(),
+                shapes[i].dims(), shapes[i].ndim(),
+                (ONNXTensorElementDataType)values[i].elem_type(),
+                &ort_values[i]));
+        }
 
-OrtStatus * OrtApi::CreateTensorWithDataAsOrtValue	(	const OrtMemoryInfo * 	info,
-void * 	p_data,
-size_t 	p_data_len,
-const int64_t * 	shape,
-size_t 	shape_len,
-ONNXTensorElementDataType 	type,
-OrtValue ** 	out 
-)	
-void OrtApi::ReleaseValue	(	OrtValue * 	input	)	
+        std::vector<OrtValue*> ort_values_out(n_outputs_);
+        ThrowOnError(GetOrtApi()->Run(
+            sess_, run_options_,
+            input_names_call_.data(), ort_values.data(), n_inputs,
+            output_names_call_.data(), n_outputs_, ort_values_out.data()));
 
-
-OrtStatus * OrtApi::Run	(	OrtSession * 	session,
-const OrtRunOptions * 	run_options,
-const char *const * 	input_names,
-const OrtValue *const * 	inputs,
-size_t 	input_len,
-const char *const * 	output_names,
-size_t 	output_names_len,
-OrtValue ** 	outputs 
-)	
-    */
+        for(size_t i = 0; i < n_inputs; ++i) {
+            GetOrtApi()->ReleaseValue(ort_values[i]);
+        }
+        for(size_t i = 0; i < n_outputs_; ++i) {
+            GetOrtApi()->ReleaseValue(ort_values_out[i]);
+        }
+        return n_outputs_;
+    }
 
 protected:
     void LoadFinalize() {
@@ -166,6 +182,14 @@ protected:
             output_names_.emplace_back(std::string(name));
             ThrowOnError(GetOrtApi()->AllocatorFree(cpu_allocator_, name));
         }
+        input_names_call_.resize(n_inputs_);
+        for(size_t i = 0; i < n_inputs_; ++i) {
+            input_names_call_[i] = input_names_[i].c_str();
+        }
+        output_names_call_.resize(n_inputs_);
+        for(size_t i = 0; i < n_inputs_; ++i) {
+            output_names_call_[i] = output_names_[i].c_str();
+        }
     }
 
 private:
@@ -183,7 +207,18 @@ private:
     size_t n_outputs_;
     std::vector<std::string> input_names_;
     std::vector<std::string> output_names_;
+    std::vector<const char*> input_names_call_;
+    std::vector<const char*> output_names_call_;
 };
+
+/*
+typedef enum {
+    None=0,
+    CPU=1,
+    CUDA=2
+} OrtProvider ;
+
+*/
 
 //////// SIMPLE API //////
 
@@ -197,8 +232,8 @@ void session_load_from_file(OrtSessionType* ptr, const char* filename) { ((OrtIn
 void session_load_from_bytes(OrtSessionType* ptr, const void* buffer, size_t size) {
     ((OrtInference*)ptr)->LoadFromBytes(buffer, size);
 }
-size_t get_input_count(OrtSessionType* ptr) { return ((OrtInference*)ptr)->GetInputCount(); }
-size_t get_output_count(OrtSessionType* ptr) { return ((OrtInference*)ptr)->GetOutputCount(); }
+size_t session_get_input_count(OrtSessionType* ptr) { return ((OrtInference*)ptr)->GetInputCount(); }
+size_t session_get_output_count(OrtSessionType* ptr) { return ((OrtInference*)ptr)->GetOutputCount(); }
 
 void session_initialize(OrtSessionType* ptr,
                         const char* optimized_file_path,
@@ -208,7 +243,7 @@ void session_initialize(OrtSessionType* ptr,
                         int set_denormal_as_zero,
                         int intra_op_num_threads,
                         int inter_op_num_threads) {
-    ((OrtInference*)ptr)->initialize(optimized_file_path,
+    ((OrtInference*)ptr)->Initialize(optimized_file_path,
                                      graph_optimization_level,
                                      enable_cuda,
                                      cuda_device_id,
@@ -217,37 +252,13 @@ void session_initialize(OrtSessionType* ptr,
                                      inter_op_num_threads);
 }
 
-class OrtShape {
-private:
-  int64_t size_;
-  int64_t dims_[8];
-
-public:
-  inline OrtShape(const std::vector<int> &shape) {
-    if (shape.size() > 8)
-      throw std::runtime_error("shape cannot have more than 8 dimensions.");
-    size_ = static_cast<int64_t>(shape.size());
-    memcpy(dims_, shape.data(), size_ * sizeof(int64_t));
-  }
-  inline int64_t ndim() const { return size_; }
-  inline const int64_t *dims() const { return dims_; }
-};
-
-typedef enum {
-    None=0,
-    CPU=1,
-    CUDA=2
-} OrtProvider ;
-
-class OrtValue {
-    private:
-        OrtProvider provider_;
-        //Ort::Value* ptr_ov;
-    public:
-        int element_type() const;
-        inline OrtProvider provider() const { return provider_; }
-        //inline Ort::Value& value() const { return *ptr_ov; }
-
-};
+size_t session_run(OrtSessionType* ptr,
+                   size_t n_inputs,
+                   OrtShape* shapes,
+                   OrtCpuValue* values,
+                   size_t max_outputs,
+                   OrtCpuValue* out_ptr) {
+    return ((OrtInference*)ptr)->Run(n_inputs, shapes, values, max_outputs, out_ptr);            
+}
 
 } // namespace ortapi
