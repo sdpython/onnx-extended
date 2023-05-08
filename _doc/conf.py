@@ -57,6 +57,7 @@ sphinx_gallery_conf = {
 }
 
 epkg_dictionary = {
+    "cython": "https://cython.org/",
     "DOT": "https://graphviz.org/doc/info/lang.html",
     "JIT": "https://en.wikipedia.org/wiki/Just-in-time_compilation",
     "onnx": "https://onnx.ai/onnx/",
@@ -66,6 +67,10 @@ epkg_dictionary = {
     "numba": "https://numba.pydata.org/",
     "onnx-array-api": (
         "http://www.xavierdupre.fr/app/" "onnx-array-api/helpsphinx/index.html"
+    ),
+    "onnxruntime C API": "https://onnxruntime.ai/docs/api/c/",
+    "onnxruntime Graph Optimizations": (
+        "https://onnxruntime.ai/docs/performance/model-optimizations/graph-optimizations.html"
     ),
     "pyinstrument": "https://github.com/joerick/pyinstrument",
     "python": "https://www.python.org/",

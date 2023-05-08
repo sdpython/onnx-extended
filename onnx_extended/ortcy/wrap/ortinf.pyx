@@ -50,7 +50,14 @@ cdef extern from "ortapi.h" namespace "ortapi":
     size_t get_output_count(void*)
     void session_load_from_file(void*, const char* filename)
     void session_load_from_bytes(void*, const void* buffer, size_t size)
-
+    void session_initialize(void*,
+                            const char* optimized_file_path,
+                            int graph_optimization_level,
+                            int enable_cuda,
+                            int cuda_device_id,
+                            int set_denormal_as_zero,
+                            int intra_op_num_threads,
+                            int inter_op_num_threads)
     # void* ort_run_inference(void* inst, int n_inputs,
     # const char** input_names, void* ort_values, int& n_outputs);
 
@@ -81,7 +88,21 @@ def ort_get_available_providers():
 
 cdef class OrtSession:
     """
-    Wrapper around `onnxruntime C API <https://onnxruntime.ai/docs/api/c/>`_.
+    Wrapper around :epkg:`onnxruntime C API` based on :epkg:`cython`.
+
+    :param filename: filename (str) or a bytes for a model serialized in
+        memory
+    :param graph_optimisation_level: level of graph optimisation,
+        nodes fusion, see :epkg:`onnxruntime Graph Optimizations`
+    :param enable_cuda: use CUDA provider
+    :param cuda_device_id: CUDA device id
+    :param set_denormal_as_zero: if a tensor contains too many denormal numbers,
+        the execution is slowing down
+    :param optimized_file_path: to write the optimized model
+    :param inter_op_num_threads: number of threads used to parallelize
+        the execution of the graph
+    :param intra_op_num_threads: number of threads used to parallelize
+        the execution within nodes
     """
 
     cdef void* session
@@ -97,8 +118,27 @@ cdef class OrtSession:
         finally:
             PyBuffer_Release(&buffer)
 
-    def __init__(self, filename):
+    def __init__(
+        self,
+        filename,
+        graph_optimization_level=-1,
+        enable_cuda=False,
+        cuda_device_id=0,
+        set_denormal_as_zero=False,
+        optimized_file_path=None,
+        inter_op_num_threads=-1,
+        intra_op_num_threads=-1,
+    ):
         self.session = <void*>create_session()
+        session_initialize(
+            self.session,
+            (optimized_file_path or "").encode('utf-8'),
+            graph_optimization_level,
+            1 if enable_cuda else 0,
+            cuda_device_id,
+            1 if set_denormal_as_zero else 0,
+            intra_op_num_threads,
+            inter_op_num_threads)
         if isinstance(filename, str):
             session_load_from_file(self.session, filename.encode('utf-8'))
         elif isinstance(filename, bytes):
@@ -110,9 +150,11 @@ cdef class OrtSession:
         delete_session(self.session)
 
     def get_input_count(self):
+        "Returns the number of inputs."
         return get_input_count(self.session)
 
     def get_output_count(self):
+        "Returns the number of outputs."
         return get_output_count(self.session)
 
 
