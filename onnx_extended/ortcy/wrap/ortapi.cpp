@@ -36,6 +36,13 @@ std::vector<std::string> get_available_providers() {
     return available_providers;
 }
 
+void OrtCpuValue::free_ort_value() {
+    if (ort_value_ != nullptr) {
+        GetOrtApi()->ReleaseValue((OrtValue*)ort_value_);
+        ort_value_ = nullptr;
+    }
+}
+
 class OrtInference {
 public:
 
@@ -130,7 +137,8 @@ public:
                        OrtShape* shapes,
                        OrtCpuValue* values,
                        size_t max_outputs,
-                       OrtCpuValue* out_ptr) {
+                       OrtShape* out_shapes,
+                       OrtCpuValue* out_values) {
         if (max_outputs > n_outputs_)
             EXT_THROW("Not enough expected outputs, max_outputs=",
                       max_outputs, " > ", n_outputs_, ".");
@@ -155,8 +163,30 @@ public:
         for(size_t i = 0; i < n_inputs; ++i) {
             GetOrtApi()->ReleaseValue(ort_values[i]);
         }
+        OrtTensorTypeAndShapeInfo* info;
+        ONNXTensorElementDataType elem_type;
+        size_t size, n_dims;
+        void* data;
         for(size_t i = 0; i < n_outputs_; ++i) {
-            GetOrtApi()->ReleaseValue(ort_values_out[i]);
+            ThrowOnError(GetOrtApi()->GetTensorTypeAndShape(ort_values_out[i], &info));
+            ThrowOnError(GetOrtApi()->GetTensorElementType(info, &elem_type));
+            if (elem_type == ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING) {
+                GetOrtApi()->ReleaseTensorTypeAndShapeInfo(info);
+                for(; i < n_outputs_; ++i) {
+                    GetOrtApi()->ReleaseValue(ort_values_out[i]);
+                }
+                throw std::runtime_error("tensor(string) is not supported as outputs.");
+            }
+            ThrowOnError(GetOrtApi()->GetTensorShapeElementCount(info, &size));
+            ThrowOnError(GetOrtApi()->GetTensorMutableData(ort_values_out[i], &data));
+            ThrowOnError(GetOrtApi()->GetDimensionsCount(info, &n_dims));
+            out_shapes[i].init(n_dims);
+            ThrowOnError(GetOrtApi()->GetDimensions(info, (int64_t*)out_shapes[i].dims(), n_dims));
+            /* typedef void copy_allocate(size_t output, int elem_type, size_t size,
+                                          OrtShape shape, void* data, void* args); */
+            GetOrtApi()->ReleaseTensorTypeAndShapeInfo(info);
+            out_values[i].init(size, elem_type, data, ort_values_out[i]);
+            // GetOrtApi()->ReleaseValue(ort_values_out[i]);
         }
         return n_outputs_;
     }
@@ -257,8 +287,10 @@ size_t session_run(OrtSessionType* ptr,
                    OrtShape* shapes,
                    OrtCpuValue* values,
                    size_t max_outputs,
-                   OrtCpuValue* out_ptr) {
-    return ((OrtInference*)ptr)->Run(n_inputs, shapes, values, max_outputs, out_ptr);            
+                   OrtShape* out_shapes,
+                   OrtCpuValue* out_values) {
+    return ((OrtInference*)ptr)->Run(n_inputs, shapes, values,
+                                     max_outputs, out_shapes, out_values);
 }
 
 } // namespace ortapi

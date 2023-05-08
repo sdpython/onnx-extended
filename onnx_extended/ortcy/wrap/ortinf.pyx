@@ -2,6 +2,7 @@ import numpy
 cimport numpy
 cimport cython
 from libc.stdint cimport int64_t
+from libc.string cimport memcpy 
 from cpython cimport Py_buffer
 from cpython.buffer cimport (
     PyObject_GetBuffer,
@@ -49,12 +50,18 @@ cdef extern from "ortapi.h" namespace "ortapi":
         void init(size_t)
         size_t ndim()
         void set(size_t i, int64_t dim)
+        void* dims()
 
     cdef cppclass OrtCpuValue:
         OrtCpuValue()
-        void init(size_t size, int elem_type, void* data)
+        void init(size_t size, int elem_type, void* data, void* ort_value)
+        void free_ort_value()
+        int elem_type()
+        size_t size()
+        void* data()
 
     vector[string] get_available_providers()
+
     void* create_session()
     void delete_session(void*)
     size_t session_get_input_count(void*)
@@ -74,7 +81,8 @@ cdef extern from "ortapi.h" namespace "ortapi":
                        const OrtShape* shapes,
                        const OrtCpuValue* values,
                        size_t max_outputs,
-                       const OrtCpuValue* out_ptr)
+                       OrtShape* out_shapes,
+                       OrtCpuValue* out_values)
 
 cdef list _ort_get_available_providers():
     """
@@ -192,12 +200,32 @@ cdef class OrtSession:
         cdef numpy.ndarray[numpy.float32_t] value1 = numpy.ascontiguousarray(input1)
         cdef numpy.ndarray[numpy.float32_t] value2 = numpy.ascontiguousarray(input2)
 
-        cdef OrtCpuValue in_values[2];
-        in_values[0].init(value1.size(), 1, value1.data)
-        in_values[1].init(value2.size(), 1, value2.data)
+        cdef OrtCpuValue in_values[2]
+        in_values[0].init(value1.size(), 1, value1.data, <void*>0)
+        in_values[1].init(value2.size(), 1, value2.data, <void*>0)
 
-        cdef OrtCpuValue out_values[10];
+        cdef OrtShape out_shapes[10]
+        cdef OrtCpuValue out_values[10]
 
-        cdef size_t n_outputs = session_run(self.session, 2, shapes, in_values, 10, out_values)
+        cdef size_t n_outputs = session_run(
+            self.session, 2, shapes, in_values, 10, out_shapes, out_values)
 
-        # how to avoid a copy
+        # onnxruntime does not implement the DLPack protocol through the C API
+        # so we need to copy the data.
+
+        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape
+        cdef numpy.ndarray[numpy.float32_t] t_float32
+        res = list()
+        for i in range(n_outputs):
+            shape = numpy.empty(out_shapes[i].ndim(), dtype=numpy.int64)
+            memcpy(shape.data, out_shapes[i].dims(), out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
+            if out_values[i].elem_type() == 1:
+                t_float32 = numpy.empty(shape=shape, dtype=numpy.float32)
+                memcpy(t_float32.data, out_values[i].data(), out_values[i].size() * 4)  # 8 = sizeof(float32)
+                out_values[i].free_ort_value()
+                res.append(t_float32)
+            else:
+                raise NotImplementedError(
+                    f"Unable to create a tensor for type {out_values[i].elem_type()}."
+                )
+        return res

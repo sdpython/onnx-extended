@@ -32,21 +32,25 @@ class OrtCpuValue {
         size_t size_;
         int elem_type_;  // ONNXTensorElementDataType
         void* data_;
+        void* ort_value_;
     public:
         inline OrtCpuValue() { elem_type_ = -1; }
-        inline void init(size_t size, int elem_type, void* data) {
+        inline void init(size_t size, int elem_type, void* data, void* ort_value) {
             size_ = size;
             elem_type_ = elem_type;
             data_ = data;
+            ort_value_ = ort_value;
         }
         inline size_t size() { return size_; }
         inline int elem_type() { return elem_type_; }
         inline void* data() { return data_; }
+        void free_ort_value();
 };
-
 
 // Simplified API for this project.
 // see https://onnxruntime.ai/docs/api/c/
+
+typedef void release(size_t output, int elem_type, size_t size, OrtShape* shape, void* data, void* args);
 
 std::vector<std::string> get_available_providers();
 
@@ -69,6 +73,8 @@ size_t session_run(OrtSessionType* ptr,
                    OrtShape* shapes,
                    OrtCpuValue* values,
                    size_t max_outputs,
-                   OrtCpuValue* out_ptr);
+                   OrtShape* out_shapes,
+                   OrtCpuValue* out_values);
+
 
 } // namespace ortapi
