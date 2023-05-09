@@ -60,6 +60,11 @@ class TestOrtCy(ExtTestCase):
         self.assertEqual(len(got), 1)
         self.assertEqualArray(got[0], x + y)
 
+        got = session.run([x, y])
+        self.assertIsInstance(got, list)
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(got[0], x + y)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

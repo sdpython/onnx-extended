@@ -142,6 +142,35 @@ cdef class OrtSession:
         13: numpy.uint64,
     }
 
+    _onnx_types = {
+        numpy.float32: 1,
+        numpy.dtype("float32"): 1,
+        numpy.uint8: 2,
+        numpy.dtype("uint8"): 2,
+        numpy.int8: 3,
+        numpy.dtype("int8"): 3,
+        numpy.uint16: 4,
+        numpy.dtype("uint16"): 4,
+        numpy.int16: 5,
+        numpy.dtype("int16"): 5,
+        numpy.int32: 6,
+        numpy.dtype("int32"): 6,
+        numpy.int64: 7,
+        numpy.dtype("int64"): 7,
+        # 8: numpy.str_,
+        # numpy.dtype("str_"): 8,
+        numpy.bool_: 9,
+        numpy.dtype("bool_"): 9,
+        numpy.float16: 10,
+        numpy.dtype("float16"): 10,
+        numpy.float64: 11,
+        numpy.dtype("float64"): 11,
+        numpy.uint32: 12,
+        numpy.dtype("uint32"): 12,
+        numpy.uint64: 13,
+        numpy.dtype("uint64"): 13,
+    }
+
     cdef void* session
 
     cdef void _session_load_from_bytes(self, object data):
@@ -197,6 +226,121 @@ cdef class OrtSession:
     @cython.boundscheck(False)
     @cython.nonecheck(False)
     @cython.wraparound(False)
+    def run(
+        self,
+        list inputs,
+    ):
+        """
+        Runs the inference.
+        The number of inputs and outputs must not exceed 10.
+        """
+        if len(inputs) > 10:
+            raise RuntimeError(
+                f"This function does not work with more than "
+                f"10 inputs ({len(inputs)})."
+            )
+        cdef OrtShape shapes[10]
+        cdef OrtCpuValue in_values[10]
+        cdef numpy.ndarray value
+
+        values = []
+        for n in range(len(inputs)):
+            shapes[n].init(inputs[n].ndim)
+            for i in range(inputs[n].ndim):
+                shapes[n].set(i, inputs[n].shape[i])
+            value = numpy.ascontiguousarray(inputs[n])
+            in_values[n].init(
+                value.size,
+                OrtSession._onnx_types[value.dtype],
+                value.data,
+                <void*>0
+            )
+            # otherwise the pointer might be destroyed by the garbage collector
+            values.append(value)
+
+        cdef OrtShape out_shapes[10]
+        cdef OrtCpuValue out_values[10]
+
+        cdef size_t n_outputs = session_run(
+            self.session, len(inputs), shapes, in_values, 10, out_shapes, out_values)
+
+        # onnxruntime does not implement the DLPack protocol through the C API.
+        # DLPack protocol should be used.
+
+        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape
+        cdef numpy.ndarray tout
+        res = list()
+        for i in range(n_outputs):
+            shape = numpy.empty(out_shapes[i].ndim(), dtype=numpy.int64)
+            memcpy(shape.data,
+                   out_shapes[i].dims(),
+                   out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
+            tout = numpy.empty(
+                shape=shape,
+                dtype=OrtSession._dtypes[out_values[i].elem_type()]
+            )
+            memcpy(tout.data,
+                   out_values[i].data(),
+                   out_values[i].size() * ElementSizeI(out_values[i].elem_type()))
+            out_values[i].free_ort_value()
+            res.append(tout)
+        return res
+
+    @cython.boundscheck(False)
+    @cython.nonecheck(False)
+    @cython.wraparound(False)
+    def run_1_1(
+        self,
+        numpy.ndarray input1,
+    ):
+        """
+        Runs the inference assuming the model has one input and one output.
+        """
+        cdef OrtShape shapes[1]
+
+        shapes[0].init(input1.ndim)
+        for i in range(input1.ndim):
+            shapes[0].set(i, input1.shape[i])
+
+        cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
+        cdef OrtCpuValue in_values[1]
+
+        in_values[0].init(
+            value1.size,
+            OrtSession._onnx_types[value1.dtype],
+            value1.data,
+            <void*>0
+        )
+
+        cdef OrtShape out_shapes[1]
+        cdef OrtCpuValue out_values[1]
+
+        cdef size_t n_outputs = session_run(
+            self.session, 1, shapes, in_values, 1, out_shapes, out_values)
+        if n_outputs != 1:
+            raise RuntimeError(f"Expecting 1 output not {n_outputs}.")
+
+        # onnxruntime does not implement the DLPack protocol through the C API.
+        # DLPack protocol should be used.
+
+        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape = numpy.empty(
+            out_shapes[0].ndim(), dtype=numpy.int64)
+        memcpy(shape.data,
+               out_shapes[0].dims(),
+               out_shapes[0].ndim() * 8)  # 8 = sizeof(int64)
+        cdef numpy.ndarray tout = numpy.empty(
+            shape=shape,
+            dtype=OrtSession._dtypes[out_values[0].elem_type()]
+        )
+        memcpy(tout.data,
+               out_values[0].data(),
+               out_values[0].size() * ElementSizeI(out_values[0].elem_type()))
+        out_values[0].free_ort_value()
+        return tout
+
+    @cython.boundscheck(False)
+    @cython.nonecheck(False)
+    @cython.wraparound(False)
     def run_2(
         self,
         numpy.ndarray input1,
@@ -219,8 +363,18 @@ cdef class OrtSession:
         cdef numpy.ndarray value2 = numpy.ascontiguousarray(input2)
 
         cdef OrtCpuValue in_values[2]
-        in_values[0].init(value1.size, 1, value1.data, <void*>0)
-        in_values[1].init(value2.size, 1, value2.data, <void*>0)
+        in_values[0].init(
+            value1.size,
+            OrtSession._onnx_types[value1.dtype],
+            value1.data,
+            <void*>0
+        )
+        in_values[1].init(
+            value2.size,
+            OrtSession._onnx_types[value2.dtype],
+            value2.data,
+            <void*>0
+        )
 
         cdef OrtShape out_shapes[10]
         cdef OrtCpuValue out_values[10]
