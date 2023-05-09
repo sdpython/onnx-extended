@@ -148,7 +148,6 @@ else()
   set(CUDA_AVAILABLE 0)
 endif()
 
-
 message(STATUS "-------------------")
 find_package(Ort REQUIRED)
 if(Ort_FOUND)
@@ -257,7 +256,7 @@ cython_add_module(
 target_link_directories(ortinf PRIVATE ${ONNXRUNTIME_LIB_DIR})
 target_link_libraries(ortinf PRIVATE lib_ortapi onnxruntime)
 ort_add_dependency(ortinf ${CMAKE_CURRENT_SOURCE_DIR}/../onnx_extended/ortcy/wrap/)
-    
+
 #
 # onnxruntime
 #

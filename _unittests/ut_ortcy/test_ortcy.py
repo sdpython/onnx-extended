@@ -1,5 +1,6 @@
 import unittest
 import os
+import numpy
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -51,6 +52,13 @@ class TestOrtCy(ExtTestCase):
         session = OrtSession(data)
         self.assertEqual(session.get_input_count(), 2)
         self.assertEqual(session.get_output_count(), 1)
+
+        x = numpy.random.randn(2, 3).astype(numpy.float32)
+        y = numpy.random.randn(2, 3).astype(numpy.float32)
+        got = session.run_2(x, y)
+        self.assertIsInstance(got, list)
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(got[0], x + y)
 
 
 if __name__ == "__main__":

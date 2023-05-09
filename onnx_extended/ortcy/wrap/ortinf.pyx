@@ -2,7 +2,7 @@ import numpy
 cimport numpy
 cimport cython
 from libc.stdint cimport int64_t
-from libc.string cimport memcpy 
+from libc.string cimport memcpy
 from cpython cimport Py_buffer
 from cpython.buffer cimport (
     PyObject_GetBuffer,
@@ -62,6 +62,7 @@ cdef extern from "ortapi.h" namespace "ortapi":
 
     vector[string] get_available_providers()
 
+    size_t ElementSizeI(int elem_type)
     void* create_session()
     void delete_session(void*)
     size_t session_get_input_count(void*)
@@ -124,6 +125,23 @@ cdef class OrtSession:
         the execution within nodes
     """
 
+    # see https://github.com/onnx/onnx/blob/main/onnx/onnx.proto3#L485
+    _dtypes = {
+        1: numpy.float32,
+        2: numpy.uint8,
+        3: numpy.int8,
+        4: numpy.uint16,
+        5: numpy.int16,
+        6: numpy.int32,
+        7: numpy.int64,
+        # 8: numpy.str_,
+        9: numpy.bool_,
+        10: numpy.float16,
+        11: numpy.float64,
+        12: numpy.uint32,
+        13: numpy.uint64,
+    }
+
     cdef void* session
 
     cdef void _session_load_from_bytes(self, object data):
@@ -179,10 +197,10 @@ cdef class OrtSession:
     @cython.boundscheck(False)
     @cython.nonecheck(False)
     @cython.wraparound(False)
-    def run_float_2(
+    def run_2(
         self,
-        numpy.ndarray[numpy.float32_t] input1,
-        numpy.ndarray[numpy.float32_t] input2
+        numpy.ndarray input1,
+        numpy.ndarray input2
     ):
         """
         Runs the inference assuming the model has two inputs.
@@ -197,12 +215,12 @@ cdef class OrtSession:
         for i in range(input2.ndim):
             shapes[1].set(i, input2.shape[i])
 
-        cdef numpy.ndarray[numpy.float32_t] value1 = numpy.ascontiguousarray(input1)
-        cdef numpy.ndarray[numpy.float32_t] value2 = numpy.ascontiguousarray(input2)
+        cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
+        cdef numpy.ndarray value2 = numpy.ascontiguousarray(input2)
 
         cdef OrtCpuValue in_values[2]
-        in_values[0].init(value1.size(), 1, value1.data, <void*>0)
-        in_values[1].init(value2.size(), 1, value2.data, <void*>0)
+        in_values[0].init(value1.size, 1, value1.data, <void*>0)
+        in_values[1].init(value2.size, 1, value2.data, <void*>0)
 
         cdef OrtShape out_shapes[10]
         cdef OrtCpuValue out_values[10]
@@ -210,22 +228,24 @@ cdef class OrtSession:
         cdef size_t n_outputs = session_run(
             self.session, 2, shapes, in_values, 10, out_shapes, out_values)
 
-        # onnxruntime does not implement the DLPack protocol through the C API
-        # so we need to copy the data.
+        # onnxruntime does not implement the DLPack protocol through the C API.
+        # DLPack protocol should be used.
 
         cdef numpy.ndarray[numpy.int64_t, ndim=1] shape
-        cdef numpy.ndarray[numpy.float32_t] t_float32
+        cdef numpy.ndarray tout
         res = list()
         for i in range(n_outputs):
             shape = numpy.empty(out_shapes[i].ndim(), dtype=numpy.int64)
-            memcpy(shape.data, out_shapes[i].dims(), out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
-            if out_values[i].elem_type() == 1:
-                t_float32 = numpy.empty(shape=shape, dtype=numpy.float32)
-                memcpy(t_float32.data, out_values[i].data(), out_values[i].size() * 4)  # 8 = sizeof(float32)
-                out_values[i].free_ort_value()
-                res.append(t_float32)
-            else:
-                raise NotImplementedError(
-                    f"Unable to create a tensor for type {out_values[i].elem_type()}."
-                )
+            memcpy(shape.data,
+                   out_shapes[i].dims(),
+                   out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
+            tout = numpy.empty(
+                shape=shape,
+                dtype=OrtSession._dtypes[out_values[i].elem_type()]
+            )
+            memcpy(tout.data,
+                   out_values[i].data(),
+                   out_values[i].size() * ElementSizeI(out_values[i].elem_type()))
+            out_values[i].free_ort_value()
+            res.append(tout)
         return res

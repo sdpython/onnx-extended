@@ -1,13 +1,29 @@
 #pragma once
 
 #include "onnxruntime_c_api.h"
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
 
 #define OrtSessionType void
 
 namespace ortapi {
+
+inline size_t ElementSize(ONNXTensorElementDataType elem_type) {
+    switch(elem_type) {
+        case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+        case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
+        case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32:
+           return 4;
+        default:
+            throw std::runtime_error(
+                "One element type is not implemented in ElementSize.");
+    }
+}
+
+inline size_t ElementSizeI(int elem_type) {
+    return ElementSize((ONNXTensorElementDataType)elem_type);
+}
 
 class OrtShape {
 private:

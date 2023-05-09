@@ -18,14 +18,16 @@ const char* ort_version() {
     return "GetOrtApi()->GetBuildInfoString();";
 }
 
-inline void ThrowOnError(OrtStatus* ort_status) {
+inline void _ThrowOnError_(OrtStatus* ort_status, const char* filename, int line) {
     if (ort_status) {
         std::string message(GetOrtApi()->GetErrorMessage(ort_status));
         OrtErrorCode code = GetOrtApi()->GetErrorCode(ort_status);
-        throw std::runtime_error(MakeString("error: onnxruntime(", code, "), ", message));
+        throw std::runtime_error(
+            MakeString("error: onnxruntime(", code, "), ", message, "\n    ", filename, ":", line));
     }
 }
 
+#define ThrowOnError(ort_status) _ThrowOnError_(ort_status, __FILE__, __LINE__)
 
 std::vector<std::string> get_available_providers() {
     int len;
@@ -139,7 +141,7 @@ public:
                        size_t max_outputs,
                        OrtShape* out_shapes,
                        OrtCpuValue* out_values) {
-        if (max_outputs > n_outputs_)
+        if (max_outputs < n_outputs_)
             EXT_THROW("Not enough expected outputs, max_outputs=",
                       max_outputs, " > ", n_outputs_, ".");
         if (n_inputs > n_inputs_)
@@ -147,11 +149,12 @@ public:
         std::vector<OrtValue*> ort_values(n_inputs);
         
         for(size_t i = 0; i < n_inputs; ++i) {
+            ONNXTensorElementDataType elem_type = (ONNXTensorElementDataType)values[i].elem_type();
             ThrowOnError(GetOrtApi()->CreateTensorWithDataAsOrtValue(
-                cpu_memory_info_, values[i].data(), values[i].size(),
+                cpu_memory_info_, values[i].data(),
+                values[i].size() * ElementSize(elem_type),
                 shapes[i].dims(), shapes[i].ndim(),
-                (ONNXTensorElementDataType)values[i].elem_type(),
-                &ort_values[i]));
+                elem_type, &ort_values[i]));
         }
 
         std::vector<OrtValue*> ort_values_out(n_outputs_);

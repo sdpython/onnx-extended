@@ -7,7 +7,7 @@
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.14.1)
 endif()
-set(Ort_VERSION "${ORT_VERSION}")
+set(ORT_VERSION "${ORT_VERSION}")
 
 if(CUDA_FOUND)
   if(APPLE)
@@ -38,19 +38,19 @@ set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)
 set(ONNXRUNTIME_LIB_DIR ${onnxruntime_SOURCE_DIR}/lib)
 
 if(MSVC)
-  set(ext "dll")
+  set(DLLEXT "dll")
 elseif(APPLE)
-  set(ext "dylib")
+  set(DLLEXT "dylib")
 else()
-  set(ext "so")
+  set(DLLEXT "so")
 endif()
 
-file(GLOB ORT_LIB_FILES ${onnxruntime_SOURCE_DIR}/lib/*.${ext})
+file(GLOB ORT_LIB_FILES ${onnxruntime_SOURCE_DIR}/lib/*.${DLLEXT})
 file(GLOB ORT_LIB_HEADER ${onnxruntime_SOURCE_DIR}/include/*.h)
 
 find_library(ONNXRUNTIME onnxruntime HINTS "${ONNXRUNTIME_LIB_DIR}")
 if(ONNXRUNTIME-NOTFOUND)
-    message(FATAL_ERROR "onnxruntime cannot be found at ${ONNXRUNTIME_LIB_DIR}.")
+  message(FATAL_ERROR "onnxruntime cannot be found at ${ONNXRUNTIME_LIB_DIR}.")
 endif()
 
 #
@@ -81,10 +81,9 @@ function(ort_add_dependency name folder_copy)
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
 endfunction()
 
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
   Ort
-  VERSION_VAR Ort_VERSION
+  VERSION_VAR ORT_VERSION
   REQUIRED_VARS ORT_URL ONNXRUNTIME_INCLUDE_DIR ONNXRUNTIME_LIB_DIR
                 ORT_LIB_FILES ORT_LIB_HEADER)
