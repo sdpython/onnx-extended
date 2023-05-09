@@ -22,7 +22,7 @@ pytest
 pytest-cov
 ruff
 scikit-learn
-skl2onnx @ git+https://github.com/onnx/sklearn-onnx
+skl2onnx>=1.14.1
 sphinx
 sphinx-gallery
 tqdm
