@@ -35,7 +35,7 @@ known_extensions = [
     "*.h",
     "*.hpp",
     "*.pyd",
-    "*.so",
+    "*.so*",
 ]
 package_data = {
     "onnx_extended.ortcy.wrap": known_extensions,
