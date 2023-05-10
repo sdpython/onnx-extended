@@ -364,7 +364,7 @@ if has_cuda:
             add_cuda = False
     elif "--with-cuda=0" in sys.argv:
         add_cuda = False
-    elif "--with-cuda=1" in sys.argv:
+    elif "--with-cuda=1" in sys.argv or "--with-cuda=guess":
         add_cuda = True
     if add_cuda:
         cuda_extensions.extend(
@@ -375,6 +375,12 @@ if has_cuda:
                 )
             ]
         )
+elif "--with-cuda=1" in sys.argv or "--with-cuda" in sys.argv:
+    raise RuntimeError(
+        f"CUDA is not available, it cannot be build with CUDA depsite "
+        f"option '--with-cuda=1'."
+    )
+
 
 setup(
     name="onnx-extended",
