@@ -54,16 +54,16 @@ file(GLOB ORT_LIB_FILES ${ONNXRUNTIME_LIB_DIR}/*.${DLLEXT})
 file(GLOB ORT_LIB_HEADER ${ONNXRUNTIME_INCLUDE_DIR}/*.h)
 
 list(LENGTH ORT_LIB_FILES ORT_LIB_FILES_LENGTH)
-if (ORT_LIB_FILES_LENGTH LESS_EQUAL 1)
+if (ORT_LIB_FILES_LENGTH LESS_EQUAL 0)
   message(FATAL_ERROR "No file found in '${ONNXRUNTIME_LIB_DIR}' "
-                      "from url '${${ORT_URL}', "
+                      "from url '${ORT_URL}', "
                       "found files [${ORT_LIB_FILES}].")
 endif()
 
 list(LENGTH ORT_LIB_HEADER ORT_LIB_HEADER_LENGTH)
 if (ORT_LIB_HEADER_LENGTH LESS_EQUAL 1)
   message(FATAL_ERROR "No file found in '${ONNXRUNTIME_INCLUDE_DIR}' "
-                      "from url '${${ORT_URL}', "
+                      "from url '${ORT_URL}', "
                       "found files [${ORT_LIB_HEADER}]")
 endif()
 
