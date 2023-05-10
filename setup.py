@@ -319,14 +319,23 @@ class cmake_build_ext(build_ext):
             full_name = ext._file_name
             name = os.path.split(full_name)[-1]
             if iswin:
-                look = os.path.join(build_path, "Release", name)
+                looks = [
+                    os.path.join(build_path, "Release", full_name),
+                    os.path.join(build_path, "Release", name),
+                ]
             else:
-                look = os.path.join(build_path, name)
-            if not os.path.exists(look):
-                content = os.listdir(build_path)
+                looks = [
+                    os.path.join(build_path, full_name),
+                    os.path.join(build_path, name),
+                ]
+            looks_exists = [look for look in looks if os.path.exists(look)]
+            if len(looks_exists) == 0:
                 raise FileNotFoundError(
-                    f"Unable to find {look!r}, " f"build_path contains {content}."
+                    f"Unable to find {name!r} as {looks!r} (full_name={full_name!r}), "
+                    f"build_path contains {os.listdir(build_path)}."
                 )
+            else:
+                look = looks_exists[0]
             dest = os.path.join(build_lib, os.path.split(full_name)[0])
             if not os.path.exists(dest):
                 os.makedirs(dest)
@@ -353,6 +362,10 @@ if has_cuda:
         pos = sys.argv.index("--with-cuda")
         if len(sys.argv) > pos + 1 and sys.argv[pos + 1] in ("0", 0, False, "False"):
             add_cuda = False
+    elif "--with-cuda=0" in sys.argv:
+        add_cuda = False
+    elif "--with-cuda=1" in sys.argv:
+        add_cuda = True
     if add_cuda:
         cuda_extensions.extend(
             [

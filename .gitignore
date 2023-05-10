@@ -2,11 +2,14 @@
 *.pyd
 *.dylib
 *.so
+*.so.*
 *.dll
 *.vcxproj*
 *.tcl
 *.sln
 *.cmake
+/*.png
+/*.onnx
 .build_path.txt
 coverage.html/*
 _cache/*
