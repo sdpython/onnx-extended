@@ -9,6 +9,7 @@ Differents types, differents backend, differents
 Onnx Model
 ++++++++++
 """
+import platform
 from itertools import product
 import numpy
 from tqdm import tqdm
@@ -23,6 +24,7 @@ from onnx.helper import (
     make_opsetid,
 )
 from onnx.checker import check_model
+from onnx.numpy_helper import from_array
 from onnxruntime import InferenceSession, get_available_providers
 from onnxruntime.capi._pybind_state import (
     OrtValue as C_OrtValue,
@@ -34,11 +36,24 @@ from onnx_extended.ext_test_case import unit_test_going, measure_time
 
 
 def create_model(mat_type=TensorProto.FLOAT):
+    I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
     C = make_tensor_value_info("C", mat_type, [None, None])
-    node1 = make_node("MatMul", ["A", "B"], ["C"])
-    graph = make_graph([node1], "a", [A, B], [C])
+    nodes = [
+        make_node("CastLike", ["I", "A"], ["Ic"]),
+        make_node("Add", ["A", "Ic"], ["A1"]),
+        make_node("Add", ["A1", "Ic"], ["A2"]),
+        make_node("Add", ["A3", "Ic"], ["A3"]),
+        make_node("MatMul", ["A", "B"], ["M0"]),
+        make_node("MatMul", ["A1", "B"], ["M1"]),
+        make_node("MatMul", ["A2", "B"], ["M2"]),
+        make_node("MatMul", ["A3", "B"], ["M3"]),
+        make_node("Add", ["M0", "M1"], ["M12"]),
+        make_node("Add", ["M2", "M3"], ["M23"]),
+        make_node("Add", ["M12", "M23"], ["C"]),
+    ]
+    graph = make_graph(nodes, "a", [A, B], [C], [I1])
     onnx_model = make_model(graph, opset_imports=[make_opsetid("", 19)], ir_version=9)
     check_model(onnx_model)
     return onnx_model
@@ -81,7 +96,10 @@ types = [
     TensorProto.FLOAT8E5M2,
 ]
 engine = [CReferenceEvaluator, InferenceSession]
-providers = [["CPUExecutionProvider"], ["CUDAExecutionProvider"]]
+providers = [
+    ["CPUExecutionProvider"],
+    ["CUDAExecutionProvider", "CPUExecutionProvider"],
+]
 # M, N, K
 dims = [
     (10, 10, 10),
@@ -92,6 +110,7 @@ dims = [
     (128, 128, 128),
     (256, 256, 256),
     (400, 400, 400),
+    (512, 512, 512),
 ]
 
 
@@ -114,7 +133,9 @@ for m, n, k in dims:
         for i, j in [(m, k), (k, n)]:
             vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
             ov = to_ort_value(vect)
-            sess = InferenceSession(create_cast(tt).SerializeToString())
+            sess = InferenceSession(
+                create_cast(tt).SerializeToString(), providers=["CPUExecutionProvider"]
+            )
             ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
             matrices[tt, i, j] = ovtt
 
@@ -129,11 +150,11 @@ errors = []
 pbar = tqdm(list(product(types, engine, providers, dims)))
 for tt, engine, provider, dim in pbar:
     if max(dim) <= 200:
-        repeat, number = 50, 50
+        repeat, number = 50, 25
     elif max(dim) <= 256:
-        repeat, number = 25, 25
+        repeat, number = 25, 10
     else:
-        repeat, number = 10, 10
+        repeat, number = 10, 4
 
     onx = create_model(tt)
     k1 = (tt, dim[0], dim[2])
@@ -173,14 +194,25 @@ for tt, engine, provider, dim in pbar:
             continue
 
         if provider == ["CPUExecutionProvider"]:
-            sess._sess.run_with_ort_values(feeds, ["C"], None)[0]
-            obs = measure_time(
-                lambda: sess._sess.run_with_ort_values(feeds, ["C"], None)[0],
-                repeat=repeat,
-                number=number,
-            )
+            the_feeds = feeds
         else:
-            continue
+            # moving values to CUDA
+            device = C_OrtDevice(C_OrtDevice.cuda(), C_OrtDevice.default_memory(), 0)
+            try:
+                the_feeds = {
+                    k: C_OrtValue.ortvalue_from_numpy(v.numpy(), device)
+                    for k, v in feeds.items()
+                }
+            except RuntimeError as e:
+                errors.append(f"issue with cuda and type {tt} - {e}")
+                continue
+
+        sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0]
+        obs = measure_time(
+            lambda: sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0],
+            repeat=repeat,
+            number=number,
+        )
 
     else:
         continue
@@ -201,10 +233,13 @@ for tt, engine, provider, dim in pbar:
             M=dim[0],
             N=dim[1],
             K=dim[2],
-            cost=numpy.prod(dim),
+            cost=numpy.prod(dim) * 4,
             repeat=repeat,
             number=number,
-            provider=provider[0][:4],
+            provider={"CPUExecutionProvider": "cpu", "CUDAExecutionProvider": "cuda"}[
+                provider[0]
+            ],
+            platform=platform.processor(),
         )
     )
     data.append(obs)
@@ -213,22 +248,42 @@ for tt, engine, provider, dim in pbar:
 
 
 df = DataFrame(data)
-print(df)
+df.to_excel("plot_bench_gemm.xlsx", index=False)
+df
 
 #####################################
 # The errors.
 
-for e in errors:
+for e in list(sorted(set(map(str, errors)))):
     print(e)
 
 ##############################################
 # Plots
 # +++++
 
-piv = pivot_table(df, index=["cost"], columns=["engine", "type"], values="average")
+piv = pivot_table(
+    df, index=["cost"], columns=["engine", "type", "provider"], values="average"
+)
 print(piv)
+piv
 
+##############################
+# plot
 
-fig, ax = plt.subplots(1, 1, figsize=(12, 4))
-piv.plot(ax=ax, title="Gemm performance", logx=True, logy=True)
+dfi = df[
+    df.type.isin({"f32", "f16", "bf16", "f8e4m3", "f8e5m2"}) & df.engine.isin({"ort"})
+]
+pivi = pivot_table(
+    dfi, index=["cost"], columns=["engine", "type", "provider"], values="average"
+)
+
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+piv.plot(ax=ax[0], title="Gemm performance\nlower is better", logx=True, logy=True)
+pivi.plot(
+    ax=ax[1],
+    title=f"Gemm performance ORT\n{platform.processor()}",
+    logx=True,
+    logy=True,
+)
+fig.tight_layout()
 fig.savefig("plot_bench_gemm.png")
