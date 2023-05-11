@@ -27,7 +27,7 @@ from onnx_extended.validation.cpu._validation import (
 obs = []
 dims = [500, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 2000]
 if unit_test_going():
-    dims = dims[:3]
+    dims = dims[:2]
 for dim in tqdm(dims):
     values = numpy.ones((dim, dim), dtype=numpy.float32).ravel()
     diff = abs(vector_sum(dim, values, True) - dim**2)

@@ -48,8 +48,8 @@ jobs:
     displayName: 'install wheel'
   - script: |
       mkdir _tests
-      export PYTHONPATH=
-      python -m pytest --durations=10 --rootdir=_tests
+      cd _tests
+      python -m pytest .. --durations=10 --rootdir=_tests
     displayName: 'Runs Unit Tests'
   - task: PublishPipelineArtifact@0
     inputs:
