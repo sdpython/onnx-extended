@@ -1,5 +1,5 @@
 jobs:
-- job: 'TestLinuxWheel'
+- job: 'TestLinuxWheelNoCuda'
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
@@ -41,13 +41,14 @@ jobs:
       cython-lint .
     displayName: 'cython-lint'
   - script: |
-      python -m pip wheel . --wheel-dir dist -v -v -v
+      python -m pip wheel . --wheel-dir dist --config-settings="--with_cuda=0" -v -v -v
     displayName: 'build wheel'
   - script: |
       python -m pip install . -v -v -v
     displayName: 'install wheel'
   - script: |
       mkdir _tests
+      export PYTHONPATH=
       python -m pytest --durations=10 --rootdir=_tests
     displayName: 'Runs Unit Tests'
   - task: PublishPipelineArtifact@0

@@ -80,6 +80,9 @@ requires = [
     "wheel",
 ]
 
+[tool.setuptools.packages.find]
+namespaces = false
+
 [tool.setuptools.package-data]
 "*" = ["*.cc", "*.cpp", "*.cu", "*.cuh", "*.dylib", "*.h", "*.hpp", "*.pyd", "*.so*"]
 
