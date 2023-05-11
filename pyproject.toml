@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-dependencies = ["numpy>=1.23", "onnx>=1.14.0", "scipy"]
+dependencies = ["numpy", "onnx>=1.14.0", "scipy"]
 description = "Extends the list of supported operators in onnx reference implementation, or implements faster versions in C++."
 keywords = ["onnx", "onnxruntime", "CUDA", "openmp", "cmake", "cython", "pybind11"]
 license = {file = "LICENSE.txt"}
@@ -79,6 +79,9 @@ requires = [
     "setuptools",
     "wheel",
 ]
+
+[tool.setuptools.packages.find]
+namespaces = false
 
 [tool.setuptools.package-data]
 "*" = ["*.cc", "*.cpp", "*.cu", "*.cuh", "*.dylib", "*.h", "*.hpp", "*.pyd", "*.so*"]
