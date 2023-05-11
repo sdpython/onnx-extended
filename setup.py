@@ -377,8 +377,8 @@ if has_cuda:
         )
 elif "--with-cuda=1" in sys.argv or "--with-cuda" in sys.argv:
     raise RuntimeError(
-        f"CUDA is not available, it cannot be build with CUDA depsite "
-        f"option '--with-cuda=1'."
+        "CUDA is not available, it cannot be build with CUDA depsite "
+        "option '--with-cuda=1'."
     )
 
 
