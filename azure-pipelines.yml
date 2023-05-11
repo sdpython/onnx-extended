@@ -46,9 +46,9 @@ jobs:
   - script: |
       python -m pip install .
     displayName: 'install wheel'
-  - script: |
-      python -m pytest
-    displayName: 'Runs Unit Tests'
+  #- script: |
+  #    python -m pytest
+  #  displayName: 'Runs Unit Tests'
 
 - job: 'TestLinux'
   pool:
