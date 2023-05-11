@@ -44,7 +44,7 @@ def create_model(mat_type=TensorProto.FLOAT):
         make_node("CastLike", ["I", "A"], ["Ic"]),
         make_node("Add", ["A", "Ic"], ["A1"]),
         make_node("Add", ["A1", "Ic"], ["A2"]),
-        make_node("Add", ["A3", "Ic"], ["A3"]),
+        make_node("Add", ["A2", "Ic"], ["A3"]),
         make_node("MatMul", ["A", "B"], ["M0"]),
         make_node("MatMul", ["A1", "B"], ["M1"]),
         make_node("MatMul", ["A2", "B"], ["M2"]),
@@ -108,9 +108,9 @@ dims = [
     (65, 66, 67),
     (100, 100, 100),
     (128, 128, 128),
-    (256, 256, 256),
-    (400, 400, 400),
-    (512, 512, 512),
+    # (256, 256, 256),
+    # (400, 400, 400),
+    # (512, 512, 512),
 ]
 
 
