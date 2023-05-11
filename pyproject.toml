@@ -70,7 +70,7 @@ dev = [
 [build-system]
 requires = [
     "Cython",
-    "cmake"
+    "cmake",
     "numpy",
     "onnx",
     "pybind11",
