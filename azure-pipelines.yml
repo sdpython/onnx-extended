@@ -34,8 +34,8 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      cmake-lint cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
-      cmake-lint cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
     displayName: 'cmake-lint'
   - script: |
       cython-lint .
@@ -85,8 +85,8 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      cmake-lint cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
-      cmake-lint cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
     displayName: 'cmake-lint'
   - script: |
       cython-lint .
