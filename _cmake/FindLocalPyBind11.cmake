@@ -8,11 +8,13 @@
 # pybind11
 #
 
+set(pybind11_TAG "v2.10.4")
+
 include(FetchContent)
 FetchContent_Declare(
   pybind11
   GIT_REPOSITORY https://github.com/pybind/pybind11
-  GIT_TAG v2.10.4)
+  GIT_TAG ${pybind11_TAG})
 
 FetchContent_GetProperties(pybind11)
 if(NOT pybind11_POPULATED)
@@ -22,6 +24,7 @@ else()
   message(FATAL_ERROR "Pybind11 was not found.")
 endif()
 
+set(pybind11_VERSION ${pybind11_TAG})
 message(STATUS "PYBIND11_OPT_SIZE=${PYBIND11_OPT_SIZE}")
 message(STATUS "pybind11_INCLUDE_DIR=${pybind11_INCLUDE_DIR}")
 message(STATUS "pybind11_VERSION=${pybind11_VERSION}")

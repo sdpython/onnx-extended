@@ -1,18 +1,54 @@
 #include "c_op_common.h"
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <Eigen/Dense>
+
+using namespace Eigen;
 
 namespace onnx_c_ops {
-
-namespace py = pybind11;
-
 
 // The function adds value to C, assuming this array
 // was initialized.
 template <typename NTYPE>
 void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
           const NTYPE *A, const NTYPE *B, NTYPE beta, NTYPE *C) {
+  if (transA) {
+    if (transB) {
+      Map<MatrixXd> ma(A, M, K);
+      Map<MatrixXd> mb(B, K, N);
+      Map<MatrixXd> mc(C, M, N);
+      if (beta != 1)
+        C.noalias() *= beta;
+      C.noalias() += A.transpose() * B.transpose() * alpha;
+      return;
+    }
+    else {
+      Map<MatrixXd> ma(A, M, K);
+      Map<MatrixXd> mb(B, K, N);
+      Map<MatrixXd> mc(C, M, N);
+      if (beta != 1)
+        C.noalias() *= beta;
+      C.noalias() += A.transpose() * B * alpha;
+      return;
+    }
+  }
+  else if(transB) {
+      Map<MatrixXd> ma(A, M, K);
+      Map<MatrixXd> mb(B, K, N);
+      Map<MatrixXd> mc(C, M, N);
+      if (beta != 1)
+        C.noalias() *= beta;
+      C.noalias() += A * B.transpose() * alpha;
+      return;
+  }
+  else {
+      Map<MatrixXd> ma(A, M, K);
+      Map<MatrixXd> mb(B, K, N);
+      Map<MatrixXd> mc(C, M, N);
+      if (beta != 1)
+        C.noalias() *= beta;
+      C.noalias() += A * B * alpha;
+      return;
+  }
+
   if (transA) {
     if (transB) {
     } else {
