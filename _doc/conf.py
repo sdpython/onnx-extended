@@ -13,6 +13,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
     "sphinx_gallery.gen_gallery",
+    "sphinx_issues",
     "matplotlib.sphinxext.plot_directive",
     "pyquickhelper.sphinxext.sphinx_epkg_extension",
     "pyquickhelper.sphinxext.sphinx_gdot_extension",
@@ -32,6 +33,7 @@ language = "en"
 exclude_patterns = []
 pygments_style = "sphinx"
 todo_include_todos = True
+issues_github_path = "sdpython/onnx-extended"
 
 html_theme = "furo"
 html_theme_path = ["_static"]
