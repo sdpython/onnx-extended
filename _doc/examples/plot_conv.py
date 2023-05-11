@@ -108,7 +108,7 @@ for i in tqdm([16, 32, 48, 64]):
     t2 = measure_time(lambda: sess2.run(None, feeds))
     obs = dict(size=i, onnx=t1["average"], onnx_extended=t2["average"])
     data.append(obs)
-    if unit_test_going() and len(data) >= 3:
+    if unit_test_going() and len(data) >= 2:
         break
 
 df = DataFrame(data)

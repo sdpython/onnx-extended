@@ -1,5 +1,5 @@
 jobs:
-- job: 'TestLinuxWheel'
+- job: 'TestLinuxWheelNoCuda'
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
@@ -15,10 +15,6 @@ jobs:
       architecture: 'x64'
   - script: sudo apt-get update
     displayName: 'AptGet Update'
-  # - script: sudo apt-get install -y pandoc
-  #   displayName: 'Install Pandoc'
-  # - script: sudo apt-get install -y inkscape
-  #   displayName: 'Install Inkscape'
   - script: sudo apt-get install -y graphviz
     displayName: 'Install Graphviz'
   - script: python -m pip install --upgrade pip setuptools wheel
@@ -41,14 +37,20 @@ jobs:
       cython-lint .
     displayName: 'cython-lint'
   - script: |
-      python -m pip wheel . --wheel-dir dist
+      python -m pip wheel . --wheel-dir dist --config-settings="--with_cuda=0" -v -v -v
     displayName: 'build wheel'
   - script: |
-      python -m pip install .
+      python -m pip install . -v -v -v
     displayName: 'install wheel'
-  #- script: |
-  #    python -m pytest
-  #  displayName: 'Runs Unit Tests'
+  - script: |
+      mkdir _tests
+      cd _tests
+      python -m pytest .. --durations=10
+    displayName: 'Runs Unit Tests'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'wheel-linux-wheel-$(python.version)'
+      targetPath: 'dist'
 
 - job: 'TestLinux'
   pool:
@@ -106,14 +108,14 @@ jobs:
     displayName: 'Run C++ Unit Tests'
 
   - script: |
-      python -m pytest
+      python -m pytest --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
-  #- script: |
-  #    python -m sphinx _doc dist/html
-  #  displayName: 'Builds Documentation'
+  - script: |
+      python -m sphinx _doc dist/html
+    displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-linux-$(python.version)'
@@ -155,7 +157,7 @@ jobs:
         ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
-        python -m pytest
+        python -m pytest --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
         python -u setup.py bdist_wheel
@@ -216,7 +218,7 @@ jobs:
     displayName: 'build wheel'
   - script: |
       source activate myEnvironment
-      python -m pytest
+      python -m pytest --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel

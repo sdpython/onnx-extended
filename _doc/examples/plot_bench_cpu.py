@@ -97,7 +97,7 @@ for n in tqdm(range(10)):
     dfs.append(df)
     cols.append(df.columns[-1])
     drop.append(df.columns[0])
-    if unit_test_going() and len(dfs) >= 3:
+    if unit_test_going() and len(dfs) >= 2:
         break
 
 df = concat(dfs, axis=1).reset_index(drop=True)
