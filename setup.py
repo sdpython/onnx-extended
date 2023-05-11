@@ -293,7 +293,7 @@ class cmake_build_ext(build_ext):
         # build_path = os.path.join(this_dir, "build")
         if not os.path.exists(build_path):
             os.makedirs(build_path)
-        source_path = os.path.join(this_dir, "cmake")
+        source_path = os.path.join(this_dir, "_cmake")
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
         print(f"-- setup: version={sys.version_info!r}")

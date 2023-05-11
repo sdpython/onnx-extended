@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
-* #19: minimal settings to use onnxruntime
-* #14: minimal setting to use CUDA
-* #8: first unit test in C++
+* :pr:`22`: rename cmake into _cmake to avoid warnings related to cmake package
+* :pr:`19`: minimal settings to use onnxruntime
+* :pr:`14`: minimal setting to use CUDA
+* :pr:`8`: first unit test in C++
