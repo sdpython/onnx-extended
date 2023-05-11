@@ -41,14 +41,18 @@ jobs:
       cython-lint .
     displayName: 'cython-lint'
   - script: |
-      python -m pip wheel . --wheel-dir dist
+      python -m pip wheel . --wheel-dir dist -v -v -v
     displayName: 'build wheel'
   - script: |
-      python -m pip install .
+      python -m pip install . -v -v -v
     displayName: 'install wheel'
-  #- script: |
-  #    python -m pytest
-  #  displayName: 'Runs Unit Tests'
+  - script: |
+      python -m pytest
+    displayName: 'Runs Unit Tests'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'wheel-linux-wheel-$(python.version)'
+      targetPath: 'dist'
 
 - job: 'TestLinux'
   pool:
@@ -111,9 +115,9 @@ jobs:
   - script: |
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
-  #- script: |
-  #    python -m sphinx _doc dist/html
-  #  displayName: 'Builds Documentation'
+  - script: |
+      python -m sphinx _doc dist/html
+    displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-linux-$(python.version)'
