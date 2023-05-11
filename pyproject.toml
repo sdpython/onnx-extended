@@ -1,5 +1,5 @@
 [project]
-authors = ["Xavier Dupré <xavier.dupre@gmail.com>"]
+authors = [{name="Xavier Dupré", email="xavier.dupre@gmail.com"}]
 classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
@@ -79,25 +79,8 @@ requires = [
     "wheel",
 ]
 
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["*"]
-
-[options.package_data]
-* =
-    *.dll
-    *.dylib
-    *.so*
-    *.cc
-    *.cpp
-    *.cu
-    *.cuh
-    *.h
-    *.hpp
-    *.pyd
+[tool.setuptools.package-data]
+"*" = ["*.cc", "*.cpp", "*.cu", "*.cuh", "*.dylib", "*.h", "*.hpp", "*.pyd", "*.so*"]
 
 [tool.cibuildwheel]
 build = "*"
