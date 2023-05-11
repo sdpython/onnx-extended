@@ -2,8 +2,8 @@
 .. image:: https://github.com/sdpython/onnx-extended/raw/main/_doc/_static/logo.png
     :width: 120
 
-onnx-extended: (Numpy) Array API for ONNX
-=========================================
+onnx-extended: extensions for onnx and onnxruntime
+==================================================
 
 .. image:: https://dev.azure.com/xavierdupre3/onnx-extended/_apis/build/status/sdpython.onnx-extended
     :target: https://dev.azure.com/xavierdupre3/onnx-extended/

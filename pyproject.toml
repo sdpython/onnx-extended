@@ -1,5 +1,86 @@
+[project]
+authors = [{name="Xavier Dupré", email="xavier.dupre@gmail.com"}]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: C",
+    "Programming Language :: Python",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = ["numpy>=1.23", "onnx>=1.14.0", "scipy"]
+description = "Extends the list of supported operators in onnx reference implementation, or implements faster versions in C++."
+keywords = ["onnx", "onnxruntime", "CUDA", "openmp", "cmake", "cython", "pybind11"]
+license = {file = "LICENSE.txt"}
+name = "onnx-extended"
+readme = "README.rst"
+requires-python = ">=3.9"
+version = "0.2.0"
+
+[project.urls]
+homepage = "https://sdpython.github.io/doc/onnx-extended/"
+documentation = "https://sdpython.github.io/doc/onnx-extended/"
+repository = "https://github.com/sdpython/onnx-extended"
+# changelog = "https://github.com/sdpython/onnx-extended/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+    "autopep8",
+    "black",
+    "clang-format",
+    "cmakelang",
+    "coverage",
+    "cython",
+    "cython-lint",
+    "flake8",
+    "furo",
+    "isort",
+    "joblib",
+    "lightgbm",
+    "matplotlib",
+    "ml-dtypes",
+    "onnx-array-api",
+    "onnxmltools",
+    "onnxruntime; python_version < '3.11'",
+    "pandas",
+    "psutil",
+    "pyquickhelper>=1.12.3821",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "scikit-learn",
+    "skl2onnx>=1.14.1",
+    "sphinx",
+    "sphinx-gallery",
+    "tqdm",
+    "wheel",
+    "xgboost",
+]
+
 [build-system]
-requires = ["setuptools", "wheel", "Cython", "pybind11", "numpy", "scipy", "onnx", "cmake"]
+requires = [
+    "Cython",
+    "cmake",
+    "numpy",
+    "onnx",
+    "pybind11",
+    "scipy",
+    "setuptools",
+    "wheel",
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.cc", "*.cpp", "*.cu", "*.cuh", "*.dylib", "*.h", "*.hpp", "*.pyd", "*.so*"]
 
 [tool.cibuildwheel]
 build = "*"
@@ -19,6 +100,9 @@ skip = "cp36-* cp37-* cp38-* cp39-* cp310-* pypy* pp*"
 archs = ["AMD64"]
 build = "cp*"
 skip = "cp36-* cp37-* cp38-* cp39-* pypy*"
+
+[tool.cython-lint]
+max-line-length = 88
 
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]

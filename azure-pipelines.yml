@@ -1,4 +1,55 @@
 jobs:
+- job: 'TestLinuxWheel'
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      Python310-Linux:
+        python.version: '3.10'
+    maxParallel: 3
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
+  - script: sudo apt-get update
+    displayName: 'AptGet Update'
+  # - script: sudo apt-get install -y pandoc
+  #   displayName: 'Install Pandoc'
+  # - script: sudo apt-get install -y inkscape
+  #   displayName: 'Install Inkscape'
+  - script: sudo apt-get install -y graphviz
+    displayName: 'Install Graphviz'
+  - script: python -m pip install --upgrade pip setuptools wheel
+    displayName: 'Install tools'
+  - script: pip install -r requirements.txt
+    displayName: 'Install Requirements'
+  - script: pip install -r requirements-dev.txt
+    displayName: 'Install Requirements dev'
+  - script: |
+      ruff .
+    displayName: 'Ruff'
+  - script: |
+      black --diff .
+    displayName: 'Black'
+  - script: |
+      cmake-lint cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
+    displayName: 'cmake-lint'
+  - script: |
+      cython-lint .
+    displayName: 'cython-lint'
+  - script: |
+      python -m pip wheel . --wheel-dir dist
+    displayName: 'build wheel'
+  - script: |
+      python -m pip install .
+    displayName: 'install wheel'
+  #- script: |
+  #    python -m pytest
+  #  displayName: 'Runs Unit Tests'
+
 - job: 'TestLinux'
   pool:
     vmImage: 'ubuntu-latest'
@@ -34,9 +85,12 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      cmake-lint cmake/Find*  --disabled-codes C0103 C0113
-      cmake-lint cmake/CMake*  --disabled-codes C0103 C0113
+      cmake-lint cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
     displayName: 'cmake-lint'
+  - script: |
+      cython-lint .
+    displayName: 'cython-lint'
   - script: |
       # python -m pip install -e .
       python setup.py build_ext --inplace
@@ -48,7 +102,7 @@ jobs:
       contents=$(cat .build_path.txt)
       export BUILD_PATH="$contents"
       cd $BUILD_PATH
-      ctest
+      ctest --rerun-failed --output-on-failure
     displayName: 'Run C++ Unit Tests'
 
   - script: |
@@ -98,7 +152,7 @@ jobs:
   - powershell: |
         $contents = Get-Content -Path ".build_path.txt"
         cd $contents
-        ctest -C Release
+        ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
         python -m pytest

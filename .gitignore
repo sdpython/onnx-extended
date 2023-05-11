@@ -2,10 +2,15 @@
 *.pyd
 *.dylib
 *.so
+*.so.*
+*.dll
 *.vcxproj*
 *.tcl
 *.sln
 *.cmake
+*.whl
+/*.png
+/*.onnx
 .build_path.txt
 coverage.html/*
 _cache/*
@@ -28,6 +33,8 @@ _doc/examples/plot_*.png
 _doc/_static/require.js
 _doc/_static/viz.js
 _unittests/ut__main/*.png
+_unittests/test_constants.h
 onnx_extended/_config.py
 onnx_extended/validation/cython/*.c
 onnx_extended/validation/cython/vector_function_cy.c*
+onnx_extended/ortcy/wrap/ortinf.c*

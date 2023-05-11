@@ -81,6 +81,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
         functions: Optional[List[Union[ReferenceEvaluator, FunctionProto]]] = None,
         verbose: int = 0,
         new_ops: Optional[List[OpRun]] = None,
+        **kwargs,
     ):
         if new_ops is None:
             new_ops = CReferenceEvaluator.default_ops
@@ -89,23 +90,12 @@ class CReferenceEvaluator(ReferenceEvaluator):
             new_ops.extend(CReferenceEvaluator.default_ops)
         new_ops = CReferenceEvaluator.filter_ops(proto, new_ops, opsets)
 
-        try:
-            ReferenceEvaluator.__init__(
-                self,
-                proto,
-                opsets=opsets,
-                functions=functions,
-                verbose=verbose,
-                new_ops=new_ops,
-                optimized=False,
-            )
-        except TypeError:
-            # old version of onnx
-            ReferenceEvaluator.__init__(
-                self,
-                proto,
-                opsets=opsets,
-                functions=functions,
-                verbose=verbose,
-                new_ops=new_ops,
-            )
+        ReferenceEvaluator.__init__(
+            self,
+            proto,
+            opsets=opsets,
+            functions=functions,
+            verbose=verbose,
+            new_ops=new_ops,
+            **kwargs,
+        )

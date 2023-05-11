@@ -32,6 +32,7 @@ reference implementation, or implements faster versions in C++.
     tutorial/index
     api/index
     auto_examples/index
+    ../CHANGELOGS
 
 Sources available on
 `github/onnx-extended <https://github.com/sdpython/onnx-extended>`_,

@@ -109,7 +109,7 @@ function(cython_add_module name pyx_file omp_lib)
 
   target_link_libraries(
     ${name} PRIVATE
-    ${Python3_LIBRARIES}
+    ${Python3_LIBRARY_RELEASE}  # use ${Python3_LIBRARIES} if python debug
     ${Python3_NumPy_LIBRARIES}
     ${omp_lib})
 
