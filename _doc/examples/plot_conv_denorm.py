@@ -228,7 +228,7 @@ for scale in tqdm(scales):
         obs["ort-cuda-opt"] = t2["average"]
 
     data.append(obs)
-    if unit_test_going() and len(data) >= 3:
+    if unit_test_going() and len(data) >= 2:
         break
 
 df = DataFrame(data)
