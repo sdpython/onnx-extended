@@ -10,42 +10,44 @@ namespace onnx_c_ops {
 template <typename NTYPE>
 void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
           const NTYPE *A, const NTYPE *B, NTYPE beta, NTYPE *C) {
+
+  typedef Map<Matrix<NTYPE, Dynamic, Dynamic>> matrixdd;
   if (transA) {
     if (transB) {
-      Map<MatrixXd> ma(A, M, K);
-      Map<MatrixXd> mb(B, K, N);
-      Map<MatrixXd> mc(C, M, N);
+      matrixdd ma((NTYPE*)A, M, K);
+      matrixdd mb((NTYPE*)B, K, N);
+      matrixdd mc(C, M, N);
       if (beta != 1)
-        mc.noalias() *= beta;
-      mc.noalias() += ma.transpose() * ma.transpose() * alpha;
+        mc *= beta;
+      mc += ma.transpose() * ma.transpose() * alpha;
       return;
     }
     else {
-      Map<MatrixXd> ma(A, M, K);
-      Map<MatrixXd> mb(B, K, N);
-      Map<MatrixXd> mc(C, M, N);
+      matrixdd ma((NTYPE*)A, M, K);
+      matrixdd mb((NTYPE*)B, K, N);
+      matrixdd mc(C, M, N);
       if (beta != 1)
-        mc.noalias() *= beta;
-      mc.noalias() += ma.transpose() * mb * alpha;
+        mc *= beta;
+      mc += ma.transpose() * mb * alpha;
       return;
     }
   }
   else if(transB) {
-      Map<MatrixXd> ma(A, M, K);
-      Map<MatrixXd> mb(B, K, N);
-      Map<MatrixXd> mc(C, M, N);
+      matrixdd ma((NTYPE*)A, M, K);
+      matrixdd mb((NTYPE*)B, K, N);
+      matrixdd mc(C, M, N);
       if (beta != 1)
-        mc.noalias() *= beta;
-      mc.noalias() += ma * mb.transpose() * alpha;
+        mc *= beta;
+      mc += ma * mb.transpose() * alpha;
       return;
   }
   else {
-      Map<MatrixXd> ma(A, M, K);
-      Map<MatrixXd> mb(B, K, N);
-      Map<MatrixXd> mc(C, M, N);
+      matrixdd ma((NTYPE*)A, M, K);
+      matrixdd mb((NTYPE*)B, K, N);
+      matrixdd mc(C, M, N);
       if (beta != 1)
-        mc.noalias() *= beta;
-      mc.noalias() += ma * mb * alpha;
+        mc *= beta;
+      mc += ma * mb * alpha;
       return;
   }
 
