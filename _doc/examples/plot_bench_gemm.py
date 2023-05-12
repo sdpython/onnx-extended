@@ -248,8 +248,9 @@ for tt, engine, provider, dim in pbar:
 
 
 df = DataFrame(data)
-df.reset_index(drop=False).to_excel("plot_bench_gemm.xlsx")
-df.reset_index(drop=False).to_csv("plot_bench_gemm.csv", sep="\t")
+df.to_excel("plot_bench_gemm.xlsx")
+df.to_csv("plot_bench_gemm.csv")
+df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_.csv")
 df
 
 #####################################
@@ -266,7 +267,7 @@ piv = pivot_table(
     df, index=["cost"], columns=["engine", "type", "provider"], values="average"
 )
 piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx")
-piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv", sep="\t")
+piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv")
 print(piv)
 piv
 
