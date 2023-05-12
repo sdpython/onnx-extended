@@ -157,6 +157,8 @@ for tt, engine, provider, dim in pbar:
         repeat, number = 10, 4
 
     onx = create_model(tt)
+    with open(f"plot_bench_gemm_{tt}.onnx", "wb") as f:
+        f.write(onx.SerializeToString())
     k1 = (tt, dim[0], dim[2])
     k2 = (tt, dim[2], dim[1])
     assert k1 in matrices
@@ -234,6 +236,7 @@ for tt, engine, provider, dim in pbar:
             N=dim[1],
             K=dim[2],
             cost=numpy.prod(dim) * 4,
+            cost_s=f"{numpy.prod(dim) * 4}-{dim[0]}x{dim[1]}x{dim[2]}",
             repeat=repeat,
             number=number,
             provider={"CPUExecutionProvider": "cpu", "CUDAExecutionProvider": "cuda"}[
@@ -270,6 +273,13 @@ piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx")
 piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv")
 print(piv)
 piv
+
+########################################
+# With the dimensions.
+pivs = pivot_table(
+    df, index=["cost_s"], columns=["engine", "type", "provider"], values="average"
+)
+print(pivs)
 
 ##############################
 # plot
