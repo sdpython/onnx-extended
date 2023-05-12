@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.24.0)
-
-project(onnx_extended VERSION 0.1.0)
+project(onnx_extended VERSION 0.2.0)
 
 #
 # initialisation
 #
 
 message(STATUS "-------------------")
+message(STATUS "CMAKE_VERSION=${CMAKE_VERSION}")
 message(STATUS "USE_SETUP_PYTHON=${USE_SETUP_PYTHON}")
 message(STATUS "USE_PYTHON_SETUP=${USE_PYTHON_SETUP}")
 message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
@@ -101,13 +101,6 @@ else()
   endif()
 endif()
 
-message(STATUS "-------------------")
-find_package(Eigen REQUIRED)
-if(Eigen_FOUND)
-  message(STATUS "Found Eigen ${Eigen_VERSION}")
-else()
-  message(FATAL_ERROR "Module eigen is not installed.")
-endif()
 
 message(STATUS "-------------------")
 find_package(Cython REQUIRED)
@@ -169,6 +162,19 @@ if(Ort_FOUND)
 else()
   message(FATAL_ERROR "onnxruntime is not installed.")
 endif()
+
+message(STATUS "-------------------")
+find_package(LocalEigen REQUIRED)
+if(LocalEigen_FOUND)
+  message(STATUS "Found Eigen ${LocalEigen_VERSION}")
+  message(STATUS "LOCAL_EIGEN_URL=${LOCAL_EIGEN_URL}")
+  message(STATUS "LOCAL_EIGEN_SOURCE=${LOCAL_EIGEN_SOURCE}")
+  message(STATUS "EIGEN_INCLUDE=${EIGEN_INCLUDE}")
+  message(STATUS "EIGEN_INCLUDE_DIRS=${EIGEN_INCLUDE_DIRS}")
+else()
+  message(FATAL_ERROR "Module eigen is not installed.")
+endif()
+
 message(STATUS "-------------------")
 
 #
@@ -227,7 +233,8 @@ local_pybind11_add_module(
   c_op_conv_ OpenMP::OpenMP_CXX
   ../onnx_extended/reference/c_ops/cpu/c_op_common.cpp
   ../onnx_extended/reference/c_ops/cpu/c_op_conv_.cpp)
-  target_link_libraries(c_op_conv_ PRIVATE ${EIGEN_TARGET})
+target_include_directories(c_op_conv_ PRIVATE ${EIGEN_INCLUDE_DIRS})
+target_link_libraries(c_op_conv_ PRIVATE ${EIGEN_TARGET})
 
 local_pybind11_add_module(
   c_op_tree_ensemble_py_ OpenMP::OpenMP_CXX
