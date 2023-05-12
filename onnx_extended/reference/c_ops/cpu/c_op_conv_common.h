@@ -16,8 +16,8 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       Map<MatrixXd> mb(B, K, N);
       Map<MatrixXd> mc(C, M, N);
       if (beta != 1)
-        C.noalias() *= beta;
-      C.noalias() += A.transpose() * B.transpose() * alpha;
+        mc.noalias() *= beta;
+      mc.noalias() += ma.transpose() * ma.transpose() * alpha;
       return;
     }
     else {
@@ -25,8 +25,8 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       Map<MatrixXd> mb(B, K, N);
       Map<MatrixXd> mc(C, M, N);
       if (beta != 1)
-        C.noalias() *= beta;
-      C.noalias() += A.transpose() * B * alpha;
+        mc.noalias() *= beta;
+      mc.noalias() += ma.transpose() * mb * alpha;
       return;
     }
   }
@@ -35,8 +35,8 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       Map<MatrixXd> mb(B, K, N);
       Map<MatrixXd> mc(C, M, N);
       if (beta != 1)
-        C.noalias() *= beta;
-      C.noalias() += A * B.transpose() * alpha;
+        mc.noalias() *= beta;
+      mc.noalias() += ma * mb.transpose() * alpha;
       return;
   }
   else {
@@ -44,8 +44,8 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       Map<MatrixXd> mb(B, K, N);
       Map<MatrixXd> mc(C, M, N);
       if (beta != 1)
-        C.noalias() *= beta;
-      C.noalias() += A * B * alpha;
+        mc.noalias() *= beta;
+      mc.noalias() += ma * mb * alpha;
       return;
   }
 

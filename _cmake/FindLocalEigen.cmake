@@ -19,10 +19,10 @@ FetchContent_makeAvailable(eigen)
 list(APPEND CMAKE_MODULE_PATH "${eigen_SOURCE_DIR}/cmake")
 set(LOCAL_EIGEN_SOURCE "${eigen_SOURCE_DIR}")
 
-find_package (Eigen3 ${SHORT_EIGEN_VERSION} REQUIRED NO_MODULE)
+find_package(Eigen3 ${SHORT_EIGEN_VERSION} REQUIRED NO_MODULE)
 set(LOCAL_EIGEN_TARGET Eigen3::Eigen)
 set(LOCAL_EIGEN_VERSION ${Eigen3_VERSION})
-set(EIGEN_INCLUDE_DIRS "${eigen3_SOURCE_DIR}")
+set(EIGEN_INCLUDE_DIRS "${eigen_SOURCE_DIR}")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
