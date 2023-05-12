@@ -248,8 +248,8 @@ for tt, engine, provider, dim in pbar:
 
 
 df = DataFrame(data)
-df.reset_index(drop=False).to_excel("plot_bench_gemm.xlsx", index=False)
-df.reset_index(drop=False).to_csv("plot_bench_gemm.csv", sep="\t", index=False)
+df.reset_index(drop=False).to_excel("plot_bench_gemm.xlsx")
+df.reset_index(drop=False).to_csv("plot_bench_gemm.csv", sep="\t")
 df
 
 #####################################
@@ -265,8 +265,8 @@ for e in list(sorted(set(map(str, errors)))):
 piv = pivot_table(
     df, index=["cost"], columns=["engine", "type", "provider"], values="average"
 )
-piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx", index=False)
-piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv", sep="\t", index=False)
+piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx")
+piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv", sep="\t")
 print(piv)
 piv
 
