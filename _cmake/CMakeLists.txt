@@ -77,6 +77,8 @@ endif()
 # modules
 #
 
+set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
 include("targets/_validation.cmake")
 include("targets/ortinf.cmake")
 include("targets/c_op_conv_.cmake")
@@ -96,7 +98,6 @@ file(WRITE "../onnx_extended/_config.py" "${config_content}")
 
 include(CTest)
 enable_testing()
-set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 #
 # Final

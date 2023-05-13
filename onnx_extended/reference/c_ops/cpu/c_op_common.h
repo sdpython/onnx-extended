@@ -4,7 +4,6 @@
 #include <float.h>
 #include <iostream> // cout
 #include <iterator>
-#include <pybind11/pybind11.h>
 #include <sstream>
 #include <thread>
 #include <vector>

@@ -1,10 +1,5 @@
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include "c_op_conv_pybind11.h"
 
-#include "c_op_conv.h"
-
-namespace py = pybind11;
 using namespace onnx_c_ops;
 
 PYBIND11_MODULE(c_op_conv_, m) {

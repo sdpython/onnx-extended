@@ -34,3 +34,14 @@
     );                                                              \
   }                                                                 \
 }
+
+template <typename T>
+bool check_equal(int n, T* pa, T* pb) {
+    for (int i = 0; i < n; ++i) {
+        if (pa[i] != pb[i])
+            return false;
+    }
+    return true;
+}
+
+#define ASSERT_EQUAL_VECTOR(n, pa, pb) ASSERT_THROW(check_equal(n, pa, pb))

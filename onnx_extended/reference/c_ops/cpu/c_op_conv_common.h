@@ -1,3 +1,5 @@
+#pragma once
+
 #include "c_op_common.h"
 #include <Eigen/Dense>
 
@@ -19,7 +21,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       matrixdd mc(C, M, N);
       if (beta != 1)
         mc *= beta;
-      mc += ma.transpose() * ma.transpose() * alpha;
+      mc += (ma.transpose() * ma.transpose()) * alpha;
       return;
     }
     else {
@@ -28,7 +30,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       matrixdd mc(C, M, N);
       if (beta != 1)
         mc *= beta;
-      mc += ma.transpose() * mb * alpha;
+      mc += (ma.transpose() * mb) * alpha;
       return;
     }
   }
@@ -38,7 +40,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       matrixdd mc(C, M, N);
       if (beta != 1)
         mc *= beta;
-      mc += ma * mb.transpose() * alpha;
+      mc += (ma * mb.transpose()) * alpha;
       return;
   }
   else {
@@ -47,7 +49,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       matrixdd mc(C, M, N);
       if (beta != 1)
         mc *= beta;
-      mc += ma * mb * alpha;
+      mc += (ma * mb) * alpha;
       return;
   }
 
