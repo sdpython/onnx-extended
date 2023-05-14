@@ -4,10 +4,14 @@
 #include <float.h>
 #include <iostream> // cout
 #include <iterator>
-#include <pybind11/pybind11.h>
 #include <sstream>
 #include <thread>
 #include <vector>
+#if _WIN32
+// #include <cmath>
+#else
+#include <cmath>
+#endif
 
 namespace onnx_c_ops {
 

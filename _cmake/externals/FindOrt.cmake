@@ -7,7 +7,6 @@
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.14.1)
 endif()
-set(ORT_VERSION "${ORT_VERSION}")
 
 if(CUDA_FOUND)
   if(APPLE)
