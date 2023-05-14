@@ -2,7 +2,6 @@
 # module: onnx_extended.reference.c_ops.cpu.c_op_conv_
 #
 message(STATUS "+ onnx_extended.reference.c_ops.cpu.c_op_conv_")
-message(STATUS "****** ROOT_INCLUDE_PATH=${ROOT_INCLUDE_PATH}")
 
 local_pybind11_add_module(
   c_op_conv_ OpenMP::OpenMP_CXX

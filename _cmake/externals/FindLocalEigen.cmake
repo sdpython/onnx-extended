@@ -4,7 +4,7 @@
 # function eigen_add_dependency
 # output variables LOCAL_EIGEN_FOUND, LOCAL_EIGEN_TARGET
 
-if(NOT LOCAL_EIGEN_VERSION)  
+if(NOT LOCAL_EIGEN_VERSION)
   set(LOCAL_EIGEN_VERSION "3.4.0")
 endif()
 string(SUBSTRING "${LOCAL_EIGEN_VERSION}" 0 3 SHORT_EIGEN_VERSION)
@@ -40,7 +40,7 @@ set(EIGEN_INCLUDE_DIRS "${eigen_SOURCE_DIR}")
 # \arg:name target name
 #
 function(eigen_add_dependency name)
-    target_include_directories(${name} PRIVATE ${EIGEN_INCLUDE_DIRS})
+  target_include_directories(${name} PRIVATE ${EIGEN_INCLUDE_DIRS})
 endfunction()
 
 include(FindPackageHandleStandardArgs)

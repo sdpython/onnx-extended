@@ -64,7 +64,6 @@ else()
   endif()
 endif()
 
-
 message(STATUS "-------------------")
 find_package(Cython REQUIRED)
 if(Cython_FOUND)

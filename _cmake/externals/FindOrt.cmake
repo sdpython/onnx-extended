@@ -2,7 +2,7 @@
 # initialization
 #
 # downloads onnxruntime as a binary
-#
+# functions ort_add_dependency, ort_add_custom_op, 
 
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.14.1)
@@ -101,6 +101,19 @@ function(ort_add_dependency name folder_copy)
     endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
+endfunction()
+
+#
+#! ort_add_custom_op : compile a pyx file into cpp
+#
+# \arg:name project name
+# \argn: C++ file to compile
+#
+function(ort_add_custom_op name)
+  message(STATUS "ort custom op: '${name}': ${ARGN}")
+  add_library(${name} SHARED ${ARGN})
+  set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
+  target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
 endfunction()
 
 include(FindPackageHandleStandardArgs)
