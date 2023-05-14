@@ -10,7 +10,7 @@ find onnx_extended -type f \( -name "*.h" -o -name "*.hpp" -o -name "*.cuh" -o -
     clang-format --length 88 -i $f;
 done
 echo "--cmake-lint--"
-find cmake -type f \( -name "*.cmake" -o -name "*.txt" \) | while read f; do
+find _cmake -type f \( -name "*.cmake" -o -name "*.txt" \) | while read f; do
     echo "Processing '$f'";
     cmake-lint $f --line-width=88 --disabled-codes C0103 C0113;
 done
