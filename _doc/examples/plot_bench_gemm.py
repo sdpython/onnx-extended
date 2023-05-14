@@ -54,7 +54,14 @@ def create_model(mat_type=TensorProto.FLOAT):
         make_node("Add", ["M12", "M23"], ["C"]),
     ]
     graph = make_graph(nodes, "a", [A, B], [C], [I1])
-    onnx_model = make_model(graph, opset_imports=[make_opsetid("", 19)], ir_version=9)
+    if mat_type < 16:
+        # regular type
+        opset, ir = 18, 8
+    else:
+        opset, ir = 19, 9
+    onnx_model = make_model(
+        graph, opset_imports=[make_opsetid("", opset)], ir_version=ir
+    )
     check_model(onnx_model)
     return onnx_model
 
