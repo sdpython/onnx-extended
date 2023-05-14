@@ -2,7 +2,7 @@
 # initialization
 #
 # downloads onnxruntime as a binary
-# functions ort_add_dependency, ort_add_custom_op, 
+# functions ort_add_dependency, ort_add_custom_op
 
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.14.1)
