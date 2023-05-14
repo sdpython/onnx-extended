@@ -15,6 +15,7 @@ ml-dtypes
 onnx-array-api
 onnxmltools
 onnxruntime; python_version < '3.11'
+openpyxl
 pandas
 psutil
 pyquickhelper>=1.12.3821
