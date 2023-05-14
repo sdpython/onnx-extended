@@ -33,6 +33,9 @@ _doc/examples/*.xlsx
 _doc/examples/plot*.csv
 _doc/examples/plot*.onnx
 _doc/examples/plot_*.png
+_doc/examples/plot_*.csv
+_doc/examples/plot_*.onnx
+_doc/examples/plot_*.xlsx
 _doc/_static/require.js
 _doc/_static/viz.js
 _unittests/ut__main/*.png

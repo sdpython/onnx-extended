@@ -167,7 +167,7 @@ float vector_sum_array_avx_parallel(int nc,
 
 py_array_float vector_add(const py_array_float &v1, const py_array_float &v2) {
     // Based on tutorial https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html
-	if (v1.ndim() != v2.ndim()) {
+    if (v1.ndim() != v2.ndim()) {
         throw std::runtime_error("Vector v1 and v2 must have the same shape.");
     }
     for(int i = 0; i < v1.ndim(); ++i) {
