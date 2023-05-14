@@ -1,5 +1,3 @@
-#pragma once
-
 #include "my_kernel.h"
 
 namespace ortops {
@@ -41,6 +39,6 @@ ONNXTensorElementDataType MyCustomOp::GetInputType(size_t index) const { return 
 
 size_t MyCustomOp::GetOutputTypeCount() const { return 1; };
 
-ONNXTensorElementDataType GetOutputType(size_t index) const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT; };
+ONNXTensorElementDataType MyCustomOp::GetOutputType(size_t index) const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT; };
 
 } // namespace ortops

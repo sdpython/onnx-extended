@@ -39,6 +39,7 @@ known_extensions = [
 ]
 package_data = {
     "onnx_extended.ortcy.wrap": known_extensions,
+    "onnx_extended.ortops.tutorial.cpu": known_extensions,
     "onnx_extended.reference.c_ops.cpu": known_extensions,
     "onnx_extended.validation.cpu": known_extensions,
     "onnx_extended.validation.cython": known_extensions,

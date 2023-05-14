@@ -107,13 +107,18 @@ endfunction()
 #! ort_add_custom_op : compile a pyx file into cpp
 #
 # \arg:name project name
+# \arg:folder where to copy the library
 # \argn: C++ file to compile
 #
-function(ort_add_custom_op name)
+function(ort_add_custom_op name folder)
   message(STATUS "ort custom op: '${name}': ${ARGN}")
   add_library(${name} SHARED ${ARGN})
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
+  get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
+  # add_custom_command(
+  #   TARGET ${name} POST_BUILD
+  #   COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
 endfunction()
 
 include(FindPackageHandleStandardArgs)
