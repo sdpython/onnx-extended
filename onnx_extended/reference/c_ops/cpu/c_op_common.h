@@ -7,6 +7,11 @@
 #include <sstream>
 #include <thread>
 #include <vector>
+#if _WIN32
+// #include <cmath>
+#else
+#include <cmath>
+#endif
 
 namespace onnx_c_ops {
 
