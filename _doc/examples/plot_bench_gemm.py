@@ -77,7 +77,14 @@ def create_cast(to):
     C = make_tensor_value_info("C", to, [None, None])
     node1 = make_node("Cast", ["A"], ["C"], to=to)
     graph = make_graph([node1], "a", [A], [C])
-    onnx_model = make_model(graph, opset_imports=[make_opsetid("", 19)], ir_version=9)
+    if to < 16:
+        # regular type
+        opset, ir = 18, 8
+    else:
+        opset, ir = 19, 9
+    onnx_model = make_model(
+        graph, opset_imports=[make_opsetid("", opset)], ir_version=ir
+    )
     check_model(onnx_model)
     return onnx_model
 
@@ -138,11 +145,16 @@ matrices = {}
 for m, n, k in dims:
     for tt in types:
         for i, j in [(m, k), (k, n)]:
+            try:
+                sess = InferenceSession(
+                    create_cast(tt).SerializeToString(),
+                    providers=["CPUExecutionProvider"],
+                )
+            except InvalidGraph:
+                # not support by this version of onnxruntime
+                continue
             vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
             ov = to_ort_value(vect)
-            sess = InferenceSession(
-                create_cast(tt).SerializeToString(), providers=["CPUExecutionProvider"]
-            )
             ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
             matrices[tt, i, j] = ovtt
 
