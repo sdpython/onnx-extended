@@ -316,11 +316,12 @@ pivi = pivot_table(
 
 fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 piv.plot(ax=ax[0], title="Gemm performance\nlower is better", logx=True, logy=True)
-pivi.plot(
-    ax=ax[1],
-    title=f"Gemm performance ORT\n{platform.processor()}",
-    logx=True,
-    logy=True,
-)
+if pivi.shape[0] > 0:
+    pivi.plot(
+        ax=ax[1],
+        title=f"Gemm performance ORT\n{platform.processor()}",
+        logx=True,
+        logy=True,
+    )
 fig.tight_layout()
 fig.savefig("plot_bench_gemm.png")
