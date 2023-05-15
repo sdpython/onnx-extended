@@ -184,8 +184,12 @@ for tt, engine, provider, dim in pbar:
         f.write(onx.SerializeToString())
     k1 = (tt, dim[0], dim[2])
     k2 = (tt, dim[2], dim[1])
-    assert k1 in matrices
-    assert k2 in matrices
+    if k1 not in matrices:
+        errors.append(f"Key k1={k1!r} not in matrices.")
+        continue
+    if k2 not in matrices:
+        errors.append(f"Key k2={k2!r} not in matrices.")
+        continue
 
     if engine == CReferenceEvaluator:
         if tt == TensorProto.FLOAT16 and max(dim) > 50:
