@@ -103,6 +103,8 @@ function(ort_add_dependency name folder_copy)
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
 endfunction()
 
+file(WRITE "../_setup_ext.txt" "")
+
 #
 #! ort_add_custom_op : compile a pyx file into cpp
 #
@@ -119,6 +121,10 @@ function(ort_add_custom_op name folder)
   # add_custom_command(
   #   TARGET ${name} POST_BUILD
   #   COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
+  # $<TARGET_FILE_NAME:${name}> does not seem to work.
+  # The following step adds a line in '_setup.txt' to tell setup.py
+  # to copy an additional file.
+  file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
 endfunction()
 
 include(FindPackageHandleStandardArgs)

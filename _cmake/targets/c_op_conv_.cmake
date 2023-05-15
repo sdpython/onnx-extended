@@ -1,7 +1,7 @@
 #
 # module: onnx_extended.reference.c_ops.cpu.c_op_conv_
 #
-message(STATUS "+ onnx_extended.reference.c_ops.cpu.c_op_conv_")
+message(STATUS "+ PYBIND11 onnx_extended.reference.c_ops.cpu.c_op_conv_")
 
 local_pybind11_add_module(
   c_op_conv_ OpenMP::OpenMP_CXX

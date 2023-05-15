@@ -1,7 +1,7 @@
 #
 # module: onnx_extended.ortcy.wrap.ortapi
 #
-message(STATUS "+ onnx_extended.ortcy.wrap.ortapi")
+message(STATUS "+ CYTHON onnx_extended.ortcy.wrap.ortapi")
 
 add_library(lib_ortapi STATIC ../onnx_extended/ortcy/wrap/ortapi.cpp)
 target_include_directories(lib_ortapi PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})

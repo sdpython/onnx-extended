@@ -221,17 +221,9 @@ class cmake_build_ext(build_ext):
         self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
         build_ext.finalize_options(self)
 
-    def build_extensions(self):
-        # Ensure that CMake is present and working
-        try:
-            subprocess.check_output(["cmake", "--version"])
-        except OSError:
-            raise RuntimeError("Cannot find CMake executable")
-
-        cfg = "Release"
+    def get_cmake_args(self, cfg):
         iswin = is_windows()
         isdar = is_darwin()
-
         cmake_cmd_args = []
 
         path = sys.executable
@@ -278,7 +270,9 @@ class cmake_build_ext(build_ext):
             os.environ["PYTHON_NUMPY_INCLUDE_DIR"] = numpy_include_dir
 
         cmake_args += cmake_cmd_args
+        return cmake_args
 
+    def build_cmake(self, cfg, cmake_args):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
@@ -312,10 +306,10 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
         print("-- setup: done.")
+        return build_path, self.build_lib
 
-        # final
-        build_lib = self.build_lib
-
+    def process_extensions(self, build_path, build_lib):
+        iswin = is_windows()
         for ext in self.extensions:
             full_name = ext._file_name
             name = os.path.split(full_name)[-1]
@@ -346,6 +340,58 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(f"Unable to find folder {dest!r}.")
             print(f"-- copy {look!r} to {dest!r}")
             shutil.copy(look, dest)
+
+    def _process_setup_ext_line(self, build_path, line):
+        line = line.strip(" \n\r")
+        if not line:
+            return
+        spl = line.split(",")
+        if len(spl) != 3:
+            raise RuntimeError(f"Unable to process line {line!r}.")
+        if spl[0] == "copy":
+            if is_windows():
+                ext = "pyd"
+                prefix = ""
+            elif is_darwin():
+                ext = "dylib"
+                prefix = "lib"
+            else:
+                ext = "so"
+                prefix = "lib"
+            src, dest = spl[1:]
+            shortened = dest.split("onnx_extended")[-1].strip("/\\")
+            fulldest = f"onnx_extended/{shortened}"
+            assumed_name = f"{prefix}{src}.{ext}"
+            fullname = os.path.join(build_path, assumed_name)
+            if not os.path.exists(fullname):
+                raise FileNotFoundError(f"Unable to find {fullname!r}.")
+            print(f"-- copy {fullname!r} to {fulldest!r}")
+            shutil.copy(fullname, fulldest)
+        else:
+            raise RuntimeError(f"Unable to intertrep line {line!r}.")
+
+    def process_setup_ext(self, build_path, filename):
+        this = os.path.abspath(os.path.dirname(__file__))
+        fullname = os.path.join(this, filename)
+        if not os.path.exists(fullname):
+            raise FileNotFoundError(f"Unable to find {fullname!r}.")
+        with open(fullname, "r") as f:
+            lines = f.readlines()
+        for line in lines:
+            self._process_setup_ext_line(build_path, line)
+
+    def build_extensions(self):
+        # Ensure that CMake is present and working
+        try:
+            subprocess.check_output(["cmake", "--version"])
+        except OSError:
+            raise RuntimeError("Cannot find CMake executable")
+
+        cfg = "Release"
+        cmake_args = self.get_cmake_args(cfg)
+        build_path, build_lib = self.build_cmake(cfg, cmake_args)
+        self.process_setup_ext(build_path, "_setup_ext.txt")
+        self.process_extensions(build_path, build_lib)
 
 
 if is_windows():

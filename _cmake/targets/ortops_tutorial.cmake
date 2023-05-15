@@ -1,7 +1,7 @@
 #
 # module: onnx_extended.reference.c_ops.cpu.c_op_conv_
 #
-message(STATUS "+ onnx_extended.ortops.tutorial")
+message(STATUS "+ KERNEL onnx_extended.ortops.tutorial")
 
 ort_add_custom_op(
   ortops_tutorial_cpu

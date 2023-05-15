@@ -12,6 +12,7 @@
 /*.png
 /*.onnx
 .build_path.txt
+_setup_ext.txt
 coverage.html/*
 _cache/*
 _deps/*
