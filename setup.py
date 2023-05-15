@@ -350,7 +350,7 @@ class cmake_build_ext(build_ext):
             raise RuntimeError(f"Unable to process line {line!r}.")
         if spl[0] == "copy":
             if is_windows():
-                ext = "pyd"
+                ext = "dll"
                 prefix = ""
             elif is_darwin():
                 ext = "dylib"
@@ -368,7 +368,7 @@ class cmake_build_ext(build_ext):
             print(f"-- copy {fullname!r} to {fulldest!r}")
             shutil.copy(fullname, fulldest)
         else:
-            raise RuntimeError(f"Unable to intertrep line {line!r}.")
+            raise RuntimeError(f"Unable to interpret line {line!r}.")
 
     def process_setup_ext(self, build_path, filename):
         this = os.path.abspath(os.path.dirname(__file__))
@@ -394,39 +394,69 @@ class cmake_build_ext(build_ext):
         self.process_extensions(build_path, build_lib)
 
 
-if is_windows():
-    ext = "pyd"
-elif is_darwin():
-    ext = "dylib"
-else:
-    ext = "so"
+def get_ext_modules():
+    if is_windows():
+        ext = "pyd"
+    elif is_darwin():
+        ext = "dylib"
+    else:
+        ext = "so"
 
-cuda_extensions = []
-has_cuda = find_cuda()
-if has_cuda:
-    add_cuda = True
-    if "--with-cuda" in sys.argv:
-        pos = sys.argv.index("--with-cuda")
-        if len(sys.argv) > pos + 1 and sys.argv[pos + 1] in ("0", 0, False, "False"):
-            add_cuda = False
-    elif "--with-cuda=0" in sys.argv:
-        add_cuda = False
-    elif "--with-cuda=1" in sys.argv or "--with-cuda=guess":
+    cuda_extensions = []
+    has_cuda = find_cuda()
+    if has_cuda:
         add_cuda = True
-    if add_cuda:
-        cuda_extensions.extend(
-            [
-                CMakeExtension(
-                    "onnx_extended.validation.cuda.cuda_example_py",
-                    f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
-                )
-            ]
+        if "--with-cuda" in sys.argv:
+            pos = sys.argv.index("--with-cuda")
+            if len(sys.argv) > pos + 1 and sys.argv[pos + 1] in (
+                "0",
+                0,
+                False,
+                "False",
+            ):
+                add_cuda = False
+        elif "--with-cuda=0" in sys.argv:
+            add_cuda = False
+        elif "--with-cuda=1" in sys.argv or "--with-cuda=guess":
+            add_cuda = True
+        if add_cuda:
+            cuda_extensions.extend(
+                [
+                    CMakeExtension(
+                        "onnx_extended.validation.cuda.cuda_example_py",
+                        f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
+                    )
+                ]
+            )
+    elif "--with-cuda=1" in sys.argv or "--with-cuda" in sys.argv:
+        raise RuntimeError(
+            "CUDA is not available, it cannot be build with CUDA depsite "
+            "option '--with-cuda=1'."
         )
-elif "--with-cuda=1" in sys.argv or "--with-cuda" in sys.argv:
-    raise RuntimeError(
-        "CUDA is not available, it cannot be build with CUDA depsite "
-        "option '--with-cuda=1'."
-    )
+    ext_modules = [
+        CMakeExtension(
+            "onnx_extended.validation.cython.vector_function_cy",
+            f"onnx_extended/validation/cython/vector_function_cy.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.validation.cpu._validation",
+            f"onnx_extended/validation/cpu/_validation.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.reference.c_ops.cpu.c_op_conv_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_conv_.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.ortcy.wrap.ortinf",
+            f"onnx_extended.ortcy.wrap.ortinf.{ext}",
+        ),
+        *cuda_extensions,
+    ]
+    return ext_modules
 
 
 setup(
@@ -459,27 +489,5 @@ setup(
         "Programming Language :: Python :: 3.11",
     ],
     cmdclass={"build_ext": cmake_build_ext},
-    ext_modules=[
-        CMakeExtension(
-            "onnx_extended.validation.cython.vector_function_cy",
-            f"onnx_extended/validation/cython/vector_function_cy.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.validation.cpu._validation",
-            f"onnx_extended/validation/cpu/_validation.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.reference.c_ops.cpu.c_op_conv_",
-            f"onnx_extended/reference/c_ops/cpu/c_op_conv_.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
-            f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.ortcy.wrap.ortinf",
-            f"onnx_extended.ortcy.wrap.ortinf.{ext}",
-        ),
-        *cuda_extensions,
-    ],
+    ext_modules=get_ext_modules(),
 )
