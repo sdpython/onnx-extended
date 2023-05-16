@@ -1,7 +1,7 @@
 #
 # module: onnx_extended.validation.cpu._validation
 #
-message(STATUS "+ onnx_extended.validation.cpu._validation")
+message(STATUS "+ PYBIND11 onnx_extended.validation.cpu._validation")
 
 add_library(lib_validation_cpp STATIC
   ../onnx_extended/validation/cpu/speed_metrics.cpp

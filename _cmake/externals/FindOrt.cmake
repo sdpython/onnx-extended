@@ -2,7 +2,7 @@
 # initialization
 #
 # downloads onnxruntime as a binary
-#
+# functions ort_add_dependency, ort_add_custom_op
 
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.14.1)
@@ -101,6 +101,30 @@ function(ort_add_dependency name folder_copy)
     endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
+endfunction()
+
+file(WRITE "../_setup_ext.txt" "")
+
+#
+#! ort_add_custom_op : compile a pyx file into cpp
+#
+# \arg:name project name
+# \arg:folder where to copy the library
+# \argn: C++ file to compile
+#
+function(ort_add_custom_op name folder)
+  message(STATUS "ort custom op: '${name}': ${ARGN}")
+  add_library(${name} SHARED ${ARGN})
+  set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
+  target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
+  get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
+  # add_custom_command(
+  #   TARGET ${name} POST_BUILD
+  #   COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
+  # $<TARGET_FILE_NAME:${name}> does not seem to work.
+  # The following step adds a line in '_setup.txt' to tell setup.py
+  # to copy an additional file.
+  file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
 endfunction()
 
 include(FindPackageHandleStandardArgs)

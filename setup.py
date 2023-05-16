@@ -7,6 +7,7 @@ import subprocess
 import sys
 import sysconfig
 from pathlib import Path
+from typing import List, Tuple
 
 try:
     import numpy
@@ -39,6 +40,7 @@ known_extensions = [
 ]
 package_data = {
     "onnx_extended.ortcy.wrap": known_extensions,
+    "onnx_extended.ortops.tutorial.cpu": known_extensions,
     "onnx_extended.reference.c_ops.cpu": known_extensions,
     "onnx_extended.validation.cpu": known_extensions,
     "onnx_extended.validation.cython": known_extensions,
@@ -220,17 +222,15 @@ class cmake_build_ext(build_ext):
         self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
         build_ext.finalize_options(self)
 
-    def build_extensions(self):
-        # Ensure that CMake is present and working
-        try:
-            subprocess.check_output(["cmake", "--version"])
-        except OSError:
-            raise RuntimeError("Cannot find CMake executable")
+    def get_cmake_args(self, cfg: str) -> List[str]:
+        """
+        Returns the argument for cmake.
 
-        cfg = "Release"
+        :param cfg: configuration (Release, ...)
+        :return: build_path, self.build_lib
+        """
         iswin = is_windows()
         isdar = is_darwin()
-
         cmake_cmd_args = []
 
         path = sys.executable
@@ -277,7 +277,16 @@ class cmake_build_ext(build_ext):
             os.environ["PYTHON_NUMPY_INCLUDE_DIR"] = numpy_include_dir
 
         cmake_args += cmake_cmd_args
+        return cmake_args
 
+    def build_cmake(self, cfg: str, cmake_args: List[str]) -> Tuple[str, str]:
+        """
+        Calls cmake.
+
+        :param cfg: configuration (Release, ...)
+        :param cmake_args: cmake aguments
+        :return: build_path, self.build_lib
+        """
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
@@ -311,17 +320,24 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: cmd={' '.join(cmd)}")
         _run_subprocess(cmd, cwd=build_path, capture_output=True)
         print("-- setup: done.")
+        return build_path, self.build_lib
 
-        # final
-        build_lib = self.build_lib
+    def process_extensions(self, cfg: str, build_path: str, build_lib: str):
+        """
+        Copies the python extensions built by cmake into python subfolders.
 
+        :param cfg: configuration (Release, ...)
+        :param build_path: where it was built
+        :param build_lib: built library
+        """
+        iswin = is_windows()
         for ext in self.extensions:
             full_name = ext._file_name
             name = os.path.split(full_name)[-1]
             if iswin:
                 looks = [
-                    os.path.join(build_path, "Release", full_name),
-                    os.path.join(build_path, "Release", name),
+                    os.path.join(build_path, cfg, full_name),
+                    os.path.join(build_path, cfg, name),
                 ]
             else:
                 looks = [
@@ -346,40 +362,134 @@ class cmake_build_ext(build_ext):
             print(f"-- copy {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
+    def _process_setup_ext_line(self, cfg, build_path, line):
+        line = line.strip(" \n\r")
+        if not line:
+            return
+        spl = line.split(",")
+        if len(spl) != 3:
+            raise RuntimeError(f"Unable to process line {line!r}.")
+        if spl[0] == "copy":
+            if is_windows():
+                ext = "dll"
+                prefix = ""
+            elif is_darwin():
+                ext = "dylib"
+                prefix = "lib"
+            else:
+                ext = "so"
+                prefix = "lib"
+            src, dest = spl[1:]
+            shortened = dest.split("onnx_extended")[-1].strip("/\\")
+            fulldest = f"onnx_extended/{shortened}"
+            assumed_name = f"{prefix}{src}.{ext}"
+            if is_windows():
+                fullname = os.path.join(build_path, cfg, assumed_name)
+            else:
+                fullname = os.path.join(build_path, assumed_name)
+            if not os.path.exists(fullname):
+                raise FileNotFoundError(f"Unable to find {fullname!r}.")
+            print(f"-- copy {fullname!r} to {fulldest!r}")
+            shutil.copy(fullname, fulldest)
+        else:
+            raise RuntimeError(f"Unable to interpret line {line!r}.")
 
-if is_windows():
-    ext = "pyd"
-elif is_darwin():
-    ext = "dylib"
-else:
-    ext = "so"
+    def process_setup_ext(self, cfg, build_path, filename):
+        """
+        Copies the additional files done after cmake was executed
+        into python subfolders. These files are listed in file
+        `_setup_ext.txt` produced by cmake.
 
-cuda_extensions = []
-has_cuda = find_cuda()
-if has_cuda:
-    add_cuda = True
-    if "--with-cuda" in sys.argv:
-        pos = sys.argv.index("--with-cuda")
-        if len(sys.argv) > pos + 1 and sys.argv[pos + 1] in ("0", 0, False, "False"):
-            add_cuda = False
-    elif "--with-cuda=0" in sys.argv:
-        add_cuda = False
-    elif "--with-cuda=1" in sys.argv or "--with-cuda=guess":
+        :param cfg: configuration (Release, ...)
+        :param build_path: where it was built
+        :param filename: path of file `_setup_ext.txt`.
+        """
+        this = os.path.abspath(os.path.dirname(__file__))
+        fullname = os.path.join(this, filename)
+        if not os.path.exists(fullname):
+            raise FileNotFoundError(f"Unable to find {fullname!r}.")
+        with open(fullname, "r") as f:
+            lines = f.readlines()
+        for line in lines:
+            self._process_setup_ext_line(cfg, build_path, line)
+
+    def build_extensions(self):
+        # Ensure that CMake is present and working
+        try:
+            subprocess.check_output(["cmake", "--version"])
+        except OSError:
+            raise RuntimeError("Cannot find CMake executable")
+
+        cfg = "Release"
+        cmake_args = self.get_cmake_args(cfg)
+        build_path, build_lib = self.build_cmake(cfg, cmake_args)
+        self.process_setup_ext(cfg, build_path, "_setup_ext.txt")
+        self.process_extensions(cfg, build_path, build_lib)
+
+
+def get_ext_modules():
+    if is_windows():
+        ext = "pyd"
+    elif is_darwin():
+        ext = "dylib"
+    else:
+        ext = "so"
+
+    cuda_extensions = []
+    has_cuda = find_cuda()
+    if has_cuda:
         add_cuda = True
-    if add_cuda:
-        cuda_extensions.extend(
-            [
-                CMakeExtension(
-                    "onnx_extended.validation.cuda.cuda_example_py",
-                    f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
-                )
-            ]
+        if "--with-cuda" in sys.argv:
+            pos = sys.argv.index("--with-cuda")
+            if len(sys.argv) > pos + 1 and sys.argv[pos + 1] in (
+                "0",
+                0,
+                False,
+                "False",
+            ):
+                add_cuda = False
+        elif "--with-cuda=0" in sys.argv:
+            add_cuda = False
+        elif "--with-cuda=1" in sys.argv or "--with-cuda=guess":
+            add_cuda = True
+        if add_cuda:
+            cuda_extensions.extend(
+                [
+                    CMakeExtension(
+                        "onnx_extended.validation.cuda.cuda_example_py",
+                        f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
+                    )
+                ]
+            )
+    elif "--with-cuda=1" in sys.argv or "--with-cuda" in sys.argv:
+        raise RuntimeError(
+            "CUDA is not available, it cannot be build with CUDA depsite "
+            "option '--with-cuda=1'."
         )
-elif "--with-cuda=1" in sys.argv or "--with-cuda" in sys.argv:
-    raise RuntimeError(
-        "CUDA is not available, it cannot be build with CUDA depsite "
-        "option '--with-cuda=1'."
-    )
+    ext_modules = [
+        CMakeExtension(
+            "onnx_extended.validation.cython.vector_function_cy",
+            f"onnx_extended/validation/cython/vector_function_cy.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.validation.cpu._validation",
+            f"onnx_extended/validation/cpu/_validation.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.reference.c_ops.cpu.c_op_conv_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_conv_.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.ortcy.wrap.ortinf",
+            f"onnx_extended.ortcy.wrap.ortinf.{ext}",
+        ),
+        *cuda_extensions,
+    ]
+    return ext_modules
 
 
 setup(
@@ -412,27 +522,5 @@ setup(
         "Programming Language :: Python :: 3.11",
     ],
     cmdclass={"build_ext": cmake_build_ext},
-    ext_modules=[
-        CMakeExtension(
-            "onnx_extended.validation.cython.vector_function_cy",
-            f"onnx_extended/validation/cython/vector_function_cy.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.validation.cpu._validation",
-            f"onnx_extended/validation/cpu/_validation.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.reference.c_ops.cpu.c_op_conv_",
-            f"onnx_extended/reference/c_ops/cpu/c_op_conv_.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
-            f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.ortcy.wrap.ortinf",
-            f"onnx_extended.ortcy.wrap.ortinf.{ext}",
-        ),
-        *cuda_extensions,
-    ],
+    ext_modules=get_ext_modules(),
 )

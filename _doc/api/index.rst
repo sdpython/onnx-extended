@@ -7,5 +7,6 @@ API
     :maxdepth: 1
 
     ortcy
+    optops
     reference
     validation

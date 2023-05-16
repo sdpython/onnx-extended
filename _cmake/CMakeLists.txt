@@ -85,6 +85,7 @@ include("targets/c_op_conv_.cmake")
 include("targets/c_op_tree_ensemble_py_.cmake")
 include("targets/cuda_example_py.cmake")
 include("targets/vector_function_cy.cmake")
+include("targets/ortops_tutorial.cmake")
 
 #
 # write version

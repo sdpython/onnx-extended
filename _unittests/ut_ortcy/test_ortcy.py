@@ -65,6 +65,35 @@ class TestOrtCy(ExtTestCase):
         self.assertEqual(len(got), 1)
         self.assertEqualArray(got[0], x + y)
 
+    def test_my_custom_ops_cy(self):
+        from onnx_extended.ortcy.wrap.ortinf import OrtSession
+        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
+        node1 = make_node(
+            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+        )
+        graph = make_graph([node1], "lr", [X, A], [Y])
+        onnx_model = make_model(
+            graph,
+            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            ir_version=8,
+        )
+        check_model(onnx_model)
+
+        session = OrtSession(
+            onnx_model.SerializeToString(), custom_libs=get_ort_ext_libs()
+        )
+        self.assertEqual(session.get_input_count(), 2)
+        self.assertEqual(session.get_output_count(), 1)
+
+        x = numpy.random.randn(2, 3).astype(numpy.float32)
+        y = numpy.random.randn(2, 3).astype(numpy.float32)
+        got = session.run_2(x, y)[0]
+        self.assertEqualArray(x + y, got)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
