@@ -66,6 +66,7 @@ class TestOrtCy(ExtTestCase):
         self.assertEqualArray(got[0], x + y)
 
     def test_my_custom_ops_cy(self):
+        from onnx_extended.ortcy.wrap.ortinf import OrtSession
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
