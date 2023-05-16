@@ -9,7 +9,11 @@ from onnx.helper import (
     make_opsetid,
 )
 from onnx.checker import check_model
-from onnxruntime import InferenceSession, SessionOptions
+
+try:
+    from onnxruntime import InferenceSession, SessionOptions
+except ImportError:
+    SessionOptions, InferenceSession = None, None
 from onnx_extended.ext_test_case import ExtTestCase
 
 
@@ -20,6 +24,7 @@ class TestOrtOpTutorial(ExtTestCase):
         r = get_ort_ext_libs()
         self.assertEqual(len(r), 1)
 
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_my_custom_ops(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 

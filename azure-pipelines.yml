@@ -43,9 +43,6 @@ jobs:
       python -m pip install . -v -v -v
     displayName: 'install wheel'
   - script: |
-      mkdir _tests
-      cd _tests
-      python -m pytest .. --durations=10
     displayName: 'Runs Unit Tests'
   - task: PublishPipelineArtifact@0
     inputs:
@@ -108,7 +105,9 @@ jobs:
     displayName: 'Run C++ Unit Tests'
 
   - script: |
-      python -m pytest --durations=10
+      cd _unittests
+      python -m pytest . --durations=10
+      cd ..
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel
@@ -157,7 +156,9 @@ jobs:
         ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
-        python -m pytest --durations=10
+      cd _unittests
+      python -m pytest . --durations=10
+      cd ..
     displayName: 'Runs Unit Tests'
   - script: |
         python -u setup.py bdist_wheel
@@ -218,7 +219,9 @@ jobs:
     displayName: 'build wheel'
   - script: |
       source activate myEnvironment
-      python -m pytest --durations=10
+      cd _unittests
+      python -m pytest . --durations=10
+      cd ..
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel

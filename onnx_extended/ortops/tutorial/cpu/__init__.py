@@ -7,7 +7,9 @@ _ort_ext_libs = []
 
 def get_ort_ext_libs() -> List[str]:
     """
-    Returns the list of libraries implementing new onnxruntime kernels.
+    Returns the list of libraries implementing new simple
+    :epkg:`onnxruntime` kernels implemented for the
+    :epkg:`CPUExecutionProvider`.
     """
     global _ort_ext_libs
     if len(_ort_ext_libs) == 0:

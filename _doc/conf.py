@@ -59,14 +59,15 @@ sphinx_gallery_conf = {
 }
 
 epkg_dictionary = {
+    "CPUExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
     "cython": "https://cython.org/",
     "DOT": "https://graphviz.org/doc/info/lang.html",
     "JIT": "https://en.wikipedia.org/wiki/Just-in-time_compilation",
+    "numpy": "https://numpy.org/",
+    "numba": "https://numba.pydata.org/",
     "onnx": "https://onnx.ai/onnx/",
     "ONNX": "https://onnx.ai/",
     "onnxruntime": "https://onnxruntime.ai/",
-    "numpy": "https://numpy.org/",
-    "numba": "https://numba.pydata.org/",
     "onnx-array-api": (
         "http://www.xavierdupre.fr/app/" "onnx-array-api/helpsphinx/index.html"
     ),
