@@ -6,6 +6,7 @@
 
 #include "ort_tutorial_cpu_lib.h"
 #include "my_kernel.h"
+#include "my_kernel_attr.h"
 
 static const char* c_OpDomain = "onnx_extented.ortops.tutorial.cpu";
 
@@ -20,13 +21,17 @@ OrtStatus* ORT_API_CALL RegisterCustomOps(OrtSessionOptions* options, const OrtA
   Ort::InitApi(api_base->GetApi(ORT_API_VERSION));
   Ort::UnownedSessionOptions session_options(options);
 
+  // An instance remaining available until onnxruntime unload the library.
   static ortops::MyCustomOp c_CustomOp;
+  static ortops::MyCustomOpWithAttributes c_CustomOpAttr;
 
   OrtStatus* result = nullptr;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
+
     domain.Add(&c_CustomOp);
+    domain.Add(&c_CustomOpAttr);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));
