@@ -77,7 +77,9 @@ class TestOrtCy(ExtTestCase):
         )
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
-            graph, opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)]
+            graph,
+            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            ir_version=8,
         )
         check_model(onnx_model)
 
@@ -89,7 +91,7 @@ class TestOrtCy(ExtTestCase):
 
         x = numpy.random.randn(2, 3).astype(numpy.float32)
         y = numpy.random.randn(2, 3).astype(numpy.float32)
-        got = session.run_2(x, y)
+        got = session.run_2(x, y)[0]
         self.assertEqualArray(x + y, got)
 
 

@@ -204,7 +204,7 @@ cdef class OrtSession:
             None if custom_libs is None else
             [c.encode("utf-8") for c in custom_libs]
         )
-        if custom_libs is None:
+        if custom_libs is not None:
             c_custom_libs = <char**> malloc((len(custom_libs) + 1) * sizeof(char*))
             for i in range(len(custom_libs)):
                 c_custom_libs[i] = <char*>custom_libs_encoded[i]

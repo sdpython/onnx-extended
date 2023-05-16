@@ -135,8 +135,16 @@ public:
             ThrowOnError(GetOrtApi()->SetInterOpNumThreads(sess_options_, inter_op_num_threads));
         }
         if (custom_libs != nullptr) {
+            #ifdef _WIN32
+            std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+            #endif
             while (*custom_libs != nullptr) {
+                #ifdef _WIN32
+                std::wstring wpath(cvt.from_bytes(*custom_libs));
+                ThrowOnError(GetOrtApi()->RegisterCustomOpsLibrary_V2(sess_options_, wpath.c_str()));
+                #else
                 ThrowOnError(GetOrtApi()->RegisterCustomOpsLibrary_V2(sess_options_, *custom_libs));
+                #endif
                 ++custom_libs;
             }
         }
