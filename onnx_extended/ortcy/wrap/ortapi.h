@@ -81,7 +81,8 @@ void session_initialize(OrtSessionType* ptr,
                         int cuda_device_id = 0,
                         int set_denormal_as_zero = 0,
                         int intra_op_num_threads = -1,
-                        int inter_op_num_threads = -1);
+                        int inter_op_num_threads = -1,
+                        char** custom_libs = nullptr);
 size_t session_get_input_count(OrtSessionType *);
 size_t session_get_output_count(OrtSessionType *);
 size_t session_run(OrtSessionType* ptr,

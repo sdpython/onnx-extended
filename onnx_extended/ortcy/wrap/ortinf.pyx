@@ -2,6 +2,7 @@ import numpy
 cimport numpy
 cimport cython
 from libc.stdint cimport int64_t
+from libc.stdlib cimport free, malloc
 from libc.string cimport memcpy
 from cpython cimport Py_buffer
 from cpython.buffer cimport (
@@ -76,7 +77,8 @@ cdef extern from "ortapi.h" namespace "ortapi":
                             int cuda_device_id,
                             int set_denormal_as_zero,
                             int intra_op_num_threads,
-                            int inter_op_num_threads)
+                            int inter_op_num_threads,
+                            char** custom_libs)
     size_t session_run(void*,
                        size_t n_inputs,
                        const OrtShape* shapes,
@@ -194,17 +196,36 @@ cdef class OrtSession:
         optimized_file_path=None,
         inter_op_num_threads=-1,
         intra_op_num_threads=-1,
+        custom_libs=None,
     ):
+        cdef char** c_custom_libs = <char**> 0
+
+        custom_libs_encoded = (
+            None if custom_libs is None else
+            [c.encode("utf-8") for c in custom_libs]
+        )
+        if custom_libs is None:
+            c_custom_libs = <char**> malloc((len(custom_libs) + 1) * sizeof(char*))
+            for i in range(len(custom_libs)):
+                c_custom_libs[i] = <char*>custom_libs_encoded[i]
+            c_custom_libs[len(custom_libs)] = <char*> 0
+        opt_file_path = (optimized_file_path or "").encode('utf-8')
+
         self.session = <void*>create_session()
         session_initialize(
             self.session,
-            (optimized_file_path or "").encode('utf-8'),
+            opt_file_path,
             graph_optimization_level,
             1 if enable_cuda else 0,
             cuda_device_id,
             1 if set_denormal_as_zero else 0,
             intra_op_num_threads,
-            inter_op_num_threads)
+            inter_op_num_threads,
+            c_custom_libs)
+
+        if c_custom_libs != (<char**> 0):
+            free(c_custom_libs)
+
         if isinstance(filename, str):
             session_load_from_file(self.session, filename.encode('utf-8'))
         elif isinstance(filename, bytes):

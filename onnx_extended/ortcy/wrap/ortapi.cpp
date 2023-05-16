@@ -95,7 +95,8 @@ public:
                     int cuda_device_id = 0,
                     int set_denormal_as_zero = 0,
                     int intra_op_num_threads = -1,
-                    int inter_op_num_threads = -1) {
+                    int inter_op_num_threads = -1,
+                    const char** custom_libs = nullptr) {
         if (graph_optimization_level != -1) {
             ThrowOnError(GetOrtApi()->SetSessionGraphOptimizationLevel(
                 sess_options_, (GraphOptimizationLevel)graph_optimization_level));
@@ -132,6 +133,12 @@ public:
         }
         if (inter_op_num_threads != -1) {
             ThrowOnError(GetOrtApi()->SetInterOpNumThreads(sess_options_, inter_op_num_threads));
+        }
+        if (custom_libs != nullptr) {
+            while (*custom_libs != nullptr) {
+                ThrowOnError(GetOrtApi()->RegisterCustomOpsLibrary_V2(sess_options_, *custom_libs));
+                ++custom_libs;
+            }
         }
     }
 
@@ -275,14 +282,16 @@ void session_initialize(OrtSessionType* ptr,
                         int cuda_device_id,
                         int set_denormal_as_zero,
                         int intra_op_num_threads,
-                        int inter_op_num_threads) {
+                        int inter_op_num_threads,
+                        char** custom_libs) {
     ((OrtInference*)ptr)->Initialize(optimized_file_path,
                                      graph_optimization_level,
                                      enable_cuda,
                                      cuda_device_id,
                                      set_denormal_as_zero,
                                      intra_op_num_threads,
-                                     inter_op_num_threads);
+                                     inter_op_num_threads,
+                                     (const char**)custom_libs);
 }
 
 size_t session_run(OrtSessionType* ptr,
