@@ -14,6 +14,8 @@ target_link_directories(ortinf PRIVATE ${ONNXRUNTIME_LIB_DIR})
 target_link_libraries(ortinf PRIVATE lib_ortapi onnxruntime)
 ort_add_dependency(ortinf ${CMAKE_CURRENT_SOURCE_DIR}/../onnx_extended/ortcy/wrap/)
 
+set(ORTAPI_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortcy/wrap")
+
 add_executable(test_ortcy_inference_cpp ../_unittests/ut_ortcy/test_inference.cpp)
 target_include_directories(
   test_ortcy_inference_cpp PRIVATE

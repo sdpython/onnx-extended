@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 
-namespace ortapi {
+namespace orthelpers {
 
 inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
 
@@ -73,7 +73,7 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 }
 
 #if !defined(_THROW_DEFINED)
-#define EXT_THROW(...) throw std::runtime_error(MakeString(__VA_ARGS__));
+#define EXT_THROW(...) throw std::runtime_error(orthelpers::MakeString(__VA_ARGS__));
 #define _THROW_DEFINED
 #endif
 
@@ -81,8 +81,8 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 #define EXT_ENFORCE(cond, ...)                                                    \
   if (!(cond))                                                                 \
     throw std::runtime_error(                                                  \
-        MakeString("`", #cond, "` failed.", MakeString(__VA_ARGS__)));
+        orthelpers::MakeString("`", #cond, "` failed.", orthelpers::MakeString(__VA_ARGS__)));
 #define _ENFORCE_DEFINED
 #endif
 
-} // namespace ortapi
+} // namespace orthelpers

@@ -1,5 +1,6 @@
 #include "ortapi.h"
 #include "helpers.h"
+#include "ortapi_inline.h"
 #ifdef _WIN32
 #include <codecvt>
 #include <locale>
@@ -8,26 +9,6 @@
 // https://onnxruntime.ai/docs/api/c/
 
 namespace ortapi {
-
-inline const OrtApi* GetOrtApi() {
-    static const OrtApi* api_ = OrtGetApiBase()->GetApi(ORT_API_VERSION);
-    return api_;
-}
-
-const char* ort_version() {
-    return "GetOrtApi()->GetBuildInfoString();";
-}
-
-inline void _ThrowOnError_(OrtStatus* ort_status, const char* filename, int line) {
-    if (ort_status) {
-        std::string message(GetOrtApi()->GetErrorMessage(ort_status));
-        OrtErrorCode code = GetOrtApi()->GetErrorCode(ort_status);
-        throw std::runtime_error(
-            MakeString("error: onnxruntime(", code, "), ", message, "\n    ", filename, ":", line));
-    }
-}
-
-#define ThrowOnError(ort_status) _ThrowOnError_(ort_status, __FILE__, __LINE__)
 
 std::vector<std::string> get_available_providers() {
     int len;
@@ -55,6 +36,8 @@ public:
         ThrowOnError(GetOrtApi()->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &cpu_memory_info_));
         sess_ = nullptr;
         cpu_allocator_ = nullptr;
+        n_inputs_ = 0;
+        n_outputs_ = 0;
     }
 
     void LoadFromFile(const char* filepath) {
