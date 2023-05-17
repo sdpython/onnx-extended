@@ -10,7 +10,7 @@ struct MyCustomKernelWithAttributes {
 
   private:
     std::string att_string;
-    std::string att_float;
+    float att_float;
     int64_t att_int64;
     std::vector<double> att_tensor_double;
 };

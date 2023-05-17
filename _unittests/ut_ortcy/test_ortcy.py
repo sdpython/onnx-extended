@@ -9,6 +9,7 @@ from onnx.helper import (
     make_tensor_value_info,
     make_opsetid,
 )
+from onnx.numpy_helper import from_array
 from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
 
@@ -93,6 +94,43 @@ class TestOrtCy(ExtTestCase):
         y = numpy.random.randn(2, 3).astype(numpy.float32)
         got = session.run_2(x, y)[0]
         self.assertEqualArray(x + y, got)
+
+    def test_my_custom_ops_with_attributes(self):
+        from onnx_extended.ortcy.wrap.ortinf import OrtSession
+        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+        X = make_tensor_value_info("X", TensorProto.DOUBLE, [None, None])
+        A = make_tensor_value_info("A", TensorProto.DOUBLE, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.DOUBLE, [None, None])
+        node1 = make_node(
+            "MyCustomOpWithAttributes",
+            ["X", "A"],
+            ["Y"],
+            domain="onnx_extented.ortops.tutorial.cpu",
+            att_string="string_att",
+            att_int64=5,
+            att_float=4.5,
+            att_tensor=from_array(numpy.array([[5.1]], dtype=numpy.float64)),
+        )
+        graph = make_graph([node1], "lr", [X, A], [Y])
+        onnx_model = make_model(
+            graph,
+            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            ir_version=8,
+        )
+        check_model(onnx_model)
+
+        session = OrtSession(
+            onnx_model.SerializeToString(), custom_libs=get_ort_ext_libs()
+        )
+        self.assertEqual(session.get_input_count(), 2)
+        self.assertEqual(session.get_output_count(), 1)
+
+        x = numpy.random.randn(2, 3).astype(numpy.float64)
+        y = numpy.random.randn(2, 3).astype(numpy.float64)
+        got = session.run_2(x, y)[0]
+        cst = 5.1 + 4.5 + 5 + ord("s")
+        self.assertEqualArray(x + y + cst, got)
 
 
 if __name__ == "__main__":

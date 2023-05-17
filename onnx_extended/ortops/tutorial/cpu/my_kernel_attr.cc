@@ -54,6 +54,7 @@ MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
   att_tensor_double.resize(size_tensor);
   void* data;
   ThrowOnError(api, api.GetTensorMutableData(value_tensor, &data));
+
   memcpy(att_tensor_double.data(), data, size_tensor * sizeof(double));
 
   // Release the allocated objects.
@@ -72,19 +73,20 @@ void MyCustomKernelWithAttributes::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_X = ctx.GetInput(0);
   Ort::ConstValue input_Y = ctx.GetInput(1);
-  const float *X = input_X.GetTensorData<float>();
-  const float *Y = input_Y.GetTensorData<float>();
+  const double *X = input_X.GetTensorData<double>();
+  const double *Y = input_Y.GetTensorData<double>();
 
   // Setup output, which is assumed to have the same dimensions as the inputs.
   std::vector<int64_t> dimensions = input_X.GetTensorTypeAndShapeInfo().GetShape();
 
   Ort::UnownedValue output = ctx.GetOutput(0, dimensions);
-  float *out = output.GetTensorMutableData<float>();
+  double *out = output.GetTensorMutableData<double>();
 
   const size_t size = output.GetTensorTypeAndShapeInfo().GetElementCount();
 
   // Do computation
-  double cst = att_tensor_double[0];
+  double cst = att_tensor_double[0] + cst + static_cast<double>(att_float) + static_cast<double>(att_int64) + static_cast<double>(att_string[0]);
+
   for (size_t i = 0; i < size; i++) {
     out[i] = X[i] + Y[i] + cst;
   }
