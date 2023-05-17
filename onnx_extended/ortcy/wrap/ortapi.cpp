@@ -1,6 +1,6 @@
 #include "ortapi.h"
-#include "ortapi_inline.h"
 #include "helpers.h"
+#include "ortapi_inline.h"
 #ifdef _WIN32
 #include <codecvt>
 #include <locale>

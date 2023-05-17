@@ -5,7 +5,7 @@
 namespace ortops {
 
 struct MyCustomKernel {
-  MyCustomKernel(const OrtApi& api, const OrtKernelInfo* info);
+  MyCustomKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext* context);
 };
 
