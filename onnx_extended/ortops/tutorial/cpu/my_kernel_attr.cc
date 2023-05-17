@@ -1,8 +1,4 @@
 #include "my_kernel_attr.h"
-#include "ortapi.h"
-#include "ortapi_inline.h"
-
-using namespace ortapi;
 
 namespace ortops {
 
@@ -10,38 +6,38 @@ MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
     const OrtApi &api, const OrtKernelInfo *info) {
   // A float attribute.
   float value_float;
-  ThrowOnError(GetOrtApi()->KernelInfoGetAttribute_float(info, "att_float", &value_float));
+  ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "att_float", &value_float));
   att_float = value_float;
 
   // An integer attribute.
   int64_t value_int64;
-  ThrowOnError(GetOrtApi()->KernelInfoGetAttribute_int64(info, "att_int64", &value_int64));
+  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "att_int64", &value_int64));
   att_int64 = value_int64;
 
   // A string attribute.
   char value_string[1000];
   size_t size = 1000;
-  ThrowOnError(GetOrtApi()->KernelInfoGetAttribute_string(info, "att_string", value_string, &size));
+  ThrowOnError(api, api.KernelInfoGetAttribute_string(info, "att_string", value_string, &size));
   att_string = value_string;
 
   // A tensor attribute
   // Retrieve the value.
   OrtAllocator *cpu_allocator;
-  ThrowOnError(GetOrtApi()->GetAllocatorWithDefaultOptions(&cpu_allocator));
+  ThrowOnError(api, api.GetAllocatorWithDefaultOptions(&cpu_allocator));
 
   OrtValue* value_tensor = nullptr;
-  ThrowOnError(GetOrtApi()->KernelInfoGetAttribute_tensor(info, "att_tensor", cpu_allocator, &value_tensor));
+  ThrowOnError(api, api.KernelInfoGetAttribute_tensor(info, "att_tensor", cpu_allocator, &value_tensor));
 
   // Retrieve the dimensions and the element type.
   OrtTensorTypeAndShapeInfo* shape_info;
-  ThrowOnError(GetOrtApi()->GetTensorTypeAndShape(value_tensor, &shape_info));
+  ThrowOnError(api, api.GetTensorTypeAndShape(value_tensor, &shape_info));
 
   // Retrieve the element type.
   ONNXTensorElementDataType elem_type;
-  ThrowOnError(GetOrtApi()->GetTensorElementType(shape_info, &elem_type));
+  ThrowOnError(api, api.GetTensorElementType(shape_info, &elem_type));
   if (elem_type != ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE) {
-    GetOrtApi()->ReleaseTensorTypeAndShapeInfo(shape_info);
-    GetOrtApi()->ReleaseValue(value_tensor);
+    api.ReleaseTensorTypeAndShapeInfo(shape_info);
+    api.ReleaseValue(value_tensor);
     throw std::runtime_error(
       "Attribute 'att_tensor' of operator 'MyCustomOpWithAttributes' expects a double tensor."
     );
@@ -49,20 +45,20 @@ MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
 
   // Retrieve the number of elements in the shape.
   size_t n_dims;
-  ThrowOnError(GetOrtApi()->GetDimensionsCount(shape_info, &n_dims));
+  ThrowOnError(api, api.GetDimensionsCount(shape_info, &n_dims));
   std::vector<int64_t> shape(n_dims);
-  ThrowOnError(GetOrtApi()->GetDimensions(shape_info, shape.data(), n_dims));
+  ThrowOnError(api, api.GetDimensions(shape_info, shape.data(), n_dims));
 
   size_t size_tensor;
-  ThrowOnError(GetOrtApi()->GetTensorShapeElementCount(shape_info, &size_tensor));
+  ThrowOnError(api, api.GetTensorShapeElementCount(shape_info, &size_tensor));
   att_tensor_double.resize(size_tensor);
   void* data;
-  ThrowOnError(GetOrtApi()->GetTensorMutableData(value_tensor, &data));
+  ThrowOnError(api, api.GetTensorMutableData(value_tensor, &data));
   memcpy(att_tensor_double.data(), data, size_tensor * sizeof(double));
 
   // Release the allocated objects.
-  GetOrtApi()->ReleaseTensorTypeAndShapeInfo(shape_info);
-  GetOrtApi()->ReleaseValue(value_tensor);
+  api.ReleaseTensorTypeAndShapeInfo(shape_info);
+  api.ReleaseValue(value_tensor);
 
   // Verifications.
   if (att_tensor_double.empty()) {

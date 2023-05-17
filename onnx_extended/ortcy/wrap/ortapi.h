@@ -50,7 +50,7 @@ class OrtCpuValue {
         void* data_;
         void* ort_value_;
     public:
-        inline OrtCpuValue() { elem_type_ = -1; }
+        inline OrtCpuValue() { elem_type_ = -1; size_ = 0; ort_value_ = nullptr; data_ = nullptr; }
         inline void init(size_t size, int elem_type, void* data, void* ort_value) {
             size_ = size;
             elem_type_ = elem_type;

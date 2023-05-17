@@ -1,6 +1,6 @@
 #include "ortapi.h"
-#include "helpers.h"
 #include "ortapi_inline.h"
+#include "helpers.h"
 #ifdef _WIN32
 #include <codecvt>
 #include <locale>
@@ -36,6 +36,8 @@ public:
         ThrowOnError(GetOrtApi()->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &cpu_memory_info_));
         sess_ = nullptr;
         cpu_allocator_ = nullptr;
+        n_inputs_ = 0;
+        n_outputs_ = 0;
     }
 
     void LoadFromFile(const char* filepath) {
