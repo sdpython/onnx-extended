@@ -21,3 +21,10 @@ Retrieve information about the CPU
 
     cat /proc/cpuinfo
     lscpu
+
+Retrieve information about the GPU
+++++++++++++++++++++++++++++++++++
+
+::
+
+    nvidia-smi

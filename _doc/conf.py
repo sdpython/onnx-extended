@@ -59,9 +59,12 @@ sphinx_gallery_conf = {
 }
 
 epkg_dictionary = {
+    "cmake": "https://cmake.org/",
     "CPUExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
+    "CUDA": "https://developer.nvidia.com/",
     "cython": "https://cython.org/",
     "DOT": "https://graphviz.org/doc/info/lang.html",
+    "eigen": "https://eigen.tuxfamily.org/",
     "JIT": "https://en.wikipedia.org/wiki/Just-in-time_compilation",
     "numpy": "https://numpy.org/",
     "numba": "https://numba.pydata.org/",
@@ -75,6 +78,7 @@ epkg_dictionary = {
     "onnxruntime Graph Optimizations": (
         "https://onnxruntime.ai/docs/performance/model-optimizations/graph-optimizations.html"
     ),
+    "openmp": "https://www.openmp.org/",
     "pyinstrument": "https://github.com/joerick/pyinstrument",
     "python": "https://www.python.org/",
     "scikit-learn": "https://scikit-learn.org/stable/",
