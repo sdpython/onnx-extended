@@ -32,12 +32,13 @@ with two instructions:
 * ``python setup.py build_ext --inplace``, the legacy way
 * ``pip install -e .``, the new way
 
-By default, *cmake* will build with CUDA if it is available. It can be disabled:
+By default, *cmake* builds with CUDA if it is available. It can be disabled:
 
 * ``python setup.py build_ext --inplace --with-cuda=0``, the legacy way
 * ``pip install -e . --config-settings="--with-cuda=0"``, the new way
 
 .. toctree::
+    :maxdepth: 1    
     
     build_cython
     build_pybind11
@@ -53,3 +54,13 @@ Validation, Experiments
     ../auto_examples/plot_bench_cpu_vector_sum_parallel
     ../auto_examples/plot_bench_cpu_vector_sum_avx_parallel
     ../auto_examples/plot_bench_gpu_vector_sum_gpu
+    ../auto_examples/plot_bench_ort
+    ../auto_examples/plot_bench_gemm
+
+Technical details in practice
++++++++++++++++++++++++++++++
+
+.. toctree::
+    :maxdepth: 1
+
+    ../auto_examples/plot_conv_denorm

@@ -91,8 +91,8 @@ jobs:
       cython-lint .
     displayName: 'cython-lint'
   - script: |
-      python -m pip install -e .
-      # python setup.py build_ext --inplace
+      # python -m pip install -e .
+      python setup.py build_ext --inplace
     displayName: 'build'
   - script: |
       python setup.py bdist_wheel
