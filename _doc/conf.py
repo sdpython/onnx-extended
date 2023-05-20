@@ -68,9 +68,11 @@ epkg_dictionary = {
     "JIT": "https://en.wikipedia.org/wiki/Just-in-time_compilation",
     "numpy": "https://numpy.org/",
     "numba": "https://numba.pydata.org/",
+    "nvidia-smi": "https://developer.nvidia.com/nvidia-system-management-interface",
     "onnx": "https://onnx.ai/onnx/",
     "ONNX": "https://onnx.ai/",
     "onnxruntime": "https://onnxruntime.ai/",
+    "onnxruntime releases": "https://github.com/microsoft/onnxruntime/releases",
     "onnx-array-api": (
         "http://www.xavierdupre.fr/app/" "onnx-array-api/helpsphinx/index.html"
     ),

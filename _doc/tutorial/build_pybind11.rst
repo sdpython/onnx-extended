@@ -1,4 +1,3 @@
-
 Build with pybind11
 ===================
 
@@ -22,10 +21,10 @@ every extension to build and used as follows:
 ::
 
     local_pybind11_add_module(
-    _validation  # name
-    OpenMP::OpenMP_CXX  # link with this library
-    ../onnx_extended/validation/cpu/_validation.cpp  # source file
-    ../onnx_extended/validation/cpu/vector_sum.cpp)  # source file
+    _validation                                         # name
+    OpenMP::OpenMP_CXX                                  # link with this library
+    ../onnx_extended/validation/cpu/_validation.cpp     # source file
+    ../onnx_extended/validation/cpu/vector_sum.cpp)     # source file
 
 Additional libraries can be added with `target_link_libraries(name PRIVATE lib_name)`.
 

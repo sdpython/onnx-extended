@@ -138,3 +138,9 @@ else()
 endif()
 
 message(STATUS "-------------------")
+
+if(CUDA_AVAILABLE)
+  set(config_content "HAS_CUDA = 1\nCUDA_VERSION = '${CUDA_VERSION}'")
+else()
+  set(config_content "HAS_CUDA = 0")
+endif()

@@ -42,6 +42,8 @@ By default, *cmake* builds with CUDA if it is available. It can be disabled:
     
     build_cython
     build_pybind11
+    build_cuda
+    build_ortext
 
 Validation, Experiments
 +++++++++++++++++++++++

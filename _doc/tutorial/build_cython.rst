@@ -1,4 +1,3 @@
-
 Build with cython
 =================
 
@@ -20,10 +19,10 @@ every extension to build and used as follows:
 ::
 
     cython_add_module(
-        vector_function_cy  # name
-        ../onnx_extended/validation/cython/vector_function_cy.pyx  # pyx_file
-        OpenMP::OpenMP_CXX  # link with this target
-        ../onnx_extended/validation/cpu/vector_function.cpp)  # sources files
+        vector_function_cy                                          # name
+        ../onnx_extended/validation/cython/vector_function_cy.pyx   # pyx_file
+        OpenMP::OpenMP_CXX                                          # link with this target
+        ../onnx_extended/validation/cpu/vector_function.cpp)        # sources files
 
 The function accepts many source files. Other link dependencies can be added as well
 by adding an instructions like `target_link_libraries(name PRIVATE lib_name)`.
