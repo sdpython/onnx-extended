@@ -10,6 +10,7 @@ from onnx.helper import (
 )
 from onnx.numpy_helper import from_array
 from onnx.checker import check_model
+from onnx_extended.ortops.tutorial.cpu import documentation
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -24,6 +25,14 @@ class TestOrtOpTutorial(ExtTestCase):
 
         r = get_ort_ext_libs()
         self.assertEqual(len(r), 1)
+
+    def test_documentation(self):
+        doc = documentation()
+        self.assertIsInstance(doc, list)
+        self.assertEqual(len(doc), 2)
+        for d in doc:
+            self.assertIn("~~~~", d)
+            self.assertIsInstance(d, str)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_my_custom_ops(self):

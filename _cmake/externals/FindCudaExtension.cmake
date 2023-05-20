@@ -3,8 +3,8 @@
 #
 # defines cuda_pybind11_add_module
 #
-# cuda
-#
+# Defines USE_NTVX to enable profiling with NVIDIA profiler.
+# CUDA_VERSION must be defined as well.
 
 find_package(CUDA)
 
