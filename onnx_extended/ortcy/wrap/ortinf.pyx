@@ -46,12 +46,28 @@ cdef extern from "<vector>" namespace "std":
 
 cdef extern from "ortapi.h" namespace "ortapi":
 
+    enum DLDeviceType:
+        kDLCPU = 1
+        kDLCUDA = 2
+        kDLCUDAHost = 3
+        kDLOpenCL = 4
+        kDLVulkan = 7
+        kDLMetal = 8
+        kDLVPI = 9
+        kDLROCM = 10
+        kDLROCMHost = 11
+        kDLExtDev = 12
+        kDLCUDAManaged = 13
+        kDLOneAPI = 14
+        kDLWebGPU = 15
+        kDLHexagon = 16
+
     cdef cppclass OrtShape:
         OrtShape()
         void init(size_t)
         size_t ndim()
         void set(size_t i, int64_t dim)
-        void* dims()
+        int64_t* dims()
 
     cdef cppclass OrtCpuValue:
         OrtCpuValue()
@@ -106,6 +122,41 @@ def ort_get_available_providers():
     """
     r = _ort_get_available_providers()
     return r
+
+
+cdef class Shape:
+    """
+    Cython wrapper around an OrtShape
+    """
+    cdef OrtShape shape
+
+    def __init__(self):
+        pass
+
+    def set(self, shape):
+        if not isinstance(shape, tuple):
+            raise TypeError(f"shape must be a tuple of int not {type(shape)}.")
+        self.shape.init(len(shape))
+        for i in range(len(shape)):
+            self.shape.set(i, shape[i])
+
+    def __len__(self):
+        "Returns the number of dimensions."
+        return self.shape.ndim()
+
+    def __getitem__(self, i):
+        "Returns dimension i."
+        return self.shape.dims()[i]
+
+    def __setitem__(self, i, d):
+        "Set dimension i."
+        self.shape.set(i, d)
+
+    def __repr__(self):
+        "usual"
+        nd = len(self)
+        shape = tuple(self[i] for i in range(nd))
+        return f"Shape({shape})"
 
 
 cdef class OrtSession:
