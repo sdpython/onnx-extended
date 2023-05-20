@@ -81,6 +81,7 @@ epkg_dictionary = {
         "https://onnxruntime.ai/docs/performance/model-optimizations/graph-optimizations.html"
     ),
     "openmp": "https://www.openmp.org/",
+    "pybind11": "https://github.com/pybind/pybind11",
     "pyinstrument": "https://github.com/joerick/pyinstrument",
     "python": "https://www.python.org/",
     "scikit-learn": "https://scikit-learn.org/stable/",
