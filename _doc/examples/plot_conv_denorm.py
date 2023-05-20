@@ -80,7 +80,7 @@ def create_model():
 
 
 onx = create_model()
-onnx_file = "conv_denorm.onnx"
+onnx_file = "plot_conv_denorm.onnx"
 with open(onnx_file, "wb") as f:
     f.write(onx.SerializeToString())
 

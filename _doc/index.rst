@@ -25,6 +25,10 @@ onnx-extended: more operator for onnx
 
 **onnx-extended** extends the list of supported operators in onnx
 reference implementation, or implements faster versions in C++.
+Documentation `onnx-extended
+<http://www.xavierdupre.fr/app/onnx-extended/helpsphinx/index.html>`_.
+Source are available on `github/onnx-extended
+<https://github.com/sdpython/onnx-extended>`_.
 
 .. toctree::
     :maxdepth: 2
@@ -38,8 +42,12 @@ Sources available on
 `github/onnx-extended <https://github.com/sdpython/onnx-extended>`_,
 see also `code coverage <cov/index.html>`_.
 
+Use C++ a implementation of existing operators
+++++++++++++++++++++++++++++++++++++++++++++++
+
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
 
     import numpy as np
     from onnx import TensorProto
@@ -82,3 +90,37 @@ see also `code coverage <cov/index.html>`_.
     got = sess2.run(None, {"X": X, "W": W, "B": B})[0]
     diff = np.abs(expected - got).max()
     print(f"difference: {diff}")
+
+Build with CUDA, openmp, eigen, onnxruntime
++++++++++++++++++++++++++++++++++++++++++++
+
+The package also contains some dummy examples on how to
+build with C++ functions (`pybind11 <https://github.com/pybind/pybind11>`_,
+`cython <https://cython.org/>`_), with `openmp
+<https://www.openmp.org/>`_, `eigen <https://eigen.tuxfamily.org/index.php>`_
+with or without CUDA. It also shows how to create a custom operator
+for `onnxruntime <https://onnxruntime.ai/>`_ in C++.
+The build will automatically link with CUDA if it is found.
+If not, some extensions might not be available.
+
+::
+
+    python setup.py build_ext --inplace
+    # or
+    pip install -e . --config-settings="--enable_nvtx=1"
+
+`NVTX <https://github.com/NVIDIA/NVTX>`_
+can be enabled with the following command:
+
+::
+
+    python setup.py build_ext --inplace --enable_nvtx 1
+
+Experimental cython binding for onnxruntime
++++++++++++++++++++++++++++++++++++++++++++
+
+The python onnxruntime package relies on pybind11 to expose
+its functionalities. *onnx-extended* tries to build a cython wrapper
+around the C/C++ API of onnxruntime. cython relies on python C API
+and is faster than pybind11. This different may be significant when
+onnxruntime is used on small graphs and tensors.
