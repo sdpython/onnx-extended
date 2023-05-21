@@ -14,6 +14,7 @@ from cpython.buffer cimport (
 numpy.import_array()
 
 
+# imports string
 cdef extern from "<string>" namespace "std":
     cdef cppclass string:
         string()
@@ -27,6 +28,7 @@ cdef extern from "<string>" namespace "std":
         const char* c_str()
 
 
+# imports vector
 cdef extern from "<vector>" namespace "std":
     cdef cppclass vector[T]:
         cppclass iterator:
@@ -44,6 +46,7 @@ cdef extern from "<vector>" namespace "std":
         const char* c_str() const
 
 
+# imports DLDeviceType, OrtShape, OrtCpuValue
 cdef extern from "ortapi.h" namespace "ortapi":
 
     enum DLDeviceType:
@@ -124,9 +127,11 @@ def ort_get_available_providers():
     return r
 
 
-cdef class Shape:
+cdef class CyOrtShape:
     """
-    Cython wrapper around an OrtShape
+    Cython wrapper around an OrtShape.
+    It contains one attribute of type `OrtShape`
+    imported from C++.
     """
     cdef OrtShape shape
 
@@ -134,6 +139,11 @@ cdef class Shape:
         pass
 
     def set(self, shape):
+        """
+        Sets the shape.
+
+        :param shape: tuple of ints
+        """
         if not isinstance(shape, tuple):
             raise TypeError(f"shape must be a tuple of int not {type(shape)}.")
         self.shape.init(len(shape))
@@ -156,10 +166,10 @@ cdef class Shape:
         "usual"
         nd = len(self)
         shape = tuple(self[i] for i in range(nd))
-        return f"Shape({shape})"
+        return f"CyOrtShape({shape})"
 
 
-cdef class OrtSession:
+cdef class CyOrtSession:
     """
     Wrapper around :epkg:`onnxruntime C API` based on :epkg:`cython`.
 
@@ -323,7 +333,7 @@ cdef class OrtSession:
             value = numpy.ascontiguousarray(inputs[n])
             in_values[n].init(
                 value.size,
-                OrtSession._onnx_types[value.dtype],
+                CyOrtSession._onnx_types[value.dtype],
                 value.data,
                 <void*>0
             )
@@ -349,7 +359,7 @@ cdef class OrtSession:
                    out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
             tout = numpy.empty(
                 shape=shape,
-                dtype=OrtSession._dtypes[out_values[i].elem_type()]
+                dtype=CyOrtSession._dtypes[out_values[i].elem_type()]
             )
             memcpy(tout.data,
                    out_values[i].data(),
@@ -379,7 +389,7 @@ cdef class OrtSession:
 
         in_values[0].init(
             value1.size,
-            OrtSession._onnx_types[value1.dtype],
+            CyOrtSession._onnx_types[value1.dtype],
             value1.data,
             <void*>0
         )
@@ -402,7 +412,7 @@ cdef class OrtSession:
                out_shapes[0].ndim() * 8)  # 8 = sizeof(int64)
         cdef numpy.ndarray tout = numpy.empty(
             shape=shape,
-            dtype=OrtSession._dtypes[out_values[0].elem_type()]
+            dtype=CyOrtSession._dtypes[out_values[0].elem_type()]
         )
         memcpy(tout.data,
                out_values[0].data(),
@@ -437,13 +447,13 @@ cdef class OrtSession:
         cdef OrtCpuValue in_values[2]
         in_values[0].init(
             value1.size,
-            OrtSession._onnx_types[value1.dtype],
+            CyOrtSession._onnx_types[value1.dtype],
             value1.data,
             <void*>0
         )
         in_values[1].init(
             value2.size,
-            OrtSession._onnx_types[value2.dtype],
+            CyOrtSession._onnx_types[value2.dtype],
             value2.data,
             <void*>0
         )
@@ -467,7 +477,7 @@ cdef class OrtSession:
                    out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
             tout = numpy.empty(
                 shape=shape,
-                dtype=OrtSession._dtypes[out_values[i].elem_type()]
+                dtype=CyOrtSession._dtypes[out_values[i].elem_type()]
             )
             memcpy(tout.data,
                    out_values[i].data(),

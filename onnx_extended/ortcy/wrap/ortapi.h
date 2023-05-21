@@ -1,10 +1,17 @@
 #pragma once
 
 #include "onnxruntime_c_api.h"
-#include <dlpack/dlpack.h>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#if _WIN32
+#if not defined(_MSC_VER)
+#define _MSC_VER
+#include <dlpack/dlpack.h>
+#undef _MSC_VER
+#endif
+#endif
 
 #define OrtSessionType void
 

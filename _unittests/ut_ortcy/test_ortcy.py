@@ -24,7 +24,7 @@ class TestOrtCy(ExtTestCase):
         self.assertIn("CPUExecutionProvider", res)
 
     def test_session(self):
-        from onnx_extended.ortcy.wrap.ortinf import OrtSession
+        from onnx_extended.ortcy.wrap.ortinf import CyOrtSession
 
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
@@ -44,13 +44,13 @@ class TestOrtCy(ExtTestCase):
                 f.write(onnx_model.SerializeToString())
         self.assertExists(name)
 
-        session = OrtSession(name)
+        session = CyOrtSession(name)
         self.assertEqual(session.get_input_count(), 2)
         self.assertEqual(session.get_output_count(), 1)
 
         data = onnx_model.SerializeToString()
         self.assertIsInstance(data, bytes)
-        session = OrtSession(data)
+        session = CyOrtSession(data)
         self.assertEqual(session.get_input_count(), 2)
         self.assertEqual(session.get_output_count(), 1)
 
@@ -67,7 +67,7 @@ class TestOrtCy(ExtTestCase):
         self.assertEqualArray(got[0], x + y)
 
     def test_my_custom_ops_cy(self):
-        from onnx_extended.ortcy.wrap.ortinf import OrtSession
+        from onnx_extended.ortcy.wrap.ortinf import CyOrtSession
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
@@ -84,7 +84,7 @@ class TestOrtCy(ExtTestCase):
         )
         check_model(onnx_model)
 
-        session = OrtSession(
+        session = CyOrtSession(
             onnx_model.SerializeToString(), custom_libs=get_ort_ext_libs()
         )
         self.assertEqual(session.get_input_count(), 2)
@@ -96,7 +96,7 @@ class TestOrtCy(ExtTestCase):
         self.assertEqualArray(x + y, got)
 
     def test_my_custom_ops_with_attributes(self):
-        from onnx_extended.ortcy.wrap.ortinf import OrtSession
+        from onnx_extended.ortcy.wrap.ortinf import CyOrtSession
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
         X = make_tensor_value_info("X", TensorProto.DOUBLE, [None, None])
@@ -120,7 +120,7 @@ class TestOrtCy(ExtTestCase):
         )
         check_model(onnx_model)
 
-        session = OrtSession(
+        session = CyOrtSession(
             onnx_model.SerializeToString(), custom_libs=get_ort_ext_libs()
         )
         self.assertEqual(session.get_input_count(), 2)

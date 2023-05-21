@@ -25,7 +25,7 @@ from onnx.helper import (
 )
 from onnx.checker import check_model
 from onnxruntime import InferenceSession
-from onnx_extended.ortcy.wrap.ortinf import OrtSession
+from onnx_extended.ortcy.wrap.ortinf import CyOrtSession
 from onnx_extended.ext_test_case import measure_time, unit_test_going
 
 A = numpy_helper.from_array(numpy.array([1], dtype=numpy.float32), name="A")
@@ -43,7 +43,7 @@ check_model(onnx_model)
 sess_ort = InferenceSession(
     onnx_model.SerializeToString(), providers=["CPUExecutionProvider"]
 )
-sess_ext = OrtSession(onnx_model.SerializeToString())
+sess_ext = CyOrtSession(onnx_model.SerializeToString())
 
 x = numpy.random.randn(10, 10).astype(numpy.float32)
 y = x + 1
