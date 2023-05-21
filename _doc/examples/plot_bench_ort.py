@@ -59,16 +59,12 @@ print(f"Discrepancies: d_ort={d_ort}, d_ext={d_ext}")
 # Time measurement
 # ++++++++++++++++
 #
-# *run_1_1* is a specific implementation when there is only 1 input and output.
 
 t_ort = measure_time(lambda: sess_ort.run(None, {"X": x})[0], number=200, repeat=100)
 print(f"t_ort={t_ort}")
 
 t_ext = measure_time(lambda: sess_ext.run([x])[0], number=200, repeat=100)
 print(f"t_ext={t_ext}")
-
-t_ext2 = measure_time(lambda: sess_ext.run_1_1(x), number=200, repeat=100)
-print(f"t_ext2={t_ext2}")
 
 #############################################
 # Benchmark
@@ -92,11 +88,6 @@ for dim in tqdm([1, 10, 100, 1000]):
     t_ext["name"] = "ext"
     t_ext["dim"] = dim
     data.append(t_ext)
-
-    t_ext2 = measure_time(lambda: sess_ext.run_1_1(x), number=number, repeat=repeat)
-    t_ext2["name"] = "ext_1_1"
-    t_ext2["dim"] = dim
-    data.append(t_ext2)
 
     if unit_test_going() and dim >= 10:
         break
