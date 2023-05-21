@@ -63,14 +63,14 @@ public:
     inline const int64_t *dims() const { return dims_; }
 };
 
-class OrtCpuValue {
+class InternalOrtCpuValue {
     private:
         size_t size_;
         ONNXTensorElementDataType elem_type_;
         void* data_;
         void* ort_value_;
     public:
-        inline OrtCpuValue() { 
+        inline InternalOrtCpuValue() { 
             elem_type_ = ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
             size_ = 0;
             ort_value_ = nullptr;
@@ -113,10 +113,14 @@ size_t session_get_output_count(OrtSessionType *);
 size_t session_run(OrtSessionType* ptr,
                    size_t n_inputs,
                    OrtShape* shapes,
-                   OrtCpuValue* values,
+                   InternalOrtCpuValue* values,
                    size_t max_outputs,
-                   OrtShape* out_shapes,
-                   OrtCpuValue* out_values);
+                   OrtShape** out_shapes,
+                   InternalOrtCpuValue** out_values);
 
+OrtShape* allocate_ort_shape(size_t n);
+InternalOrtCpuValue* allocate_ort_cpu_value(size_t n);
+void delete_ort_shape(OrtShape*);
+void delete_internal_ort_cpu_value(InternalOrtCpuValue*);
 
 } // namespace ortapi

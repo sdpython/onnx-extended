@@ -87,7 +87,7 @@ cdef extern from "ortapi.h":
         ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128 = 15
         ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16 = 16
 
-# imports OrtShape, OrtCpuValue
+# imports OrtShape, InternalOrtCpuValue
 cdef extern from "ortapi.h" namespace "ortapi":
 
     cdef cppclass OrtShape:
@@ -97,8 +97,8 @@ cdef extern from "ortapi.h" namespace "ortapi":
         void set(size_t i, int64_t dim)
         int64_t* dims()
 
-    cdef cppclass OrtCpuValue:
-        OrtCpuValue()
+    cdef cppclass InternalOrtCpuValue:
+        InternalOrtCpuValue()
         void init(size_t size,
                   ONNXTensorElementDataType elem_type,
                   void* data,
@@ -107,6 +107,11 @@ cdef extern from "ortapi.h" namespace "ortapi":
         ONNXTensorElementDataType elem_type()
         size_t size()
         void* data()
+
+    OrtShape* allocate_ort_shape(size_t n)
+    InternalOrtCpuValue* allocate_ort_cpu_value(size_t n)
+    void delete_ort_shape(OrtShape*)
+    void delete_internal_ort_cpu_value(InternalOrtCpuValue*)
 
     vector[string] get_available_providers()
 
@@ -129,10 +134,10 @@ cdef extern from "ortapi.h" namespace "ortapi":
     size_t session_run(void*,
                        size_t n_inputs,
                        const OrtShape* shapes,
-                       const OrtCpuValue* values,
+                       const InternalOrtCpuValue* values,
                        size_t max_outputs,
-                       OrtShape* out_shapes,
-                       OrtCpuValue* out_values)
+                       OrtShape** out_shapes,
+                       InternalOrtCpuValue** out_values)
 
 cdef list _ort_get_available_providers():
     """
@@ -344,13 +349,8 @@ cdef class CyOrtSession:
         Runs the inference.
         The number of inputs and outputs must not exceed 10.
         """
-        if len(inputs) > 10:
-            raise RuntimeError(
-                f"This function does not work with more than "
-                f"10 inputs ({len(inputs)})."
-            )
-        cdef OrtShape shapes[10]
-        cdef OrtCpuValue in_values[10]
+        cdef OrtShape* shapes = allocate_ort_shape(len(inputs))
+        cdef InternalOrtCpuValue* in_values = allocate_ort_cpu_value(len(inputs))
         cdef numpy.ndarray value
 
         values = []
@@ -368,11 +368,14 @@ cdef class CyOrtSession:
             # otherwise the pointer might be destroyed by the garbage collector
             values.append(value)
 
-        cdef OrtShape out_shapes[10]
-        cdef OrtCpuValue out_values[10]
+        cdef OrtShape* out_shapes
+        cdef InternalOrtCpuValue* out_values
 
         cdef size_t n_outputs = session_run(
-            self.session, len(inputs), shapes, in_values, 10, out_shapes, out_values)
+            self.session, len(inputs), shapes, in_values, 10, &out_shapes, &out_values)
+
+        delete_ort_shape(shapes)
+        delete_internal_ort_cpu_value(in_values)
 
         # onnxruntime does not implement the DLPack protocol through the C API.
         # DLPack protocol should be used.
@@ -394,6 +397,9 @@ cdef class CyOrtSession:
                    out_values[i].size() * ElementSizeI(out_values[i].elem_type()))
             out_values[i].free_ort_value()
             res.append(tout)
+
+        delete_ort_shape(out_shapes)
+        delete_internal_ort_cpu_value(out_values)
         return res
 
     @cython.boundscheck(False)
@@ -413,7 +419,7 @@ cdef class CyOrtSession:
             shapes[0].set(i, input1.shape[i])
 
         cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
-        cdef OrtCpuValue in_values[1]
+        cdef InternalOrtCpuValue in_values[1]
 
         in_values[0].init(
             value1.size,
@@ -422,11 +428,11 @@ cdef class CyOrtSession:
             <void*>0
         )
 
-        cdef OrtShape out_shapes[1]
-        cdef OrtCpuValue out_values[1]
+        cdef OrtShape* out_shapes
+        cdef InternalOrtCpuValue* out_values
 
         cdef size_t n_outputs = session_run(
-            self.session, 1, shapes, in_values, 1, out_shapes, out_values)
+            self.session, 1, shapes, in_values, 1, &out_shapes, &out_values)
         if n_outputs != 1:
             raise RuntimeError(f"Expecting 1 output not {n_outputs}.")
 
@@ -446,70 +452,6 @@ cdef class CyOrtSession:
                out_values[0].data(),
                out_values[0].size() * ElementSizeI(out_values[0].elem_type()))
         out_values[0].free_ort_value()
+        delete_ort_shape(out_shapes)
+        delete_internal_ort_cpu_value(out_values)
         return tout
-
-    @cython.boundscheck(False)
-    @cython.nonecheck(False)
-    @cython.wraparound(False)
-    def run_2(
-        self,
-        numpy.ndarray input1,
-        numpy.ndarray input2
-    ):
-        """
-        Runs the inference assuming the model has two inputs.
-        """
-        cdef OrtShape shapes[2]
-
-        shapes[0].init(input1.ndim)
-        for i in range(input1.ndim):
-            shapes[0].set(i, input1.shape[i])
-
-        shapes[1].init(input2.ndim)
-        for i in range(input2.ndim):
-            shapes[1].set(i, input2.shape[i])
-
-        cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
-        cdef numpy.ndarray value2 = numpy.ascontiguousarray(input2)
-
-        cdef OrtCpuValue in_values[2]
-        in_values[0].init(
-            value1.size,
-            CyOrtSession._onnx_types[value1.dtype],
-            value1.data,
-            <void*>0
-        )
-        in_values[1].init(
-            value2.size,
-            CyOrtSession._onnx_types[value2.dtype],
-            value2.data,
-            <void*>0
-        )
-
-        cdef OrtShape out_shapes[10]
-        cdef OrtCpuValue out_values[10]
-
-        cdef size_t n_outputs = session_run(
-            self.session, 2, shapes, in_values, 10, out_shapes, out_values)
-
-        # onnxruntime does not implement the DLPack protocol through the C API.
-        # DLPack protocol should be used.
-
-        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape
-        cdef numpy.ndarray tout
-        res = list()
-        for i in range(n_outputs):
-            shape = numpy.empty(out_shapes[i].ndim(), dtype=numpy.int64)
-            memcpy(shape.data,
-                   out_shapes[i].dims(),
-                   out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
-            tout = numpy.empty(
-                shape=shape,
-                dtype=CyOrtSession._dtypes[out_values[i].elem_type()]
-            )
-            memcpy(tout.data,
-                   out_values[i].data(),
-                   out_values[i].size() * ElementSizeI(out_values[i].elem_type()))
-            out_values[i].free_ort_value()
-            res.append(tout)
-        return res

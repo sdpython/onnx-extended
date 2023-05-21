@@ -56,10 +56,6 @@ class TestOrtCy(ExtTestCase):
 
         x = numpy.random.randn(2, 3).astype(numpy.float32)
         y = numpy.random.randn(2, 3).astype(numpy.float32)
-        got = session.run_2(x, y)
-        self.assertIsInstance(got, list)
-        self.assertEqual(len(got), 1)
-        self.assertEqualArray(got[0], x + y)
 
         got = session.run([x, y])
         self.assertIsInstance(got, list)
@@ -92,7 +88,7 @@ class TestOrtCy(ExtTestCase):
 
         x = numpy.random.randn(2, 3).astype(numpy.float32)
         y = numpy.random.randn(2, 3).astype(numpy.float32)
-        got = session.run_2(x, y)[0]
+        got = session.run([x, y])[0]
         self.assertEqualArray(x + y, got)
 
     def test_my_custom_ops_with_attributes(self):
@@ -128,7 +124,7 @@ class TestOrtCy(ExtTestCase):
 
         x = numpy.random.randn(2, 3).astype(numpy.float64)
         y = numpy.random.randn(2, 3).astype(numpy.float64)
-        got = session.run_2(x, y)[0]
+        got = session.run([x, y])[0]
         cst = 5.1 + 4.5 + 5 + ord("s")
         self.assertEqualArray(x + y + cst, got)
 
