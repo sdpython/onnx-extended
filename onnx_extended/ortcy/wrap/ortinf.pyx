@@ -112,6 +112,7 @@ cdef extern from "ortapi.h" namespace "ortapi":
     InternalOrtCpuValue* allocate_ort_cpu_value(size_t n)
     void delete_ort_shape(OrtShape*)
     void delete_internal_ort_cpu_value(InternalOrtCpuValue*)
+    void delete_ort_value(void*)
 
     vector[string] get_available_providers()
 
@@ -138,6 +139,12 @@ cdef extern from "ortapi.h" namespace "ortapi":
                        size_t max_outputs,
                        OrtShape** out_shapes,
                        InternalOrtCpuValue** out_values)
+
+    void ort_value_get_shape_type(void* value,
+                                  size_t& n_dims,
+                                  ONNXTensorElementDataType& elem_type,
+                                  int64_t* dims)
+
 
 cdef list _ort_get_available_providers():
     """
@@ -200,6 +207,48 @@ cdef class CyOrtShape:
         nd = len(self)
         shape = tuple(self[i] for i in range(nd))
         return f"CyOrtShape({shape})"
+
+
+cdef class CyOrtValue:
+    """
+    Wrapper around a OrtValue.
+    """
+    cdef void* ort_value_
+
+    def __cinit__(self):
+        self.ort_value_ = <void*>0
+
+    cdef void set(self, void* ort_value):
+        self.ort_value_ = ort_value
+
+    @cython.initializedcheck(False)
+    @property
+    def shape_elem_type(self):
+        """
+        Returns the shape and the element type.
+        """
+        cdef int64_t dims[10]
+        cdef size_t n_dims
+        cdef ONNXTensorElementDataType elem_type
+        ort_value_get_shape_type(self.ort_value_, n_dims, elem_type, dims)
+        return tuple(dims[i] for i in range(n_dims)), elem_type
+
+    def __dealloc__(self):
+        if self.ort_value_ == <void*>0:
+            raise RuntimeError("This instance of CyOrtValue was not properly initialized.")
+        delete_ort_value(self.ort_value_)
+
+    @staticmethod
+    def from_dlpack(data):
+
+
+    def __dlpack__(self, stream=None):
+        
+        
+    def __dlpack_device__(self):
+        
+
+    
 
 
 cdef class CyOrtSession:
