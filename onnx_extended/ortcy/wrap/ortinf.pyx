@@ -46,8 +46,8 @@ cdef extern from "<vector>" namespace "std":
         const char* c_str() const
 
 
-# imports DLDeviceType, OrtShape, OrtCpuValue
-cdef extern from "ortapi.h" namespace "ortapi":
+# imports DLDeviceType
+cdef extern from "ortapi.h":
 
     enum DLDeviceType:
         kDLCPU = 1
@@ -65,6 +65,31 @@ cdef extern from "ortapi.h" namespace "ortapi":
         kDLWebGPU = 15
         kDLHexagon = 16
 
+# imports ONNXTensorElementDataType
+cdef extern from "ortapi.h":
+
+    enum ONNXTensorElementDataType:
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED = 0
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT = 1
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8 = 2
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8 = 3
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16 = 4
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16 = 5
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32 = 6
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64 = 7
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING = 8
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL = 9
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16 = 10
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE = 11
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32 = 12
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64 = 13
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX64 = 14
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128 = 15
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16 = 16
+
+# imports OrtShape, OrtCpuValue
+cdef extern from "ortapi.h" namespace "ortapi":
+
     cdef cppclass OrtShape:
         OrtShape()
         void init(size_t)
@@ -74,9 +99,12 @@ cdef extern from "ortapi.h" namespace "ortapi":
 
     cdef cppclass OrtCpuValue:
         OrtCpuValue()
-        void init(size_t size, int elem_type, void* data, void* ort_value)
+        void init(size_t size,
+                  ONNXTensorElementDataType elem_type,
+                  void* data,
+                  void* ort_value)
         void free_ort_value()
-        int elem_type()
+        ONNXTensorElementDataType elem_type()
         size_t size()
         void* data()
 

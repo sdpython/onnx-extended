@@ -66,19 +66,24 @@ public:
 class OrtCpuValue {
     private:
         size_t size_;
-        int elem_type_;  // ONNXTensorElementDataType
+        ONNXTensorElementDataType elem_type_;
         void* data_;
         void* ort_value_;
     public:
-        inline OrtCpuValue() { elem_type_ = -1; size_ = 0; ort_value_ = nullptr; data_ = nullptr; }
-        inline void init(size_t size, int elem_type, void* data, void* ort_value) {
+        inline OrtCpuValue() { 
+            elem_type_ = ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+            size_ = 0;
+            ort_value_ = nullptr;
+            data_ = nullptr;
+        }
+        inline void init(size_t size, ONNXTensorElementDataType elem_type, void* data, void* ort_value) {
             size_ = size;
             elem_type_ = elem_type;
             data_ = data;
             ort_value_ = ort_value;
         }
         inline size_t size() { return size_; }
-        inline int elem_type() { return elem_type_; }
+        inline ONNXTensorElementDataType elem_type() { return elem_type_; }
         inline void* data() { return data_; }
         void free_ort_value();
 };

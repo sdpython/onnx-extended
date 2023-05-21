@@ -18,7 +18,6 @@ FetchContent_Declare(
 FetchContent_GetProperties(dlpack)
 if(NOT dlpack_POPULATED)
   FetchContent_Populate(dlpack)
-  add_subdirectory(${dlpack_SOURCE_DIR} ${dlpack_BINARY_DIR})
 else()
   message(FATAL_ERROR "dlpack was not found.")
 endif()
