@@ -1,7 +1,6 @@
 #pragma once
 
 #include "onnxruntime_c_api.h"
-#include "ort_value.h"
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -113,12 +112,5 @@ OrtShape *allocate_ort_shape(size_t n);
 InternalOrtCpuValue *allocate_ort_cpu_value(size_t n);
 void delete_ort_shape(OrtShape *);
 void delete_internal_ort_cpu_value(InternalOrtCpuValue *);
-
-// OrtValue
-
-void ort_value_get_shape_type(OrtValueType *value, size_t &n_dims,
-                              ONNXTensorElementDataType &elem_type,
-                              int64_t *dims);
-void delete_ort_value(OrtValueType *);
 
 } // namespace ortapi

@@ -316,19 +316,4 @@ size_t session_run(OrtSessionType *ptr, size_t n_inputs, OrtShape *shapes,
       ->Run(n_inputs, shapes, values, max_outputs, out_shapes, out_values);
 }
 
-void ort_value_get_shape_type(OrtValueType *value, size_t &n_dims,
-                              ONNXTensorElementDataType &elem_type,
-                              int64_t *dims) {
-  OrtTensorTypeAndShapeInfo *info;
-  ThrowOnError(GetOrtApi()->GetTensorTypeAndShape((OrtValue *)value, &info));
-  ThrowOnError(GetOrtApi()->GetTensorElementType(info, &elem_type));
-  ThrowOnError(GetOrtApi()->GetDimensionsCount(info, &n_dims));
-  ThrowOnError(GetOrtApi()->GetDimensions(info, dims, n_dims));
-  GetOrtApi()->ReleaseTensorTypeAndShapeInfo(info);
-}
-
-void delete_ort_value(OrtValueType *p) {
-  GetOrtApi()->ReleaseValue((OrtValue *)p);
-}
-
 } // namespace ortapi

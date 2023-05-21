@@ -13,6 +13,8 @@ from cpython.buffer cimport (
 )
 numpy.import_array()
 
+cdef extern from "Python.h" nogil:
+    ctypedef struct PyObject
 
 # imports string
 cdef extern from "<string>" namespace "std":
@@ -140,10 +142,21 @@ cdef extern from "ortapi.h" namespace "ortapi":
                        OrtShape** out_shapes,
                        InternalOrtCpuValue** out_values)
 
-    void ort_value_get_shape_type(void* value,
-                                  size_t& n_dims,
-                                  ONNXTensorElementDataType& elem_type,
-                                  int64_t* dims)
+# imports
+cdef extern from "ort_value.h" namespace "ortapi":
+
+    struct DLPackOrtValue:
+        void* ort_value
+        void* memory_info
+        int64_t* shape
+        void (*deleter)(void* self)
+
+    int64_t* dlpack_ort_value_get_shape_type(DLPackOrtValue *value, size_t &n_dims,
+                                             ONNXTensorElementDataType &elem_type)
+    void delete_dlpack_ort_value(DLPackOrtValue *)
+    PyObject* ToDlpack(DlPackOrtValue* ort_value)
+    DLPackOrtValue* FromDlpack(PyObject *dlpack_tensor)
+    void GetDlPackDevice(DLPackOrtValue*, int& dev_type, int& dev_id)
 
 
 cdef list _ort_get_available_providers():
@@ -213,13 +226,13 @@ cdef class CyOrtValue:
     """
     Wrapper around a OrtValue.
     """
-    cdef void* ort_value_
+    cdef void* dlpack_ort_value
 
     def __cinit__(self):
-        self.ort_value_ = <void*>0
+        self.dlpack_ort_value = <void*>0
 
-    cdef void set(self, void* ort_value):
-        self.ort_value_ = ort_value
+    cdef void set(self, void* dlpack_ort_value):
+        self.dlpack_ort_value = dlpack_ort_value
 
     @cython.initializedcheck(False)
     @property
@@ -230,25 +243,33 @@ cdef class CyOrtValue:
         cdef int64_t dims[10]
         cdef size_t n_dims
         cdef ONNXTensorElementDataType elem_type
-        ort_value_get_shape_type(self.ort_value_, n_dims, elem_type, dims)
+        cdef int64_t* dims = dlpack_ort_value_get_shape_type(
+            self.ort_value_, n_dims, elem_type)
         return tuple(dims[i] for i in range(n_dims)), elem_type
 
     def __dealloc__(self):
-        if self.ort_value_ == <void*>0:
-            raise RuntimeError("This instance of CyOrtValue was not properly initialized.")
-        delete_ort_value(self.ort_value_)
+        if self.dlpack_ort_value == <void*>0:
+            raise RuntimeError(
+                "This instance of CyOrtValue was not properly initialized.")
+        delete_dlpack_ort_value(self.dlpack_ort_value)
 
     @staticmethod
     def from_dlpack(data):
-
+        res = CyOrtValue()
+        res.set(FromDlpack(data))
+        return res
 
     def __dlpack__(self, stream=None):
-        
-        
-    def __dlpack_device__(self):
-        
+        if stream is not None:
+            raise NotImplementedError(
+                "Unable to convert to dlpack if stream is not None.")
+        return ToDlPack(self.dlpack_ort_value)
 
-    
+    def __dlpack_device__(self):
+        cdef int dev_type
+        cdef int dev_id
+        GetDlPackDevice(self.dlpack_ort_value, dev_type, dev_id)
+        return dev_type, dev_id
 
 
 cdef class CyOrtSession:

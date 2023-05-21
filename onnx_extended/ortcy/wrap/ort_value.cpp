@@ -1,18 +1,12 @@
 #include "ort_value.h"
-#include "helper.h"
+#include "helpers.h"
 #include "ortapi.h"
 #include "ortapi_inline.h"
+#include <functional>
 
 namespace ortapi {
 
-DLDataType GetDlpackDataType(OrtValueType *value) {
-
-  size_t elem_type, n_dims;
-  OrtTensorTypeAndShapeInfo *info;
-  ThrowOnError(GetOrtApi()->GetTensorTypeAndShape((OrtValue *)value, &info));
-  ThrowOnError(GetOrtApi()->GetTensorElementType(info, &elem_type));
-  GetOrtApi()->ReleaseTensorTypeAndShapeInfo(info);
-
+DLDataType GetDlpackDataType(ONNXTensorElementDataType elem_type) {
   DLDataType dtype;
   dtype.lanes = 1;
   switch (elem_type) {
@@ -85,7 +79,7 @@ ONNXTensorElementDataType GetOrtValueDataType(const DLDataType &dtype) {
   case DLDataTypeCode::kDLUInt:
     switch (dtype.bits) {
     case 8:
-      return ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UNINT8;
+      return ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8;
     case 16:
       return ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16;
     case 32:
@@ -133,20 +127,20 @@ ONNXTensorElementDataType GetOrtValueDataType(const DLDataType &dtype) {
   }
 }
 
-DLDevice GetDlpackDevice(OrtValue *value, const int64_t &device_id) {
-  DLDevice device;
-  device.device_id = static_cast<int>(device_id);
+typedef void (*type_deleter)(struct DLPackOrtValue *self);
 
-  OrtMemoryInfo *info;
+DLDevice GetDlpackDevice(OrtValue *value) {
+  DLDevice device;
+
+  const OrtMemoryInfo *mem_info;
   ThrowOnError(GetOrtApi()->GetTensorMemoryInfo((OrtValue *)value, &mem_info));
   // OrtAllocatorType alloc_type;
   // ThrowOnError(GetOrtApi()->MemoryInfoGetType(mem_info, ));
   // OrtMemType mem_type;
   // ThrowOnError(GetOrtApi()->MemoryInfoGetMemType(mem_info, &mem_type));
   OrtMemoryInfoDeviceType device_type;
-  ThrowOnError(GetOrtApi()->MemoryInfoGetDeviceType(mem_info, &device_type));
-  int it;
-  ThrowOnError(GetOrtApi()->MemoryInfoGetId(mem_info, &id));
+  GetOrtApi()->MemoryInfoGetDeviceType(mem_info, &device_type);
+  GetOrtApi()->MemoryInfoGetId(mem_info, &device.device_id);
 
   switch (device_type) {
   case OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU:
@@ -166,46 +160,96 @@ DLDevice GetDlpackDevice(OrtValue *value, const int64_t &device_id) {
   return device;
 }
 
-/*
-OrtDevice GetOrtDevice(const DLDevice& device) {
-  switch (device.device_type) {
-    case DLDeviceType::kDLCPU:
-      return OrtDevice();
-    case DLDeviceType::kDLCUDA:
-    case DLDeviceType::kDLROCM:
-      return OrtDevice(OrtDevice::GPU, OrtDevice::MemType::DEFAULT,
-static_cast<OrtDevice::DeviceId>(device.device_id)); default:
-      ORT_THROW("Unsupported device type");
-  }
-}
-
-
-bool IsContiguousTensor(const DLTensor& tensor) {
+bool IsContiguousTensor(const DLTensor &tensor, int64_t &size) {
   if (!tensor.strides) {
+    size = 1;
+    for (int i = tensor.ndim - 1; i >= 0; i--) {
+      size *= tensor.shape[i];
+    }
     return true;
   }
 
   int64_t running_size = 1;
   for (int i = tensor.ndim - 1; i >= 0; i--) {
     if (tensor.shape[i] == 0) {
+      size = 0;
       return true;
     }
 
     if (tensor.shape[i] != 1 && tensor.strides[i] != running_size) {
+      size = -1;
       return false;
     }
-
     running_size *= tensor.shape[i];
   }
-
+  size = running_size;
   return true;
 }
 
-}  // namespace
-*/
+DLPackOrtValue *DlpackToOrtValue(DLManagedTensor *dlpack) {
+  int64_t size;
+  bool contiguous = IsContiguousTensor(dlpack->dl_tensor, size);
+  EXT_ENFORCE(
+      contiguous,
+      "OrtValue only supports contiguous tensor in this implementation.");
+  EXT_ENFORCE(dlpack->dl_tensor.byte_offset == 0,
+              "byte_offset != 0 is not supported yet.");
+
+  OrtMemoryInfo *memory_info;
+  switch (dlpack->dl_tensor.device.device_type) {
+  case DLDeviceType::kDLCPU:
+    ThrowOnError(GetOrtApi()->CreateCpuMemoryInfo(
+        OrtArenaAllocator, OrtMemTypeDefault, &memory_info));
+    break;
+  case DLDeviceType::kDLCUDA:
+  case DLDeviceType::kDLROCM:
+    ThrowOnError(GetOrtApi()->CreateMemoryInfo(
+        "Cuda",
+        OrtDeviceAllocator,
+        dlpack->dl_tensor.device.device_id,
+        OrtMemTypeDefault,
+        &memory_info));
+    break;
+  default:
+    EXT_THROW("Unsupported device type=", dlpack->dl_tensor.device, ".");
+  }
+
+  ONNXTensorElementDataType elem_type =
+      GetOrtValueDataType(dlpack->dl_tensor.dtype);
+
+  OrtValue *value;
+  ThrowOnError(GetOrtApi()->CreateTensorWithDataAsOrtValue(
+      memory_info, dlpack->dl_tensor.data, size * ElementSize(elem_type),
+      dlpack->dl_tensor.shape, static_cast<size_t>(dlpack->dl_tensor.ndim),
+      elem_type, &value));
+
+  std::function<void(void *)> deleter = [dlpack](void *p) {
+    EXT_ENFORCE(dlpack->deleter != NULL,
+                "A dlpack structure must have a deleter.");
+    dlpack->deleter(dlpack);
+    DLPackOrtValue *dl = (DLPackOrtValue *)p;
+    GetOrtApi()->ReleaseValue((OrtValue*)dl->ort_value);
+    GetOrtApi()->ReleaseMemoryInfo((OrtMemoryInfo*)dl->memory_info);
+    if (dl->shape != nullptr) {
+      delete dl->shape;
+    }
+    delete dl;
+  };
+
+  // GetDimensions does not return a pointer pointing on the shape definition
+  // stored by the OrtValue. It needs to be copied again.
+  int64_t *shape = new int64_t[dlpack->dl_tensor.ndim];
+  memcpy(shape, dlpack->dl_tensor.shape, dlpack->dl_tensor.ndim * sizeof(int64_t));
+  DLPackOrtValue *dl_value = new DLPackOrtValue;
+  dl_value->ort_value= (void *)value;
+  dl_value->memory_info = (void *)memory_info;
+  dl_value->shape = shape;
+  dl_value->deleter = deleter;
+  return dl_value;
+}
 
 struct OrtDLManagedTensor {
-  DlpackToOrtValue *handle;
+  DLPackOrtValue *handle;
   DLManagedTensor tensor;
 };
 
@@ -213,73 +257,37 @@ static void DlpackDeleter(DLManagedTensor *arg) {
   delete static_cast<OrtDLManagedTensor *>(arg->manager_ctx);
 }
 
-// This function should use smart pointers inside
-// #if defined(_MSC_VER) && !defined(__clang__)
-// #pragma warning(push)
-// #pragma warning(disable : 26409)
-// #pragma warning(disable : 26400)
-// #endif
-
-// This function returns a pointer to DLManagedTensor constructed from an
-// OrtValue The OrtValue inside OrtDLManagedTensor will increase its own
-// buffer's ref count by one When the consumer of DLManagedTensor is done with
-// the tensor, it should invoke the deleter.
-DLManagedTensor *OrtValueToDlpack(OrtValue *ort_value) {
+DLManagedTensor *OrtValueToDlpack(DLPackOrtValue *value) {
   OrtDLManagedTensor *ort_dlmanaged_tensor(new OrtDLManagedTensor);
 
-  Tensor &tensor = *ort_value.GetMutable<Tensor>();
-  ort_dlmanaged_tensor->handle = ort_value;
+  size_t n_dims, size;
+  ONNXTensorElementDataType elem_type;
+  void *data;
+  OrtTensorTypeAndShapeInfo *info;
+  ThrowOnError(
+      GetOrtApi()->GetTensorTypeAndShape((OrtValue *)value->ort_value, &info));
+  ThrowOnError(GetOrtApi()->GetTensorElementType(info, &elem_type));
+
+  ThrowOnError(GetOrtApi()->GetTensorShapeElementCount(info, &size));
+  ThrowOnError(GetOrtApi()->GetTensorMutableData((OrtValue*)value->ort_value, &data));
+  ThrowOnError(GetOrtApi()->GetDimensionsCount(info, &n_dims));
+  /* typedef void copy_allocate(size_t output, int elem_type, size_t size,
+                                OrtShape shape, void* data, void* args); */
+  GetOrtApi()->ReleaseTensorTypeAndShapeInfo(info);
+
+  ort_dlmanaged_tensor->handle = value;
   ort_dlmanaged_tensor->tensor.manager_ctx = ort_dlmanaged_tensor;
   ort_dlmanaged_tensor->tensor.deleter = &DlpackDeleter;
-  ort_dlmanaged_tensor->tensor.dl_tensor.data = (tensor.MutableDataRaw());
+  ort_dlmanaged_tensor->tensor.dl_tensor.data = data;
   ort_dlmanaged_tensor->tensor.dl_tensor.device =
-      GetDlpackDevice(ort_value, tensor.Location().device.Id());
-  ort_dlmanaged_tensor->tensor.dl_tensor.ndim =
-      static_cast<int>(tensor.Shape().NumDimensions());
-  ort_dlmanaged_tensor->tensor.dl_tensor.dtype = GetDlpackDataType(ort_value);
+      GetDlpackDevice((OrtValue *)value->ort_value);
+  ort_dlmanaged_tensor->tensor.dl_tensor.ndim = n_dims;
+  ort_dlmanaged_tensor->tensor.dl_tensor.dtype = GetDlpackDataType(elem_type);
   ort_dlmanaged_tensor->tensor.dl_tensor.shape =
-      tensor.Shape().NumDimensions() > 0
-          ? &const_cast<TensorShape &>(tensor.Shape())[0]
-          : nullptr;
+      n_dims > 0 ? value->shape : nullptr;
   ort_dlmanaged_tensor->tensor.dl_tensor.strides = nullptr;
   ort_dlmanaged_tensor->tensor.dl_tensor.byte_offset = 0;
   return &(ort_dlmanaged_tensor->tensor);
-}
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma warning(pop)
-#endif
-OrtValue DlpackToOrtValue(DLManagedTensor *dlpack, bool is_bool_tensor) {
-  // ORT only supports contiguous tensor for now.
-  ORT_ENFORCE(IsContiguousTensor(dlpack->dl_tensor),
-              "ORT only supports contiguous tensor for now.");
-  OrtDevice device = GetOrtDevice(dlpack->dl_tensor.device);
-  MLDataType data_type =
-      GetOrtValueDataType(dlpack->dl_tensor.dtype, is_bool_tensor);
-  OrtMemoryInfo info(GetOrtDeviceName(device), OrtDeviceAllocator, device,
-                     device.Id());
-  std::unique_ptr<Tensor> p_tensor = std::make_unique<Tensor>(
-      data_type,
-      TensorShape(dlpack->dl_tensor.shape,
-                  static_cast<size_t>(dlpack->dl_tensor.ndim)),
-      dlpack->dl_tensor.data, info);
-
-  OrtValue ort_value;
-  std::function<void(void *)> deleter = [dlpack](void *p) {
-    ORT_ENFORCE(dlpack->deleter != NULL,
-                "A dlpack structure must have a deleter.");
-    dlpack->deleter(dlpack);
-    auto deleter =
-        ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_Tensor >
-        ()->GetDeleteFunc();
-    if (deleter != NULL)
-      deleter(p);
-  };
-
-  ort_value.Init(
-      p_tensor.release(),
-      ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_Tensor > (),
-      deleter);
-  return ort_value;
 }
 
 void DlpackCapsuleDestructor(PyObject *data) {
@@ -298,56 +306,40 @@ void DlpackCapsuleDestructor(PyObject *data) {
 // Allocate a new Capsule object, which takes the ownership of OrtValue.
 // Caller is responsible for releasing.
 // This function calls OrtValueToDlpack(...).
-PyObject *ToDlpack(OrtValue ort_value) {
-  DLManagedTensor *dlmanaged_tensor = dlpack::OrtValueToDlpack(ort_value);
+PyObject *ToDlpack(DLPackOrtValue *ort_value) {
+  DLManagedTensor *dlmanaged_tensor = OrtValueToDlpack(ort_value);
   return PyCapsule_New(dlmanaged_tensor, "dltensor", DlpackCapsuleDestructor);
 }
 
 // Consume a Capsule object and claims the ownership of its underlying tensor to
 // create a OrtValue. This function calls DlpackToOrtValue(...) to do the
 // conversion.
-OrtValue FromDlpack(PyObject *dlpack_tensor, const bool is_bool_tensor) {
+DLPackOrtValue *FromDlpack(PyObject *dlpack_tensor) {
   // Extract DLPack tensor pointer from the capsule carrier.
   DLManagedTensor *dlmanaged_tensor =
       (DLManagedTensor *)PyCapsule_GetPointer(dlpack_tensor, "dltensor");
-  OrtValue ort_value =
-      dlpack::DlpackToOrtValue(dlmanaged_tensor, is_bool_tensor);
+  DLPackOrtValue *ort_value = DlpackToOrtValue(dlmanaged_tensor);
   // Make sure this capsule will never be used again.
   PyCapsule_SetName(dlpack_tensor, "used_dltensor");
   return ort_value;
 }
 
-.def_static(
-    "from_dlpack",
-    [](py::object data, bool is_bool_tensor) {
-      return FromDlpack(data.ptr(), is_bool_tensor);
-    },
-    py::arg("data"), py::arg("is_bool_tensor") = false,
-    "Converts a tensor from a external library into an OrtValue by means of "
-    "the __dlpack__ protocol.")
-    .def(
-        "__dlpack__",
-        [](OrtValue *ort_value, py::object /* stream */) -> py::object {
-          return py::reinterpret_steal<py::object>(ToDlpack(*ort_value));
-        },
-        py::arg("stream") = py::none(),
-        "Returns a DLPack representing the tensor (part of __dlpack__ "
-        "protocol). "
-        "This method does not copy the pointer shape, instead, it copies the "
-        "pointer value. "
-        "The OrtValue must persist until the dlpack structure is consumed.")
-    .def(
-        "__dlpack_device__",
-        [](const OrtValue *ort_value) -> py::tuple {
-          ORT_ENFORCE(ort_value->IsTensor(),
-                      "Only tensor type OrtValues are supported");
-          const onnxruntime::Tensor &tensor = ort_value->Get<Tensor>();
-          DLDevice device = onnxruntime::dlpack::GetDlpackDevice(
-              *ort_value, tensor.Location().device.Id());
-          return py::make_tuple(static_cast<int>(device.device_type),
-                                device.device_id);
-        },
-        "Returns a tuple of integers, (device, device index) (part of "
-        "__dlpack__ protocol).")
+int64_t *dlpack_ort_value_get_shape_type(DLPackOrtValue *value, size_t &n_dims,
+                                         ONNXTensorElementDataType &elem_type) {
+  OrtTensorTypeAndShapeInfo *info;
+  ThrowOnError(GetOrtApi()->GetTensorTypeAndShape((OrtValue*)value->ort_value, &info));
+  ThrowOnError(GetOrtApi()->GetTensorElementType(info, &elem_type));
+  ThrowOnError(GetOrtApi()->GetDimensionsCount(info, &n_dims));
+  GetOrtApi()->ReleaseTensorTypeAndShapeInfo(info);
+  return value->shape;
+}
+
+void delete_dlpack_ort_value(DLPackOrtValue *p) { p->deleter(p); }
+
+void GetDlPackDevice(DLPackOrtValue *value, int &dev_type, int &dev_id) {
+  DLDevice dev = GetDlpackDevice((OrtValue*)value->ort_value);
+  dev_type = dev.device_type;
+  dev_id = dev.device_id;
+}
 
 } // namespace ortapi

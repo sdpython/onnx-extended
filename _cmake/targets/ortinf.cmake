@@ -8,7 +8,12 @@ add_library(
   STATIC
   ../onnx_extended/ortcy/wrap/ortapi.cpp
   ../onnx_extended/ortcy/wrap/ort_value.cpp)
-target_include_directories(lib_ortapi PUBLIC ${ONNXRUNTIME_INCLUDE_DIR} ${dlpack_INCLUDE_DIR})
+target_include_directories(
+  lib_ortapi
+  PUBLIC
+  ${ONNXRUNTIME_INCLUDE_DIR}
+  ${dlpack_INCLUDE_DIR}
+  ${PYTHON_INCLUDE_DIR})
 
 cython_add_module(
   ortinf
