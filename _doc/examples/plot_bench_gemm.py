@@ -31,6 +31,7 @@ from onnxruntime.capi._pybind_state import (
     OrtDevice as C_OrtDevice,
 )
 from onnxruntime.capi.onnxruntime_pybind11_state import (
+    Fail,
     NotImplemented,
     InvalidGraph,
     InvalidArgument,
@@ -39,32 +40,79 @@ from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import unit_test_going, measure_time
 
 
-def create_model(mat_type=TensorProto.FLOAT):
+def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
     I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
     C = make_tensor_value_info("C", mat_type, [None, None])
-    nodes = [
-        make_node("CastLike", ["I", "A"], ["Ic"]),
-        make_node("Add", ["A", "Ic"], ["A1"]),
-        make_node("Add", ["A1", "Ic"], ["A2"]),
-        make_node("Add", ["A2", "Ic"], ["A3"]),
-        make_node("MatMul", ["A", "B"], ["M0"]),
-        make_node("MatMul", ["A1", "B"], ["M1"]),
-        make_node("MatMul", ["A2", "B"], ["M2"]),
-        make_node("MatMul", ["A3", "B"], ["M3"]),
-        make_node("Add", ["M0", "M1"], ["M12"]),
-        make_node("Add", ["M2", "M3"], ["M23"]),
-        make_node("Add", ["M12", "M23"], ["C"]),
-    ]
-    graph = make_graph(nodes, "a", [A, B], [C], [I1])
+    inits = [I1]
+    if use_gemm8:
+        zero = from_array(numpy.array([0], dtype=numpy.float32), name="zero")
+        inits.append(zero)
+        nodes = [
+            make_node("CastLike", ["I", "A"], ["Ic"]),
+            make_node("CastLike", ["zero", "A"], ["c"]),
+            make_node("CastLike", ["zero", "A"], ["s"]),
+            make_node("CastLike", ["zero", "A"], ["r"]),
+            make_node("Add", ["A", "Ic"], ["A1"]),
+            make_node("Add", ["A1", "Ic"], ["A2"]),
+            make_node("Add", ["A2", "Ic"], ["A3"]),
+            make_node(
+                "GemmFloat8",
+                ["A", "B", "c", "s", "r"],
+                ["M0"],
+                transA=1,
+                domain="com.microsoft",
+            ),
+            make_node(
+                "GemmFloat8",
+                ["A1", "B", "c", "s", "r"],
+                ["M1"],
+                transA=1,
+                domain="com.microsoft",
+            ),
+            make_node(
+                "GemmFloat8",
+                ["A2", "B", "c", "s", "r"],
+                ["M2"],
+                transA=1,
+                domain="com.microsoft",
+            ),
+            make_node(
+                "GemmFloat8",
+                ["A3", "B", "c", "s", "r"],
+                ["M3"],
+                transA=1,
+                domain="com.microsoft",
+            ),
+            make_node("Add", ["M0", "M1"], ["M12"]),
+            make_node("Add", ["M2", "M3"], ["M23"]),
+            make_node("Add", ["M12", "M23"], ["C"]),
+        ]
+    else:
+        nodes = [
+            make_node("CastLike", ["I", "A"], ["Ic"]),
+            make_node("Add", ["A", "Ic"], ["A1"]),
+            make_node("Add", ["A1", "Ic"], ["A2"]),
+            make_node("Add", ["A2", "Ic"], ["A3"]),
+            make_node("Gemm", ["A", "B"], ["M0"], transA=1),
+            make_node("Gemm", ["A1", "B"], ["M1"], transA=1),
+            make_node("Gemm", ["A2", "B"], ["M2"], transA=1),
+            make_node("Gemm", ["A3", "B"], ["M3"], transA=1),
+            make_node("Add", ["M0", "M1"], ["M12"]),
+            make_node("Add", ["M2", "M3"], ["M23"]),
+            make_node("Add", ["M12", "M23"], ["C"]),
+        ]
+    graph = make_graph(nodes, "a", [A, B], [C], inits)
     if mat_type < 16:
         # regular type
         opset, ir = 18, 8
     else:
         opset, ir = 19, 9
     onnx_model = make_model(
-        graph, opset_imports=[make_opsetid("", opset)], ir_version=ir
+        graph,
+        opset_imports=[make_opsetid("", opset), make_opsetid("com.microsoft", 1)],
+        ir_version=ir,
     )
     check_model(onnx_model)
     return onnx_model
@@ -103,15 +151,18 @@ create_cast(TensorProto.FLOAT16)
 # The benchmark will run the following configurations.
 
 types = [
-    TensorProto.FLOAT,
-    TensorProto.UINT32,
-    TensorProto.INT32,
-    TensorProto.INT16,
-    TensorProto.INT8,
-    TensorProto.FLOAT16,
-    TensorProto.BFLOAT16,
-    TensorProto.FLOAT8E4M3FN,
-    TensorProto.FLOAT8E5M2,
+    (TensorProto.FLOAT, False),
+    (TensorProto.FLOAT, True),
+    (TensorProto.UINT32, False),
+    (TensorProto.INT32, False),
+    (TensorProto.INT16, False),
+    (TensorProto.INT8, False),
+    (TensorProto.FLOAT16, False),
+    (TensorProto.FLOAT16, True),
+    (TensorProto.BFLOAT16, False),
+    (TensorProto.BFLOAT16, True),
+    (TensorProto.FLOAT8E4M3FN, True),
+    (TensorProto.FLOAT8E5M2, True),
 ]
 engine = [CReferenceEvaluator, InferenceSession]
 providers = [
@@ -147,7 +198,7 @@ def to_ort_value(m):
 
 matrices = {}
 for m, n, k in dims:
-    for tt in types:
+    for tt, _ in types:
         for i, j in [(m, k), (k, n)]:
             try:
                 sess = InferenceSession(
@@ -171,7 +222,8 @@ print(f"{len(matrices)} matrices were created.")
 data = []
 errors = []
 pbar = tqdm(list(product(types, engine, providers, dims)))
-for tt, engine, provider, dim in pbar:
+for tt_g8, engine, provider, dim in pbar:
+    tt, g8 = tt_g8
     if max(dim) <= 200:
         repeat, number = 50, 25
     elif max(dim) <= 256:
@@ -179,10 +231,10 @@ for tt, engine, provider, dim in pbar:
     else:
         repeat, number = 10, 4
 
-    onx = create_model(tt)
+    onx = create_model(tt, g8)
     with open(f"plot_bench_gemm_{tt}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
-    k1 = (tt, dim[0], dim[2])
+    k1 = (tt, dim[2], dim[0])
     k2 = (tt, dim[2], dim[1])
     if k1 not in matrices:
         errors.append(f"Key k1={k1!r} not in matrices.")
@@ -192,6 +244,8 @@ for tt, engine, provider, dim in pbar:
         continue
 
     if engine == CReferenceEvaluator:
+        if g8:
+            continue
         if tt == TensorProto.FLOAT16 and max(dim) > 50:
             repeat, number = 2, 2
         if provider != ["CPUExecutionProvider"]:
@@ -217,7 +271,7 @@ for tt, engine, provider, dim in pbar:
         feeds = {"A": matrices[k1], "B": matrices[k2]}
         try:
             sess = engine(onx.SerializeToString(), providers=provider)
-        except (NotImplemented, InvalidGraph) as e:
+        except (NotImplemented, InvalidGraph, Fail) as e:
             # not implemented
             errors.append(e)
             continue
@@ -246,19 +300,23 @@ for tt, engine, provider, dim in pbar:
     else:
         continue
 
+    stype = {
+        TensorProto.FLOAT: "f32",
+        TensorProto.FLOAT16: "f16",
+        TensorProto.INT8: "i8",
+        TensorProto.INT16: "i16",
+        TensorProto.INT32: "i32",
+        TensorProto.UINT32: "u32",
+    }[tt]
+    sg8 = "g8" if g8 else ""
     obs.update(
         dict(
             engine={"InferenceSession": "ort", "CReferenceEvaluator": "np"}[
                 engine.__name__
             ],
-            type={
-                TensorProto.FLOAT: "f32",
-                TensorProto.FLOAT16: "f16",
-                TensorProto.INT8: "i8",
-                TensorProto.INT16: "i16",
-                TensorProto.INT32: "i32",
-                TensorProto.UINT32: "u32",
-            }[tt],
+            stype=stype,
+            gemm8=1 if g8 else 0,
+            type=f"{stype}-{sg8}",
             M=dim[0],
             N=dim[1],
             K=dim[2],
