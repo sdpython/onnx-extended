@@ -47,48 +47,63 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
     C = make_tensor_value_info("C", mat_type, [None, None])
     inits = [I1]
     if use_gemm8:
+        f8 = mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOATE5M2)
         zero = from_array(numpy.array([0], dtype=numpy.float32), name="zero")
         inits.append(zero)
-        nodes = [
-            make_node("CastLike", ["I", "A"], ["Ic"]),
-            make_node("CastLike", ["zero", "A"], ["c"]),
-            make_node("CastLike", ["zero", "A"], ["s"]),
-            make_node("CastLike", ["zero", "A"], ["r"]),
-            make_node("Add", ["A", "Ic"], ["A1"]),
-            make_node("Add", ["A1", "Ic"], ["A2"]),
-            make_node("Add", ["A2", "Ic"], ["A3"]),
-            make_node(
-                "GemmFloat8",
-                ["A", "B", "c", "s", "r"],
-                ["M0"],
-                transA=1,
-                domain="com.microsoft",
-            ),
-            make_node(
-                "GemmFloat8",
-                ["A1", "B", "c", "s", "r"],
-                ["M1"],
-                transA=1,
-                domain="com.microsoft",
-            ),
-            make_node(
-                "GemmFloat8",
-                ["A2", "B", "c", "s", "r"],
-                ["M2"],
-                transA=1,
-                domain="com.microsoft",
-            ),
-            make_node(
-                "GemmFloat8",
-                ["A3", "B", "c", "s", "r"],
-                ["M3"],
-                transA=1,
-                domain="com.microsoft",
-            ),
-            make_node("Add", ["M0", "M1"], ["M12"]),
-            make_node("Add", ["M2", "M3"], ["M23"]),
-            make_node("Add", ["M12", "M23"], ["C"]),
-        ]
+        if f8:
+            nodes = [
+                make_node("CastLike", ["zero", "A"], ["c"]),
+                make_node("CastLike", ["zero", "A"], ["s"]),
+                make_node("CastLike", ["zero", "A"], ["r"]),
+            ]
+        else:
+            nodes = [
+                make_node("Cast", ["zero"], ["c"], to=TensorProto.BFLOAT16),
+                make_node("Cast", ["zero"], ["s"], to=TensorProto.FLOAT),
+                make_node("Cast", ["zero"], ["r"], to=TensorProto.BFLOAT16),
+            ]
+        nodes.extend(
+            [
+                make_node("CastLike", ["I", "A"], ["Ic"]),
+                make_node("CastLike", ["zero", "A"], ["c"]),
+                make_node("CastLike", ["zero", "A"], ["s"]),
+                make_node("CastLike", ["zero", "A"], ["r"]),
+                make_node("Add", ["A", "Ic"], ["A1"]),
+                make_node("Add", ["A1", "Ic"], ["A2"]),
+                make_node("Add", ["A2", "Ic"], ["A3"]),
+                make_node(
+                    "GemmFloat8",
+                    ["A", "B", "c", "s", "r"],
+                    ["M0"],
+                    transA=1,
+                    domain="com.microsoft",
+                ),
+                make_node(
+                    "GemmFloat8",
+                    ["A1", "B", "c", "s", "r"],
+                    ["M1"],
+                    transA=1,
+                    domain="com.microsoft",
+                ),
+                make_node(
+                    "GemmFloat8",
+                    ["A2", "B", "c", "s", "r"],
+                    ["M2"],
+                    transA=1,
+                    domain="com.microsoft",
+                ),
+                make_node(
+                    "GemmFloat8",
+                    ["A3", "B", "c", "s", "r"],
+                    ["M3"],
+                    transA=1,
+                    domain="com.microsoft",
+                ),
+                make_node("Add", ["M0", "M1"], ["M12"]),
+                make_node("Add", ["M2", "M3"], ["M23"]),
+                make_node("Add", ["M12", "M23"], ["C"]),
+            ]
+        )
     else:
         nodes = [
             make_node("CastLike", ["I", "A"], ["Ic"]),
