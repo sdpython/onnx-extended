@@ -65,9 +65,6 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
         nodes.extend(
             [
                 make_node("CastLike", ["I", "A"], ["Ic"]),
-                make_node("CastLike", ["zero", "A"], ["c"]),
-                make_node("CastLike", ["zero", "A"], ["s"]),
-                make_node("CastLike", ["zero", "A"], ["r"]),
                 make_node("Add", ["A", "Ic"], ["A1"]),
                 make_node("Add", ["A1", "Ic"], ["A2"]),
                 make_node("Add", ["A2", "Ic"], ["A3"]),
