@@ -60,7 +60,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
             nodes = [
                 make_node("Cast", ["zero"], ["c"], to=TensorProto.BFLOAT16),
                 make_node("Cast", ["zero"], ["s"], to=TensorProto.FLOAT),
-                make_node("Cast", ["zero"], ["r"], to=TensorProto.BFLOAT16),
+                make_node("Cast", ["zero"], ["r"], to=mat_type),
             ]
         nodes.extend(
             [
@@ -73,6 +73,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     ["A", "B", "c", "s", "r"],
                     ["M0"],
                     transA=1,
+                    beta=0.0,
                     domain="com.microsoft",
                 ),
                 make_node(
@@ -80,6 +81,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     ["A1", "B", "c", "s", "r"],
                     ["M1"],
                     transA=1,
+                    beta=0.0,
                     domain="com.microsoft",
                 ),
                 make_node(
@@ -87,6 +89,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     ["A2", "B", "c", "s", "r"],
                     ["M2"],
                     transA=1,
+                    beta=0.0,
                     domain="com.microsoft",
                 ),
                 make_node(
@@ -94,10 +97,15 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     ["A3", "B", "c", "s", "r"],
                     ["M3"],
                     transA=1,
+                    beta=0.0,
                     domain="com.microsoft",
                 ),
-                make_node("Add", ["M0", "M1"], ["M12"]),
-                make_node("Add", ["M2", "M3"], ["M23"]),
+                make_node("CastLike", ["M0", "A"], ["M0c"]),
+                make_node("CastLike", ["M1", "A"], ["M1c"]),
+                make_node("CastLike", ["M2", "A"], ["M2c"]),
+                make_node("CastLike", ["M3", "A"], ["M3c"]),
+                make_node("Add", ["M0c", "M1c"], ["M12"]),
+                make_node("Add", ["M2c", "M3c"], ["M23"]),
                 make_node("Add", ["M12", "M23"], ["C"]),
             ]
         )
@@ -107,10 +115,10 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
             make_node("Add", ["A", "Ic"], ["A1"]),
             make_node("Add", ["A1", "Ic"], ["A2"]),
             make_node("Add", ["A2", "Ic"], ["A3"]),
-            make_node("Gemm", ["A", "B"], ["M0"], transA=1),
-            make_node("Gemm", ["A1", "B"], ["M1"], transA=1),
-            make_node("Gemm", ["A2", "B"], ["M2"], transA=1),
-            make_node("Gemm", ["A3", "B"], ["M3"], transA=1),
+            make_node("Gemm", ["A", "B"], ["M0"], transA=1, beta=0.0),
+            make_node("Gemm", ["A1", "B"], ["M1"], transA=1, beta=0.0),
+            make_node("Gemm", ["A2", "B"], ["M2"], transA=1, beta=0.0),
+            make_node("Gemm", ["A3", "B"], ["M3"], transA=1, beta=0.0),
             make_node("Add", ["M0", "M1"], ["M12"]),
             make_node("Add", ["M2", "M3"], ["M23"]),
             make_node("Add", ["M12", "M23"], ["C"]),
