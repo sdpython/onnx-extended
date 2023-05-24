@@ -25,6 +25,7 @@ from onnx.helper import (
 )
 from onnx.checker import check_model
 from onnx.numpy_helper import from_array
+from onnx.reference import ReferenceEvaluator
 from onnxruntime import InferenceSession, get_available_providers
 from onnxruntime.capi._pybind_state import (
     OrtValue as C_OrtValue,
@@ -36,7 +37,11 @@ from onnxruntime.capi.onnxruntime_pybind11_state import (
     InvalidGraph,
     InvalidArgument,
 )
-from onnx_extended.reference import CReferenceEvaluator
+
+try:
+    from onnx_extended.reference import CReferenceEvaluator
+except ImportError:
+    CReferenceEvaluator = ReferenceEvaluator
 from onnx_extended.ext_test_case import unit_test_going, measure_time
 
 
@@ -52,16 +57,18 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
         inits.append(zero)
         if f8:
             nodes = [
-                make_node("CastLike", ["zero", "A"], ["c"]),
-                make_node("CastLike", ["zero", "A"], ["s"]),
-                make_node("CastLike", ["zero", "A"], ["r"]),
-            ]
-        else:
-            nodes = [
                 make_node("Cast", ["zero"], ["c"], to=TensorProto.BFLOAT16),
                 make_node("Cast", ["zero"], ["s"], to=TensorProto.FLOAT),
                 make_node("Cast", ["zero"], ["r"], to=mat_type),
             ]
+            computeType = "CUBLAS_COMPUTE_32F"
+        else:
+            nodes = [
+                make_node("CastLike", ["zero", "A"], ["c"]),
+                make_node("CastLike", ["zero", "A"], ["s"]),
+                make_node("CastLike", ["zero", "A"], ["r"]),
+            ]
+            computeType = "CUBLAS_COMPUTE_16F"
         nodes.extend(
             [
                 make_node("CastLike", ["I", "A"], ["Ic"]),
@@ -75,6 +82,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     transA=1,
                     beta=0.0,
                     domain="com.microsoft",
+                    computeType=computeType,
                 ),
                 make_node(
                     "GemmFloat8",
@@ -83,6 +91,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     transA=1,
                     beta=0.0,
                     domain="com.microsoft",
+                    computeType=computeType,
                 ),
                 make_node(
                     "GemmFloat8",
@@ -91,6 +100,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     transA=1,
                     beta=0.0,
                     domain="com.microsoft",
+                    computeType=computeType,
                 ),
                 make_node(
                     "GemmFloat8",
@@ -99,6 +109,7 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                     transA=1,
                     beta=0.0,
                     domain="com.microsoft",
+                    computeType=computeType,
                 ),
                 make_node("CastLike", ["M0", "A"], ["M0c"]),
                 make_node("CastLike", ["M1", "A"], ["M1c"]),
@@ -181,8 +192,8 @@ types = [
     (TensorProto.FLOAT16, True),
     (TensorProto.BFLOAT16, False),
     (TensorProto.BFLOAT16, True),
-    (TensorProto.FLOAT8E4M3FN, True),
-    (TensorProto.FLOAT8E5M2, True),
+    # (TensorProto.FLOAT8E4M3FN, True),
+    # (TensorProto.FLOAT8E5M2, True),
 ]
 engine = [CReferenceEvaluator, InferenceSession]
 providers = [
@@ -197,7 +208,7 @@ dims = [
     (65, 66, 67),
     (100, 100, 100),
     (128, 128, 128),
-    # (256, 256, 256),
+    (256, 256, 256),
     # (400, 400, 400),
     # (512, 512, 512),
 ]
@@ -328,7 +339,6 @@ for tt_g8, engine, provider, dim in pbar:
         TensorProto.INT32: "i32",
         TensorProto.UINT32: "u32",
     }[tt]
-    sg8 = "g8" if g8 else ""
     obs.update(
         dict(
             engine={"InferenceSession": "ort", "CReferenceEvaluator": "np"}[
@@ -336,7 +346,7 @@ for tt_g8, engine, provider, dim in pbar:
             ],
             stype=stype,
             gemm8=1 if g8 else 0,
-            type=f"{stype}-{sg8}",
+            type=f"{stype}",
             M=dim[0],
             N=dim[1],
             K=dim[2],
@@ -344,9 +354,10 @@ for tt_g8, engine, provider, dim in pbar:
             cost_s=f"{numpy.prod(dim) * 4}-{dim[0]}x{dim[1]}x{dim[2]}",
             repeat=repeat,
             number=number,
-            provider={"CPUExecutionProvider": "cpu", "CUDAExecutionProvider": "cuda"}[
-                provider[0]
-            ],
+            provider={
+                "CPUExecutionProvider": "cpu",
+                "CUDAExecutionProvider": "cuda-g8" if g8 else "cuda",
+            }[provider[0]],
             platform=platform.processor(),
         )
     )
