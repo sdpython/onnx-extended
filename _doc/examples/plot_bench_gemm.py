@@ -33,7 +33,7 @@ from onnxruntime.capi._pybind_state import (
 from onnxruntime.capi.onnxruntime_pybind11_state import (
     NotImplemented,
     InvalidGraph,
-    InvalidArgument,
+    InvalidArgument,    
 )
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import unit_test_going, measure_time
@@ -154,7 +154,7 @@ for m, n, k in dims:
                     create_cast(tt).SerializeToString(),
                     providers=["CPUExecutionProvider"],
                 )
-            except (InvalidGraph, InvalidArgument):
+            except (InvalidGraph, InvalidArgument, NotImplemented):
                 # not support by this version of onnxruntime
                 continue
             vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
