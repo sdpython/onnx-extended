@@ -110,11 +110,16 @@ file(WRITE "../_setup_ext.txt" "")
 #
 # \arg:name project name
 # \arg:folder where to copy the library
+# \arg:provider CUDA if a cuda lib, empty or CPU for CPU
 # \argn: C++ file to compile
 #
-function(ort_add_custom_op name folder)
+function(ort_add_custom_op name provider folder)
   message(STATUS "ort custom op: '${name}': ${ARGN}")
-  add_library(${name} SHARED ${ARGN})
+  if (provider STREQUAL "CUDA")
+    cuda_add_library_ext(${name} SHARED ${ARGN})
+  else()
+    add_library(${name} SHARED ${ARGN})
+  endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)

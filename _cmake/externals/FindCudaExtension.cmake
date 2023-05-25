@@ -46,6 +46,23 @@ else()
 endif()
 
 #
+#! cuda_add_library_ext(name files)
+#
+# \arg:name extension name
+# \argn: additional c++ files to compile as the cuda extension
+#
+function(cuda_add_library_ext name)
+  cuda_add_library(${name} STATIC ${ARGN})
+  target_include_directories(
+    ${name} PRIVATE
+    ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include)
+  target_link_libraries(${name} PRIVATE ${name} stdc++)
+  if(USE_NVTX)
+    target_link_libraries(${name} PRIVATE nvtx3-cpp)
+  endif()
+endfunction()
+
+#
 #! cuda_pybind11_add_module : compile a pyx file into cpp
 #
 # \arg:name extension name
@@ -57,13 +74,6 @@ function(cuda_pybind11_add_module name pybindfile)
   message(STATUS "CU ${name}::${cuda_name}")
   message(STATUS "CU ${pybindfile}")
   message(STATUS "CU ${ARGN}")
-  cuda_add_library(${cuda_name} STATIC ${ARGN})
-  target_include_directories(
-    ${cuda_name} PRIVATE
-    ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include)
+  cuda_add_library_ext(${cuda_name} ${ARGN})
   local_pybind11_add_module(${name} "" ${pybindfile})
-  target_link_libraries(${name} PRIVATE ${cuda_name} stdc++)
-  if(USE_NVTX)
-    target_link_libraries(${name} PRIVATE nvtx3-cpp)
-  endif()
 endfunction()
