@@ -14,5 +14,5 @@ ort_add_custom_op(
 target_include_directories(
   ortops_tutorial_cpu
   PRIVATE
-  "${ORTAPI_INCLUDE_DIR}/"
-  "${ORTOPS_INCLUDE_DIR}/")
+  "${ORTAPI_INCLUDE_DIR}"
+  "${ORTOPS_INCLUDE_DIR}")

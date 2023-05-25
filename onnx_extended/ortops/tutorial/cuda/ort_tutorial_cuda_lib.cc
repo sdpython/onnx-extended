@@ -21,7 +21,7 @@ OrtStatus* ORT_API_CALL RegisterCustomOps(OrtSessionOptions* options, const OrtA
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
-  static ortops::CustomGemm c_CustomGemm;
+  static ortops::CustomGemmOp c_CustomGemm;
 
   OrtStatus* result = nullptr;
 

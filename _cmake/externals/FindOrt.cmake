@@ -124,6 +124,7 @@ function(ort_add_custom_op name provider folder)
     else()
       target_link_libraries(${name} PRIVATE ${cuda_name} stdc++)
     endif()
+    target_include_directories(${cuda_name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
   else()
     message(STATUS "ort custom op CPU: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
@@ -137,6 +138,7 @@ function(ort_add_custom_op name provider folder)
   # $<TARGET_FILE_NAME:${name}> does not seem to work.
   # The following step adds a line in '_setup.txt' to tell setup.py
   # to copy an additional file.
+  file(APPEND "../_setup_ext.txt" "copy,${cuda_name},${folder}\n")
   file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
 endfunction()
 

@@ -18,7 +18,7 @@ struct CustomGemmKernel {
     int smCount_;
 };
 
-struct MyCustomOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {
+struct CustomGemmOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {
   void* CreateKernel(const OrtApi& api, const OrtKernelInfo* info) const ;
   const char* GetName() const;
   const char* GetExecutionProviderType() const;
