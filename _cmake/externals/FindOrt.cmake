@@ -5,7 +5,7 @@
 # functions ort_add_dependency, ort_add_custom_op
 
 if(NOT ORT_VERSION)
-  set(ORT_VERSION 1.14.1)
+  set(ORT_VERSION 1.15.0)
 endif()
 
 if(CUDA_FOUND)
