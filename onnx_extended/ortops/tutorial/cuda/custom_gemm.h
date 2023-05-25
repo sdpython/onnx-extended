@@ -1,4 +1,6 @@
-#include "my_kernel_attr.h"
+#pragma once
+
+#include "common/common_kernels.h"
 
 namespace ortops {
 
@@ -13,6 +15,7 @@ struct CustomGemmKernel {
     bool transB_;
     bool fastAccumulationMode_;
     std::string computeType_;
+    int smCount_;
 };
 
 struct MyCustomOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {

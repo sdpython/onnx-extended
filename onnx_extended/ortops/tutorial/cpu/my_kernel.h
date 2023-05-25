@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common_kernels.h"
+#include "common/common_kernels.h"
 
 namespace ortops {
 

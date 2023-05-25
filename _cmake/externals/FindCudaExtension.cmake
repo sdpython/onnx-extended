@@ -56,10 +56,6 @@ function(cuda_add_library_ext name)
   target_include_directories(
     ${name} PRIVATE
     ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include)
-  target_link_libraries(${name} PRIVATE ${name} stdc++)
-  if(USE_NVTX)
-    target_link_libraries(${name} PRIVATE nvtx3-cpp)
-  endif()
 endfunction()
 
 #
@@ -76,4 +72,8 @@ function(cuda_pybind11_add_module name pybindfile)
   message(STATUS "CU ${ARGN}")
   cuda_add_library_ext(${cuda_name} ${ARGN})
   local_pybind11_add_module(${name} "" ${pybindfile})
+  target_link_libraries(${name} PRIVATE ${cuda_name} stdc++)
+  if(USE_NVTX)
+    target_link_libraries(${name} PRIVATE nvtx3-cpp)
+  endif()
 endfunction()

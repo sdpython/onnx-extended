@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`31`: implements a custom CUDA kernel (gemm)
 * :pr:`27`: adds a custom kernel with parameters to onnxruntime
 * :pr:`26`: adds a custom kernel to onnxruntime
 * :pr:`24`: uses Eigen to implement Conv operator

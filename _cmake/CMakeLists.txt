@@ -85,6 +85,8 @@ include("targets/c_op_conv_.cmake")
 include("targets/c_op_tree_ensemble_py_.cmake")
 include("targets/cuda_example_py.cmake")
 include("targets/vector_function_cy.cmake")
+
+set(ORTOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortops")
 include("targets/ortops_tutorial_cpu.cmake")
 include("targets/ortops_tutorial_cuda.cmake")
 
