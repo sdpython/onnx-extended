@@ -33,7 +33,7 @@ from onnxruntime.capi._pybind_state import (
 from onnxruntime.capi.onnxruntime_pybind11_state import (
     NotImplemented,
     InvalidGraph,
-    InvalidArgument,    
+    InvalidArgument,
 )
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import unit_test_going, measure_time
