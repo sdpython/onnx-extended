@@ -154,7 +154,7 @@ for m, n, k in dims:
                     create_cast(tt).SerializeToString(),
                     providers=["CPUExecutionProvider"],
                 )
-            except (InvalidGraph, InvalidArgument):
+            except (InvalidGraph, InvalidArgument, NotImplemented):
                 # not support by this version of onnxruntime
                 continue
             vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)

@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`32`: update to onnxruntime v1.15.0
 * :pr:`27`: adds a custom kernel with parameters to onnxruntime
 * :pr:`26`: adds a custom kernel to onnxruntime
 * :pr:`24`: uses Eigen to implement Conv operator
