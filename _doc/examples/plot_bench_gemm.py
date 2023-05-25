@@ -68,7 +68,11 @@ def create_model(mat_type=TensorProto.FLOAT, use_gemm8=False):
                 make_node("CastLike", ["zero", "A"], ["s"]),
                 make_node("CastLike", ["zero", "A"], ["r"]),
             ]
-            computeType = "CUBLAS_COMPUTE_16F"
+            computeType = (
+                "CUBLAS_COMPUTE_32F"
+                if mat_type == TensorProto.FLOAT
+                else "CUBLAS_COMPUTE_16F"
+            )
         nodes.extend(
             [
                 make_node("CastLike", ["I", "A"], ["Ic"]),
