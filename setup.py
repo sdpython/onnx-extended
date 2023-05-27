@@ -388,7 +388,9 @@ class cmake_build_ext(build_ext):
             else:
                 fullname = os.path.join(build_path, assumed_name)
             if not os.path.exists(fullname):
-                raise FileNotFoundError(f"Unable to find {fullname!r}.")
+                raise FileNotFoundError(
+                    f"Unable to find library {fullname!r} (line={line!r})."
+                )
             print(f"-- copy {fullname!r} to {fulldest!r}")
             shutil.copy(fullname, fulldest)
         else:
@@ -407,7 +409,7 @@ class cmake_build_ext(build_ext):
         this = os.path.abspath(os.path.dirname(__file__))
         fullname = os.path.join(this, filename)
         if not os.path.exists(fullname):
-            raise FileNotFoundError(f"Unable to find {fullname!r}.")
+            raise FileNotFoundError(f"Unable to find filename {fullname!r}.")
         with open(fullname, "r") as f:
             lines = f.readlines()
         for line in lines:

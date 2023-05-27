@@ -138,7 +138,9 @@ function(ort_add_custom_op name provider folder)
   # $<TARGET_FILE_NAME:${name}> does not seem to work.
   # The following step adds a line in '_setup.txt' to tell setup.py
   # to copy an additional file.
-  file(APPEND "../_setup_ext.txt" "copy,${cuda_name},${folder}\n")
+  if (provider STREQUAL "CUDA")
+    file(APPEND "../_setup_ext.txt" "copy,${cuda_name},${folder}\n")
+  endif()
   file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
 endfunction()
 
