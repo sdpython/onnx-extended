@@ -10,7 +10,7 @@ from onnx.helper import (
 )
 from onnx.numpy_helper import from_array
 from onnx.checker import check_model
-from onnx_extended.ortops.tutorial.cpu import documentation
+from onnx_extended.ortops.tutorial.cuda import documentation
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -19,30 +19,36 @@ except ImportError:
 from onnx_extended.ext_test_case import ExtTestCase
 
 
-class TestOrtOpTutorial(ExtTestCase):
+class TestOrtOpTutorialCuda(ExtTestCase):
     def test_get_ort_ext_libs(self):
-        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+        from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
         r = get_ort_ext_libs()
         self.assertEqual(len(r), 1)
+        self.assertIn("cuda", r[0])
 
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
-        self.assertEqual(len(doc), 2)
+        self.assertEqual(len(doc), 1)
         for d in doc:
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
-    def test_my_custom_ops(self):
-        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+    def test_custom_gemm(self):
+        from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         node1 = make_node(
-            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+            "CustomGemm",
+            ["X", "A"],
+            ["Y"],
+            domain="onnx_extented.ortops.tutorial.cuda",
+            transA=1,
+            transB=1,
         )
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
@@ -60,7 +66,7 @@ class TestOrtOpTutorial(ExtTestCase):
         b = numpy.random.randn(2, 2).astype(numpy.float32)
         feeds = {"X": a, "A": b}
         got = sess.run(None, feeds)[0]
-        self.assertEqualArray(a + b, got)
+        self.assertEqualArray(a.T @ b, got)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_my_custom_ops_with_attributes(self):

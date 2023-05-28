@@ -10,7 +10,8 @@ def get_ort_ext_libs() -> List[str]:
     :epkg:`onnxruntime` kernels implemented for the
     :epkg:`CUDAExecutionProvider`.
     """
-    return _get_ort_ext_libs(os.path.dirname(__file__))
+    libs = _get_ort_ext_libs(os.path.dirname(__file__))
+    return [lib for lib in libs if "cuda_cuda" not in lib]
 
 
 def documentation() -> List[str]:

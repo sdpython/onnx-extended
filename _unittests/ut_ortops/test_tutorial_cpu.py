@@ -19,7 +19,7 @@ except ImportError:
 from onnx_extended.ext_test_case import ExtTestCase
 
 
-class TestOrtOpTutorial(ExtTestCase):
+class TestOrtOpTutorialCpu(ExtTestCase):
     def test_get_ort_ext_libs(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
