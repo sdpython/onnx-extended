@@ -21,7 +21,7 @@ private:
   cudaDataType_t scaleType_;
 };
 
-struct CustomGemmOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {
+struct CustomGemmOpFloat : Ort::CustomOpBase<CustomGemmOpFloat, CustomGemmKernel> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;

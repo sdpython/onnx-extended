@@ -7,13 +7,14 @@ from onnx.helper import (
     make_graph,
     make_tensor_value_info,
     make_opsetid,
+    tensor_dtype_to_np_dtype,
 )
-from onnx.numpy_helper import from_array
+# from onnx.numpy_helper import from_array
 from onnx.checker import check_model
 from onnx_extended.ortops.tutorial.cuda import documentation
 
 try:
-    from onnxruntime import InferenceSession, SessionOptions
+    from onnxruntime import InferenceSession, SessionOptions, get_available_providers
 except ImportError:
     SessionOptions, InferenceSession = None, None
 from onnx_extended.ext_test_case import ExtTestCase
@@ -35,25 +36,38 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
-    def test_custom_gemm(self):
+    def common_test_custom_gemm(self, op_name, tos, **kwargs):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
-        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
-        A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
-        node1 = make_node(
-            "CustomGemm",
-            ["X", "A"],
-            ["Y"],
-            domain="onnx_extented.ortops.tutorial.cuda",
-            transA=1,
-            transB=1,
-        )
-        graph = make_graph([node1], "lr", [X, A], [Y])
+        casts = [
+            make_node("Cast", [c], [c + "c"], to=to) for c, to in zip("ABCDE", tos)
+        ]
+        nodes = [
+            *casts,
+            make_node(
+                op_name,
+                [c + "c" for c in "ABCDE"],
+                ["Yc"],
+                domain="onnx_extented.ortops.tutorial.cuda",
+                transA=1,
+                transB=0,
+                alpha=kwargs.get("alpha", 1.0),
+                beta=kwargs.get("beta", 0.0),
+                **kwargs,
+            ),
+            make_node("Cast", ["Yc"], ["Y"], to=TensorProto.FLOAT),
+        ]
+        inputs = [
+            make_tensor_value_info(c, TensorProto.FLOAT, [None, None]) for c in "ABCDE"
+        ]
+        graph = make_graph(nodes, "lr", inputs, [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[
+                make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                make_opsetid("", 18),
+            ],
             ir_version=8,
         )
         check_model(onnx_model)
@@ -61,48 +75,30 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         r = get_ort_ext_libs()
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
-        sess = InferenceSession(onnx_model.SerializeToString(), opts)
-        a = numpy.random.randn(2, 2).astype(numpy.float32)
-        b = numpy.random.randn(2, 2).astype(numpy.float32)
-        feeds = {"X": a, "A": b}
+        sess = InferenceSession(
+            onnx_model.SerializeToString(),
+            opts,
+            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+        )
+        inputs = [
+            (numpy.arange(64) / 64).astype(tensor_dtype_to_np_dtype(to)) for to in tos
+        ]
+        feeds = dict(zip("ABCDE", inputs))
         got = sess.run(None, feeds)[0]
-        self.assertEqualArray(a.T @ b, got)
+        a, b, c = inputs[:3]
+        expected = a.T @ b * kwargs.get("alpha", 1.0) + c * kwargs.get("beta", 0.0)
+        self.assertEqualArray(expected, got)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
-    def test_my_custom_ops_with_attributes(self):
-        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
-
-        X = make_tensor_value_info("X", TensorProto.DOUBLE, [None, None])
-        A = make_tensor_value_info("A", TensorProto.DOUBLE, [None, None])
-        Y = make_tensor_value_info("Y", TensorProto.DOUBLE, [None, None])
-        node1 = make_node(
-            "MyCustomOpWithAttributes",
-            ["X", "A"],
-            ["Y"],
-            domain="onnx_extented.ortops.tutorial.cpu",
-            att_string="string_att",
-            att_int64=5,
-            att_float=4.5,
-            att_tensor=from_array(numpy.array([[5.1]], dtype=numpy.float64)),
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm(self):
+        tos = [TensorProto.FLOAT for i in range(5)]
+        self.common_test_custom_gemm(
+            "CustomGemmFloat", tos, name="cgf", fastAccumulationMode=1
         )
-        graph = make_graph([node1], "lr", [X, A], [Y])
-        onnx_model = make_model(
-            graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
-            ir_version=8,
-        )
-        check_model(onnx_model)
-
-        r = get_ort_ext_libs()
-        opts = SessionOptions()
-        opts.register_custom_ops_library(r[0])
-        sess = InferenceSession(onnx_model.SerializeToString(), opts)
-        a = numpy.random.randn(2, 2).astype(numpy.float64)
-        b = numpy.random.randn(2, 2).astype(numpy.float64)
-        feeds = {"X": a, "A": b}
-        cst = 5.1 + 4.5 + 5 + ord("s")
-        got = sess.run(None, feeds)[0]
-        self.assertEqualArray(a + b + cst, got)
 
 
 if __name__ == "__main__":

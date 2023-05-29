@@ -2,25 +2,25 @@
 
 namespace ortops {
 
-void *CustomGemmOp::CreateKernel(const OrtApi &api,
+void *CustomGemmOpFloat::CreateKernel(const OrtApi &api,
                                  const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
 };
 
-const char *CustomGemmOp::GetName() const { return "CustomGemm"; };
+const char *CustomGemmOpFloat::GetName() const { return "CustomGemmFloat"; };
 
-const char *CustomGemmOp::GetExecutionProviderType() const { return "CUDAExecutionProvider"; };
+const char *CustomGemmOpFloat::GetExecutionProviderType() const { return "CUDAExecutionProvider"; };
 
-size_t CustomGemmOp::GetInputTypeCount() const { return 5; };
+size_t CustomGemmOpFloat::GetInputTypeCount() const { return 5; };
 
-ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+ONNXTensorElementDataType CustomGemmOpFloat::GetInputType(size_t index) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
-size_t CustomGemmOp::GetOutputTypeCount() const { return 1; };
+size_t CustomGemmOpFloat::GetOutputTypeCount() const { return 1; };
 
-ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
 CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
@@ -74,7 +74,7 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
     computeType_ = CUBLAS_COMPUTE_32F_FAST_TF32;
     scaleType_ = CUDA_R_32F;
   } else {
-    EXT_THROW("Unexpected value for compute_type: ", compute_type, ".");
+    EXT_THROW("Unexpected value for compute_type '", compute_type, "'.");
   }
 }
 

@@ -21,14 +21,14 @@ OrtStatus* ORT_API_CALL RegisterCustomOps(OrtSessionOptions* options, const OrtA
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
-  static ortops::CustomGemmOp c_CustomGemm;
+  static ortops::CustomGemmOpFloat c_CustomGemmFloat;
 
   OrtStatus* result = nullptr;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
-    domain.Add(&c_CustomGemm);
+    domain.Add(&c_CustomGemmFloat);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));

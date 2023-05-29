@@ -55,7 +55,9 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         r = get_ort_ext_libs()
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
-        sess = InferenceSession(onnx_model.SerializeToString(), opts)
+        sess = InferenceSession(
+            onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
         a = numpy.random.randn(2, 2).astype(numpy.float32)
         b = numpy.random.randn(2, 2).astype(numpy.float32)
         feeds = {"X": a, "A": b}
@@ -90,7 +92,9 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         r = get_ort_ext_libs()
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
-        sess = InferenceSession(onnx_model.SerializeToString(), opts)
+        sess = InferenceSession(
+            onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
         a = numpy.random.randn(2, 2).astype(numpy.float64)
         b = numpy.random.randn(2, 2).astype(numpy.float64)
         feeds = {"X": a, "A": b}
