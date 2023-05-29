@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/common_kernels.h"
-#include <cuda_runtime.h>
 #include "cublas_v2.h"
+#include <cuda_runtime.h>
 
 namespace ortops {
 
@@ -11,6 +11,9 @@ struct CustomGemmKernel {
   void Compute(OrtKernelContext *context);
 
 private:
+
+  void set(int M, int N, int K, int& lda, int& ldb, int& ldd) const;
+
   float alpha_;
   float beta_;
   bool transA_;

@@ -205,11 +205,18 @@ class cmake_build_ext(build_ext):
             "If cuda is available, CUDA is "
             "used by default unless this option is set to 0",
         ),
+        (
+            "cuda-version=",
+            None,
+            "If cuda is available, it searches the installed version "
+            "unless this option is defined.",
+        ),
     ]
 
     def initialize_options(self):
         self.enable_nvtx = None
         self.with_cuda = None
+        self.cuda_version = None
         build_ext.initialize_options(self)
 
     def finalize_options(self):
@@ -220,6 +227,8 @@ class cmake_build_ext(build_ext):
             raise ValueError(f"with_cuda={self.with_cuda!r} must be in {b_values}.")
         self.enable_nvtx = self.enable_nvtx in {1, "1", True, "True"}
         self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
+        if self.cuda_version in (None, ""):
+            self.cuda_version = None
         build_ext.finalize_options(self)
 
     def get_cmake_args(self, cfg: str) -> List[str]:
@@ -255,6 +264,9 @@ class cmake_build_ext(build_ext):
             cmake_args.append("-DUSE_CUDA=0")
         else:
             cmake_args.append("-DUSE_CUDA=1")
+        cuda_version = self.cuda_version or os.environ.get("CUDA_VERSION", "")
+        if cuda_version not in (None, ""):
+            cmake_args.append(f"-DCUDA_VERSION={cuda_version}")
 
         if iswin or isdar:
             include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
