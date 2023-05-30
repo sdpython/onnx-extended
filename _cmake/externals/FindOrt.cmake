@@ -124,17 +124,21 @@ function(ort_add_custom_op name provider folder)
     else()
       target_link_libraries(${name} PRIVATE ${cuda_name} stdc++)
     endif()
-    target_include_directories(${cuda_name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
+    target_include_directories(
+      ${cuda_name}
+      PRIVATE
+      ${ONNXRUNTIME_INCLUDE_DIR})
+    target_include_directories(
+      ${name}
+      PRIVATE
+      ${ONNXRUNTIME_INCLUDE_DIR}
+      ${CUDA_INCLUDE_DIRS})
   else()
     message(STATUS "ort custom op CPU: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
+    target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
-  target_include_directories(
-    ${name}
-    PRIVATE
-    ${ONNXRUNTIME_INCLUDE_DIR}
-    ${CUDA_INCLUDE_DIRS})
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
   # add_custom_command(
   #   TARGET ${name} POST_BUILD
