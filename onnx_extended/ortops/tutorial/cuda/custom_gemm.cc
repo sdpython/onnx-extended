@@ -1,6 +1,9 @@
 #include "custom_gemm.h"
 #include "common/common_kernels_cuda.h"
-#include "cublas_v2.h"
+#include <cublasLt.h>
+#include <cublas_v2.h>
+
+// see https://gitlab.com/nvidia/headers/cuda-individual/cublas/-/blob/main/cublasLt.h
 
 namespace ortops {
 
@@ -140,6 +143,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
 
   std::vector<int64_t> dimensions {M, N};
   Ort::UnownedValue Y = ctx.GetOutput(0, dimensions);
+
   cudaStream_t stream = (cudaStream_t)ctx.GetGPUComputeStream();
   cublasLtHandle_t cublasLt;
   CUBLAS_THROW_IF_ERROR(cublasLtCreate(&cublasLt));
@@ -229,10 +233,16 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   cublasOperation_t transb = transB_ ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSA, &transa, sizeof(transa));
   cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSB, &transb, sizeof(transb));
-  const int8_t ifast_accumulation_mode = fast_accumulation_mode_ ? 0 : 1;
-  cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_FAST_ACCUM, &ifast_accumulation_mode, sizeof(ifast_accumulation_mode));
+  const int8_t ifast_accumulation_mode = fastAccumulationMode_ ? 0 : 1;
+  cublasLtMatmulDescSetAttribute(operationDesc,
+                                 cublasLtMatmulDescAttributes_t::CUBLASLT_MATMUL_DESC_FAST_ACCUM,
+                                 &ifast_accumulation_mode,
+                                 sizeof(ifast_accumulation_mode));
   if (has_C) {
-    cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE, &bias_type, sizeof(bias_type));
+    cublasLtMatmulDescSetAttribute(operationDesc,
+                                   cublasLtMatmulDescAttributes_t::CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE,
+                                   &bias_type,
+                                   sizeof(bias_type));
   }
 
   /*
@@ -283,13 +293,13 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // The workspace should be allocated once from OpKernelContext assuming
   // only one cuda function is running at a time (which is not necessarily true with H100).
   // size_t type_size = std::max(std::max(TypeSize(dtypes[0]), TypeSize(dtypes[1])), std::max(std::max(TypeSize(dtypes[2]), TypeSize(dtypes[3])), TypeSize(dtypes[4])));
-  size_t workspaceSize = std::max((size_t)1 << 20, (std::min((size_t)(1 << 24), (size_t)std::max(K * M, K * N) * type_size) + 16));  // suggested fixed value 24Mb
+  size_t workspaceSize = std::max((size_t)1 << 20, (std::min((size_t)(1 << 24), (size_t)std::max(K * M, K * N) * 4) + 16));  // suggested fixed value 24Mb
   workspaceSize -= workspaceSize % 16;
   cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES, &workspaceSize, sizeof(workspaceSize));
 
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulAlgoGetHeuristic#cublasltmatmulalgogetheuristic
   int returnedResults = 0;
-  cublasStatus_t cuda_status = cublasLtMatmulAlgoGetHeuristic(handle, operationDesc,
+  cublasStatus_t cuda_status = cublasLtMatmulAlgoGetHeuristic(cublasLt, operationDesc,
                                                               Adesc, Bdesc, Cdesc, Ddesc,
                                                               preference, 1, &heuristicResult, &returnedResults);
   EXT_ENFORCE(returnedResults > 0 && cuda_status == CUBLAS_STATUS_SUCCESS,
@@ -304,31 +314,31 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
               ", scale_type=", CudaDataTypeToString(scaleType_),
               ", computeType=", CublasComputeTypeToString(computeType_),
               ", transA=", transA_, ", transB=", transB_,
-              ", fastAccumulationMode=", (fast_accumulation_mode_ ? 1 : 0),
+              ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
               ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb, ", ldd=", ldd,
               ", workspaceSize=", workspaceSize, ". Check NVDIDIA documentation to see what combination is valid: ",
               "https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulAlgoGetHeuristic#cublasltmatmulalgogetheuristic.");
   void* workspace = nullptr;
   if (workspaceSize > 0) {
-    CUDA_CALL_THROW(cudaMalloc((void**)&workspace, workspaceSize));
+    cudaMalloc((void**)&workspace, workspaceSize);
   }
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
-  cublasLtMatmul(handle,
+  cublasLtMatmul(cublasLt,
                  operationDesc,
-                 static_cast<const void*>(&alpha_), /* alpha */
-                 input_A.GetTensorMutableRawData(),                      /* A */
+                 static_cast<const void*>(&alpha_),             /* alpha */
+                 input_A.GetTensorRawData(),                    /* A */
                  Adesc,
-                 input_B.GetTensorMutableRawData(), /* B */
+                 input_B.GetTensorRawData(),                    /* B */
                  Bdesc,
-                 static_cast<const void*>(&beta_), /* beta */
-                 has_C ? input_C.GetTensorMutableRawData() : nullptr,   /* C */
+                 static_cast<const void*>(&beta_),              /* beta */
+                 has_C ? input_C.GetTensorRawData() : nullptr,  /* C */
                  Cdesc,
-                 Y.GetTensorMutableRawData(), /* Y */
+                 Y.GetTensorMutableRawData(),                   /* Y */
                  Ddesc,
-                 &heuristicResult.algo, /* algo */
-                 workspace,             /* workspace */
+                 &heuristicResult.algo,                         /* algo */
+                 workspace,                                     /* workspace */
                  workspaceSize,
-                 stream); /* stream */
+                 stream);                                       /* stream */
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }
@@ -339,7 +349,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   cublasLtMatrixLayoutDestroy(Bdesc);
   cublasLtMatrixLayoutDestroy(Adesc);
   cublasLtMatmulDescDestroy(operationDesc);
-  CUBLAS_THROW_IF_ERROR(cublasLtDestroy(&cublasLt));
+  CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
 
   // #else
   // ORT_ENFORCE(false, "Compiling with CUDA_VERSION >= 11.8 is needed!");

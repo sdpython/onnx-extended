@@ -9,6 +9,7 @@ from onnx.helper import (
     make_opsetid,
     tensor_dtype_to_np_dtype,
 )
+
 # from onnx.numpy_helper import from_array
 from onnx.checker import check_model
 from onnx_extended.ortops.tutorial.cuda import documentation

@@ -130,7 +130,11 @@ function(ort_add_custom_op name provider folder)
     add_library(${name} SHARED ${ARGN})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
-  target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
+  target_include_directories(
+    ${name}
+    PRIVATE
+    ${ONNXRUNTIME_INCLUDE_DIR}
+    ${CUDA_INCLUDE_DIRS})
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
   # add_custom_command(
   #   TARGET ${name} POST_BUILD
