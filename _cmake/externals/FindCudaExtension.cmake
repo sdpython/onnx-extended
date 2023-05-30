@@ -36,6 +36,13 @@ if(CUDA_FOUND)
     VERSION_VAR "0.1"
     REQUIRED_VARS CUDA_FOUND CUDA_VERSION CUDA_LIBRARIES)
 
+  find_library(CUBLAS_LIBRARY cublas PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+
+  if(CUBLAS_LIBRARY)
+    message(STATUS "CUBLAS found: ${CUBLAS_LIBRARY}")
+  else()
+    message(FATAL_ERROR "CUBLAS not found.")
+  endif()
 else()
 
   find_package_handle_standard_args(

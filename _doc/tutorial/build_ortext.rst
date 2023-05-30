@@ -15,7 +15,7 @@ with `find_package(Ort REQUIRED)`. This file exposes two functions.
 The first one `ort_add_dependency(name folder_copy)` copies the binaries
 into folder *folder_copy* and links target *name* with onnxruntime.
 
-The second function `ort_add_custom_op(name folder)` creates a library with 
+The second function `ort_add_custom_op(name folder "CPU")` creates a library with 
 several custom kernels for onnxruntime and links it with onnxruntime.
 *name* is the project name, *folder* its location.
 
@@ -23,6 +23,7 @@ several custom kernels for onnxruntime and links it with onnxruntime.
 
     ort_add_custom_op(
         ortops_tutorial_cpu                                             # name
+        "CPU"
         ../onnx_extended/ortops/tutorial/cpu                            # folder
         ../onnx_extended/ortops/tutorial/cpu/my_kernel.cc               # source file
         ../onnx_extended/ortops/tutorial/cpu/my_kernel_attr.cc          # source file

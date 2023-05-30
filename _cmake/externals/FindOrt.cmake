@@ -110,19 +110,24 @@ file(WRITE "../_setup_ext.txt" "")
 #
 # \arg:name project name
 # \arg:folder where to copy the library
-# \arg:provider CUDA if a cuda lib, empty or CPU for CPU
+# \arg:provider CUDA if a cuda lib, CUBLAS to use CUDA with CUBLAS empty or CPU for CPU
 # \argn: C++ file to compile
 #
 function(ort_add_custom_op name provider folder)
-  if (provider STREQUAL "CUDA")
+  if (provider STREQUAL "CUDA" OR provider STREQUAL "CUBLAS")
+    if (provider STREQUAL "CUBLAS")
+      set(link_options "${CUBLAS_LIBRARY}")
+    else()
+      set(link_options "")
+    endif()
     message(STATUS "ort custom op CUDA: '${name}': ${ARGN}")
     set(cuda_name ${name}_cuda)
     cuda_add_library_ext(${cuda_name} SHARED ${ARGN})
     add_library(${name} SHARED ${ARGN})
     if(USE_NVTX)
-      target_link_libraries(${name} PRIVATE ${cuda_name} stdc++ nvtx3-cpp)
+      target_link_libraries(${name} PRIVATE ${cuda_name} stdc++ nvtx3-cpp ${link_options})
     else()
-      target_link_libraries(${name} PRIVATE ${cuda_name} stdc++)
+      target_link_libraries(${name} PRIVATE ${cuda_name} stdc++ ${link_options})
     endif()
     target_include_directories(
       ${cuda_name}
