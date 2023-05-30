@@ -56,10 +56,11 @@ endif()
 #! cuda_add_library_ext(name files)
 #
 # \arg:name extension name
+# \arg:kind SHARED or STATIC
 # \argn: additional c++ files to compile as the cuda extension
 #
-function(cuda_add_library_ext name)
-  cuda_add_library(${name} STATIC ${ARGN})
+function(cuda_add_library_ext name kind)
+  cuda_add_library(${name} ${kind} ${ARGN})
   target_include_directories(
     ${name} PRIVATE
     ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include
