@@ -8,7 +8,7 @@ if(CUDA_AVAILABLE)
 
   ort_add_custom_op(
     ortops_tutorial_cuda
-    "CUDA"
+    "CUBLAS"
     ../onnx_extended/ortops/tutorial/cuda
     ../onnx_extended/ortops/tutorial/cuda/custom_gemm.cc
     ../onnx_extended/ortops/tutorial/cuda/ort_tutorial_cuda_lib.cc)
