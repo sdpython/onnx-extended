@@ -80,6 +80,18 @@ requires = [
     "wheel",
 ]
 
+[tool.rstcheck]
+report_level = "INFO"
+ignore_directives = [
+    "autoclass",
+    "autofunction",
+    "gdot",
+    "image-sg",
+    "runpython",
+]
+ignore_roles = ["epkg", "pr"]
+ignore_messages = "Duplicate implicit target name: \"setup.py\""
+
 [tool.setuptools.packages.find]
 namespaces = false
 

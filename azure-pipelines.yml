@@ -34,6 +34,9 @@ jobs:
       cmake-lint _cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
     displayName: 'cmake-lint'
   - script: |
+      rstcheck -r ./_doc ./onnx_extended
+    displayName: 'rstcheck'
+  - script: |
       cython-lint .
     displayName: 'cython-lint'
   - script: |
