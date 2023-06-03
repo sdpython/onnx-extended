@@ -83,6 +83,15 @@ else()
 endif()
 
 message(STATUS "-------------------")
+find_package(LocalDLPack REQUIRED)
+if(LocalDLPack_FOUND)
+  message(STATUS "Found LocalDLPack, DLPack at ${dlpack_SOURCE_DIR}")
+  message(STATUS "Found DLPack ${dlpack_VERSION}")
+else()
+  message(FATAL_ERROR "Module DLPack is not installed.")
+endif()
+
+message(STATUS "-------------------")
 
 if(USE_CUDA)
   find_package(CudaExtension)

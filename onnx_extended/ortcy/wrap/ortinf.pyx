@@ -13,7 +13,10 @@ from cpython.buffer cimport (
 )
 numpy.import_array()
 
+cdef extern from "Python.h" nogil:
+    ctypedef struct PyObject
 
+# imports string
 cdef extern from "<string>" namespace "std":
     cdef cppclass string:
         string()
@@ -27,6 +30,7 @@ cdef extern from "<string>" namespace "std":
         const char* c_str()
 
 
+# imports vector
 cdef extern from "<vector>" namespace "std":
     cdef cppclass vector[T]:
         cppclass iterator:
@@ -44,6 +48,48 @@ cdef extern from "<vector>" namespace "std":
         const char* c_str() const
 
 
+# imports DLDeviceType
+cdef extern from "ortapi.h":
+
+    enum DLDeviceType:
+        kDLCPU = 1
+        kDLCUDA = 2
+        kDLCUDAHost = 3
+        kDLOpenCL = 4
+        kDLVulkan = 7
+        kDLMetal = 8
+        kDLVPI = 9
+        kDLROCM = 10
+        kDLROCMHost = 11
+        kDLExtDev = 12
+        kDLCUDAManaged = 13
+        kDLOneAPI = 14
+        kDLWebGPU = 15
+        kDLHexagon = 16
+
+# imports ONNXTensorElementDataType
+cdef extern from "ortapi.h":
+
+    enum ONNXTensorElementDataType:
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED = 0
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT = 1
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8 = 2
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8 = 3
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16 = 4
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16 = 5
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32 = 6
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64 = 7
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING = 8
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL = 9
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16 = 10
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE = 11
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32 = 12
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64 = 13
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX64 = 14
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128 = 15
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16 = 16
+
+# imports OrtShape, InternalOrtCpuValue
 cdef extern from "ortapi.h" namespace "ortapi":
 
     cdef cppclass OrtShape:
@@ -51,15 +97,24 @@ cdef extern from "ortapi.h" namespace "ortapi":
         void init(size_t)
         size_t ndim()
         void set(size_t i, int64_t dim)
-        void* dims()
+        int64_t* dims()
 
-    cdef cppclass OrtCpuValue:
-        OrtCpuValue()
-        void init(size_t size, int elem_type, void* data, void* ort_value)
+    cdef cppclass InternalOrtCpuValue:
+        InternalOrtCpuValue()
+        void init(size_t size,
+                  ONNXTensorElementDataType elem_type,
+                  void* data,
+                  void* ort_value)
         void free_ort_value()
-        int elem_type()
+        ONNXTensorElementDataType elem_type()
         size_t size()
         void* data()
+
+    OrtShape* allocate_ort_shape(size_t n)
+    InternalOrtCpuValue* allocate_ort_cpu_value(size_t n)
+    void delete_ort_shape(OrtShape*)
+    void delete_internal_ort_cpu_value(InternalOrtCpuValue*)
+    void delete_ort_value(void*)
 
     vector[string] get_available_providers()
 
@@ -82,10 +137,27 @@ cdef extern from "ortapi.h" namespace "ortapi":
     size_t session_run(void*,
                        size_t n_inputs,
                        const OrtShape* shapes,
-                       const OrtCpuValue* values,
+                       const InternalOrtCpuValue* values,
                        size_t max_outputs,
-                       OrtShape* out_shapes,
-                       OrtCpuValue* out_values)
+                       OrtShape** out_shapes,
+                       InternalOrtCpuValue** out_values)
+
+# imports
+cdef extern from "ort_value.h" namespace "ortapi":
+
+    struct DLPackOrtValue:
+        void* ort_value
+        void* memory_info
+        int64_t* shape
+        void (*deleter)(void* self)
+
+    int64_t* dlpack_ort_value_get_shape_type(DLPackOrtValue *value, size_t &n_dims,
+                                             ONNXTensorElementDataType &elem_type)
+    void delete_dlpack_ort_value(DLPackOrtValue *)
+    PyObject* ToDlpack(DlPackOrtValue* ort_value)
+    DLPackOrtValue* FromDlpack(PyObject *dlpack_tensor)
+    void GetDlPackDevice(DLPackOrtValue*, int& dev_type, int& dev_id)
+
 
 cdef list _ort_get_available_providers():
     """
@@ -108,7 +180,99 @@ def ort_get_available_providers():
     return r
 
 
-cdef class OrtSession:
+cdef class CyOrtShape:
+    """
+    Cython wrapper around an OrtShape.
+    It contains one attribute of type `OrtShape`
+    imported from C++.
+    """
+    cdef OrtShape shape
+
+    def __init__(self):
+        pass
+
+    def set(self, shape):
+        """
+        Sets the shape.
+
+        :param shape: tuple of ints
+        """
+        if not isinstance(shape, tuple):
+            raise TypeError(f"shape must be a tuple of int not {type(shape)}.")
+        self.shape.init(len(shape))
+        for i in range(len(shape)):
+            self.shape.set(i, shape[i])
+
+    def __len__(self):
+        "Returns the number of dimensions."
+        return self.shape.ndim()
+
+    def __getitem__(self, i):
+        "Returns dimension i."
+        return self.shape.dims()[i]
+
+    def __setitem__(self, i, d):
+        "Set dimension i."
+        self.shape.set(i, d)
+
+    def __repr__(self):
+        "usual"
+        nd = len(self)
+        shape = tuple(self[i] for i in range(nd))
+        return f"CyOrtShape({shape})"
+
+
+cdef class CyOrtValue:
+    """
+    Wrapper around a OrtValue.
+    """
+    cdef void* dlpack_ort_value
+
+    def __cinit__(self):
+        self.dlpack_ort_value = <void*>0
+
+    cdef void set(self, void* dlpack_ort_value):
+        self.dlpack_ort_value = dlpack_ort_value
+
+    @cython.initializedcheck(False)
+    @property
+    def shape_elem_type(self):
+        """
+        Returns the shape and the element type.
+        """
+        cdef int64_t dims[10]
+        cdef size_t n_dims
+        cdef ONNXTensorElementDataType elem_type
+        cdef int64_t* dims = dlpack_ort_value_get_shape_type(
+            self.ort_value_, n_dims, elem_type)
+        return tuple(dims[i] for i in range(n_dims)), elem_type
+
+    def __dealloc__(self):
+        if self.dlpack_ort_value == <void*>0:
+            raise RuntimeError(
+                "This instance of CyOrtValue was not properly initialized.")
+        delete_dlpack_ort_value(self.dlpack_ort_value)
+
+    @staticmethod
+    def from_dlpack(data):
+        res = CyOrtValue()
+        res.set(FromDlpack(data))
+        return res
+
+    def __dlpack__(self, stream=None):
+        if stream is not None:
+            raise NotImplementedError(
+                "Unable to convert to dlpack if stream is not None.")
+        return ToDlPack(self.dlpack_ort_value)
+
+    def __dlpack_device__(self):
+        cdef int dev_type
+        cdef int dev_id
+        GetDlPackDevice(self.dlpack_ort_value, dev_type, dev_id)
+        return dev_type, dev_id
+
+
+cdef class CyOrtSession:
     """
     Wrapper around :epkg:`onnxruntime C API` based on :epkg:`cython`.
 
@@ -255,13 +419,8 @@ cdef class OrtSession:
         Runs the inference.
         The number of inputs and outputs must not exceed 10.
         """
-        if len(inputs) > 10:
-            raise RuntimeError(
-                f"This function does not work with more than "
-                f"10 inputs ({len(inputs)})."
-            )
-        cdef OrtShape shapes[10]
-        cdef OrtCpuValue in_values[10]
+        cdef OrtShape* shapes = allocate_ort_shape(len(inputs))
+        cdef InternalOrtCpuValue* in_values = allocate_ort_cpu_value(len(inputs))
         cdef numpy.ndarray value
 
         values = []
@@ -272,18 +431,21 @@ cdef class OrtSession:
             value = numpy.ascontiguousarray(inputs[n])
             in_values[n].init(
                 value.size,
-                OrtSession._onnx_types[value.dtype],
+                CyOrtSession._onnx_types[value.dtype],
                 value.data,
                 <void*>0
             )
             # otherwise the pointer might be destroyed by the garbage collector
             values.append(value)
 
-        cdef OrtShape out_shapes[10]
-        cdef OrtCpuValue out_values[10]
+        cdef OrtShape* out_shapes
+        cdef InternalOrtCpuValue* out_values
 
         cdef size_t n_outputs = session_run(
-            self.session, len(inputs), shapes, in_values, 10, out_shapes, out_values)
+            self.session, len(inputs), shapes, in_values, 10, &out_shapes, &out_values)
+
+        delete_ort_shape(shapes)
+        delete_internal_ort_cpu_value(in_values)
 
         # onnxruntime does not implement the DLPack protocol through the C API.
         # DLPack protocol should be used.
@@ -298,129 +460,14 @@ cdef class OrtSession:
                    out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
             tout = numpy.empty(
                 shape=shape,
-                dtype=OrtSession._dtypes[out_values[i].elem_type()]
+                dtype=CyOrtSession._dtypes[out_values[i].elem_type()]
             )
             memcpy(tout.data,
                    out_values[i].data(),
                    out_values[i].size() * ElementSizeI(out_values[i].elem_type()))
             out_values[i].free_ort_value()
             res.append(tout)
-        return res
 
-    @cython.boundscheck(False)
-    @cython.nonecheck(False)
-    @cython.wraparound(False)
-    def run_1_1(
-        self,
-        numpy.ndarray input1,
-    ):
-        """
-        Runs the inference assuming the model has one input and one output.
-        """
-        cdef OrtShape shapes[1]
-
-        shapes[0].init(input1.ndim)
-        for i in range(input1.ndim):
-            shapes[0].set(i, input1.shape[i])
-
-        cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
-        cdef OrtCpuValue in_values[1]
-
-        in_values[0].init(
-            value1.size,
-            OrtSession._onnx_types[value1.dtype],
-            value1.data,
-            <void*>0
-        )
-
-        cdef OrtShape out_shapes[1]
-        cdef OrtCpuValue out_values[1]
-
-        cdef size_t n_outputs = session_run(
-            self.session, 1, shapes, in_values, 1, out_shapes, out_values)
-        if n_outputs != 1:
-            raise RuntimeError(f"Expecting 1 output not {n_outputs}.")
-
-        # onnxruntime does not implement the DLPack protocol through the C API.
-        # DLPack protocol should be used.
-
-        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape = numpy.empty(
-            out_shapes[0].ndim(), dtype=numpy.int64)
-        memcpy(shape.data,
-               out_shapes[0].dims(),
-               out_shapes[0].ndim() * 8)  # 8 = sizeof(int64)
-        cdef numpy.ndarray tout = numpy.empty(
-            shape=shape,
-            dtype=OrtSession._dtypes[out_values[0].elem_type()]
-        )
-        memcpy(tout.data,
-               out_values[0].data(),
-               out_values[0].size() * ElementSizeI(out_values[0].elem_type()))
-        out_values[0].free_ort_value()
-        return tout
-
-    @cython.boundscheck(False)
-    @cython.nonecheck(False)
-    @cython.wraparound(False)
-    def run_2(
-        self,
-        numpy.ndarray input1,
-        numpy.ndarray input2
-    ):
-        """
-        Runs the inference assuming the model has two inputs.
-        """
-        cdef OrtShape shapes[2]
-
-        shapes[0].init(input1.ndim)
-        for i in range(input1.ndim):
-            shapes[0].set(i, input1.shape[i])
-
-        shapes[1].init(input2.ndim)
-        for i in range(input2.ndim):
-            shapes[1].set(i, input2.shape[i])
-
-        cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
-        cdef numpy.ndarray value2 = numpy.ascontiguousarray(input2)
-
-        cdef OrtCpuValue in_values[2]
-        in_values[0].init(
-            value1.size,
-            OrtSession._onnx_types[value1.dtype],
-            value1.data,
-            <void*>0
-        )
-        in_values[1].init(
-            value2.size,
-            OrtSession._onnx_types[value2.dtype],
-            value2.data,
-            <void*>0
-        )
-
-        cdef OrtShape out_shapes[10]
-        cdef OrtCpuValue out_values[10]
-
-        cdef size_t n_outputs = session_run(
-            self.session, 2, shapes, in_values, 10, out_shapes, out_values)
-
-        # onnxruntime does not implement the DLPack protocol through the C API.
-        # DLPack protocol should be used.
-
-        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape
-        cdef numpy.ndarray tout
-        res = list()
-        for i in range(n_outputs):
-            shape = numpy.empty(out_shapes[i].ndim(), dtype=numpy.int64)
-            memcpy(shape.data,
-                   out_shapes[i].dims(),
-                   out_shapes[i].ndim() * 8)  # 8 = sizeof(int64)
-            tout = numpy.empty(
-                shape=shape,
-                dtype=OrtSession._dtypes[out_values[i].elem_type()]
-            )
-            memcpy(tout.data,
-                   out_values[i].data(),
-                   out_values[i].size() * ElementSizeI(out_values[i].elem_type()))
-            out_values[i].free_ort_value()
-            res.append(tout)
+        delete_ort_shape(out_shapes)
+        delete_internal_ort_cpu_value(out_values)
         return res

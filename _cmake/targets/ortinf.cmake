@@ -3,8 +3,17 @@
 #
 message(STATUS "+ CYTHON onnx_extended.ortcy.wrap.ortapi")
 
-add_library(lib_ortapi STATIC ../onnx_extended/ortcy/wrap/ortapi.cpp)
-target_include_directories(lib_ortapi PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
+add_library(
+  lib_ortapi
+  STATIC
+  ../onnx_extended/ortcy/wrap/ortapi.cpp
+  ../onnx_extended/ortcy/wrap/ort_value.cpp)
+target_include_directories(
+  lib_ortapi
+  PUBLIC
+  ${ONNXRUNTIME_INCLUDE_DIR}
+  ${dlpack_INCLUDE_DIR}
+  ${PYTHON_INCLUDE_DIR})
 
 cython_add_module(
   ortinf

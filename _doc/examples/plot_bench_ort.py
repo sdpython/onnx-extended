@@ -25,7 +25,7 @@ from onnx.helper import (
 )
 from onnx.checker import check_model
 from onnxruntime import InferenceSession
-from onnx_extended.ortcy.wrap.ortinf import OrtSession
+from onnx_extended.ortcy.wrap.ortinf import CyOrtSession
 from onnx_extended.ext_test_case import measure_time, unit_test_going
 
 A = numpy_helper.from_array(numpy.array([1], dtype=numpy.float32), name="A")
@@ -43,7 +43,7 @@ check_model(onnx_model)
 sess_ort = InferenceSession(
     onnx_model.SerializeToString(), providers=["CPUExecutionProvider"]
 )
-sess_ext = OrtSession(onnx_model.SerializeToString())
+sess_ext = CyOrtSession(onnx_model.SerializeToString())
 
 x = numpy.random.randn(10, 10).astype(numpy.float32)
 y = x + 1
@@ -59,16 +59,12 @@ print(f"Discrepancies: d_ort={d_ort}, d_ext={d_ext}")
 # Time measurement
 # ++++++++++++++++
 #
-# *run_1_1* is a specific implementation when there is only 1 input and output.
 
 t_ort = measure_time(lambda: sess_ort.run(None, {"X": x})[0], number=200, repeat=100)
 print(f"t_ort={t_ort}")
 
 t_ext = measure_time(lambda: sess_ext.run([x])[0], number=200, repeat=100)
 print(f"t_ext={t_ext}")
-
-t_ext2 = measure_time(lambda: sess_ext.run_1_1(x), number=200, repeat=100)
-print(f"t_ext2={t_ext2}")
 
 #############################################
 # Benchmark
@@ -92,11 +88,6 @@ for dim in tqdm([1, 10, 100, 1000]):
     t_ext["name"] = "ext"
     t_ext["dim"] = dim
     data.append(t_ext)
-
-    t_ext2 = measure_time(lambda: sess_ext.run_1_1(x), number=number, repeat=repeat)
-    t_ext2["name"] = "ext_1_1"
-    t_ext2["dim"] = dim
-    data.append(t_ext2)
 
     if unit_test_going() and dim >= 10:
         break

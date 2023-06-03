@@ -241,12 +241,14 @@ class cmake_build_ext(build_ext):
         )
         versmm = f"{sys.version_info.major}." f"{sys.version_info.minor}."
         module_ext = distutils.sysconfig.get_config_var("EXT_SUFFIX")
+        include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
             f"-DPYTHON_VERSION={vers}",
             f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
+            f"-DPYTHON_INCLUDE_DIR={include_dir}",
         ]
 
         if os.environ.get("USE_NVTX", "0") in (1, "1") or self.enable_nvtx:
@@ -257,7 +259,6 @@ class cmake_build_ext(build_ext):
             cmake_args.append("-DUSE_CUDA=1")
 
         if iswin or isdar:
-            include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
             lib_dir = (
                 sysconfig.get_config_var("LIBDIR")
                 or sysconfig.get_paths()["stdlib"]
@@ -266,7 +267,6 @@ class cmake_build_ext(build_ext):
             numpy_include_dir = numpy.get_include().replace("\\", "/")
             cmake_args.extend(
                 [
-                    f"-DPYTHON_INCLUDE_DIR={include_dir}",
                     # f"-DPYTHON_LIBRARIES={lib_dir}",
                     f"-DPYTHON_LIBRARY_DIR={lib_dir}",
                     f"-DPYTHON_NUMPY_INCLUDE_DIR={numpy_include_dir}",

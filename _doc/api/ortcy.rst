@@ -8,8 +8,14 @@ ort_get_available_providers
 
 .. autofunction:: onnx_extended.ortcy.wrap.ortinf.ort_get_available_providers
 
-OrtSession
+CyOrtShape
 ==========
 
-.. autoclass:: onnx_extended.ortcy.wrap.ortinf.OrtSession
+.. autoclass:: onnx_extended.ortcy.wrap.ortinf.CyOrtShape
+    :members:
+
+CyOrtSession
+============
+
+.. autoclass:: onnx_extended.ortcy.wrap.ortinf.CyOrtSession
     :members:
