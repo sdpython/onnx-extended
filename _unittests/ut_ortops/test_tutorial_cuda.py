@@ -82,7 +82,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
         )
         inputs = [
-            (numpy.arange(64) / 64).astype(tensor_dtype_to_np_dtype(to)) for to in tos
+            (numpy.arange(64) / 64)
+            .astype(tensor_dtype_to_np_dtype(to))
+            .reshape((-1, 8))
+            for to in tos
         ]
         feeds = dict(zip("ABCDE", inputs))
         got = sess.run(None, feeds)[0]

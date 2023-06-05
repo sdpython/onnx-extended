@@ -40,26 +40,40 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   transB_ = temp == 1;
   ThrowOnError(api, api.KernelInfoGetAttribute_int64( info, "fastAccumulationMode", &temp));
   fastAccumulationMode_ = temp == 1;
-  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "smCount", &smCount_));
+  OrtStatus *status = api.KernelInfoGetAttribute_int64(info, "smCount", &smCount_);
+  if (status == nullptr) {
+    smCount_ = 0;
+  } else {
+    auto error_code = api.GetErrorCode(status);
+    api.ReleaseStatus(status);
+    if (error_code != ORT_OK) {
+      smCount_ = 0;
+    }
+  }
 
   // A string attribute.
   std::string compute_type;
   size_t size;
-  OrtStatus *status = api.KernelInfoGetAttribute_string(info, "computeType", nullptr, &size);
+  status = api.KernelInfoGetAttribute_string(info, "computeType", nullptr, &size);
   if (status == nullptr) {
     compute_type = "CUBLAS_COMPUTE_32F";
   } else {
+    auto error_code = api.GetErrorCode(status);
     api.ReleaseStatus(status);
-    compute_type.resize(size + 1);
-    status = api.KernelInfoGetAttribute_string(info, "computeType", (char*)compute_type.c_str(), &size);
-    if (status == nullptr) {
-      compute_type = "CUBLAS_COMPUTE_32F";
-    } else {
-      auto error_code = api.GetErrorCode(status);
-      api.ReleaseStatus(status);
-      if (error_code != ORT_OK) {
+    if (error_code == ORT_OK) {
+      compute_type.resize(size + 1);
+      status = api.KernelInfoGetAttribute_string(info, "computeType", (char*)compute_type.c_str(), &size);
+      if (status == nullptr) {
         compute_type = "CUBLAS_COMPUTE_32F";
+      } else {
+        error_code = api.GetErrorCode(status);
+        api.ReleaseStatus(status);
+        if (error_code != ORT_OK) {
+          compute_type = "CUBLAS_COMPUTE_32F";
+        }
       }
+    } else {
+      compute_type = "CUBLAS_COMPUTE_32F";
     }
   }
 

@@ -30,11 +30,27 @@ if(CUDA_FOUND)
     message(STATUS "CUDA NTVX not added.")
   endif()
 
+  execute_process(
+    COMMAND nvcc --version
+    OUTPUT_VARIABLE NVCC_version_output
+    ERROR_VARIABLE NVCC_version_error
+    RESULT_VARIABLE NVCC_version_result
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  # If the version is not the same, something like the following can be tried:
+  # export PATH=/usr/local/cuda-11-8/bin:$PATH
+  if(NOT NVCC_version_output MATCHES ".*${CUDA_VERSION}.*")
+    message(FATAL_ERROR "CUDA_VERSION=${CUDA_VERSION} does not match nvcc "
+                        "version=${NVCC_version_output}, "
+                        "try export PATH=/usr/local/cuda-"
+                        "${CUDA_VERSION_MAJOR}-${CUDA_VERSION_MiNOR}/bin:$PATH")
+  endif()
+  set(NVCC_VERSION "${NVCC_version_output}")
+
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
     CudaExtension
     VERSION_VAR "0.1"
-    REQUIRED_VARS CUDA_FOUND CUDA_VERSION CUDA_LIBRARIES)
+    REQUIRED_VARS CUDA_FOUND CUDA_VERSION CUDA_LIBRARIES NVCC_VERSION)
 
   find_library(CUBLAS_LIBRARY cublas PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
 
@@ -48,7 +64,7 @@ else()
   find_package_handle_standard_args(
     CudaExtension
     VERSION_VAR "0.1"
-    REQUIRED_VARS CUDA_NOTFOUND CUDA_VERSION CUDA_LIBRARIES)
+    REQUIRED_VARS CUDA_NOTFOUND CUDA_VERSION CUDA_LIBRARIES "")
 
 endif()
 

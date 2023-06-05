@@ -125,9 +125,20 @@ function(ort_add_custom_op name provider folder)
     cuda_add_library_ext(${cuda_name} STATIC ${ARGN})
     add_library(${name} SHARED ${ARGN})
     if(USE_NVTX)
-      target_link_libraries(${name} PRIVATE ${cuda_name} stdc++ nvtx3-cpp ${link_options})
+      target_link_libraries(
+        ${name}
+        PRIVATE
+        ${cuda_name}
+        stdc++
+        nvtx3-cpp
+        ${link_options})
     else()
-      target_link_libraries(${name} PRIVATE ${cuda_name} stdc++ ${link_options})
+      target_link_libraries(
+        ${name}
+        PRIVATE
+        ${cuda_name}
+        stdc++
+        ${link_options})
     endif()
     target_include_directories(
       ${cuda_name}
