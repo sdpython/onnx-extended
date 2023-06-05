@@ -21,12 +21,14 @@ psutil
 pyquickhelper>=1.12.3821
 pytest
 pytest-cov
+rstcheck[sphinx,toml]
 ruff
 scikit-learn
 skl2onnx>=1.14.1
 sphinx
 sphinx-gallery
 sphinx-issues
+tomli
 tqdm
 wheel
 xgboost

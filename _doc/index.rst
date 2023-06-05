@@ -28,7 +28,8 @@ reference implementation, or implements faster versions in C++.
 Documentation `onnx-extended
 <http://www.xavierdupre.fr/app/onnx-extended/helpsphinx/index.html>`_.
 Source are available on `github/onnx-extended
-<https://github.com/sdpython/onnx-extended>`_.
+<https://github.com/sdpython/onnx-extended>`_,
+see also `code coverage <cov/index.html>`_.
 
 .. toctree::
     :maxdepth: 2
@@ -37,10 +38,6 @@ Source are available on `github/onnx-extended
     api/index
     auto_examples/index
     ../CHANGELOGS
-
-Sources available on
-`github/onnx-extended <https://github.com/sdpython/onnx-extended>`_,
-see also `code coverage <cov/index.html>`_.
 
 Use C++ a implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++
