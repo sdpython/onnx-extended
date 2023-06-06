@@ -68,7 +68,11 @@ cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
       return CUDA_R_8F_E5M2;
 #endif
     default:
-      EXT_THROW("Unexpected element_type=", element_type, ".");
+#if defined(CUDA_VERSION)
+      EXT_THROW("Unexpected element_type=", element_type, " CUDA_VERSION=", #CUDA_VERSION, ".");
+#else
+      EXT_THROW("Unexpected element_type=", element_type, " (no CUDA).");
+#endif
   }
 }
 
@@ -86,7 +90,11 @@ int32_t TypeSize(ONNXTensorElementDataType element_type) {
       return 1;
 #endif
     default:
-      EXT_THROW("Unexpected element_type=", element_type, ".");
+#if defined(CUDA_VERSION)
+      EXT_THROW("Unexpected element_type=", element_type, " CUDA_VERSION=", CUDA_VERSION, ".");
+#else
+      EXT_THROW("Unexpected element_type=", element_type, " (no CUDA).");
+#endif
   }
 }
 

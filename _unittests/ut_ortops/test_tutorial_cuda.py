@@ -8,7 +8,6 @@ from onnx.helper import (
     make_graph,
     make_tensor_value_info,
     make_opsetid,
-    tensor_dtype_to_np_dtype,
 )
 from onnx.checker import check_model
 
@@ -109,10 +108,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"onx={onnx_simple_text_plot(onnx_model)}"
             ) from e
         inputs = [
-            (numpy.arange(64) / 64)
-            .astype(tensor_dtype_to_np_dtype(to))
-            .reshape((-1, 8))
-            for to in tos
+            (numpy.arange(64) / 64).astype(numpy.float32).reshape((-1, 8)) for to in tos
         ]
         feeds = dict(zip("ABCDE", inputs))
         got = sess.run(None, feeds)[0]

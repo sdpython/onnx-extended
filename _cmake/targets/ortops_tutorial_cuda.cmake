@@ -23,5 +23,4 @@ if(CUDA_AVAILABLE)
     PRIVATE
     "${ORTAPI_INCLUDE_DIR}"
     "${ORTOPS_INCLUDE_DIR}")
-
 endif()
