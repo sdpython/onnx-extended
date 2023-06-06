@@ -23,7 +23,7 @@ from setuptools.command.build_ext import build_ext
 # beginning of setup
 ######################
 
-
+DEFAULT_ORT_VERSION = "1.15"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."
@@ -211,12 +211,24 @@ class cmake_build_ext(build_ext):
             "If cuda is available, it searches the installed version "
             "unless this option is defined.",
         ),
+        (
+            "parallel=",
+            None,
+            "Parallelization",
+        ),
+        (
+            "ort-version=",
+            None,
+            "onnxruntime version, a path is allowed",
+        ),
     ]
 
     def initialize_options(self):
         self.enable_nvtx = None
         self.with_cuda = None
         self.cuda_version = None
+        self.parallel = None
+        self.ort_version = (DEFAULT_ORT_VERSION,)
         build_ext.initialize_options(self)
 
     def finalize_options(self):
@@ -256,7 +268,10 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_VERSION={vers}",
             f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
+            f"-DORT_VERSION={self.ort_version}",
         ]
+        if self.parallel is not None:
+            cmake_args.append(f"-j{self.parallel}")
 
         if os.environ.get("USE_NVTX", "0") in (1, "1") or self.enable_nvtx:
             cmake_args.append("-DUSE_NVTX=1")

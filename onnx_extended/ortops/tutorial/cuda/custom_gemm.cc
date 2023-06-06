@@ -7,6 +7,8 @@
 
 namespace ortops {
 
+// CustomGemmOpFloat
+
 void *CustomGemmOpFloat::CreateKernel(const OrtApi &api,
                                       const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
@@ -27,6 +29,35 @@ size_t CustomGemmOpFloat::GetOutputTypeCount() const { return 1; };
 ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
+
+// CustomGemmOpFloat8E4M3FN
+
+void *CustomGemmOpFloat8E4M3FN::CreateKernel(const OrtApi &api,
+                                      const OrtKernelInfo *info) const {
+  return std::make_unique<CustomGemmKernel>(api, info).release();
+};
+
+const char *CustomGemmOpFloat8E4M3FN::GetName() const { return "CustomGemmFloat8E4M3FN"; };
+
+const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const { return "CUDAExecutionProvider"; };
+
+size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
+
+ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
+  if (index != 3) {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
+  } else {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  }
+};
+
+size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 1; };
+
+ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
+};
+
+// CustomGemmKernel
 
 CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
                                    const OrtKernelInfo *info) {

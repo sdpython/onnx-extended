@@ -40,9 +40,9 @@ if(CUDA_FOUND)
   # export PATH=/usr/local/cuda-11-8/bin:$PATH
   if(NOT NVCC_version_output MATCHES ".*${CUDA_VERSION}.*")
     message(FATAL_ERROR "CUDA_VERSION=${CUDA_VERSION} does not match nvcc "
-                        "version=${NVCC_version_output}, "
-                        "try export PATH=/usr/local/cuda-"
-                        "${CUDA_VERSION_MAJOR}-${CUDA_VERSION_MiNOR}/bin:$PATH")
+                        "version=${NVCC_version_output}, try\n"
+                        "export PATH=/usr/local/cuda-"
+                        "${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}/bin:$PATH")
   endif()
   set(NVCC_VERSION "${NVCC_version_output}")
 

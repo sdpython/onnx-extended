@@ -34,4 +34,14 @@ struct CustomGemmOpFloat : Ort::CustomOpBase<CustomGemmOpFloat, CustomGemmKernel
   ONNXTensorElementDataType GetOutputType(size_t index) const;
 };
 
+struct CustomGemmOpFloat8E4M3FN : Ort::CustomOpBase<CustomGemmOpFloat8E4M3FN, CustomGemmKernel> {
+  void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
+  const char *GetName() const;
+  const char *GetExecutionProviderType() const;
+  size_t GetInputTypeCount() const;
+  ONNXTensorElementDataType GetInputType(size_t index) const;
+  size_t GetOutputTypeCount() const;
+  ONNXTensorElementDataType GetOutputType(size_t index) const;
+};
+
 } // namespace ortops

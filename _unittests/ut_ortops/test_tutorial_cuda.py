@@ -1,5 +1,6 @@
 import unittest
 import numpy
+from packaging.version import Version
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -9,15 +10,28 @@ from onnx.helper import (
     make_opsetid,
     tensor_dtype_to_np_dtype,
 )
-
-# from onnx.numpy_helper import from_array
 from onnx.checker import check_model
+
+try:
+    from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
+except ImportError:
+    onnx_simple_text_plot = str
 from onnx_extended.ortops.tutorial.cuda import documentation
 
 try:
-    from onnxruntime import InferenceSession, SessionOptions, get_available_providers
+    from onnxruntime import (
+        InferenceSession,
+        SessionOptions,
+        get_available_providers,
+        __version__ as ort_version,
+    )
 except ImportError:
-    SessionOptions, InferenceSession = None, None
+    SessionOptions, InferenceSession, get_available_providers, ort_version = (
+        None,
+        None,
+        None,
+        None,
+    )
 from onnx_extended.ext_test_case import ExtTestCase
 
 
@@ -39,6 +53,13 @@ class TestOrtOpTutorialCuda(ExtTestCase):
 
     def common_test_custom_gemm(self, op_name, tos, **kwargs):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+
+        if TensorProto.FLOAT8E4M3FN in tos or TensorProto.FLOAT8E5M2:
+            ir_version = 9
+            opset = 19
+        else:
+            ir_version = 8
+            opset = 18
 
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         casts = [
@@ -67,20 +88,26 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             graph,
             opset_imports=[
                 make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
-                make_opsetid("", 18),
+                make_opsetid("", opset),
             ],
-            ir_version=8,
+            ir_version=ir_version,
         )
         check_model(onnx_model)
 
         r = get_ort_ext_libs()
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
-        sess = InferenceSession(
-            onnx_model.SerializeToString(),
-            opts,
-            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-        )
+        try:
+            sess = InferenceSession(
+                onnx_model.SerializeToString(),
+                opts,
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
+        except Exception as e:
+            raise AssertionError(
+                f"Unable to create InferenceSession with "
+                f"onx={onnx_simple_text_plot(onnx_model)}"
+            ) from e
         inputs = [
             (numpy.arange(64) / 64)
             .astype(tensor_dtype_to_np_dtype(to))
@@ -98,10 +125,25 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
-    def test_custom_gemm(self):
+    def test_custom_gemm_float32(self):
         tos = [TensorProto.FLOAT for i in range(5)]
         self.common_test_custom_gemm(
             "CustomGemmFloat", tos, name="cgf", fastAccumulationMode=1
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(ort_version) < Version("1.16"), reason="float8 types not released"
+    )
+    def test_custom_gemm_float8(self):
+        tos = [TensorProto.FLOAT8E4M3FN for i in range(5)]
+        tos[3] = TensorProto.FLOAT16
+        self.common_test_custom_gemm(
+            "CustomGemmFloat8E4M3FN", tos, name="cgf8", fastAccumulationMode=1
         )
 
 
