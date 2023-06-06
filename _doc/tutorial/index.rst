@@ -40,16 +40,16 @@ By default, *cmake* builds with CUDA if it is available. It can be disabled:
 In case there are multiple versions of CUDA installed, option `cuda-version`
 can be specified:
 
-```
-python setup.py build_ext --inplace --cuda-version=11.8
-```
+::
+
+    python setup.py build_ext --inplace --cuda-version=11.8
 
 The development versions of :epkg:`onnxruntime` can be used if it was already build
 ``--ort-version=<version or build path>``. Example:
 
-```
-python setup.py build_ext --inplace --cuda-version=11.8 --ort-version=~/github/onnxruntime/build/linux_cuda/Release
-```
+::
+
+    python setup.py build_ext --inplace --cuda-version=11.8 --ort-version=~/github/onnxruntime/build/linux_cuda/Release
 
 .. toctree::
     :maxdepth: 1    
