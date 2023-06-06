@@ -228,7 +228,7 @@ class cmake_build_ext(build_ext):
         self.with_cuda = None
         self.cuda_version = None
         self.parallel = None
-        self.ort_version = (DEFAULT_ORT_VERSION,)
+        self.ort_version = DEFAULT_ORT_VERSION
         build_ext.initialize_options(self)
 
     def finalize_options(self):

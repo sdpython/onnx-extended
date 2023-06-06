@@ -49,7 +49,7 @@ The development versions of :epkg:`onnxruntime` can be used if it was already bu
 
 ::
 
-    python setup.py build_ext --inplace --cuda-version=11.8 --ort-version=~/github/onnxruntime/build/linux_cuda/Release
+    python setup.py build_ext --inplace --cuda-version=11.8 --ort-version=/home/github/onnxruntime/build/linux_cuda/Release
 
 .. toctree::
     :maxdepth: 1    
