@@ -22,7 +22,9 @@ OrtStatus* ORT_API_CALL RegisterCustomOps(OrtSessionOptions* options, const OrtA
 
   // An instance remaining available until onnxruntime unload the library.
   static ortops::CustomGemmOpFloat c_CustomGemmFloat;
+  #if ORT_VERSION >= 1160
   static ortops::CustomGemmOpFloat8E4M3FN c_CustomGemmFloat8E4M3FN;
+  #endif
 
   OrtStatus* result = nullptr;
 
@@ -30,7 +32,9 @@ OrtStatus* ORT_API_CALL RegisterCustomOps(OrtSessionOptions* options, const OrtA
     Ort::CustomOpDomain domain{c_OpDomain};
 
     domain.Add(&c_CustomGemmFloat);
+    #if ORT_VERSION >= 1160
     domain.Add(&c_CustomGemmFloat8E4M3FN);
+    #endif
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));

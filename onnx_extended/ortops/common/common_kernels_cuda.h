@@ -61,7 +61,7 @@ cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
       return CUDA_R_16F;
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16:
       return CUDA_R_16BF;
-#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080 && ORT_VERSION >= 1160
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN:
       return CUDA_R_8F_E4M3;
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2:
@@ -69,9 +69,12 @@ cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
 #endif
     default:
 #if defined(CUDA_VERSION)
-      EXT_THROW("Unexpected element_type=", element_type, " CUDA_VERSION=", CUDA_VERSION, ".");
+      EXT_THROW("Unexpected element_type=", element_type,
+                " CUDA_VERSION=", CUDA_VERSION,
+                " ORT_VERSION=", ORT_VERSION, ".");
 #else
-      EXT_THROW("Unexpected element_type=", element_type, " (no CUDA).");
+      EXT_THROW("Unexpected element_type=", element_type,
+                " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
 #endif
   }
 }
@@ -84,16 +87,19 @@ int32_t TypeSize(ONNXTensorElementDataType element_type) {
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16:
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
       return 2;
-#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080 && ORT_VERSION >= 1160
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN:
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2:
       return 1;
 #endif
     default:
 #if defined(CUDA_VERSION)
-      EXT_THROW("Unexpected element_type=", element_type, " CUDA_VERSION=", CUDA_VERSION, ".");
+      EXT_THROW("Unexpected element_type=", element_type,
+                " CUDA_VERSION=", CUDA_VERSION,
+                " ORT_VERSION=", ORT_VERSION, ".");
 #else
-      EXT_THROW("Unexpected element_type=", element_type, " (no CUDA).");
+      EXT_THROW("Unexpected element_type=", element_type,
+                " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
 #endif
   }
 }

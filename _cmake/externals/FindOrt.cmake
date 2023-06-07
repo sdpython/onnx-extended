@@ -36,9 +36,9 @@ if(ORT_VERSION_LENGTH LESS_EQUAL 12)
   set(ORT_DEST "${CMAKE_CURRENT_BINARY_DIR}/onnxruntime-download/${ORT_NAME}")
   set(ORT_DEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/onnxruntime-bin/")
 
-  string(REPLACE " " "." ORT_VERSION_SPACE ${ORT_VERSION})
-  list(GET ORT_VERSION_MAJOR 0 ORT_VERSION_SPACE)
-  list(GET ORT_VERSION_MINOR 1 ORT_VERSION_SPACE)
+  string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" ORT_VERSION_MATCH ${ORT_VERSION})
+  set(ORT_VERSION_MAJOR ${CMAKE_MATCH_1})
+  set(ORT_VERSION_MINOR ${CMAKE_MATCH_2})
   math(
     EXPR
     ORT_VERSION_INT
@@ -145,6 +145,7 @@ function(ort_add_custom_op name provider folder)
     set(cuda_name ${name}_cuda)
     cuda_add_library_ext(${cuda_name} STATIC ${ARGN})
     add_library(${name} SHARED ${ARGN})
+    target_compile_definitions(${cuda_name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})
     target_compile_definitions(
       ${name}
       PRIVATE
@@ -179,6 +180,7 @@ function(ort_add_custom_op name provider folder)
     message(STATUS "ort custom op CPU: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
     target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
+    target_compile_definitions(${name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)

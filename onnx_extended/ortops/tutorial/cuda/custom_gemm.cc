@@ -36,6 +36,8 @@ ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
 // CustomGemmOpFloat8E4M3FN
 ///////////////////////////
 
+#if ORT_VERSION >= 1160
+
 void *CustomGemmOpFloat8E4M3FN::CreateKernel(const OrtApi &api,
                                       const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
@@ -60,6 +62,8 @@ size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 1; };
 ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
 };
+
+#endif
 
 ///////////////////
 // CustomGemmKernel
