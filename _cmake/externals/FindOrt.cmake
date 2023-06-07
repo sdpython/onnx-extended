@@ -6,6 +6,7 @@
 
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.15.0)
+  set(ORT_VERSION_INT 1150)
 endif()
 string(LENGTH "${ORT_VERSION}" ORT_VERSION_LENGTH)
 
@@ -35,12 +36,22 @@ if(ORT_VERSION_LENGTH LESS_EQUAL 12)
   set(ORT_DEST "${CMAKE_CURRENT_BINARY_DIR}/onnxruntime-download/${ORT_NAME}")
   set(ORT_DEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/onnxruntime-bin/")
 
+  string(REPLACE " " "." ORT_VERSION_SPACE ${ORT_VERSION})
+  list(GET ORT_VERSION_MAJOR 0 ORT_VERSION_SPACE)
+  list(GET ORT_VERSION_MINOR 1 ORT_VERSION_SPACE)
+  math(
+    EXPR
+    ORT_VERSION_INT
+    "${ORT_VERSION_MAJOR} * 1000 + ${ORT_VERSION_MINOR} * 10"
+    OUTPUT_FORMAT DECIMAL)
+
   FetchContent_Declare(onnxruntime URL ${ORT_URL})
   FetchContent_makeAvailable(onnxruntime)
   set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)
   set(ONNXRUNTIME_LIB_DIR ${onnxruntime_SOURCE_DIR}/lib)
 else()
   message(STATUS "ORT - retrieve development version from '${ORT_VERSION}'")
+  set(ORT_VERSION_INT 99999)
   set(ONNXRUNTIME_LIB_DIR "${ORT_VERSION}")
   set(ONNXRUNTIME_INCLUDE_DIR "${ORT_VERSION}/../../../include/onnxruntime/core/session")
   set(ORT_URL ${ORT_VERSION})
@@ -134,7 +145,11 @@ function(ort_add_custom_op name provider folder)
     set(cuda_name ${name}_cuda)
     cuda_add_library_ext(${cuda_name} STATIC ${ARGN})
     add_library(${name} SHARED ${ARGN})
-    target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
+    target_compile_definitions(
+      ${name}
+      PRIVATE
+      CUDA_VERSION=${CUDA_VERSION_INT}
+      ORT_VERSION=${ORT_VERSION_INT})
     if(USE_NVTX)
       target_link_libraries(
         ${name}
@@ -184,4 +199,4 @@ find_package_handle_standard_args(
   Ort
   VERSION_VAR ORT_VERSION
   REQUIRED_VARS ORT_URL ONNXRUNTIME_INCLUDE_DIR ONNXRUNTIME_LIB_DIR
-                ORT_LIB_FILES ORT_LIB_HEADER)
+                ORT_LIB_FILES ORT_LIB_HEADER ORT_VERSION_INT)

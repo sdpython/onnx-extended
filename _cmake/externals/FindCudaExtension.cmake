@@ -88,7 +88,7 @@ function(cuda_add_library_ext name kind)
     PRIVATE
     ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include
     ${CUDA_INCLUDE_DIRS})
-  target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_int})
+  target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
 endfunction()
 
 #
