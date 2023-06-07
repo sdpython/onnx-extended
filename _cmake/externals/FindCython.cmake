@@ -107,6 +107,7 @@ function(cython_add_module name pyx_file omp_lib)
     ${NUMPY_INCLUDE_DIR}
     ${OMP_INCLUDE_DIR})
 
+  message(STATUS "    LINK ${name} <- ${Python3_LIBRARY_RELEASE} ${Python3_NumPy_LIBRARIES} ${omp_lib}")
   target_link_libraries(
     ${name} PRIVATE
     ${Python3_LIBRARY_RELEASE}  # use ${Python3_LIBRARIES} if python debug

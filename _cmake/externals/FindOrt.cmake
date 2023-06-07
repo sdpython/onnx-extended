@@ -10,7 +10,7 @@ if(NOT ORT_VERSION)
 endif()
 string(LENGTH "${ORT_VERSION}" ORT_VERSION_LENGTH)
 
-if(CUDA_FOUND)
+if(CUDAToolkit_FOUND)
   if(APPLE)
     message(WARNING "onnxruntime-gpu not available on MacOsx")
   endif()
@@ -131,51 +131,38 @@ file(WRITE "../_setup_ext.txt" "")
 #
 # \arg:name project name
 # \arg:folder where to copy the library
-# \arg:provider CUDA if a cuda lib, CUBLAS to use CUDA with CUBLAS empty or CPU for CPU
+# \arg:provider CUDA if a cuda lib, CPU if CPU
 # \argn: C++ file to compile
 #
 function(ort_add_custom_op name provider folder)
-  if (provider STREQUAL "CUDA" OR provider STREQUAL "CUBLAS")
-    if (provider STREQUAL "CUBLAS")
-      set(link_options "${CUBLAS_LIBRARY}")
-    else()
-      set(link_options "")
-    endif()
-    message(STATUS "ort custom op CUDA: '${name}': ${ARGN}")
-    set(cuda_name ${name}_cuda)
-    cuda_add_library_ext(${cuda_name} STATIC ${ARGN})
+  if (provider STREQUAL "CUDA")
+    message(STATUS "ort custom op ${provider}: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
-    target_compile_definitions(${cuda_name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})
     target_compile_definitions(
       ${name}
       PRIVATE
       CUDA_VERSION=${CUDA_VERSION_INT}
       ORT_VERSION=${ORT_VERSION_INT})
     if(USE_NVTX)
+      message(STATUS "    LINK ${name} <- stdc++ nvtx3-cpp ${CUDA_LIBRARIES}")
       target_link_libraries(
         ${name}
         PRIVATE
-        ${cuda_name}
         stdc++
         nvtx3-cpp
-        ${link_options})
+        ${CUDA_LIBRARIES})
     else()
+      message(STATUS "    LINK ${name} <- stdc++ ${CUDA_LIBRARIES}")
       target_link_libraries(
         ${name}
         PRIVATE
-        ${cuda_name}
         stdc++
-        ${link_options})
+        ${CUDA_LIBRARIES})
     endif()
-    target_include_directories(
-      ${cuda_name}
-      PRIVATE
-      ${ONNXRUNTIME_INCLUDE_DIR})
     target_include_directories(
       ${name}
       PRIVATE
-      ${ONNXRUNTIME_INCLUDE_DIR}
-      ${CUDA_INCLUDE_DIRS})
+      ${ONNXRUNTIME_INCLUDE_DIR})
   else()
     message(STATUS "ort custom op CPU: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
@@ -190,7 +177,7 @@ function(ort_add_custom_op name provider folder)
   # $<TARGET_FILE_NAME:${name}> does not seem to work.
   # The following step adds a line in '_setup.txt' to tell setup.py
   # to copy an additional file.
-  # if (provider STREQUAL "CUDA" OR provider STREQUAL "CUBLAS")
+  # if (provider STREQUAL "CUDA")
   #   file(APPEND "../_setup_ext.txt" "copy,${cuda_name},${folder}\n")
   # endif()
   file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
