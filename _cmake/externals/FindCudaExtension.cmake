@@ -45,7 +45,11 @@ if(CUDA_FOUND)
                         "${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}/bin:$PATH")
   endif()
   set(NVCC_VERSION "${NVCC_version_output}")
-  math(EXPR CUDA_VERSION_INT "${CUDA_VERSION_MAJOR} * 1000 + ${CUDA_VERSION_MINOR} * 10" OUTPUT_FORMAT DECIMAL)      
+  math(
+    EXPR
+    CUDA_VERSION_INT
+    "${CUDA_VERSION_MAJOR} * 1000 + ${CUDA_VERSION_MINOR} * 10"
+    OUTPUT_FORMAT DECIMAL)
 
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
@@ -80,12 +84,11 @@ endif()
 function(cuda_add_library_ext name kind)
   cuda_add_library(${name} ${kind} ${ARGN})
   target_include_directories(
-    ${name} PRIVATE
+    ${name}
+    PRIVATE
     ${CPM_PACKAGE_NVTX_SOURCE_DIR}/include
     ${CUDA_INCLUDE_DIRS})
-    target_compile_definitions(${name} PRIVATE
-      CUDA_VERSION_MAJOR=${CUDA_VERSION_MAJOR}
-      CUDA_VERSION_MINOR=${CUDA_VERSION_MINOR})
+  target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_int})
 endfunction()
 
 #
@@ -101,7 +104,6 @@ function(cuda_pybind11_add_module name pybindfile)
   message(STATUS "CU ${pybindfile}")
   message(STATUS "CU ${ARGN}")
   cuda_add_library_ext(${cuda_name} STATIC ${ARGN})
-  target_compile_definitions(${cuda_name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
   local_pybind11_add_module(${name} "" ${pybindfile})
   target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
   target_include_directories(${name} PRIVATE ${CUDA_INCLUDE_DIRS})

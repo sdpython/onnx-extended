@@ -3,6 +3,10 @@
 #include "onnxruntime_cxx_api.h"
 #include <filesystem>
 #include <iostream>
+#ifdef _WIN32
+#include <codecvt>
+#include <locale>
+#endif
 
 void testAssertTrue() {
   ASSERT_THROW( true );

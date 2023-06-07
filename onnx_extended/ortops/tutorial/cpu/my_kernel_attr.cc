@@ -85,7 +85,7 @@ void MyCustomKernelWithAttributes::Compute(OrtKernelContext *context) {
   const size_t size = output.GetTensorTypeAndShapeInfo().GetElementCount();
 
   // Do computation
-  double cst = att_tensor_double[0] + cst + static_cast<double>(att_float) + static_cast<double>(att_int64) + static_cast<double>(att_string[0]);
+  double cst = att_tensor_double[0] + static_cast<double>(att_float) + static_cast<double>(att_int64) + static_cast<double>(att_string[0]);
 
   for (size_t i = 0; i < size; i++) {
     out[i] = X[i] + Y[i] + cst;
