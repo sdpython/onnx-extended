@@ -134,9 +134,7 @@ function(ort_add_custom_op name provider folder)
     set(cuda_name ${name}_cuda)
     cuda_add_library_ext(${cuda_name} STATIC ${ARGN})
     add_library(${name} SHARED ${ARGN})
-    target_compile_definitions(${name} PRIVATE
-      CUDA_VERSION_MAJOR=${CUDA_VERSION_MAJOR}
-      CUDA_VERSION_MINOR=${CUDA_VERSION_MINOR})
+    target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
     if(USE_NVTX)
       target_link_libraries(
         ${name}

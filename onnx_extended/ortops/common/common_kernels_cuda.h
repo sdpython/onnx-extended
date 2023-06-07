@@ -69,7 +69,7 @@ cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
 #endif
     default:
 #if defined(CUDA_VERSION)
-      EXT_THROW("Unexpected element_type=", element_type, " CUDA_VERSION=", #CUDA_VERSION, ".");
+      EXT_THROW("Unexpected element_type=", element_type, " CUDA_VERSION=", CUDA_VERSION, ".");
 #else
       EXT_THROW("Unexpected element_type=", element_type, " (no CUDA).");
 #endif

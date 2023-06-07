@@ -7,7 +7,9 @@
 
 namespace ortops {
 
+////////////////////
 // CustomGemmOpFloat
+////////////////////
 
 void *CustomGemmOpFloat::CreateKernel(const OrtApi &api,
                                       const OrtKernelInfo *info) const {
@@ -30,7 +32,9 @@ ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
+///////////////////////////
 // CustomGemmOpFloat8E4M3FN
+///////////////////////////
 
 void *CustomGemmOpFloat8E4M3FN::CreateKernel(const OrtApi &api,
                                       const OrtKernelInfo *info) const {
@@ -44,7 +48,7 @@ const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const { return 
 size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
 
 ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
-  if (index != 3) {
+  if (index == 0 || index == 1 || index == 4) {
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
   } else {
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
@@ -57,7 +61,9 @@ ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) 
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
 };
 
+///////////////////
 // CustomGemmKernel
+///////////////////
 
 CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
                                    const OrtKernelInfo *info) {
@@ -348,7 +354,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
                                                               Adesc, Bdesc, Cdesc, Ddesc,
                                                               preference, 1, &heuristicResult, &returnedResults);
   EXT_ENFORCE(returnedResults > 0 && cuda_status == CUBLAS_STATUS_SUCCESS,
-              "Unable to find any suitable algorithm due to ", cublasGetErrorEnum(cuda_status),
+              " Unable to find any suitable algorithm due to ", cublasGetErrorEnum(cuda_status),
               ", preference=", preference, ", returnedResults=", returnedResults,
               ", alpha=", alpha_, ", beta=", beta_,
               ", A_type=", CudaDataTypeToString(ToCudaDataType(dtypes[0])),
@@ -368,7 +374,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     cudaMalloc((void**)&workspace, workspaceSize);
   }
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
-  cublasLtMatmul(cublasLt,
+  CUBLAS_THROW_IF_ERROR(cublasLtMatmul(
+                 cublasLt,
                  operationDesc,
                  static_cast<const void*>(&alpha_),             /* alpha */
                  input_A.GetTensorRawData(),                    /* A */
@@ -383,7 +390,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
                  &heuristicResult.algo,                         /* algo */
                  workspace,                                     /* workspace */
                  workspaceSize,
-                 stream);                                       /* stream */
+                 stream));                                      /* stream */
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }
