@@ -31,7 +31,7 @@ static const char* CudaDataTypeToString(cudaDataType_t dt) {
   // https://docs.nvidia.com/cuda/cuquantum/cutensornet/api/types.html
   switch (dt) {
     case CUDA_R_16F: return "CUDA_R_16F-2";
-    case CUDA_R_16BF: return "CUDA_R_16BF-15";
+    case CUDA_R_16BF: return "CUDA_R_16BF-14";
     case CUDA_R_32F: return "CUDA_R_32F-0";
     case CUDA_R_64F: return "CUDA_R_64F-1";
     case CUDA_R_4I: return "CUDA_R_4I-16";

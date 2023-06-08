@@ -50,10 +50,17 @@ const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const { return 
 size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
 
 ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
-  if (index == 0 || index == 1 || index == 4) {
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
-  } else {
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  switch (index) {
+    case 0:  // A
+    case 1:  // B
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
+    case 2:  // C
+    case 3:  // bias
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16;
+    case 4:  // result
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT32;
+    default:
+      EXT_THROW("index=", index, " is out of boundary.");
   }
 };
 

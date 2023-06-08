@@ -137,10 +137,15 @@ class TestOrtOpTutorialCuda(ExtTestCase):
     )
     def test_custom_gemm_float8(self):
         tos = [TensorProto.FLOAT8E4M3FN for i in range(5)]
-        tos[2] = TensorProto.FLOAT16
-        tos[3] = TensorProto.FLOAT16
+        tos[2] = TensorProto.BFLOAT16
+        tos[3] = TensorProto.BFLOAT16
+        tos[4] = TensorProto.FLOAT32
         self.common_test_custom_gemm(
-            "CustomGemmFloat8E4M3FN", tos, name="cgf8", fastAccumulationMode=1
+            "CustomGemmFloat8E4M3FN",
+            tos,
+            name="cgf8",
+            fastAccumulationMode=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
 
 
