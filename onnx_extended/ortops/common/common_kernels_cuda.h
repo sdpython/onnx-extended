@@ -28,26 +28,35 @@ static const char* cublasGetErrorEnum(cublasStatus_t error) {
 }
 
 static const char* CudaDataTypeToString(cudaDataType_t dt) {
+  // https://docs.nvidia.com/cuda/cuquantum/cutensornet/api/types.html
   switch (dt) {
-    case CUDA_R_16F: return "CUDA_R_16F";
-    case CUDA_R_16BF: return "CUDA_R_16BF";
-    case CUDA_R_32F: return "CUDA_R_32F";
+    case CUDA_R_16F: return "CUDA_R_16F-2";
+    case CUDA_R_16BF: return "CUDA_R_16BF-15";
+    case CUDA_R_32F: return "CUDA_R_32F-0";
+    case CUDA_R_64F: return "CUDA_R_64F-1";
+    case CUDA_R_4I: return "CUDA_R_4I-16";
+    case CUDA_R_8I: return "CUDA_R_8I-3";
+    case CUDA_R_16I: return "CUDA_R_16I-20";
+    case CUDA_R_32I: return "CUDA_R_32I-10";
+    case CUDA_R_64I: return "CUDA_R_64I-24";
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
-    case CUDA_R_8F_E4M3: return "CUDA_R_8F_E4M3";
-    case CUDA_R_8F_E5M2: return "CUDA_R_8F_E5M2";
+    case CUDA_R_8F_E4M3: return "CUDA_R_8F_E4M3-28";
+    case CUDA_R_8F_E5M2: return "CUDA_R_8F_E5M2-29";
 #endif
     default: return "<unknown>";
   }
 }
 
 static const char* CublasComputeTypeToString(cublasComputeType_t ct) {
+  // https://gitlab.com/nvidia/headers/cuda-individual/cublas/-/blob/main/cublas_api.h
   switch (ct) {
-    case CUBLAS_COMPUTE_16F: return "CUBLAS_COMPUTE_16F";
-    case CUBLAS_COMPUTE_32F: return "CUBLAS_COMPUTE_32F";
-    case CUBLAS_COMPUTE_32F_FAST_16F: return "CUBLAS_COMPUTE_32F_FAST_16F";
-    case CUBLAS_COMPUTE_32F_FAST_16BF: return "CUBLAS_COMPUTE_32F_FAST_16BF";
-    case CUBLAS_COMPUTE_32F_FAST_TF32: return "CUBLAS_COMPUTE_32F_FAST_TF32";
-    case CUBLAS_COMPUTE_64F: return "CUBLAS_COMPUTE_64F";
+    case CUBLAS_COMPUTE_16F: return "CUBLAS_COMPUTE_16F-64";
+    case CUBLAS_COMPUTE_32F: return "CUBLAS_COMPUTE_32F-68";
+    case CUBLAS_COMPUTE_32I: return "CUBLAS_COMPUTE_32I-70";
+    case CUBLAS_COMPUTE_32F_FAST_16F: return "CUBLAS_COMPUTE_32F_FAST_16F-74";
+    case CUBLAS_COMPUTE_32F_FAST_16BF: return "CUBLAS_COMPUTE_32F_FAST_16BF-75";
+    case CUBLAS_COMPUTE_32F_FAST_TF32: return "CUBLAS_COMPUTE_32F_FAST_TF32-77";
+    case CUBLAS_COMPUTE_64F: return "CUBLAS_COMPUTE_64F-70";
     default: return "<unknown>";
   }
 }
