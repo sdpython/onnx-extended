@@ -58,7 +58,7 @@ ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) c
     case 3:  // bias
       return ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16;
     case 4:  // result
-      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT32;
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
     default:
       EXT_THROW("index=", index, " is out of boundary.");
   }
