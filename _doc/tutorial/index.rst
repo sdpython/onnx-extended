@@ -9,6 +9,7 @@ Introduction
     :maxdepth: 1
 
     usefulcmd
+    install_cuda_wsl
 
 Operators
 +++++++++
@@ -17,6 +18,7 @@ Operators
     :maxdepth: 1
 
     ../auto_examples/plot_conv
+    ../auto_examples/plot_conv_denorm
 
 Build
 +++++
