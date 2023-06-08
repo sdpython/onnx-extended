@@ -46,7 +46,8 @@ if(CUDAToolkit_FOUND)
     message(FATAL_ERROR "CUDA_VERSION=${CUDA_VERSION} does not match nvcc "
                         "version=${NVCC_version_output}, try\n"
                         "export PATH=/usr/local/cuda-"
-                        "${CUDAToolkit_VERSION_MAJOR}.${CUDAToolkit_VERSION_MINOR}/bin:$PATH")
+                        "${CUDAToolkit_VERSION_MAJOR}."
+                        "${CUDAToolkit_VERSION_MINOR}/bin:$PATH")
   endif()
   set(NVCC_VERSION "${NVCC_version_output}")
   math(
@@ -56,13 +57,15 @@ if(CUDAToolkit_FOUND)
     OUTPUT_FORMAT DECIMAL)
 
   set(CUDA_VERSION ${CUDAToolkit_VERSION})
-  set(CUDA_LIBRARIES CUDA::cudart_static CUDA::cuda_driver CUDA::cublas_static CUDA::cublasLt_static)
+  set(CUDA_LIBRARIES CUDA::cudart_static CUDA::cuda_driver
+                     CUDA::cublas_static CUDA::cublasLt_static)
 
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
     CudaExtension
     VERSION_VAR "0.1"
-    REQUIRED_VARS CUDAToolkit_FOUND CUDA_VERSION CUDA_VERSION_INT CUDA_LIBRARIES NVCC_VERSION)
+    REQUIRED_VARS CUDAToolkit_FOUND CUDA_VERSION
+                  CUDA_VERSION_INT CUDA_LIBRARIES NVCC_VERSION)
 
 else()
 

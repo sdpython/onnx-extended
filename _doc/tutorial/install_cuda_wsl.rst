@@ -86,7 +86,7 @@ See `CUDA on WSL User Guide
     sudo dpkg -i cuda-repo-wsl-ubuntu-${CUDA_VERSION_}-local_${CUDA_VERSION}.0-1_amd64.deb
     sudo cp /var/cuda-repo-wsl-ubuntu-11-8-local/cuda-9EA88183-keyring.gpg /usr/share/keyrings/
     sudo apt-get update
-    sudo apt-get -y install cuda
+    sudo apt-get -y install cuda nvidia-cuda-toolkit
 
 Now you may run `nvidia-smi -L` to list the available GPUs.
 
@@ -176,7 +176,7 @@ to build :epkg:`protobuf` as well.
     export CUDA_VERSION=11.8
     export CUDACXX=/usr/local/cuda-${CUDA_VERSION}/bin/nvcc
     export CMAKE_CUDA_COMPILER=/usr/local/cuda-${CUDA_VERSION}/bin/nvcc
-    python3 ./tools/ci_build/build.py --skip_tests --build_dir ./build/linux_cuda --config Release --build_shared_lib --use_mpi true --enable_training --enable_training_torch_interop --use_cuda --cuda_version=${CUDA_VERSION} --cuda_home /usr/local/cuda-${CUDA_VERSION}/ --cudnn_home /usr/local/cuda-${CUDA_VERSION}/ --build_wheel --parallel 2 --skip_test
+    python3 ./tools/ci_build/build.py --build_dir ./build/linux_cuda --config Release --build_shared_lib --use_mpi true --enable_training --use_cuda --cuda_version=${CUDA_VERSION} --cuda_home /usr/local/cuda-${CUDA_VERSION}/ --cudnn_home /usr/local/cuda-${CUDA_VERSION}/ --build_wheel --parallel 2 --skip_test
 
 Option ``--parallel 1`` can be used to fix the parallelism while building onnxruntime.
 Option `--use_mpi false` can be replaced by `--mpi_home /usr/local/lib/openmpi`.

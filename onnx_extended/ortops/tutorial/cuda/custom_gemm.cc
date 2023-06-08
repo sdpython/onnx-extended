@@ -80,51 +80,13 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
                                    const OrtKernelInfo *info) {
   ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "alpha", &alpha_));
   ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "beta", &beta_));
-
-  int64_t temp;
-  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "transA", &temp));
-  transA_ = temp == 1;
-  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "transB", &temp));
-  transB_ = temp == 1;
-  ThrowOnError(api, api.KernelInfoGetAttribute_int64( info, "fastAccumulationMode", &temp));
-  fastAccumulationMode_ = temp == 1;
-  OrtStatus *status = api.KernelInfoGetAttribute_int64(info, "smCount", &smCount_);
-  if (status == nullptr) {
-    smCount_ = 0;
-  } else {
-    auto error_code = api.GetErrorCode(status);
-    api.ReleaseStatus(status);
-    if (error_code != ORT_OK) {
-      smCount_ = 0;
-    }
-  }
+  transA_ = KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transA", false);
+  transB_ = KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transB", false);
+  fastAccumulationMode_ = KernelInfoGetOptionalAttributeInt64AsBool(api, info, "fastAccumulationMode", true);
+  smCount_ = KernelInfoGetOptionalAttributeInt64(api, info, "smCount", 0);
 
   // A string attribute.
-  std::string compute_type;
-  size_t size;
-  status = api.KernelInfoGetAttribute_string(info, "computeType", nullptr, &size);
-  if (status == nullptr) {
-    compute_type = "CUBLAS_COMPUTE_32F";
-  } else {
-    auto error_code = api.GetErrorCode(status);
-    api.ReleaseStatus(status);
-    if (error_code == ORT_OK) {
-      compute_type.resize(size + 1);
-      status = api.KernelInfoGetAttribute_string(info, "computeType", (char*)compute_type.c_str(), &size);
-      if (status == nullptr) {
-        compute_type = "CUBLAS_COMPUTE_32F";
-      } else {
-        error_code = api.GetErrorCode(status);
-        api.ReleaseStatus(status);
-        if (error_code != ORT_OK) {
-          compute_type = "CUBLAS_COMPUTE_32F";
-        }
-      }
-    } else {
-      compute_type = "CUBLAS_COMPUTE_32F";
-    }
-  }
-
+  std::string compute_type = KernelInfoGetOptionalAttributeString(api, info, "computeType", "CUBLAS_COMPUTE_32F");
   if (compute_type == "CUBLAS_COMPUTE_16F") {
     computeType_ = CUBLAS_COMPUTE_16F;
     scaleType_ = CUDA_R_16F;
@@ -375,10 +337,12 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
               ", bias_type=", CudaDataTypeToString(bias_type),
               ", scale_type=", CudaDataTypeToString(scaleType_),
               ", computeType=", CublasComputeTypeToString(computeType_),
+              ", epilogue=", epilogue,
+              ", smCount=", smCount_,
               ", transA=", transA_, ", transB=", transB_,
               ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
               ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb, ", ldd=", ldd,
-              ", workspaceSize=", workspaceSize, ". Check NVDIDIA documentation to see what combination is valid: ",
+              ", workspaceSize=", workspaceSize, ". Check NVIDIA documentation to see what combination is valid: ",
               "https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulAlgoGetHeuristic#cublasltmatmulalgogetheuristic.");
   void* workspace = nullptr;
   if (workspaceSize > 0) {
