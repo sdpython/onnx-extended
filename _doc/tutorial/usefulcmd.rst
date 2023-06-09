@@ -28,3 +28,10 @@ Retrieve information about the GPU
 ::
 
     nvidia-smi
+
+Dependencies of a shared library
+++++++++++++++++++++++++++++++++
+
+::
+
+    ldd <shared_library.so>

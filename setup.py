@@ -114,6 +114,7 @@ def _run_subprocess(
     env=None,
     python_path=None,
     cuda_home=None,
+    cuda_version=None,
 ):
     if env is None:
         env = {}
@@ -121,6 +122,18 @@ def _run_subprocess(
         raise ValueError("args should be a sequence of strings, not a string")
 
     my_env = os.environ.copy()
+    if cuda_version is not None:
+        if is_windows():
+            cuda_path = f"C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\{cuda_version}"
+        elif is_darwin():
+            cuda_path = f"/Developer/NVIDIA/CUDA-{cuda_version}"
+        else:
+            cuda_path = f"/usr/local/cuda-{cuda_version}/bin"
+        if "PATH" in my_env:
+            my_env["PATH"] = cuda_path + os.pathsep + my_env["PATH"]
+        else:
+            my_env["PATH"] = cuda_path          
+    
     if dll_path:
         if is_windows():
             if "PATH" in my_env:
@@ -338,7 +351,7 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: source_path={source_path!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
-        _run_subprocess(cmd, cwd=build_path, capture_output=True)
+        _run_subprocess(cmd, cwd=build_path, capture_output=True, cuda_version=self.cuda_version)
 
         # then build
         print()
@@ -346,7 +359,7 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
-        _run_subprocess(cmd, cwd=build_path, capture_output=True)
+        _run_subprocess(cmd, cwd=build_path, capture_output=True, cuda_version=self.cuda_version)
         print("-- setup: done.")
         return build_path, self.build_lib
 

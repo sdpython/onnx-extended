@@ -36,7 +36,7 @@ ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
 // CustomGemmOpFloat8E4M3FN
 ///////////////////////////
 
-#if ORT_VERSION >= 1160
+#if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
 
 void *CustomGemmOpFloat8E4M3FN::CreateKernel(const OrtApi &api,
                                       const OrtKernelInfo *info) const {
@@ -67,7 +67,7 @@ ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) c
 size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
 #endif

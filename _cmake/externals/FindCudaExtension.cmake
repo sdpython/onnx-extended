@@ -1,8 +1,6 @@
 #
 # initialization
 #
-# defines cuda_pybind11_add_module
-#
 # Defines USE_NTVX to enable profiling with NVIDIA profiler.
 # CUDA_VERSION must be defined as well.
 
@@ -60,8 +58,13 @@ if(CUDAToolkit_FOUND)
 
   set(CUDA_AVAILABLE 1)
   set(CUDA_VERSION ${CUDAToolkit_VERSION})
-  set(CUDA_LIBRARIES CUDA::cudart_static CUDA::cuda_driver
-                     CUDA::cublas_static CUDA::cublasLt_static)
+  set(CUDA_LIBRARIES CUDA::cudart_static
+                     CUDA::cufft_static CUDA::cufftw_static
+                     CUDA::curand_static
+                     CUDA::cublas_static CUDA::cublasLt_static
+                     CUDA::cusolver_static
+                     CUDA::cupti_static
+                     CUDA::nvToolsExt)
 
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
@@ -75,7 +78,8 @@ else()
 
   if(CUDA_VERSION)
     message(FATAL_ERROR "Unable to find CUDA=${CUDA_VERSION}, you can do\n"
-                        "export PATH=/usr/local/cuda-${CUDA_VERSION}:$PATH")
+                        "export PATH=/usr/local/cuda-${CUDA_VERSION}/bin:$PATH\n"
+                        "PATH=$ENV{PATH}")
   endif()
   set(CUDA_VERSION_INT 0)
   find_package_handle_standard_args(
@@ -84,23 +88,3 @@ else()
     REQUIRED_VARS CUDAToolkit_FOUND CUDA_VERSION CUDA_VERSION_INT "" "" 0)
 
 endif()
-
-#
-#! cuda_pybind11_add_module : compile a pyx file into cpp
-#
-# \arg:name extension name
-# \arg:pybindfile pybind11 extension
-# \argn: additional c++ files to compile as the cuda extension
-#
-function(cuda_pybind11_add_module name pybindfile)
-  set(cuda_name ${name}_${provider})
-  local_pybind11_add_module(${name} "" ${pybindfile})
-  target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
-  target_include_directories(${name} PRIVATE ${CUDA_INCLUDE_DIRS})
-  message(STATUS "    LINK ${name} <- stdc++ ${CUDA_LIBRARIES}")
-  target_link_libraries(${name} PRIVATE stdc++ ${CUDA_LIBRARIES})
-  if(USE_NVTX)
-    message(STATUS "    LINK ${name} <- nvtx3-cpp")
-    target_link_libraries(${name} PRIVATE nvtx3-cpp)
-  endif()
-endfunction()

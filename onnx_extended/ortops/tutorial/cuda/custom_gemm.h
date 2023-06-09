@@ -34,7 +34,7 @@ struct CustomGemmOpFloat : Ort::CustomOpBase<CustomGemmOpFloat, CustomGemmKernel
   ONNXTensorElementDataType GetOutputType(size_t index) const;
 };
 
-#if ORT_VERSION >= 1160
+#if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
 
 struct CustomGemmOpFloat8E4M3FN : Ort::CustomOpBase<CustomGemmOpFloat8E4M3FN, CustomGemmKernel> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;

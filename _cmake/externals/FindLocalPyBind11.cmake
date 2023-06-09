@@ -1,8 +1,8 @@
 #
 # initialization
 #
-# defines LocalPyBind11 pybind11_SOURCE_DIR pybind11_BINARY_DIR define
-# local_pybind11_add_module
+# defines LocalPyBind11 pybind11_SOURCE_DIR pybind11_BINARY_DIR
+# and functions local_pybind11_add_module, cuda_pybind11_add_module
 
 #
 # pybind11
@@ -71,4 +71,24 @@ function(local_pybind11_add_module name omp_lib)
   message(STATUS "pybind11 added module '${name}'")
   get_target_property(prop ${name} BINARY_DIR)
   message(STATUS "pybind11 added into '${prop}'.")
+endfunction()
+
+#
+#! cuda_pybind11_add_module : compile a pyx file into cpp
+#
+# \arg:name extension name
+# \arg:pybindfile pybind11 extension
+# \argn: additional c++ files to compile as the cuda extension
+#
+function(cuda_pybind11_add_module name pybindfile)
+  set(cuda_name ${name}_${provider})
+  local_pybind11_add_module(${name} "" ${pybindfile})
+  target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
+  target_include_directories(${name} PRIVATE ${CUDA_INCLUDE_DIRS})
+  message(STATUS "    LINK ${name} <- stdc++ ${CUDA_LIBRARIES}")
+  target_link_libraries(${name} PRIVATE stdc++ ${CUDA_LIBRARIES})
+  if(USE_NVTX)
+    message(STATUS "    LINK ${name} <- nvtx3-cpp")
+    target_link_libraries(${name} PRIVATE nvtx3-cpp)
+  endif()
 endfunction()

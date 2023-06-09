@@ -32,14 +32,20 @@ inline std::string KernelInfoGetOptionalAttributeString(const OrtApi& api, const
 
   OrtStatus* status = api.KernelInfoGetAttribute_string(info, name, nullptr, &size);
 
-  if (status == nullptr) {
-    out.resize(size);
-    ThrowOnError(api, api.KernelInfoGetAttribute_string(info, name, &out[0], &size));
-    out.resize(size - 1);  // remove the terminating character '\0'
-    return out;
-  } 
-  ThrowOnError(api, status);
-  return default_value;
+  if (status != nullptr) {
+    OrtErrorCode code = api.GetErrorCode(status);
+    if (code == ORT_FAIL) {
+      api.ReleaseStatus(status);
+      return default_value;
+    } else {
+      ThrowOnError(api, status);
+    }
+    api.ReleaseStatus(status);
+  }
+  out.resize(size);
+  ThrowOnError(api, api.KernelInfoGetAttribute_string(info, name, &out[0], &size));
+  out.resize(size - 1);  // remove the terminating character '\0'
+  return out;
 }
 
 inline int64_t KernelInfoGetOptionalAttributeInt64(const OrtApi& api, const OrtKernelInfo* info, const char* name, int64_t default_value) {
@@ -49,6 +55,12 @@ inline int64_t KernelInfoGetOptionalAttributeInt64(const OrtApi& api, const OrtK
   if (status == nullptr) {
     return out;
   }
+  OrtErrorCode code = api.GetErrorCode(status);
+  if (code == ORT_FAIL) {
+    api.ReleaseStatus(status);
+    return default_value;
+  }
+
   ThrowOnError(api, status);
   return default_value;
 }
