@@ -82,6 +82,7 @@ else()
                         "PATH=$ENV{PATH}")
   endif()
   set(CUDA_VERSION_INT 0)
+  include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
     CudaExtension
     VERSION_VAR "0.1"
