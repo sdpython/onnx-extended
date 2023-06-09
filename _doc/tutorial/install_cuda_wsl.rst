@@ -176,10 +176,9 @@ to build :epkg:`protobuf` as well.
     export CUDA_VERSION=11.8
     export CUDACXX=/usr/local/cuda-${CUDA_VERSION}/bin/nvcc
     export CMAKE_CUDA_COMPILER=/usr/local/cuda-${CUDA_VERSION}/bin/nvcc
-    python3 ./tools/ci_build/build.py --build_dir ./build/linux_cuda --config Release --build_shared_lib --use_mpi true --enable_training --use_cuda --cuda_version=${CUDA_VERSION} --cuda_home /usr/local/cuda-${CUDA_VERSION}/ --cudnn_home /usr/local/cuda-${CUDA_VERSION}/ --build_wheel --parallel 2 --skip_test
+    python3 ./tools/ci_build/build.py --build_dir ./build/linux_cuda --config Release --build_shared_lib --enable_training --use_cuda --cuda_version=${CUDA_VERSION} --cuda_home /usr/local/cuda-${CUDA_VERSION}/ --cudnn_home /usr/local/cuda-${CUDA_VERSION}/ --build_wheel --parallel 2 --skip_test
 
 Option ``--parallel 1`` can be used to fix the parallelism while building onnxruntime.
-Option `--use_mpi false` can be replaced by `--mpi_home /usr/local/lib/openmpi`.
 
 Another option is to use a docker:
 `Running Existing GPU Accelerated Containers on WSL 2

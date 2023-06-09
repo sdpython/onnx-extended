@@ -12,6 +12,8 @@ else()
   find_package(CUDAToolkit)
 endif()
 
+message(STATUS "CUDAToolkit_FOUND=${CUDAToolkit_FOUND}")
+
 if(CUDAToolkit_FOUND)
 
   if(USE_NVTX)
@@ -56,6 +58,7 @@ if(CUDAToolkit_FOUND)
     "${CUDAToolkit_VERSION_MAJOR} * 1000 + ${CUDAToolkit_VERSION_MINOR} * 10"
     OUTPUT_FORMAT DECIMAL)
 
+  set(CUDA_AVAILABLE 1)
   set(CUDA_VERSION ${CUDAToolkit_VERSION})
   set(CUDA_LIBRARIES CUDA::cudart_static CUDA::cuda_driver
                      CUDA::cublas_static CUDA::cublasLt_static)
@@ -65,15 +68,20 @@ if(CUDAToolkit_FOUND)
     CudaExtension
     VERSION_VAR "0.1"
     REQUIRED_VARS CUDAToolkit_FOUND CUDA_VERSION
-                  CUDA_VERSION_INT CUDA_LIBRARIES NVCC_VERSION)
+                  CUDA_VERSION_INT CUDA_LIBRARIES NVCC_VERSION
+                  CUDA_AVAILABLE)
 
 else()
 
+  if(CUDA_VERSION)
+    message(FATAL_ERROR "Unable to find CUDA=${CUDA_VERSION}, you can do\n"
+                        "export PATH=/usr/local/cuda-${CUDA_VERSION}:$PATH")
+  endif()
   set(CUDA_VERSION_INT 0)
   find_package_handle_standard_args(
     CudaExtension
     VERSION_VAR "0.1"
-    REQUIRED_VARS CUDAToolkit_NOTFOUND CUDA_VERSION CUDA_VERSION_INT "" "")
+    REQUIRED_VARS CUDAToolkit_FOUND CUDA_VERSION CUDA_VERSION_INT "" "" 0)
 
 endif()
 

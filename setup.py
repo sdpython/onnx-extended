@@ -192,6 +192,7 @@ def _run_subprocess(
 class CMakeExtension(Extension):
     def __init__(self, name: str, library: str = "") -> None:
         super().__init__(name, sources=[])
+        print(f"-- setup: add extension {name}")
         self.library_file = os.fspath(Path(library).resolve())
 
 

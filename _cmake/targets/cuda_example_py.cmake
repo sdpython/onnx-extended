@@ -3,7 +3,7 @@
 #
 if(CUDA_AVAILABLE)
 
-  message(STATUS "+ CYTHON CUDA onnx_extended.validation.cuda.cuda_example_py")
+  message(STATUS "+ PYBIND11 CUDA onnx_extended.validation.cuda.cuda_example_py")
 
   cuda_pybind11_add_module(
     cuda_example_py
