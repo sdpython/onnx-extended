@@ -26,7 +26,7 @@ inline void _ThrowOnError_(OrtStatus* ort_status, const char* filename, int line
 
 #define ThrowOnError(api, ort_status) _ThrowOnError_(ort_status, __FILE__, __LINE__, api)
 
-std::string KernelInfoGetOptionalAttributeString(const OrtApi& api, const OrtKernelInfo* info, const char* name, const std::string& default_value) {
+inline std::string KernelInfoGetOptionalAttributeString(const OrtApi& api, const OrtKernelInfo* info, const char* name, const std::string& default_value) {
   size_t size = 0;
   std::string out;
 
@@ -42,7 +42,7 @@ std::string KernelInfoGetOptionalAttributeString(const OrtApi& api, const OrtKer
   return default_value;
 }
 
-int64_t KernelInfoGetOptionalAttributeInt64(const OrtApi& api, const OrtKernelInfo* info, const char* name, int64_t default_value) {
+inline int64_t KernelInfoGetOptionalAttributeInt64(const OrtApi& api, const OrtKernelInfo* info, const char* name, int64_t default_value) {
   int64_t out;
   OrtStatus* status = api.KernelInfoGetAttribute_int64(info, name, &out);
 
@@ -53,7 +53,7 @@ int64_t KernelInfoGetOptionalAttributeInt64(const OrtApi& api, const OrtKernelIn
   return default_value;
 }
 
-bool KernelInfoGetOptionalAttributeInt64AsBool(const OrtApi& api, const OrtKernelInfo* info, const char* name, bool default_value) {
+inline bool KernelInfoGetOptionalAttributeInt64AsBool(const OrtApi& api, const OrtKernelInfo* info, const char* name, bool default_value) {
   int64_t value = KernelInfoGetOptionalAttributeInt64(api, info, name, default_value ? 1 : 0);
   return value == 1;
 }

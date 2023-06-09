@@ -6,12 +6,12 @@
 
 namespace ortops {
 
-static const char* is_aligned(const void *ptr, size_t byte_count=16) {
+inline const char* is_aligned(const void *ptr, size_t byte_count=16) {
   if (ptr == nullptr) return "N";
   return (uintptr_t)ptr % byte_count == 0 ? "A" : "-";
 }
 
-static const char* cublasGetErrorEnum(cublasStatus_t error) {
+inline const char* cublasGetErrorEnum(cublasStatus_t error) {
   switch (error) {
     case CUBLAS_STATUS_SUCCESS: return "CUBLAS_STATUS_SUCCESS";
     case CUBLAS_STATUS_NOT_INITIALIZED: return "CUBLAS_STATUS_NOT_INITIALIZED";
@@ -27,7 +27,7 @@ static const char* cublasGetErrorEnum(cublasStatus_t error) {
   }
 }
 
-static const char* CudaDataTypeToString(cudaDataType_t dt) {
+inline const char* CudaDataTypeToString(cudaDataType_t dt) {
   // https://docs.nvidia.com/cuda/cuquantum/cutensornet/api/types.html
   switch (dt) {
     case CUDA_R_16F: return "CUDA_R_16F-2";
@@ -47,7 +47,7 @@ static const char* CudaDataTypeToString(cudaDataType_t dt) {
   }
 }
 
-static const char* CublasComputeTypeToString(cublasComputeType_t ct) {
+inline const char* CublasComputeTypeToString(cublasComputeType_t ct) {
   // https://gitlab.com/nvidia/headers/cuda-individual/cublas/-/blob/main/cublas_api.h
   switch (ct) {
     case CUBLAS_COMPUTE_16F: return "CUBLAS_COMPUTE_16F-64";
@@ -62,7 +62,7 @@ static const char* CublasComputeTypeToString(cublasComputeType_t ct) {
 }
 
 // It must exist somewhere already.
-cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
+inline cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
   switch (element_type) {
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
       return CUDA_R_32F;
@@ -89,7 +89,7 @@ cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
 }
 
 // It must exist somewhere already.
-int32_t TypeSize(ONNXTensorElementDataType element_type) {
+inline int32_t TypeSize(ONNXTensorElementDataType element_type) {
   switch (element_type) {
     case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
       return 4;
@@ -113,7 +113,7 @@ int32_t TypeSize(ONNXTensorElementDataType element_type) {
   }
 }
 
-void _CublasThrowOnError_(cublasStatus_t status, const char* file, int line, const char* expr) {
+inline void _CublasThrowOnError_(cublasStatus_t status, const char* file, int line, const char* expr) {
   if (status != CUBLAS_STATUS_SUCCESS) {
     EXT_THROW("Expression [", expr, "] failed.\nFile ", file, ":", line);
   }
