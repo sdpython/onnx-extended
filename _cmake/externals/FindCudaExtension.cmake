@@ -14,6 +14,7 @@ message(STATUS "CUDAToolkit_FOUND=${CUDAToolkit_FOUND}")
 
 if(CUDAToolkit_FOUND)
 
+  enable_language(CUDA)
   if(USE_NVTX)
     # see https://github.com/NVIDIA/NVTX
     include(CPM.cmake)

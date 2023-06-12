@@ -81,8 +81,7 @@ endfunction()
 # \argn: additional c++ files to compile as the cuda extension
 #
 function(cuda_pybind11_add_module name pybindfile)
-  set(cuda_name ${name}_${provider})
-  local_pybind11_add_module(${name} "" ${pybindfile})
+  local_pybind11_add_module(${name} OpenMP::OpenMP_CXX ${pybindfile} ${ARGN})
   target_compile_definitions(${name} PRIVATE CUDA_VERSION=${CUDA_VERSION_INT})
   target_include_directories(${name} PRIVATE ${CUDA_INCLUDE_DIRS})
   message(STATUS "    LINK ${name} <- stdc++ ${CUDA_LIBRARIES}")
