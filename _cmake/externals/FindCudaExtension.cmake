@@ -15,6 +15,8 @@ message(STATUS "CUDAToolkit_FOUND=${CUDAToolkit_FOUND}")
 if(CUDAToolkit_FOUND)
 
   enable_language(CUDA)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")  
   if(USE_NVTX)
     # see https://github.com/NVIDIA/NVTX
     include(CPM.cmake)

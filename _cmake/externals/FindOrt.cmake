@@ -138,6 +138,13 @@ function(ort_add_custom_op name provider folder)
   if (provider STREQUAL "CUDA")
     message(STATUS "ort custom op ${provider}: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
+
+    # add property --use_fast_math to cu files
+    set(NEW_LIST ${name}_src_files)
+    list(APPEND ${name}_cu_files ${ARGN})
+    list(FILTER ${name}_cu_files INCLUDE REGEX ".+[.]cu$")
+    set_source_files_properties(${name}_cu_files PROPERTIES COMPILE_OPTIONS "--use_fast_math")  
+
     target_compile_definitions(
       ${name}
       PRIVATE
