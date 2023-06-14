@@ -51,85 +51,117 @@ bool is_fp8_dtype(cudaDataType_t dtype) {
   }
 }
 
+int32_t type_size(cudaDataType_t element_type) {
+  switch (element_type) {
+  case CUDA_R_32F:
+    return 4;
+  case CUDA_R_16F:
+  case CUDA_R_16BF:
+    return 2;
+  case CUDA_R_8I:
+  case CUDA_R_8U:
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
+  case CUDA_R_8F_E4M3:
+  case CUDA_R_8F_E5M2:
+#endif
+    return 1;
+  default:
+    throw std::runtime_error("Unkown data type.");
+  }
+}
+
 cudaDataType_t get_cuda_dtype(cudaDataType_t dtype) { return dtype; }
 
+typedef enum TensorDevice { CPU = 0, CUDA = 1 } TensorDevice;
+
 struct TensorData {
+  TensorDevice device;
   cudaDataType_t dtype;
-  size_t size; // in bytes
+  size_t size;
   void *dptr;
-  void allocate(size_t size) {
+  TensorData() {
+    device = TensorDevice::CPU;
+    size = 0;
+    dptr = nullptr;
+    dtype = CUDA_R_32F;
+  }
+  void allocate(cudaDataType_t dtype, size_t size, TensorDevice device) {
+    this->dtype = dtype;
     this->size = size;
-    if (cudaMalloc(&dptr, size) != cudaSuccess) {
-      std::ostringstream st;
-      st << "Unable to allocate " << size << " bytes on GPU.";
-      NVTE_ERROR(std::string(st.str()));
+    this->device = device;
+    switch (device) {
+    case TensorDevice::CPU:
+      dptr = malloc(size * type_size(dtype));
+      std::cout << "CPUAllocate(" << size << " * " << type_size(dtype) << ")\n";
+      break;
+    case TensorDevice::CUDA:
+      if (cudaMalloc(&dptr, size * type_size(dtype)) != cudaSuccess) {
+        std::ostringstream st;
+        st << "Unable to allocate " << size << " bytes on GPU.";
+        NVTE_ERROR(std::string(st.str()));
+      }
+      std::cout << "CUDAAllocate(" << size << " * " << type_size(dtype) << ")\n";
+      break;
+    }
+  }
+  void free() {
+    if (dptr != nullptr) {
+      switch (device) {
+      case TensorDevice::CPU:
+        std::cout << "FreeCPU\n";
+        ::free(dptr);
+        break;
+      case TensorDevice::CUDA:
+        std::cout << "FreeCUDA\n";
+        NVTE_CHECK_CUDA(cudaFree(dptr));
+        break;
+      }
+      dptr = nullptr;
     }
   }
 };
 
 class Tensor {
 public:
+  const char *name;
   TensorData data;
   TensorData scale;
   TensorData amax;
   TensorData scale_inv;
 
 public:
-  Tensor() {
-    data.dtype = CUDA_R_32F;
-    data.size = 0;
-    data.dptr = nullptr;
-    scale.dtype = CUDA_R_32F;
-    scale.size = 0;
-    scale.dptr = nullptr;
-    amax.dtype = CUDA_R_32F;
-    amax.size = 0;
-    amax.dptr = nullptr;
-    scale_inv.dtype = CUDA_R_32F;
-    scale_inv.size = 0;
-    scale_inv.dptr = nullptr;
-  }
-  Tensor(size_t size, cudaDataType_t dtype = CUDA_R_32F) {
-    std::cout << "T0:" << size << "\n";
-    data.dtype = dtype;
-    data.allocate(size);
+  Tensor(const char *name) { this->name = name; }
+  Tensor(const char *name, size_t size, cudaDataType_t dtype = CUDA_R_32F,
+         TensorDevice device = TensorDevice::CUDA) {
+    this->name = name;
+    std::cout << "T0:" << name << ":" << size << "\n";
+    data.allocate(dtype, size, device);
     if (is_fp8_dtype(dtype)) {
       float one = 1;
       std::cout << "T1a\n";
-      scale.dtype = CUDA_R_32F;
       std::cout << "T1b\n";
-      scale.allocate(sizeof(float));
+      scale.allocate(CUDA_R_32F, 1, device);
       std::cout << "T1c\n";
       NVTE_CHECK_CUDA(
           cudaMemcpy(scale.dptr, &one, sizeof(float), cudaMemcpyHostToDevice));
 
       std::cout << "T2\n";
-      scale_inv.dtype = CUDA_R_32F;
-      scale_inv.allocate(sizeof(float));
+      scale_inv.allocate(CUDA_R_32F, 1, device);
       NVTE_CHECK_CUDA(cudaMemcpy(scale_inv.dptr, &one, sizeof(float),
                                  cudaMemcpyHostToDevice));
       std::cout << "T3\n";
-    } else {
-      scale.dtype = CUDA_R_32F;
-      scale.size = 0;
-      scale.dptr = nullptr;
-      scale_inv.dtype = CUDA_R_32F;
-      scale_inv.size = 0;
-      scale_inv.dptr = nullptr;
     }
-    amax.dtype = CUDA_R_32F;
-    amax.size = 0;
-    amax.dptr = nullptr;
   }
   ~Tensor() {
-    if (data.dptr)
-      cudaFree(data.dptr);
-    if (scale.dptr)
-      cudaFree(scale.dptr);
-    if (scale_inv.dptr)
-      cudaFree(scale_inv.dptr);
-    if (amax.dptr)
-      cudaFree(amax.dptr);
+    std::cout << "free1:" << name << "\n";
+    data.free();
+    std::cout << "free2\n";
+    scale.free();
+    std::cout << "free3\n";
+    scale_inv.free();
+    std::cout << "free4\n";
+    amax.free();
+    std::cout << "free5\n";
   }
 };
 
@@ -255,7 +287,7 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
       NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
           operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &D_scale,
           sizeof(D_scale)));
-      std::cout << "GEMM6-b\n";
+      std::cout << "GEMM6-c\n";
       NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
           operationDesc, CUBLASLT_MATMUL_DESC_AMAX_D_POINTER, &D_amax,
           sizeof(D_amax)));
@@ -351,8 +383,8 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
       C,                                                      /* C */
       Cdesc, D,                                               /* D */
       Ddesc, &heuristicResult.algo,                           /* algo */
-      workspace,                                              /* workspace */
-      workspaceSize, stream));                                /* stream */
+      workspace, workspaceSize,                               /* workspace */
+      stream));                                               /* stream */
 
   std::cout << "GEMM15\n";
   NVTE_CHECK_CUBLAS(cublasLtMatmulPreferenceDestroy(preference));
@@ -390,18 +422,18 @@ void gemm_test(int test) {
 
   std::cout << "GEMM0 - test=" << test << "\n";
 
-  Tensor inputA(dim * dim, type_a);
+  Tensor inputA("A", dim * dim, type_a);
   std::cout << "GEMM0-a" << test << "\n";
-  Tensor inputB(dim * dim, type_b);
-  Tensor outputD(dim * dim, type_d);
-  Tensor workspace(1 << 20);
-  Tensor inputBias, outputPreGelu;
+  Tensor inputB("B", dim * dim, type_b);
+  Tensor outputD("D", dim * dim, type_d);
+  Tensor workspace("workspace", 1 << 20, CUDA_R_8I);
+  Tensor inputBias("bias");
+  Tensor outputPreGelu("outputPreGelu");
 
   std::cout << "+stream\n";
 
-  cudaStream_t stream; // CUDA streams are of type `cudaStream_t`.
-  cudaStreamCreate(
-      &stream); // Note that a pointer must be passed to `cudaCreateStream`.
+  cudaStream_t stream;
+  NVTE_CHECK_CUDA(cudaStreamCreate(&stream));
 
   std::cout << "cublas_gemm\n";
 
@@ -420,9 +452,9 @@ void gemm_test(int test) {
 
   std::cout << "cublas_gemm done\n";
 
-  cudaStreamDestroy(stream);
+  NVTE_CHECK_CUDA(cudaStreamDestroy(stream));
 
-  std::cout << "cublas_gemm done\n";
+  std::cout << "end\n";
 
 #else
 
