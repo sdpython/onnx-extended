@@ -53,7 +53,8 @@ else()
   message(STATUS "ORT - retrieve development version from '${ORT_VERSION}'")
   set(ORT_VERSION_INT 99999)
   set(ONNXRUNTIME_LIB_DIR "${ORT_VERSION}")
-  set(ONNXRUNTIME_INCLUDE_DIR "${ORT_VERSION}/../../../include/onnxruntime/core/session")
+  set(ONNXRUNTIME_INCLUDE_DIR
+      "${ORT_VERSION}/../../../include/onnxruntime/core/session")
   set(ORT_URL ${ORT_VERSION})
 endif()
 
@@ -143,7 +144,8 @@ function(ort_add_custom_op name provider folder)
     set(NEW_LIST ${name}_src_files)
     list(APPEND ${name}_cu_files ${ARGN})
     list(FILTER ${name}_cu_files INCLUDE REGEX ".+[.]cu$")
-    set_source_files_properties(${name}_cu_files PROPERTIES COMPILE_OPTIONS "--use_fast_math")  
+    set_source_files_properties(
+      ${name}_cu_files PROPERTIES COMPILE_OPTIONS "--use_fast_math")
 
     target_compile_definitions(
       ${name}

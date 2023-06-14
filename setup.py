@@ -266,7 +266,7 @@ class cmake_build_ext(build_ext):
         self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
         if self.cuda_version in (None, ""):
             self.cuda_version = None
-        build = {'DEFAULT', "H100", "H100opt"}
+        build = {"DEFAULT", "H100", "H100opt"}
         if self.cuda_build not in build:
             raise ValueError(f"cuda-built={self.cuda_build} not in {build}.")
         build_ext.finalize_options(self)

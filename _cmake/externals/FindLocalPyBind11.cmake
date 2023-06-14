@@ -95,5 +95,6 @@ function(cuda_pybind11_add_module name pybindfile)
   set(NEW_LIST ${name}_src_files)
   list(APPEND ${name}_cu_files ${ARGN})
   list(FILTER ${name}_cu_files INCLUDE REGEX ".+[.]cu$")
-  set_source_files_properties(${name}_cu_files PROPERTIES COMPILE_OPTIONS "--use_fast_math")  
+  set_source_files_properties(
+    ${name}_cu_files PROPERTIES COMPILE_OPTIONS "--use_fast_math")
 endfunction()
