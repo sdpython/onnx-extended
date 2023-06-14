@@ -15,8 +15,38 @@ message(STATUS "CUDAToolkit_FOUND=${CUDAToolkit_FOUND}")
 if(CUDAToolkit_FOUND)
 
   enable_language(CUDA)
+
+  # CUDA flags
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")  
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
+
+  if (NOT CMAKE_CUDA_ARCHITECTURES)
+    if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11)
+      message(FATAL_ERROR "CUDA verions must be >= 11 but is ${CMAKE_CUDA_COMPILER_VERSION}.")
+    endif()
+    if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 12)
+      # 37, 50 still work in CUDA 11 but are marked deprecated and will be removed in future CUDA version.
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_37,code=sm_37") # K80
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_50,code=sm_50") # M series
+    endif()
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_52,code=sm_52") # M60
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_60,code=sm_60") # P series
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_70,code=sm_70") # V series
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_75,code=sm_75") # T series
+    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11)
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_80,code=sm_80") # A series
+    endif()
+    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.8)
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90") # H series
+    endif()
+  endif()
+  if (NOT WIN32)
+    set(CMAKE_CUDA_FLAGS "${CUDA_NVCC_FLAGS} --compiler-options -fPIC")
+  endif()
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --threads 4")
+
   if(USE_NVTX)
     # see https://github.com/NVIDIA/NVTX
     include(CPM.cmake)
