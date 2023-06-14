@@ -237,6 +237,14 @@ class cmake_build_ext(build_ext):
             None,
             "onnxruntime version, a path is allowed",
         ),
+        (
+            "cuda-build=",
+            None,
+            "CUDA code can be compiled to be working with "
+            "different architectures, this flag can optimize "
+            "for a specific machine, possible values: DEFAULT, "
+            "H100, H100opt",
+        ),
     ]
 
     def initialize_options(self):
@@ -245,6 +253,7 @@ class cmake_build_ext(build_ext):
         self.cuda_version = None
         self.parallel = None
         self.ort_version = DEFAULT_ORT_VERSION
+        self.cuda_build = "DEFAULT"
         build_ext.initialize_options(self)
 
     def finalize_options(self):
@@ -257,6 +266,9 @@ class cmake_build_ext(build_ext):
         self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
         if self.cuda_version in (None, ""):
             self.cuda_version = None
+        build = {'DEFAULT', "H100", "H100opt"}
+        if self.cuda_build not in build:
+            raise ValueError(f"cuda-built={self.cuda_build} not in {build}.")
         build_ext.finalize_options(self)
 
     def get_cmake_args(self, cfg: str) -> List[str]:
@@ -295,6 +307,7 @@ class cmake_build_ext(build_ext):
             cmake_args.append("-DUSE_CUDA=0")
         else:
             cmake_args.append("-DUSE_CUDA=1")
+            cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
         cuda_version = self.cuda_version or os.environ.get("CUDA_VERSION", "")
         if cuda_version not in (None, ""):
             cmake_args.append(f"-DCUDA_VERSION={cuda_version}")

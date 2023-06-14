@@ -22,71 +22,32 @@ message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
 message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON_MODULE_EXTENSION}")
 message(STATUS "PYTHON_NUMPY_VERSION=${PYTHON_NUMPY_VERSION}")
 message(STATUS "USE_CUDA=${USE_CUDA}")
-message(STATUS "CUDA_VERSION=${CUDA_VERSION}")
-message(STATUS "CMAKE_CUDA_COMPILER_VERSION=${CMAKE_CUDA_COMPILER_VERSION}")
-message(STATUS "CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
-message(STATUS "CMAKE_LIBRARY_ARCHITECTURE=${CMAKE_LIBRARY_ARCHITECTURE}")
+message(STATUS "CUDA_BUILD=${CUDA_BUILD}")
 message(STATUS "USE_NVTX=${USE_NVTX}")
 message(STATUS "ORT_VERSION=${ORT_VERSION}")
-message(STATUS "ENV-PATH=$ENV{PATH}")
-message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
+# message(STATUS "ENV-PATH=$ENV{PATH}")
+# message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+
+# Don't let cmake set a default value for CMAKE_CUDA_ARCHITECTURES
+# see https://cmake.org/cmake/help/latest/policy/CMP0104.html
+if(NOT CUDA_BUILD EQUAL "DEFAULT")
+  cmake_policy(SET CMP0104 OLD)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH
      "${CMAKE_CURRENT_SOURCE_DIR}"
      "${CMAKE_CURRENT_SOURCE_DIR}/externals")
 
-#
-# C++ 14 or C++ 17
-#
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
-else()
-  if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "11")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-  else()
-    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "6")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-    else()
-      message(FATAL_ERROR "gcc>=6.0 is needed but ${CMAKE_C_COMPILER_VERSION} was detected.")
-    endif()
-  endif()
-endif()
-message(STATUS "CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 #
-# Packages
+# Packages and constants
 #
 
 include("load_externals.cmake")
-
-#
-# constant
-#
-
-set(TEST_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../_unittests")
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_constants.h.in
-  ${TEST_FOLDER}/test_constants.h
-)
-
-#
-# Compiling options
-#
-
-# AVX instructions
-if(MSVC)
-  # disable warning for #pragma unroll
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
-  add_compile_options(/wd4068)
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-endif()
-
-if(APPLE)
-  set(ENV(LDFLAGS) "-L/usr/local/opt/llvm/lib")
-  set(ENV(CPPFLAGS) "-I/usr/local/opt/llvm/include")
-endif()
+include("constants.cmake")
 
 #
 # modules

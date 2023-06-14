@@ -15,6 +15,23 @@ message(STATUS "CUDAToolkit_FOUND=${CUDAToolkit_FOUND}")
 if(CUDAToolkit_FOUND)
 
   enable_language(CUDA)
+  message(STATUS "------------- CUDA settings")
+  message(STATUS "CUDA_VERSION=${CUDA_VERSION}")
+  message(STATUS "CUDAARCHS=${CUDAARCHS}")
+  message(STATUS "CMAKE_CUDA_COMPILER_VERSION=${CMAKE_CUDA_COMPILER_VERSION}")
+  message(STATUS "CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
+  message(STATUS "CMAKE_LIBRARY_ARCHITECTURE=${CMAKE_LIBRARY_ARCHITECTURE}")
+  message(STATUS "CMAKE_CUDA_COMPILER_ID=${CMAKE_CUDA_COMPILER_ID}")
+  message(STATUS "CMAKE_CUDA_HOST_COMPILER=${CMAKE_CUDA_HOST_COMPILER}")
+  message(STATUS "------------- end of CUDA settings")
+  if (NOT CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL CUDA_VERSION)
+    message(FATAL_ERROR "CMAKE_CUDA_COMPILER_VERSION=${CMAKE_CUDA_COMPILER_VERSION} "
+                        "< ${CUDA_VERSION}, nvcc is not setup properly. "
+                        "Try 'whereis nvcc' and chack the version.")
+  endif()
+  
+  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
   # CUDA flags
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
@@ -22,7 +39,20 @@ if(CUDAToolkit_FOUND)
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
 
-  if (NOT CMAKE_CUDA_ARCHITECTURES)
+  if(CUDA_BUILD EQUAL "H100opt")
+    # see https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+    set(CMAKE_CUDA_ARCHITECTURES 90)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=sm_90a")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=compute_90a")
+
+  else()
+    if(CUDA_BUILD EQUAL "H100")
+      set(CMAKE_CUDA_ARCHITECTURES 52 70 80 90)
+    elseif(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(CMAKE_CUDA_ARCHITECTURES 52 70 80 90)
+    endif()
+
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11)
       message(FATAL_ERROR "CUDA verions must be >= 11 but is ${CMAKE_CUDA_COMPILER_VERSION}.")
     endif()
@@ -33,17 +63,21 @@ if(CUDAToolkit_FOUND)
     endif()
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_52,code=sm_52") # M60
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_60,code=sm_60") # P series
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_61,code=sm_61") # P series
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_70,code=sm_70") # V series
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_75,code=sm_75") # T series
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11)
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_80,code=sm_80") # A series
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_86,code=sm_86") # A series
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_87,code=sm_87") # A series
     endif()
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.8)
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90") # H series
     endif()
   endif()
+  
   if (NOT WIN32)
-    set(CMAKE_CUDA_FLAGS "${CUDA_NVCC_FLAGS} --compiler-options -fPIC")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --compiler-options -fPIC")
   endif()
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --threads 4")
 
