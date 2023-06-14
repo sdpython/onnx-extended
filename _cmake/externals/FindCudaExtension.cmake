@@ -40,7 +40,8 @@ if(CUDAToolkit_FOUND)
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
 
-  if(CUDA_BUILD EQUAL "H100opt")
+  if(CUDA_BUILD STREQUAL "H100opt")
+
     # see https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
     set(CMAKE_CUDA_ARCHITECTURES 90)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90")
@@ -49,15 +50,15 @@ if(CUDAToolkit_FOUND)
 
   else()  # H100, DEFAULT
 
-    if(CUDA_BUILD EQUAL "H100")
+    if(CUDA_BUILD STREQUAL "H100")
       set(CMAKE_CUDA_ARCHITECTURES 52 70 80 90)
     elseif(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      if(NOT CUDA_BUILD EQUAL "DEFAULT")
+      if(NOT CUDA_BUILD STREQUAL "DEFAULT")
         message(FATAL_ERROR "Unexpected value for CUDA_BUILD='${CUDA_BUILD}'.")
       endif()
       set(CMAKE_CUDA_ARCHITECTURES 52 70 80 90)
     else()
-      if(NOT CUDA_BUILD EQUAL "DEFAULT")
+      if(NOT CUDA_BUILD STREQUAL "DEFAULT")
         message(FATAL_ERROR "Unexpected value for CUDA_BUILD='${CUDA_BUILD}'.")
       endif()
     endif()
@@ -84,7 +85,7 @@ if(CUDAToolkit_FOUND)
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90") # H series
     endif()
   endif()
-  
+
   if (NOT WIN32)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --compiler-options -fPIC")
   endif()

@@ -8,6 +8,7 @@ if(CUDA_AVAILABLE)
   cuda_pybind11_add_module(
     cuda_example_py
     ../onnx_extended/validation/cuda/cuda_example_py.cpp
+    ../onnx_extended/validation/cuda/cuda_gemm.cu
     ../onnx_extended/validation/cuda/cuda_example.cu
     ../onnx_extended/validation/cuda/cuda_example_reduce.cu)
 
