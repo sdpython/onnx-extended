@@ -3,6 +3,7 @@
 #include "cublas_v2.h"
 #include "helpers.h"
 #include <cuda_runtime.h>
+#include "common_kernels.h"
 
 namespace ortops {
 
