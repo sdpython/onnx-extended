@@ -44,6 +44,7 @@ else:
 if prop["major"] <= 0:
     # No CUDA.
     tests = []
+    dims = []
 elif prop["major"] < 8:
     # No float 8.
     tests = list(range(5))
