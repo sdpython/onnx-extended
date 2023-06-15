@@ -100,7 +100,7 @@ for test, dim in pbar:
     update["N"] = int(res["N"])
     update["dim"] = int(res["dim"])
     update["name"] = (
-        f"{update['type_a']}x{update['type_a']}->"
+        f"{update['type_a']}x{update['type_b']}->"
         f"{update['type_d']}{update['compute_type']}"
     )
     res.update(update)
@@ -137,7 +137,7 @@ dfi
 # Smaller sets
 # ++++++++++++
 
-subset = {1, 4, 5, 14}
+subset = {1, 3, 4, 5, 7}
 dfis = dfi[dfi.test.isin(subset)]
 pivi = dfis.pivot_table(index="dim", columns="name", values="t-gemm_sync")
 print(pivi)

@@ -42,9 +42,9 @@ class TestCudaGemm(ExtTestCase):
         if r["major"] < 9:
             return
         for i in range(5, 15):
-             if i in {8, 9, 10, 12, 13}:
-                 # still invalid
-                 continue
+            if i in {8, 9, 10, 12, 13}:
+                # still invalid
+                continue
             with self.subTest(test=i):
                 self.gemm_test(i)
 
