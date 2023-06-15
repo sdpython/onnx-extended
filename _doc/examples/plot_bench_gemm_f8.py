@@ -119,47 +119,45 @@ df.head()
 # +++++++++++++++
 
 col_def = ["name", "test", "type_a", "type_b", "type_d", "compute_type"]
-deft = df.copy()
-gr = deft[col_def].groupby(col_def, as_index=False).count()
-print(gr)
-
-gr
+if df.shape[0] > 0:
+    deft = df.copy()
+    gr = deft[col_def].groupby(col_def, as_index=False).count()
+    print(gr)
 
 ###################################
 # Simplified
 # ++++++++++
 
-dfi = df[col_def + ["dim", "t-gemm_sync"]]
-print(dfi)
-
-dfi
+if df.shape[0] > 0:
+    dfi = df[col_def + ["dim", "t-gemm_sync"]]
+    print(dfi)
 
 ###################################
 # Smaller sets
 # ++++++++++++
 
-subset = {1, 3, 4, 5, 7}
-dfis = dfi[dfi.test.isin(subset)]
-pivi = dfis.pivot_table(index="dim", columns="name", values="t-gemm_sync")
-print(pivi)
-
-pivi
+if df.shape[0] > 0:
+    subset = {1, 3, 4, 5, 7}
+    dfis = dfi[dfi.test.isin(subset)]
+    pivi = dfis.pivot_table(index="dim", columns="name", values="t-gemm_sync")
+    print(pivi)
 
 
 ###################################
 # Plots
 # +++++
 
-piv = df.pivot_table(index="dim", columns="name", values="t-gemm_sync")
-piv.plot(title="MatMul performances")
+if df.shape[0] > 0:
+    piv = df.pivot_table(index="dim", columns="name", values="t-gemm_sync")
+    piv.plot(title="MatMul performances")
 
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-piv.plot(ax=ax[0], title="Gemm performance\nlower is better", logx=True, logy=True)
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    piv.plot(ax=ax[0], title="Gemm performance\nlower is better", logx=True, logy=True)
 
-piv = df[df.test.isin(subset)].pivot_table(
-    index="dim", columns="name", values="t-gemm_sync"
-)
-piv.plot(ax=ax[1], title="Gemm performance\nlower is better", logx=True, logy=True)
+    piv = df[df.test.isin(subset)].pivot_table(
+        index="dim", columns="name", values="t-gemm_sync"
+    )
+    piv.plot(ax=ax[1], title="Gemm performance\nlower is better", logx=True, logy=True)
 
-fig.tight_layout()
-fig.savefig("plot_bench_gemm_f8.png")
+    fig.tight_layout()
+    fig.savefig("plot_bench_gemm_f8.png")
