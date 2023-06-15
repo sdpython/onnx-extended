@@ -70,6 +70,9 @@ pbar = tqdm(list(product(tests, dims)))
 obs = []
 for test, dim in pbar:
     pbar.set_description(f"test={test} dim={dim}")
+    if test in {8, 9, 10, 12, 13}:
+        # not valid yet
+        continue
     if dim < 128:
         n, N = 20, 100
     elif dim < 512:
