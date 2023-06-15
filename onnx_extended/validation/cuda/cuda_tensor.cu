@@ -1,4 +1,11 @@
 #include "cuda_tensor.cuh"
+#include <curand.h>
+#include <curand_kernel.h>
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
+#include <cuda_fp8.h>
+#endif
 #include <iostream>
 #include <sstream>
 
@@ -106,11 +113,107 @@ Tensor::Tensor(const char *name, size_t size, cudaDataType_t dtype,
     scale_inv.copy_from_cpu(&one);
   }
 }
+
 Tensor::~Tensor() {
   data.free();
   scale.free();
   scale_inv.free();
   amax.free();
+}
+
+__global__ void generateRandomFloat16(__half *randomFloat16, int numElements,
+                                      unsigned int seed) {
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid < numElements) {
+    curandState state;
+    curand_init(seed, tid, 0, &state);
+    float randValue = curand_uniform(&state);
+    randomFloat16[tid] = __float2half(randValue);
+  }
+}
+
+__global__ void generateRandomBFloat16(__nv_bfloat16 *randomFloat16,
+                                       int numElements, unsigned int seed) {
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid < numElements) {
+    curandState state;
+    curand_init(seed, tid, 0, &state);
+    float randValue = curand_uniform(&state);
+    randomFloat16[tid] = __float2bfloat16(randValue);
+  }
+}
+
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
+
+__global__ void generateRandomFloat8E4M3FN(__nv_fp8_storage_t *randomFloat16,
+                                           int numElements, unsigned int seed) {
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid < numElements) {
+    curandState state;
+    curand_init(seed, tid, 0, &state);
+    float randValue = curand_uniform(&state);
+    randomFloat16[tid] =
+        __nv_cvt_float_to_fp8(randValue, __NV_SATFINITE, __NV_E4M3);
+  }
+}
+
+__global__ void generateRandomFloat8E5M2(__nv_fp8_storage_t *randomFloat16,
+                                         int numElements, unsigned int seed) {
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid < numElements) {
+    curandState state;
+    curand_init(seed, tid, 0, &state);
+    float randValue = curand_uniform(&state);
+    randomFloat16[tid] =
+        __nv_cvt_float_to_fp8(randValue, __NV_SATFINITE, __NV_E5M2);
+  }
+}
+
+#endif
+
+void Tensor::rnd() {
+  curandGenerator_t gen;
+  curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+  switch (data.dtype) {
+  case CUDA_R_32F:
+    curandGenerateUniform(gen, static_cast<float *>(data.dptr), data.size);
+    break;
+  case CUDA_R_16F: {
+    int blockSize = 256;
+    int numBlocks = (data.size + blockSize - 1) / blockSize;
+    generateRandomFloat16<<<numBlocks, blockSize>>>(
+        static_cast<__half *>(data.dptr), data.size, 0);
+    cudaDeviceSynchronize();
+  } break;
+  case CUDA_R_16BF: {
+    int blockSize = 256;
+    int numBlocks = (data.size + blockSize - 1) / blockSize;
+    generateRandomBFloat16<<<numBlocks, blockSize>>>(
+        static_cast<__nv_bfloat16 *>(data.dptr), data.size, 0);
+    cudaDeviceSynchronize();
+  } break;
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
+  case CUDA_R_8F_E4M3: {
+    int blockSize = 256;
+    int numBlocks = (data.size + blockSize - 1) / blockSize;
+    generateRandomFloat8E4M3FN<<<numBlocks, blockSize>>>(
+        static_cast<__nv_fp8_storage_t *>(data.dptr), data.size, 0);
+    cudaDeviceSynchronize();
+  } break;
+  case CUDA_R_8F_E5M2: {
+    int blockSize = 256;
+    int numBlocks = (data.size + blockSize - 1) / blockSize;
+    generateRandomFloat8E5M2<<<numBlocks, blockSize>>>(
+        static_cast<__nv_fp8_storage_t *>(data.dptr), data.size, 0);
+    cudaDeviceSynchronize();
+  } break;
+#endif
+  default:
+    NVTE_CHECK(false, std::string("Unsupported dtype ") +
+                          to_string((int)data.dtype) +
+                          std::string(" for rnd."));
+  }
+  curandDestroyGenerator(gen);
 }
 
 } // namespace cuda_example

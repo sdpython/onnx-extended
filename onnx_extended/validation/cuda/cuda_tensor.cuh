@@ -49,6 +49,7 @@ public:
          TensorDevice device = TensorDevice::CUDA,
          TensorDevice scale_device = TensorDevice::CUDA);
   ~Tensor();
+  void rnd();
 };
 
 } // namespace cuda_example

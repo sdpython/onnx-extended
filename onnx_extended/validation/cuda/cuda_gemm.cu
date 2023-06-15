@@ -19,9 +19,10 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
                  cublasOperation_t transb, bool grad, void *workspace,
                  size_t workspaceSize, bool accumulate,
                  bool use_split_accumulator, int math_sm_count,
-                 cudaStream_t stream, time_type &begin, time_type &heuristic,
-                 time_type &end, time_type &end2, int &i_epilogue,
-                 int &i_compute_type, int &i_algo) {
+                 cublasComputeType_t gemm_compute_type, cudaStream_t stream,
+                 time_type &begin, time_type &heuristic, time_type &end,
+                 time_type &end2, int &i_epilogue, int &i_compute_type,
+                 int &i_algo) {
   begin = std::chrono::high_resolution_clock::now();
   void *A = inputA->data.dptr;
   void *A_scale_inverse = inputA->scale_inv.dptr;
@@ -78,12 +79,6 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
   cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
 
   int64_t ld_gelumat = (int64_t)ldd;
-
-  // default to tf32 except for e5m2 inputs where the config is not supported
-  cublasComputeType_t gemm_compute_type =
-      (A_type == CUDA_R_8F_E5M2 || B_type == CUDA_R_8F_E5M2)
-          ? CUBLAS_COMPUTE_32F
-          : CUBLAS_COMPUTE_32F_FAST_TF32;
 
   // Create matrix descriptors. Not setting any extra attributes.
   NVTE_CHECK_CUBLAS(
@@ -271,21 +266,87 @@ void BenchmarkGemm::to_map(std::unordered_map<std::string, double> &bench) {
   bench["clean"] = clean;
 }
 
-std::unordered_map<std::string, double>
-gemm_benchmark_test(int test, int N, int dim) {
+std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
+                                                            int dim) {
 
+  // see
+  // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatMul#cublasltmatmul
   cudaDataType_t type_a, type_b, type_d;
+  cublasComputeType_t type_compute;
   switch (test) {
   case 0:
     type_a = CUDA_R_32F;
     type_b = CUDA_R_32F;
     type_d = CUDA_R_32F;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
+  case 1:
+    type_a = CUDA_R_32F;
+    type_b = CUDA_R_32F;
+    type_d = CUDA_R_32F;
+    type_compute = CUBLAS_COMPUTE_32F_FAST_TF32;
+    break;
+  case 2:
+    type_a = CUDA_R_32F;
+    type_b = CUDA_R_32F;
+    type_d = CUDA_R_32F;
+    type_compute = CUBLAS_COMPUTE_32F_FAST_16BF;
+    break;
+  case 3:
+    type_a = CUDA_R_16F;
+    type_b = CUDA_R_16F;
+    type_d = CUDA_R_16F;
+    type_compute = CUBLAS_COMPUTE_16F;
+    break;
+  case 4:
+    type_a = CUDA_R_16BF;
+    type_b = CUDA_R_16BF;
+    type_d = CUDA_R_16BF;
+    type_compute = CUBLAS_COMPUTE_32F;
     break;
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
-  case 1:
+  case 5:
     type_a = CUDA_R_8F_E4M3;
     type_b = CUDA_R_8F_E4M3;
     type_d = CUDA_R_16BF;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
+  case 6:
+    type_a = CUDA_R_8F_E4M3;
+    type_b = CUDA_R_8F_E4M3;
+    type_d = CUDA_R_16BF;
+    // default to tf32 except for e5m2 inputs where the config is not supported
+    type_compute = CUBLAS_COMPUTE_32F_FAST_TF32;
+    break;
+  case 7:
+    type_a = CUDA_R_8F_E4M3;
+    type_b = CUDA_R_8F_E4M3;
+    type_d = CUDA_R_32F;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
+  case 8:
+    type_a = CUDA_R_8F_E4M3;
+    type_b = CUDA_R_8F_E4M3;
+    type_d = CUDA_R_8F_E4M3;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
+  case 9:
+    type_a = CUDA_R_8F_E4M3;
+    type_b = CUDA_R_8F_E5M2;
+    type_d = CUDA_R_8F_E4M3;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
+  case 10:
+    type_a = CUDA_R_8F_E4M3;
+    type_b = CUDA_R_8F_E5M2;
+    type_d = CUDA_R_8F_E5M2;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
+  case 11:
+    type_a = CUDA_R_8F_E4M3;
+    type_b = CUDA_R_8F_E5M2;
+    type_d = CUDA_R_16BF;
+    type_compute = CUBLAS_COMPUTE_32F;
     break;
 #endif
   default:
@@ -297,7 +358,9 @@ gemm_benchmark_test(int test, int N, int dim) {
   time_type begin, heuristic, end, end2;
   int epilogue, compute_type, algo;
   Tensor inputA("A", dim * dim, type_a);
+  inputA.rnd();
   Tensor inputB("B", dim * dim, type_b);
+  inputB.rnd();
   Tensor outputD("D", dim * dim, type_d);
   Tensor inputBias("bias");
   Tensor outputPreGelu("outputPreGelu");
@@ -327,6 +390,7 @@ gemm_benchmark_test(int test, int N, int dim) {
           false,               // bool accumulate,
           false,               // bool use_split_accumulator,
           0,                   // int math_sm_count,
+          type_compute,        // compute_type
           stream, begin, heuristic, end, end2, epilogue, compute_type, algo);
 
       time_type t3 = std::chrono::high_resolution_clock::now();

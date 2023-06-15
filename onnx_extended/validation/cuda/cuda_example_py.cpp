@@ -4,6 +4,9 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include "cuda_runtime.h"
+#include <iostream>
+#include <sstream>
 
 namespace py = pybind11;
 using namespace cuda_example;
@@ -29,6 +32,32 @@ PYBIND11_MODULE(cuda_example_py, m) {
       "cuda_version", []() -> int { return 0; },
       "CUDA was not enabled during the compilation.");
 #endif
+
+  m.def(
+      "get_device_prop",
+      [](int device_id) -> py::dict {
+        cudaDeviceProp prop;
+        auto status = cudaGetDeviceProperties(&prop, device_id);
+        if (status != cudaSuccess)
+          throw std::runtime_error(
+              std::string("Unable to retrieve the device property ") +
+              std::string(cudaGetErrorString(status)));
+        py::dict res;
+        res["name"] = py::str(prop.name);
+        res["totalGlobalMem"] = prop.totalGlobalMem;
+        res["maxThreadsPerBlock"] = prop.maxThreadsPerBlock;
+        res["computeMode"] = prop.computeMode;
+        res["major"] = prop.major;
+        res["minor"] = prop.minor;
+        res["isMultiGpuBoard"] = prop.isMultiGpuBoard;
+        res["concurrentKernels"] = prop.concurrentKernels;
+        res["totalConstMem"] = prop.totalConstMem;
+        res["clockRate"] = prop.clockRate;
+        res["sharedMemPerBlock"] = prop.sharedMemPerBlock;
+        res["multiProcessorCount"] = prop.multiProcessorCount;
+        return res;
+      },
+      py::arg("device_id") = 0, "Returns the device properties.");
 
   m.def("gemm_benchmark_test", &gemm_benchmark_test, py::arg("test") = 0,
         py::arg("N") = 5, py::arg("dim") = 16,
