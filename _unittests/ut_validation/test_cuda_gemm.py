@@ -39,7 +39,7 @@ class TestCudaGemm(ExtTestCase):
     @unittest.skipIf(gemm_benchmark_test is None, reason="CUDA not available")
     def test_gemm_test_float8(self):
         r = get_device_prop()
-        if r["major"]:
+        if r["major"] < 9:
             return
         for i in range(5, 15):
             with self.subTest(test=i):
