@@ -255,15 +255,15 @@ void BenchmarkGemm::zero() {
 
 void BenchmarkGemm::to_map(std::unordered_map<std::string, double> &bench) {
   bench["N"] = N;
-  bench["workspace_new"] = workspace_new;
-  bench["workspace_free"] = workspace_free;
-  bench["stream_create"] = stream_create;
-  bench["stream_destroy"] = stream_destroy;
-  bench["setup"] = setup;
-  bench["gemm_in"] = gemm_in;
-  bench["gemm"] = gemm;
-  bench["gemm_sync"] = gemm_sync;
-  bench["clean"] = clean;
+  bench["t-workspace_new"] = workspace_new;
+  bench["t-workspace_free"] = workspace_free;
+  bench["t-stream_create"] = stream_create;
+  bench["t-stream_destroy"] = stream_destroy;
+  bench["t-setup"] = setup;
+  bench["t-gemm_in"] = gemm_in;
+  bench["t-gemm"] = gemm;
+  bench["t-gemm_sync"] = gemm_sync;
+  bench["t-clean"] = clean;
 }
 
 std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
@@ -381,7 +381,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
   inputB.rnd();
   Tensor outputD("D", dim * dim, type_d);
   if (is_fp8_dtype(type_a) || is_fp8_dtype(type_b))
-    outputD.amax.allocate(outputD.amax.dtype, 1, outputD.amax.device);
+    outputD.amax.allocate(CUDA_R_32F, 1, outputD.scale.device);
   Tensor inputBias("bias");
   Tensor outputPreGelu("outputPreGelu");
   size_t workspace_size = 1 << 20;
