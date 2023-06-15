@@ -17,10 +17,7 @@ class TestCudaGemm(ExtTestCase):
         r = get_device_prop()
         self.assertIsInstance(r, dict)
         self.assertEqual(len(r), 12)
-        if __name__ == "__main__":
-            import pprint
-
-            pprint.pprint(r)
+        self.assertIn("NVIDIA", r["name"])
 
     def gemm_test(self, test):
         r = gemm_benchmark_test(test)
@@ -30,15 +27,21 @@ class TestCudaGemm(ExtTestCase):
         if __name__ == "__main__":
             import pprint
 
+            r["test"] = test
             pprint.pprint(r)
 
     @unittest.skipIf(gemm_benchmark_test is None, reason="CUDA not available")
     def test_gemm_test_float32(self):
+        for i in range(0, 5):
+            with self.subTest(test=i):
+                self.gemm_test(i)
+
+    @unittest.skipIf(gemm_benchmark_test is None, reason="CUDA not available")
+    def test_gemm_test_float8(self):
         r = get_device_prop()
-        for i in range(0, 12):
-            if r["major"] <= 6 and i >= 5:
-                # float 8 not supported
-                break
+        if r["major"]:
+            return
+        for i in range(5, 15):
             with self.subTest(test=i):
                 self.gemm_test(i)
 

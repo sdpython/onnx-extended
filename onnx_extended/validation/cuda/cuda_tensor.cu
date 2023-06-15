@@ -1,8 +1,8 @@
 #include "cuda_tensor.cuh"
-#include <curand.h>
-#include <curand_kernel.h>
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
+#include <curand.h>
+#include <curand_kernel.h>
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
 #include <cuda_fp8.h>
 #endif

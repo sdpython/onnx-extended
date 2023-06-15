@@ -348,6 +348,24 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
     type_d = CUDA_R_16BF;
     type_compute = CUBLAS_COMPUTE_32F;
     break;
+  case 12:
+    type_a = CUDA_R_8F_E4M3;
+    type_b = CUDA_R_8F_E4M3;
+    type_d = CUDA_R_8F_E4M3;
+    type_compute = CUBLAS_COMPUTE_32F_FAST_TF32;
+    break;
+  case 13:
+    type_a = CUDA_R_8F_E5M2;
+    type_b = CUDA_R_8F_E4M3;
+    type_d = CUDA_R_8F_E5M2;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
+  case 14:
+    type_a = CUDA_R_8F_E5M2;
+    type_b = CUDA_R_8F_E4M3;
+    type_d = CUDA_R_16BF;
+    type_compute = CUBLAS_COMPUTE_32F;
+    break;
 #endif
   default:
     NVTE_CHECK(false, std::string("Unknown test ") + to_string(test) +
@@ -362,6 +380,8 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
   Tensor inputB("B", dim * dim, type_b);
   inputB.rnd();
   Tensor outputD("D", dim * dim, type_d);
+  if (is_fp8_dtype(type_a) || is_fp8_dtype(type_b))
+    outputD.amax.allocate(outputD.amax.dtype, 1, outputD.amax.device);
   Tensor inputBias("bias");
   Tensor outputPreGelu("outputPreGelu");
   size_t workspace_size = 1 << 20;
