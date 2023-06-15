@@ -117,7 +117,7 @@ df.head()
 # Test definition
 # +++++++++++++++
 
-col_def = ["test", "type_a", "type_b", "type_d", "compute_type"]
+col_def = ["name", "test", "type_a", "type_b", "type_d", "compute_type"]
 deft = df.copy()
 gr = deft[col_def].groupby(col_def, as_index=False).count()
 print(gr)
@@ -137,9 +137,9 @@ dfi
 # Smaller sets
 # ++++++++++++
 
-subset = {1, 4, 5}
+subset = {1, 4, 5, 14}
 dfis = dfi[dfi.test.isin(subset)]
-pivi = dfis.pivot_table(index="dim", columns="test", values="t-gemm_sync")
+pivi = dfis.pivot_table(index="dim", columns="name", values="t-gemm_sync")
 print(pivi)
 
 pivi
