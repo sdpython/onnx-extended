@@ -20,7 +20,24 @@ PYBIND11_MODULE(cuda_example_py, m) {
 #endif
       ;
 
-  m.def("gemm_test", &gemm_test, "Test Gemm on CUDA");
+#if defined(CUDA_VERSION)
+  m.def(
+      "cuda_version", []() -> int { return CUDA_VERSION; },
+      "Returns the CUDA version the project was compiled with.");
+#else
+  m.def(
+      "cuda_version", []() -> int { return 0; },
+      "CUDA was not enabled during the compilation.");
+#endif
+
+  m.def("gemm_benchmark_test", &gemm_benchmark_test, py::arg("test") = 0,
+        py::arg("N") = 5, py::arg("dim") = 16,
+        R"pbdoc(Benchmark Gemm on CUDA:param vect: array
+:param test: a test configuration (int)
+:param N: number of repetitions
+:param dim: dimensions of the matrices
+:return: metrics in a dictionary
+)pbdoc");
 
   m.def(
       "vector_add",
