@@ -53,36 +53,48 @@ class TestOrtOpTutorialCuda(ExtTestCase):
     def common_test_custom_gemm(self, op_name, tos, **kwargs):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
-        if TensorProto.FLOAT8E4M3FN in tos or TensorProto.FLOAT8E5M2:
+        if TensorProto.FLOAT8E4M3FN in tos or TensorProto.FLOAT8E5M2 in tos:
+            gemm8 = True
             ir_version = 9
             opset = 19
         else:
+            gemm8 = False
             ir_version = 8
             opset = 18
 
-        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
-        casts = [
-            make_node("Cast", [c], [c + "c"], to=to) for c, to in zip("ABCDE", tos)
-        ]
+        casts = [make_node("Cast", [c], [c + "c"], to=to) for c, to in zip("AB", tos)]
+        node_inputs = [c + "c" for c in "AB"]
+        node_outputs = ["Yc"]
+        if gemm8:
+            node_inputs += ["scaleA", "scaleB"]
+            node_outputs += ["scaleY"]
         nodes = [
             *casts,
             make_node(
                 op_name,
-                [c + "c" for c in "ABCDE"],
-                ["Yc"],
+                node_inputs,
+                node_outputs,
                 domain="onnx_extented.ortops.tutorial.cuda",
                 transA=1,
                 transB=0,
                 alpha=kwargs.get("alpha", 1.0),
-                beta=kwargs.get("beta", 0.0),
                 **kwargs,
             ),
             make_node("Cast", ["Yc"], ["Y"], to=TensorProto.FLOAT),
         ]
         inputs = [
-            make_tensor_value_info(c, TensorProto.FLOAT, [None, None]) for c in "ABCDE"
+            make_tensor_value_info(c, TensorProto.FLOAT, [None, None]) for c in "AB"
         ]
-        graph = make_graph(nodes, "lr", inputs, [Y])
+        outputs = [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])]
+        if gemm8:
+            inputs.extend(
+                [
+                    make_tensor_value_info("scaleA", TensorProto.FLOAT, [1]),
+                    make_tensor_value_info("scaleB", TensorProto.FLOAT, [1]),
+                ]
+            )
+            outputs.append(make_tensor_value_info("scaleY", TensorProto.FLOAT, [1]))
+        graph = make_graph(nodes, "lr", inputs, outputs)
         onnx_model = make_model(
             graph,
             opset_imports=[
@@ -108,13 +120,21 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"onx={onnx_simple_text_plot(onnx_model)}"
             ) from e
         inputs = [
-            (numpy.arange(64) / 64).astype(numpy.float32).reshape((-1, 8)) for to in tos
+            (numpy.arange(64) / 64).astype(numpy.float32).reshape((-1, 16))
+            for to in tos
         ]
-        feeds = dict(zip("ABCDE", inputs))
-        got = sess.run(None, feeds)[0]
-        a, b, c = inputs[:3]
-        expected = a.T @ b * kwargs.get("alpha", 1.0) + c * kwargs.get("beta", 0.0)
-        self.assertEqualArray(expected, got)
+        feeds = dict(zip("AB", inputs))
+        if gemm8:
+            feeds["scaleA"] = numpy.array([1], dtype=numpy.float32)
+            feeds["scaleB"] = numpy.array([1], dtype=numpy.float32)
+        got = sess.run(None, feeds)
+        a, b = inputs[:2]
+        expected = a.T @ b * kwargs.get("alpha", 1.0)
+        if gemm8:
+            self.assertEqualArray(expected[1], numpy.array([1], numpy.float32))
+            self.assertEqualArray(expected[0], got)
+        else:
+            self.assertEqualArray(expected[0], got)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
@@ -122,9 +142,11 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         reason="CUDA provider not available",
     )
     def test_custom_gemm_float32(self):
-        tos = [TensorProto.FLOAT for i in range(5)]
         self.common_test_custom_gemm(
-            "CustomGemmFloat", tos, name="cgf", fastAccumulationMode=1
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
         )
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
@@ -136,13 +158,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         Version(ort_version) < Version("1.16"), reason="float8 types not released"
     )
     def test_custom_gemm_float8(self):
-        tos = [TensorProto.FLOAT8E4M3FN for i in range(5)]
-        tos[2] = TensorProto.BFLOAT16
-        tos[3] = TensorProto.BFLOAT16
-        tos[4] = TensorProto.FLOAT
         self.common_test_custom_gemm(
             "CustomGemmFloat8E4M3FN",
-            tos,
+            [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
             fastAccumulationMode=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",

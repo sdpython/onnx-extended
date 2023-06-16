@@ -11,20 +11,19 @@ struct CustomGemmKernel {
   void Compute(OrtKernelContext *context);
 
 private:
-
-  void set(int M, int N, int K, int& lda, int& ldb, int& ldd) const;
+  void set(int M, int N, int K, int &lda, int &ldb, int &ldd) const;
 
   float alpha_;
-  float beta_;
+  // float beta_;
   bool transA_;
   bool transB_;
   bool fastAccumulationMode_;
   int64_t smCount_;
   cublasComputeType_t computeType_;
-  cudaDataType_t scaleType_;
 };
 
-struct CustomGemmOpFloat : Ort::CustomOpBase<CustomGemmOpFloat, CustomGemmKernel> {
+struct CustomGemmOpFloat
+    : Ort::CustomOpBase<CustomGemmOpFloat, CustomGemmKernel> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
@@ -36,7 +35,8 @@ struct CustomGemmOpFloat : Ort::CustomOpBase<CustomGemmOpFloat, CustomGemmKernel
 
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
 
-struct CustomGemmOpFloat8E4M3FN : Ort::CustomOpBase<CustomGemmOpFloat8E4M3FN, CustomGemmKernel> {
+struct CustomGemmOpFloat8E4M3FN
+    : Ort::CustomOpBase<CustomGemmOpFloat8E4M3FN, CustomGemmKernel> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
