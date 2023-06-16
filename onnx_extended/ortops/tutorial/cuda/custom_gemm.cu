@@ -85,7 +85,9 @@ CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
   case 1:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-  };
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
+  }
 }
 
 #endif
