@@ -324,9 +324,10 @@ for tt, engine, provider, dim, domain in pbar:
             f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}"
         )
         feeds = {"A": matrices[k1], "B": matrices[k2]}
-        r = get_ort_ext_libs()
         opts = SessionOptions()
-        opts.register_custom_ops_library(r[0])
+        if r is not None:
+            r = get_ort_ext_libs()
+            opts.register_custom_ops_library(r[0])
         try:
             sess = engine(onx.SerializeToString(), opts, providers=provider)
         except (NotImplemented, InvalidGraph, Fail) as e:
