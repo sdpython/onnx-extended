@@ -80,8 +80,13 @@ size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 2; };
 ONNXTensorElementDataType
 CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
   // D, scale D
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
-};
+  switch (index) {
+  case 0:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  case 1:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  };
+}
 
 #endif
 

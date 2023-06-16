@@ -43,9 +43,19 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
-from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 from onnx_extended.ext_test_case import unit_test_going, measure_time
+
+try:
+    from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
+    from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+except ImportError:
+
+    def get_device_prop():
+        return {"name": "CPU"}
+
+    def get_ort_ext_libs():
+        return None
+
 
 properties = get_device_prop()
 pprint.pprint(properties)
