@@ -120,7 +120,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"onx={onnx_simple_text_plot(onnx_model)}"
             ) from e
         inputs = [
-            (numpy.arange(64) / 64).astype(numpy.float32).reshape((-1, 16))
+            (numpy.arange(256) / 256).astype(numpy.float32).reshape((-1, 16))
             for to in tos
         ]
         feeds = dict(zip("AB", inputs))
@@ -131,10 +131,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         a, b = inputs[:2]
         expected = a.T @ b * kwargs.get("alpha", 1.0)
         if gemm8:
-            self.assertEqualArray(expected[1], numpy.array([1], numpy.float32))
-            self.assertEqualArray(expected[0], got)
+            self.assertEqualArray(numpy.array([1], numpy.float32), got[1])
+            self.assertEqualArray(expected, got[0])
         else:
-            self.assertEqualArray(expected[0], got)
+            self.assertEqualArray(expected, got[0])
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
@@ -146,7 +146,8 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
+            fastAccumulationMode=0,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
@@ -162,10 +163,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             "CustomGemmFloat8E4M3FN",
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
-            fastAccumulationMode=1,
-            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            fastAccumulationMode=0,
         )
 
 
 if __name__ == "__main__":
+    TestOrtOpTutorialCuda().test_custom_gemm_float32()
     unittest.main(verbosity=2)

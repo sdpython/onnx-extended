@@ -4,7 +4,9 @@
 #include <cublas_v2.h>
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
+#if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
 #include <cuda_fp8.h>
+#endif
 
 // see
 // https://gitlab.com/nvidia/headers/cuda-individual/cublas/-/blob/main/cublasLt.h
@@ -91,12 +93,14 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
                                    const OrtKernelInfo *info) {
   ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "alpha", &alpha_));
   // ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "beta", &beta_));
+  row_major_ =
+      KernelInfoGetOptionalAttributeInt64AsBool(api, info, "row_major", true);
   transA_ =
       KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transA", false);
   transB_ =
       KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transB", false);
   fastAccumulationMode_ = KernelInfoGetOptionalAttributeInt64AsBool(
-      api, info, "fastAccumulationMode", true);
+      api, info, "fastAccumulationMode", false);
   smCount_ = KernelInfoGetOptionalAttributeInt64(api, info, "smCount", 0);
 
   // A string attribute.
@@ -141,10 +145,28 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   Ort::ConstValue input_A = ctx.GetInput(0);
   Ort::ConstValue input_B = ctx.GetInput(1);
   Ort::ConstValue scale_A, scale_B;
+
+  auto memA = input_A.GetTensorMemoryInfo();
+  EXT_ENFORCE(memA.GetDeviceType() ==
+                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+              "Input A is not on CUDA");
+  auto memB = input_B.GetTensorMemoryInfo();
+  EXT_ENFORCE(memB.GetDeviceType() ==
+                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+              "Input B is not on CUDA");
+
   int n_inputs = ctx.GetInputCount();
   if (n_inputs == 4) {
     scale_A = ctx.GetInput(2);
     scale_B = ctx.GetInput(3);
+    auto memsA = scale_A.GetTensorMemoryInfo();
+    EXT_ENFORCE(memsA.GetDeviceType() ==
+                    OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+                "Scale A is not on CUDA");
+    auto memsB = scale_B.GetTensorMemoryInfo();
+    EXT_ENFORCE(memsB.GetDeviceType() ==
+                    OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+                "Scale B is not on CUDA");
   } else if (n_inputs != 2) {
     EXT_THROW("Number of inputs must be 2 or 4.");
   }
@@ -180,6 +202,10 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   Ort::UnownedValue Y = ctx.GetOutput(0, dimensions);
   ONNXTensorElementDataType out_dtype =
       Y.GetTensorTypeAndShapeInfo().GetElementType();
+  auto memY = Y.GetTensorMemoryInfo();
+  EXT_ENFORCE(memY.GetDeviceType() ==
+                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+              "Output 1 is not on CUDA");
 
   cudaStream_t stream = (cudaStream_t)ctx.GetGPUComputeStream();
   cublasLtHandle_t cublasLt;
@@ -189,111 +215,130 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   int lda, ldb, ldd;
   set(M, N, K, lda, ldb, ldd);
 
-  // Gemm, note that CUDA assumes col-major, so Y(N,M) = alpha * op(B) x op(A) +
-  // beta * C
+  // Gemm, note that CUDA assumes col-major.
+  // so Y(N,M) = alpha * op(B) x op(A).
   cublasLtMatmulDesc_t operationDesc = nullptr;
   cublasLtMatrixLayout_t Adesc = nullptr, Bdesc = nullptr, Cdesc = nullptr,
                          Ddesc = nullptr;
-  cublasLtMatmulPreference_t preference = nullptr;
-  cublasLtMatmulHeuristicResult_t heuristicResult = {};
-
-  cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
-  cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
 
   // Create matrix descriptors. Not setting any extra attributes.
-  cudaDataType_t a_type = ToCudaDataType(dtypes[0]);
-  cudaDataType_t b_type = ToCudaDataType(dtypes[1]);
-  cudaDataType_t d_type = ToCudaDataType(out_dtype);
-  cudaDataType_t bias_type =
+  cudaDataType_t a_cuda_type = ToCudaDataType(dtypes[0]);
+  cudaDataType_t b_cuda_type = ToCudaDataType(dtypes[1]);
+  cudaDataType_t d_cuda_type = ToCudaDataType(out_dtype);
+  cudaDataType_t bias_cuda_type =
       ToCudaDataType(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
-  cudaDataType_t scale_dtype = bias_type;
+  cudaDataType_t scale_cuda_type = bias_cuda_type;
 
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-      &Adesc, a_type, transA_ ? M : K, transA_ ? K : M, lda));
+      &Adesc, a_cuda_type, transA_ ? M : K, transA_ ? K : M, lda));
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-      &Bdesc, b_type, transB_ ? K : N, transB_ ? N : K, ldb));
+      &Bdesc, b_cuda_type, transB_ ? K : N, transB_ ? N : K, ldb));
   CUBLAS_THROW_IF_ERROR(
-      cublasLtMatrixLayoutCreate(&Cdesc, bias_type, M, N, ldd));
-  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(&Ddesc, d_type, M, N, ldd));
+      cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
 
-  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutSetAttribute(
-      Adesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &matrixOrder, sizeof(matrixOrder)));
-  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutSetAttribute(
-      Bdesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &matrixOrder, sizeof(matrixOrder)));
-  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutSetAttribute(
-      Cdesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &matrixOrder, sizeof(matrixOrder)));
-  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutSetAttribute(
-      Ddesc, CUBLASLT_MATRIX_LAYOUT_ORDER, &matrixOrder, sizeof(matrixOrder)));
-
-  if (n_inputs == 4) {
-    // gemm float 8
-
-    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_A_SCALE_POINTER,
-        scale_A.GetTensorRawData(), sizeof(float)));
-    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER,
-        scale_B.GetTensorRawData(), sizeof(float)));
-  }
-
-  cublasLtMatmulDescCreate(&operationDesc, computeType_, scale_dtype);
+  CUBLAS_THROW_IF_ERROR(
+      cublasLtMatmulDescCreate(&operationDesc, computeType_, scale_cuda_type));
   cublasOperation_t transa = transA_ ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t transb = transB_ ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSA,
-                                 &transa, sizeof(transa));
-  cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSB,
-                                 &transb, sizeof(transb));
-  const int8_t ifast_accumulation_mode = fastAccumulationMode_ ? 0 : 1;
-  cublasLtMatmulDescSetAttribute(
-      operationDesc,
-      cublasLtMatmulDescAttributes_t::CUBLASLT_MATMUL_DESC_FAST_ACCUM,
-      &ifast_accumulation_mode, sizeof(ifast_accumulation_mode));
-  /*
-  if (has_C) {
-    cublasLtMatmulDescSetAttribute(operationDesc,
-                                   cublasLtMatmulDescAttributes_t::CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE,
-                                   &bias_type,
-                                   sizeof(bias_type));
-  */
-
-  if (n_inputs == 4) {
-    // float 8
-    std::vector<int64_t> scale_dimensions{1};
-    Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
-    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER,
-        scale_Y.GetTensorRawData(), sizeof(float)));
-  }
+  CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+      operationDesc, CUBLASLT_MATMUL_DESC_TRANSA, &transa, sizeof(transa)));
+  CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+      operationDesc, CUBLASLT_MATMUL_DESC_TRANSB, &transb, sizeof(transb)));
 
   if (smCount_ != 0) {
     int math_sm_count = static_cast<int>(smCount_);
-    cublasLtMatmulDescSetAttribute(operationDesc,
-                                   CUBLASLT_MATMUL_DESC_SM_COUNT_TARGET,
-                                   &math_sm_count, sizeof(math_sm_count));
+    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+        operationDesc, CUBLASLT_MATMUL_DESC_SM_COUNT_TARGET, &math_sm_count,
+        sizeof(math_sm_count)));
   }
 
+  const void *p_scale_a = nullptr;
+  const void *p_scale_b = nullptr;
+  const void *p_scale_d = nullptr;
+  const void *p_scale_before = nullptr;
+  if (n_inputs == 4) {
+    // gemm float 8
+    const int8_t ifast_accumulation_mode = fastAccumulationMode_ ? 0 : 1;
+    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+        operationDesc,
+        cublasLtMatmulDescAttributes_t::CUBLASLT_MATMUL_DESC_FAST_ACCUM,
+        &ifast_accumulation_mode, sizeof(ifast_accumulation_mode)));
+    p_scale_a = scale_A.GetTensorRawData();
+    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+        operationDesc, CUBLASLT_MATMUL_DESC_A_SCALE_POINTER, &p_scale_a,
+        sizeof(p_scale_a)));
+    p_scale_b = scale_B.GetTensorRawData();
+    p_scale_before = p_scale_b;
+    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+        operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER, &p_scale_b,
+        sizeof(p_scale_b)));
+
+    // float 8
+    if (out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN ||
+        out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) {
+      std::vector<int64_t> scale_dimensions{1};
+      Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
+      p_scale_d = scale_Y.GetTensorRawData();
+      CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+          operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_d,
+          sizeof(p_scale_d)));
+      auto memsY = scale_Y.GetTensorMemoryInfo();
+      EXT_ENFORCE(memsY.GetDeviceType() ==
+                      OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+                  "output scale B is not on CUDA");
+      // For FP8 output, cuBLAS requires C_type to be same as bias_type
+      CUBLAS_THROW_IF_ERROR(
+          cublasLtMatrixLayoutCreate(&Cdesc, bias_cuda_type, M, N, ldd));
+      CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+          operationDesc, CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE, &bias_cuda_type,
+          sizeof(bias_cuda_type)));
+    } else {
+      CUBLAS_THROW_IF_ERROR(
+          cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
+    }
+  } else {
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
+  }
+
+  cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
   cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE,
                                  &epilogue, sizeof(epilogue));
-
-  cublasLtMatmulPreferenceCreate(&preference);
 
   // See
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulPreferenceAttributes_t#cublasltmatmulpreferenceattributes-t
   // The workspace should be allocated once from OpKernelContext assuming
   // only one cuda function is running at a time (which is not necessarily true
-  // with H100). size_t type_size = std::max(std::max(TypeSize(dtypes[0]),
-  // TypeSize(dtypes[1])), std::max(std::max(TypeSize(dtypes[2]),
-  // TypeSize(dtypes[3])), TypeSize(dtypes[4])));
+  // with H100).
   size_t workspaceSize = std::max(
       (size_t)1 << 20,
       (std::min((size_t)(1 << 24), (size_t)std::max(K * M, K * N) * 4) +
        16)); // suggested fixed value 24Mb
   workspaceSize -= workspaceSize % 16;
+  cublasLtMatmulPreference_t preference = nullptr;
+  cublasLtMatmulPreferenceCreate(&preference);
   cublasLtMatmulPreferenceSetAttribute(preference,
                                        CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
                                        &workspaceSize, sizeof(workspaceSize));
 
+  if (row_major_) {
+    cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Adesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Bdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Cdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Ddesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+  }
+
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulAlgoGetHeuristic#cublasltmatmulalgogetheuristic
+  cublasLtMatmulHeuristicResult_t heuristicResult = {};
   int returnedResults = 0;
   cublasStatus_t cuda_status = cublasLtMatmulAlgoGetHeuristic(
       cublasLt, operationDesc, Adesc, Bdesc, Cdesc, Ddesc, preference, 1,
@@ -303,12 +348,12 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
               cublasGetErrorEnum(cuda_status), ", preference=", preference,
               ", returnedResults=", returnedResults, ", alpha=", alpha_,
               // ", beta=", beta_,
-              ", A_type=", CudaDataTypeToString(ToCudaDataType(dtypes[0])),
-              ", B_type=", CudaDataTypeToString(ToCudaDataType(dtypes[1])),
-              ", C_type=", CudaDataTypeToString(ToCudaDataType(dtypes[2])),
-              ", result_type=", CudaDataTypeToString(ToCudaDataType(dtypes[4])),
-              ", bias_type=", CudaDataTypeToString(bias_type),
-              ", scale_type=", CudaDataTypeToString(scale_dtype),
+              ", n_inputs=", n_inputs,
+              ", A_type=", CudaDataTypeToString(a_cuda_type),
+              ", B_type=", CudaDataTypeToString(b_cuda_type),
+              ", result_type=", CudaDataTypeToString(d_cuda_type),
+              ", bias_type=", CudaDataTypeToString(bias_cuda_type),
+              ", scale_type=", CudaDataTypeToString(scale_cuda_type),
               ", computeType=", CublasComputeTypeToString(computeType_),
               ", epilogue=", epilogue, ", smCount=", smCount_,
               ", transA=", transA_, ", transB=", transB_,
@@ -326,15 +371,15 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
   float beta = 0;
   CUBLAS_THROW_IF_ERROR(cublasLtMatmul(
-      cublasLt, operationDesc, static_cast<const void *>(&alpha_),  /* alpha */
-      input_A.GetTensorRawData(),                                   /* A */
-      Adesc, input_B.GetTensorRawData(),                            /* B */
-      Bdesc, static_cast<const void *>(&beta),                      /* beta */
-      nullptr,                                                      /* C */
-      Cdesc, Y.GetTensorMutableRawData(),                           /* Y */
-      Ddesc, &heuristicResult.algo,                                 /* algo */
-      workspace,                                                    /* workspace */
-      workspaceSize, stream));                                      /* stream */
+      cublasLt, operationDesc, static_cast<const void *>(&alpha_), /* alpha */
+      input_A.GetTensorRawData(),                                  /* A */
+      Adesc, input_B.GetTensorRawData(),                           /* B */
+      Bdesc, static_cast<const void *>(&beta),                     /* beta */
+      nullptr,                                                     /* C */
+      Cdesc, Y.GetTensorMutableRawData(),                          /* Y */
+      Ddesc, &heuristicResult.algo,                                /* algo */
+      workspace,               /* workspace */
+      workspaceSize, stream)); /* stream */
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }
@@ -346,6 +391,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   cublasLtMatrixLayoutDestroy(Adesc);
   cublasLtMatmulDescDestroy(operationDesc);
   CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
+  EXT_ENFORCE(p_scale_d == p_scale_before, "Output scale needs to be copied.");
 }
 
 } // namespace ortops

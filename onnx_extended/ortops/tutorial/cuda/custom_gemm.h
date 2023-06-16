@@ -18,6 +18,7 @@ private:
   bool transA_;
   bool transB_;
   bool fastAccumulationMode_;
+  bool row_major_;
   int64_t smCount_;
   cublasComputeType_t computeType_;
 };
