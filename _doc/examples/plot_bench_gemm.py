@@ -325,8 +325,8 @@ for tt, engine, provider, dim, domain in pbar:
         )
         feeds = {"A": matrices[k1], "B": matrices[k2]}
         opts = SessionOptions()
+        r = get_ort_ext_libs()
         if r is not None:
-            r = get_ort_ext_libs()
             opts.register_custom_ops_library(r[0])
         try:
             sess = engine(onx.SerializeToString(), opts, providers=provider)
