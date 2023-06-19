@@ -93,17 +93,14 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
             fastAccumulationMode=1,
             rowMajor=0 if op_name == "CustomGemmFloat8E4M3FN" else 1,
         )
-        nodes = []
-        nodes.extend(
-            [
-                make_node(
-                    op_name,
-                    ["A", "B", "I", "I"] if f8 else ["A", "B"],
-                    ["C", "unused"] if f8 else ["C"],
-                    **node_kw,
-                ),
-            ]
-        )
+        nodes = [
+            make_node(
+                op_name,
+                ["A", "B", "I", "I"] if f8 else ["A", "B"],
+                ["C", "unused"] if f8 else ["C"],
+                **node_kw,
+            ),
+        ]
     else:
         nodes = [
             make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
