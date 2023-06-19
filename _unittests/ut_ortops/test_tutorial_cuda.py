@@ -146,9 +146,11 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"and model=\n{onnx_simple_text_plot(onnx_model)}."
             ) from e
         a, b = inputs[:2]
-        expected = a.T @ b * kwargs.get("alpha", 1.0)
         if kwargs.get("rowMajor", 0):
-            expected = expected.T
+            expected = a @ b.T
+        else:
+            expected = a.T @ b
+        expected *= kwargs.get("alpha", 1.0)
         if gemm8:
             self.assertEqualArray(numpy.array([], numpy.float32), got[1])
             self.assertEqualArray(expected, got[0])
