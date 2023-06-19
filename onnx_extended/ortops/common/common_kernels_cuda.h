@@ -156,4 +156,18 @@ inline void _CublasThrowOnError_(cublasStatus_t status, const char *file,
 #define CUBLAS_THROW_IF_ERROR(expr)                                            \
   _CublasThrowOnError_((expr), __FILE__, __LINE__, #expr)
 
+
+template <typename T>
+void _check_cuda(T err, const char *const func, const char *const file,
+                 const int line) {
+  if (err != cudaSuccess) {
+    std::stringstream strstr;
+    strstr << "CUDA error at: " << file << ":" << line << std::endl;
+    strstr << cudaGetErrorString(err) << " " << func << std::endl;
+    throw strstr.str();
+  }
+}
+
+#define CUDA_THROW_IF_ERROR(expr) _check_cuda((expr), #expr, __FILE__, __LINE__)
+
 } // namespace ortops

@@ -107,7 +107,7 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   transB_ =
       KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transB", false);
   fastAccumulationMode_ = KernelInfoGetOptionalAttributeInt64AsBool(
-      api, info, "fastAccumulationMode", false);
+      api, info, "fastAccumulationMode", true);
   smCount_ = KernelInfoGetOptionalAttributeInt64(api, info, "smCount", 0);
 
   // A string attribute.
@@ -261,11 +261,11 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
 
   const void *p_scale_a = nullptr;
   const void *p_scale_b = nullptr;
-  const void *p_scale_d = nullptr;
-  const void *p_scale_before = nullptr;
+  void *p_scale_d = nullptr;
+  void *p_scale_before = nullptr;
   if (n_inputs == 4) {
     // gemm float 8
-    const int8_t ifast_accumulation_mode = fastAccumulationMode_ ? 0 : 1;
+    const int8_t ifast_accumulation_mode = fastAccumulationMode_ ? 1 : 0;
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc,
         cublasLtMatmulDescAttributes_t::CUBLASLT_MATMUL_DESC_FAST_ACCUM,
@@ -275,7 +275,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         operationDesc, CUBLASLT_MATMUL_DESC_A_SCALE_POINTER, &p_scale_a,
         sizeof(p_scale_a)));
     p_scale_b = scale_B.GetTensorRawData();
-    p_scale_before = p_scale_b;
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER, &p_scale_b,
         sizeof(p_scale_b)));
@@ -285,14 +284,19 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) {
       std::vector<int64_t> scale_dimensions{1};
       Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
-      p_scale_d = scale_Y.GetTensorRawData();
+      p_scale_d = out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN 
+                  ? static_cast<void*>(scale_Y.GetTensorMutableData<Ort::Float8E4M3FN_t>())
+                  : static_cast<void*>(scale_Y.GetTensorMutableData<Ort::Float8E5M2_t>());
+      float one = 1;
+      CUDA_THROW_IF_ERROR(cudaMemcpy(p_scale_d, static_cast<const void*>(&one), sizeof(float), cudaMemcpyHostToDevice));
+      p_scale_before = p_scale_d;
       CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
           operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_d,
           sizeof(p_scale_d)));
       auto memsY = scale_Y.GetTensorMemoryInfo();
       EXT_ENFORCE(memsY.GetDeviceType() ==
                       OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-                  "output scale B is not on CUDA");
+                  "output scale D is not on CUDA");
       // For FP8 output, cuBLAS requires C_type to be same as bias_type
       CUBLAS_THROW_IF_ERROR(
           cublasLtMatrixLayoutCreate(&Cdesc, bias_cuda_type, M, N, ldd));
@@ -377,26 +381,27 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   }
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
   float beta = 0;
+  void* C = Y.GetTensorMutableRawData();
   CUBLAS_THROW_IF_ERROR(cublasLtMatmul(
-      cublasLt, operationDesc, static_cast<const void *>(&alpha_), /* alpha */
-      input_A.GetTensorRawData(),                                  /* A */
-      Adesc, input_B.GetTensorRawData(),                           /* B */
-      Bdesc, static_cast<const void *>(&beta),                     /* beta */
-      nullptr,                                                     /* C */
-      Cdesc, Y.GetTensorMutableRawData(),                          /* Y */
-      Ddesc, &heuristicResult.algo,                                /* algo */
-      workspace,               /* workspace */
-      workspaceSize, stream)); /* stream */
+      cublasLt, operationDesc, static_cast<const void *>(&alpha_),  /* alpha */
+      input_A.GetTensorRawData(),                                   /* A */
+      Adesc, input_B.GetTensorRawData(),                            /* B */
+      Bdesc, static_cast<const void *>(&beta),                      /* beta */
+      C,                                                            /* C */
+      Cdesc, Y.GetTensorMutableRawData(),                           /* Y */
+      Ddesc, &heuristicResult.algo,                                 /* algo */
+      workspace,                                                    /* workspace */
+      workspaceSize, stream));                                      /* stream */
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }
 
-  cublasLtMatmulPreferenceDestroy(preference);
-  cublasLtMatrixLayoutDestroy(Ddesc);
-  cublasLtMatrixLayoutDestroy(Cdesc);
-  cublasLtMatrixLayoutDestroy(Bdesc);
-  cublasLtMatrixLayoutDestroy(Adesc);
-  cublasLtMatmulDescDestroy(operationDesc);
+  CUBLAS_THROW_IF_ERROR(cublasLtMatmulPreferenceDestroy(preference));
+  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Ddesc));
+  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Cdesc));
+  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Bdesc));
+  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Adesc));
+  CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescDestroy(operationDesc));
   CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
   EXT_ENFORCE(p_scale_d == p_scale_before, "Output scale needs to be copied.");
 }
