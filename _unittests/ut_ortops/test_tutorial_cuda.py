@@ -24,8 +24,16 @@ try:
         get_available_providers,
         __version__ as ort_version,
     )
+    from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
 except ImportError:
-    SessionOptions, InferenceSession, get_available_providers, ort_version = (
+    (
+        SessionOptions,
+        InferenceSession,
+        get_available_providers,
+        ort_version,
+        OrtFail,
+    ) = (
+        None,
         None,
         None,
         None,
@@ -127,7 +135,13 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         if gemm8:
             feeds["scaleA"] = numpy.array([1], dtype=numpy.float32)
             feeds["scaleB"] = numpy.array([1], dtype=numpy.float32)
-        got = sess.run(None, feeds)
+        try:
+            got = sess.run(None, feeds)
+        except OrtFail as e:
+            raise AssertionError(
+                f"Unable to run a model with feeds={feeds!r} "
+                f"and model={str(onnx_model)}."
+            ) from e
         a, b = inputs[:2]
         expected = a.T @ b * kwargs.get("alpha", 1.0)
         if gemm8:
