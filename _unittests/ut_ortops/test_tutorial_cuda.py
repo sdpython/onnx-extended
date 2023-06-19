@@ -138,9 +138,12 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         try:
             got = sess.run(None, feeds)
         except OrtFail as e:
+            dtypes = {k: v.dtype for k, v in feeds.items()}
+            shapes = {k: v.shape for k, v in feeds.items()}
             raise AssertionError(
-                f"Unable to run a model with feeds={feeds!r} "
-                f"and model={str(onnx_model)}."
+                f"Unable to run a model with dtypes={dtypes!r} "
+                f"and shapes={shapes!r} "
+                f"and model=\n{onnx_simple_text_plot(onnx_model)}."
             ) from e
         a, b = inputs[:2]
         expected = a.T @ b * kwargs.get("alpha", 1.0)
