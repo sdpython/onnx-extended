@@ -164,6 +164,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
             fastAccumulationMode=1,
+            rowMajor=0,
         )
 
 

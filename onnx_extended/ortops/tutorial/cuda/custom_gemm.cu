@@ -101,7 +101,7 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "alpha", &alpha_));
   // ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "beta", &beta_));
   row_major_ =
-      KernelInfoGetOptionalAttributeInt64AsBool(api, info, "row_major", true);
+      KernelInfoGetOptionalAttributeInt64AsBool(api, info, "rowMajor", true);
   transA_ =
       KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transA", false);
   transB_ =
