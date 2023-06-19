@@ -229,7 +229,7 @@ pbar = tqdm(list(product(types, engine, providers, dims, domains)))
 for tt, engine, provider, dim, domain in pbar:
     if (
         tt in {TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2}
-        and properties["major"] < 9
+        and properties.get("major", 0) < 9
     ):
         # f8 now available
         continue
@@ -361,9 +361,9 @@ for tt, engine, provider, dim, domain in pbar:
 
 
 df = DataFrame(data)
-df.to_excel("plot_bench_gemm.xlsx")
-df.to_csv("plot_bench_gemm.csv")
-df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_.csv")
+df.to_excel("plot_bench_gemm_ort.xlsx")
+df.to_csv("plot_bench_gemm_ort.csv")
+df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_ort.csv")
 df
 
 #####################################
@@ -382,8 +382,8 @@ piv = pivot_table(
     columns=["type", "domain", "provider", "engine"],
     values="average",
 )
-piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx")
-piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv")
+piv.reset_index(drop=False).to_excel("plot_bench_gemm_ort_summary.xlsx")
+piv.reset_index(drop=False).to_csv("plot_bench_gemm_ort_summary.csv")
 print(piv)
 piv
 
@@ -400,9 +400,7 @@ print(pivs)
 ##############################
 # plot
 
-dfi = df[
-    df.type.isin({"f32", "f16", "bf16", "f8e4m3", "f8e5m2"}) & df.engine.isin({"ort"})
-]
+dfi = df[df.type.isin({"f32", "f16", "bf16", "e4m3", "e5m2"}) & df.engine.isin({"ort"})]
 pivi = pivot_table(
     dfi,
     index=["cost"],
