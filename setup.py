@@ -23,7 +23,7 @@ from setuptools.command.build_ext import build_ext
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.15.0"
+DEFAULT_ORT_VERSION = "1.15.1"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."

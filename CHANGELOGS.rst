@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`34`: update to onnxruntime v1.15.1
 * :pr:`31`: implement a custom CUDA kernel (gemm)
 * :pr:`32`: update to onnxruntime v1.15.0
 * :pr:`27`: add a custom kernel with parameters to onnxruntime
