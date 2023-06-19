@@ -146,7 +146,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=0,
+            fastAccumulationMode=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
 
@@ -163,7 +163,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             "CustomGemmFloat8E4M3FN",
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
-            fastAccumulationMode=0,
+            fastAccumulationMode=1,
         )
 
 

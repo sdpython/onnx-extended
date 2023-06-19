@@ -212,7 +212,7 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
               ", scale_type=" << CUDA_R_32F <<
               ", computeType=" << gemm_compute_type <<
               ", epilogue=" << epilogue  << ", smCount="  << math_sm_count <<
-              ", transA=" << transa << ", transB="  << transa <<
+              ", transA=" << transa << ", transB="  << transb <<
               ", fastAccumulationMode="  << ((use_split_accumulator) ? 0 : 1) <<
               ", lda=" << lda << ", ldb=" << ldb <<
               ", ldd=" << ldd << ", workspaceSize=" << workspaceSize << "\n";
@@ -380,7 +380,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
   case 14:
     type_a = CUDA_R_8F_E5M2;
     type_b = CUDA_R_8F_E4M3;
-    type_d = CUDA_R_16BF;
+    type_d = CUDA_R_16F;
     type_compute = CUBLAS_COMPUTE_32F;
     break;
 #endif
