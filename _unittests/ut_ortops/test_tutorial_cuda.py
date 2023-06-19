@@ -205,5 +205,5 @@ class TestOrtOpTutorialCuda(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOrtOpTutorialCuda().test_custom_gemm_float32()
+    # TestOrtOpTutorialCuda().test_custom_gemm_float32()
     unittest.main(verbosity=2)
