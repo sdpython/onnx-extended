@@ -305,10 +305,16 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
           operationDesc, CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE, &bias_cuda_type,
           sizeof(bias_cuda_type)));
     } else {
+      // An output is still needed but it is not initialized.
+      std::vector<int64_t> scale_dimensions{0};
+      Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
       CUBLAS_THROW_IF_ERROR(
           cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
     }
   } else {
+    // An output is still needed but it is not initialized.
+    std::vector<int64_t> scale_dimensions{0};
+    Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
   }
