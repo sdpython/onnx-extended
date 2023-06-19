@@ -22,7 +22,6 @@ FetchContent_Declare(eigen URL ${LOCAL_EIGEN_URL})
 
 FetchContent_Populate(eigen)
 
-message(STATUS "********* ${eigen_SOURCE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${eigen_SOURCE_DIR}/cmake")
 # find_package(Eigen3)
 

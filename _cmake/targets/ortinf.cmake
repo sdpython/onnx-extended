@@ -11,6 +11,7 @@ cython_add_module(
   ../onnx_extended/ortcy/wrap/ortinf.pyx
   OpenMP::OpenMP_CXX)
 target_link_directories(ortinf PRIVATE ${ONNXRUNTIME_LIB_DIR})
+message(STATUS "    LINK ortinf <- lib_ortapi onnxruntime")
 target_link_libraries(ortinf PRIVATE lib_ortapi onnxruntime)
 ort_add_dependency(ortinf ${CMAKE_CURRENT_SOURCE_DIR}/../onnx_extended/ortcy/wrap/)
 
@@ -21,6 +22,7 @@ target_include_directories(
   test_ortcy_inference_cpp PRIVATE
   ${ROOT_INCLUDE_PATH}
   ${ORT_DIR}/include)
+message(STATUS "    LINK test_ortcy_inference_cpp <- lib_ortapi onnxruntime")
 target_link_directories(test_ortcy_inference_cpp PRIVATE ${ONNXRUNTIME_LIB_DIR})
 target_link_libraries(test_ortcy_inference_cpp PRIVATE lib_ortapi onnxruntime)
 ort_add_dependency(test_ortcy_inference_cpp "")

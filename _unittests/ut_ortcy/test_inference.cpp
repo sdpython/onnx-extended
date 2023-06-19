@@ -3,6 +3,10 @@
 #include "onnxruntime_cxx_api.h"
 #include <filesystem>
 #include <iostream>
+#ifdef _WIN32
+#include <codecvt>
+#include <locale>
+#endif
 
 void testAssertTrue() {
   ASSERT_THROW( true );
@@ -19,12 +23,24 @@ void test_inference() {
   // session_options.Add(v2_domain);
   session_options.SetLogSeverityLevel(0);
 
-  std::filesystem::path cwd = TEST_FOLDER;
-  #ifdef _WIN32
-  std::wstring model = (cwd / "ut_ortcy/data/add.onnx").wstring();
+  // requires C++ 17
+  #if __cplusplus >= 201703L 
+    std::filesystem::path cwd = TEST_FOLDER;
+    #ifdef _WIN32
+    std::wstring model = (cwd / "ut_ortcy/data/add.onnx").wstring();
+    #else
+    std::string model = (cwd / "ut_ortcy/data/add.onnx").string();
+    #endif
   #else
-  std::string model = (cwd / "ut_ortcy/data/add.onnx").string();
+    std::string cwd = TEST_FOLDER;
+    #ifdef _WIN32
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+    std::wstring model(cvt.from_bytes(cwd + std::string("/") + std::string("ut_ortcy/data/add.onnx")));
+    #else
+    std::string model = cwd + std::string("/") + std::string("ut_ortcy/data/add.onnx");
+    #endif
   #endif
+
   Ort::Session session(* ort_env, model.c_str(), session_options);
 
   const char* input_names[] = {"X", "Y"};

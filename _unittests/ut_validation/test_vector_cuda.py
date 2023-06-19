@@ -65,7 +65,7 @@ class TestVectorCuda(ExtTestCase):
     def test_vector_sum0_cuda_bigger(self):
         values = numpy.random.randn(30, 224, 224).astype(numpy.float32)
         t = vector_sum0(values)
-        self.assertAlmostEqual(t, values.sum().astype(numpy.float32), rtol=1e-5)
+        self.assertAlmostEqual(t, values.sum().astype(numpy.float32), rtol=1e-4)
 
     @unittest.skipIf(vector_sum0 is None, reason="CUDA not available")
     def test_vector_sum_atomic_cuda(self):

@@ -23,7 +23,7 @@ from setuptools.command.build_ext import build_ext
 # beginning of setup
 ######################
 
-
+DEFAULT_ORT_VERSION = "1.15.0"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."
@@ -114,6 +114,7 @@ def _run_subprocess(
     env=None,
     python_path=None,
     cuda_home=None,
+    cuda_version=None,
 ):
     if env is None:
         env = {}
@@ -121,6 +122,20 @@ def _run_subprocess(
         raise ValueError("args should be a sequence of strings, not a string")
 
     my_env = os.environ.copy()
+    if cuda_version is not None:
+        if is_windows():
+            cuda_path = (
+                f"C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\{cuda_version}"
+            )
+        elif is_darwin():
+            cuda_path = f"/Developer/NVIDIA/CUDA-{cuda_version}"
+        else:
+            cuda_path = f"/usr/local/cuda-{cuda_version}/bin"
+        if "PATH" in my_env:
+            my_env["PATH"] = cuda_path + os.pathsep + my_env["PATH"]
+        else:
+            my_env["PATH"] = cuda_path
+
     if dll_path:
         if is_windows():
             if "PATH" in my_env:
@@ -192,6 +207,7 @@ def _run_subprocess(
 class CMakeExtension(Extension):
     def __init__(self, name: str, library: str = "") -> None:
         super().__init__(name, sources=[])
+        print(f"-- setup: add extension {name}")
         self.library_file = os.fspath(Path(library).resolve())
 
 
@@ -205,11 +221,39 @@ class cmake_build_ext(build_ext):
             "If cuda is available, CUDA is "
             "used by default unless this option is set to 0",
         ),
+        (
+            "cuda-version=",
+            None,
+            "If cuda is available, it searches the installed version "
+            "unless this option is defined.",
+        ),
+        (
+            "parallel=",
+            None,
+            "Parallelization",
+        ),
+        (
+            "ort-version=",
+            None,
+            "onnxruntime version, a path is allowed",
+        ),
+        (
+            "cuda-build=",
+            None,
+            "CUDA code can be compiled to be working with "
+            "different architectures, this flag can optimize "
+            "for a specific machine, possible values: DEFAULT, "
+            "H100, H100opt",
+        ),
     ]
 
     def initialize_options(self):
         self.enable_nvtx = None
         self.with_cuda = None
+        self.cuda_version = None
+        self.parallel = None
+        self.ort_version = DEFAULT_ORT_VERSION
+        self.cuda_build = "DEFAULT"
         build_ext.initialize_options(self)
 
     def finalize_options(self):
@@ -220,6 +264,11 @@ class cmake_build_ext(build_ext):
             raise ValueError(f"with_cuda={self.with_cuda!r} must be in {b_values}.")
         self.enable_nvtx = self.enable_nvtx in {1, "1", True, "True"}
         self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
+        if self.cuda_version in (None, ""):
+            self.cuda_version = None
+        build = {"DEFAULT", "H100", "H100opt"}
+        if self.cuda_build not in build:
+            raise ValueError(f"cuda-built={self.cuda_build} not in {build}.")
         build_ext.finalize_options(self)
 
     def get_cmake_args(self, cfg: str) -> List[str]:
@@ -239,7 +288,7 @@ class cmake_build_ext(build_ext):
             f"{sys.version_info.minor}."
             f"{sys.version_info.micro}"
         )
-        versmm = f"{sys.version_info.major}." f"{sys.version_info.minor}."
+        versmm = f"{sys.version_info.major}.{sys.version_info.minor}"
         module_ext = distutils.sysconfig.get_config_var("EXT_SUFFIX")
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
@@ -247,7 +296,10 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_VERSION={vers}",
             f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
+            f"-DORT_VERSION={self.ort_version}",
         ]
+        if self.parallel is not None:
+            cmake_args.append(f"-j{self.parallel}")
 
         if os.environ.get("USE_NVTX", "0") in (1, "1") or self.enable_nvtx:
             cmake_args.append("-DUSE_NVTX=1")
@@ -255,6 +307,10 @@ class cmake_build_ext(build_ext):
             cmake_args.append("-DUSE_CUDA=0")
         else:
             cmake_args.append("-DUSE_CUDA=1")
+            cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
+        cuda_version = self.cuda_version or os.environ.get("CUDA_VERSION", "")
+        if cuda_version not in (None, ""):
+            cmake_args.append(f"-DCUDA_VERSION={cuda_version}")
 
         if iswin or isdar:
             include_dir = sysconfig.get_paths()["include"].replace("\\", "/")
@@ -310,7 +366,9 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: source_path={source_path!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
-        _run_subprocess(cmd, cwd=build_path, capture_output=True)
+        _run_subprocess(
+            cmd, cwd=build_path, capture_output=True, cuda_version=self.cuda_version
+        )
 
         # then build
         print()
@@ -318,7 +376,9 @@ class cmake_build_ext(build_ext):
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
-        _run_subprocess(cmd, cwd=build_path, capture_output=True)
+        _run_subprocess(
+            cmd, cwd=build_path, capture_output=True, cuda_version=self.cuda_version
+        )
         print("-- setup: done.")
         return build_path, self.build_lib
 
@@ -388,7 +448,9 @@ class cmake_build_ext(build_ext):
             else:
                 fullname = os.path.join(build_path, assumed_name)
             if not os.path.exists(fullname):
-                raise FileNotFoundError(f"Unable to find {fullname!r}.")
+                raise FileNotFoundError(
+                    f"Unable to find library {fullname!r} (line={line!r})."
+                )
             print(f"-- copy {fullname!r} to {fulldest!r}")
             shutil.copy(fullname, fulldest)
         else:
@@ -407,7 +469,7 @@ class cmake_build_ext(build_ext):
         this = os.path.abspath(os.path.dirname(__file__))
         fullname = os.path.join(this, filename)
         if not os.path.exists(fullname):
-            raise FileNotFoundError(f"Unable to find {fullname!r}.")
+            raise FileNotFoundError(f"Unable to find filename {fullname!r}.")
         with open(fullname, "r") as f:
             lines = f.readlines()
         for line in lines:

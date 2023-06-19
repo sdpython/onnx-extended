@@ -7,12 +7,14 @@ project(onnx_extended VERSION 0.2.0)
 
 message(STATUS "-------------------")
 message(STATUS "CMAKE_VERSION=${CMAKE_VERSION}")
+message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+message(STATUS "CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "CMAKE_CXX_COMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "USE_SETUP_PYTHON=${USE_SETUP_PYTHON}")
 message(STATUS "USE_PYTHON_SETUP=${USE_PYTHON_SETUP}")
 message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
 message(STATUS "PYTHON_VERSION_MM=${PYTHON_VERSION_MM}")
 message(STATUS "PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
-message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(STATUS "PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}")
 message(STATUS "PYTHON_LIBRARY=${PYTHON_LIBRARY}")
 message(STATUS "PYTHON_LIBRARY_DIR=${PYTHON_LIBRARY_DIR}")
@@ -20,58 +22,30 @@ message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
 message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON_MODULE_EXTENSION}")
 message(STATUS "PYTHON_NUMPY_VERSION=${PYTHON_NUMPY_VERSION}")
 message(STATUS "USE_CUDA=${USE_CUDA}")
+message(STATUS "CUDA_BUILD=${CUDA_BUILD}")
 message(STATUS "USE_NVTX=${USE_NVTX}")
-message(STATUS "ENV-PATH=$ENV{PATH}")
-message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
+message(STATUS "ORT_VERSION=${ORT_VERSION}")
+# message(STATUS "ENV-PATH=$ENV{PATH}")
+# message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+
+# Don't let cmake set a default value for CMAKE_CUDA_ARCHITECTURES
+# see https://cmake.org/cmake/help/latest/policy/CMP0104.html
+# cmake_policy(SET CMP0104 OLD) # deprecated
 
 list(APPEND CMAKE_MODULE_PATH
      "${CMAKE_CURRENT_SOURCE_DIR}"
      "${CMAKE_CURRENT_SOURCE_DIR}/externals")
 
-#
-# C++ 17
-#
-
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-endif()
 
 #
-# Packages
+# Packages and constants
 #
 
 include("load_externals.cmake")
-
-#
-# constant
-#
-
-set(TEST_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../_unittests")
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_constants.h.in
-  ${TEST_FOLDER}/test_constants.h
-)
-
-#
-# Compiling options
-#
-
-# AVX instructions
-if(MSVC)
-  # disable warning for #pragma unroll
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
-  add_compile_options(/wd4068)
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-endif()
-
-if(APPLE)
-  set(ENV(LDFLAGS) "-L/usr/local/opt/llvm/lib")
-  set(ENV(CPPFLAGS) "-I/usr/local/opt/llvm/include")
-endif()
+include("constants.cmake")
 
 #
 # modules
@@ -85,7 +59,10 @@ include("targets/c_op_conv_.cmake")
 include("targets/c_op_tree_ensemble_py_.cmake")
 include("targets/cuda_example_py.cmake")
 include("targets/vector_function_cy.cmake")
-include("targets/ortops_tutorial.cmake")
+
+set(ORTOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortops")
+include("targets/ortops_tutorial_cpu.cmake")
+include("targets/ortops_tutorial_cuda.cmake")
 
 #
 # write version

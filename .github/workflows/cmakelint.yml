@@ -14,7 +14,7 @@ jobs:
       id: cmake-format
       uses: PuneetMatharu/cmake-format-lint-action@v1.0.0
       with:
-        args: --config-files .cmake-format.json --in-place
+        args: --check
 
     - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4

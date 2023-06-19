@@ -78,11 +78,13 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 #endif
 
 #if !defined(_ENFORCE_DEFINED)
-#define EXT_ENFORCE(cond, ...)                                                    \
+#define EXT_ENFORCE(cond, ...)                                                 \
   if (!(cond))                                                                 \
     throw std::runtime_error(                                                  \
         orthelpers::MakeString("`", #cond, "` failed.", orthelpers::MakeString(__VA_ARGS__)));
 #define _ENFORCE_DEFINED
 #endif
+
+
 
 } // namespace orthelpers

@@ -19,7 +19,7 @@ except ImportError:
 from onnx_extended.ext_test_case import ExtTestCase
 
 
-class TestOrtOpTutorial(ExtTestCase):
+class TestOrtOpTutorialCpu(ExtTestCase):
     def test_get_ort_ext_libs(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
@@ -55,7 +55,9 @@ class TestOrtOpTutorial(ExtTestCase):
         r = get_ort_ext_libs()
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
-        sess = InferenceSession(onnx_model.SerializeToString(), opts)
+        sess = InferenceSession(
+            onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
         a = numpy.random.randn(2, 2).astype(numpy.float32)
         b = numpy.random.randn(2, 2).astype(numpy.float32)
         feeds = {"X": a, "A": b}
@@ -90,7 +92,9 @@ class TestOrtOpTutorial(ExtTestCase):
         r = get_ort_ext_libs()
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
-        sess = InferenceSession(onnx_model.SerializeToString(), opts)
+        sess = InferenceSession(
+            onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
         a = numpy.random.randn(2, 2).astype(numpy.float64)
         b = numpy.random.randn(2, 2).astype(numpy.float64)
         feeds = {"X": a, "A": b}

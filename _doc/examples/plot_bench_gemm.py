@@ -9,6 +9,7 @@ Differents types, differents backend, differents
 Onnx Model
 ++++++++++
 """
+import pprint
 import platform
 from itertools import product
 import numpy
@@ -25,46 +26,143 @@ from onnx.helper import (
 )
 from onnx.checker import check_model
 from onnx.numpy_helper import from_array
-from onnxruntime import InferenceSession, get_available_providers
+from onnx.reference import ReferenceEvaluator
+from onnxruntime import InferenceSession, SessionOptions, get_available_providers
 from onnxruntime.capi._pybind_state import (
     OrtValue as C_OrtValue,
     OrtDevice as C_OrtDevice,
 )
 from onnxruntime.capi.onnxruntime_pybind11_state import (
+    Fail,
     NotImplemented,
     InvalidGraph,
     InvalidArgument,
 )
-from onnx_extended.reference import CReferenceEvaluator
+
+try:
+    from onnx_extended.reference import CReferenceEvaluator
+except ImportError:
+    CReferenceEvaluator = ReferenceEvaluator
 from onnx_extended.ext_test_case import unit_test_going, measure_time
 
+try:
+    from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
+    from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+except ImportError:
 
-def create_model(mat_type=TensorProto.FLOAT):
+    def get_device_prop():
+        return {"name": "CPU"}
+
+    def get_ort_ext_libs():
+        return None
+
+
+properties = get_device_prop()
+pprint.pprint(properties)
+
+
+###################################
+# Model to benchmark
+# ++++++++++++++++++
+
+
+def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
     I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
     C = make_tensor_value_info("C", mat_type, [None, None])
-    nodes = [
-        make_node("CastLike", ["I", "A"], ["Ic"]),
-        make_node("Add", ["A", "Ic"], ["A1"]),
-        make_node("Add", ["A1", "Ic"], ["A2"]),
-        make_node("Add", ["A2", "Ic"], ["A3"]),
-        make_node("MatMul", ["A", "B"], ["M0"]),
-        make_node("MatMul", ["A1", "B"], ["M1"]),
-        make_node("MatMul", ["A2", "B"], ["M2"]),
-        make_node("MatMul", ["A3", "B"], ["M3"]),
-        make_node("Add", ["M0", "M1"], ["M12"]),
-        make_node("Add", ["M2", "M3"], ["M23"]),
-        make_node("Add", ["M12", "M23"], ["C"]),
-    ]
-    graph = make_graph(nodes, "a", [A, B], [C], [I1])
+    inits = [I1]
+    if domain != "":
+        f8 = mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2)
+        if domain == "com.microsoft":
+            op_name = "GemmFloat8"
+            computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+        elif not f8:
+            op_name = "CustomGemmFloat"
+            computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+        else:
+            op_name = "CustomGemmFloat8E4M3FN"
+            computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+        nodes = []
+        nodes.extend(
+            [
+                make_node("CastLike", ["I", "A"], ["Ic"]),
+                make_node("Add", ["A", "Ic"], ["A1"]),
+                make_node("Add", ["A1", "Ic"], ["A2"]),
+                make_node("Add", ["A2", "Ic"], ["A3"]),
+                make_node(
+                    op_name,
+                    ["A", "B", "I", "I"] if f8 else ["A", "B"],
+                    ["M0"],
+                    alpha=1.0,
+                    transA=1,
+                    domain=domain,
+                    computeType=computeType,
+                ),
+                make_node(
+                    op_name,
+                    ["A1", "B", "I", "I"] if f8 else ["A1", "B"],
+                    ["M1"],
+                    alpha=1.0,
+                    transA=1,
+                    domain=domain,
+                    computeType=computeType,
+                ),
+                make_node(
+                    op_name,
+                    ["A2", "B", "I", "I"] if f8 else ["A2", "B"],
+                    ["M2"],
+                    alpha=1.0,
+                    transA=1,
+                    domain=domain,
+                    computeType=computeType,
+                ),
+                make_node(
+                    op_name,
+                    ["A3", "B", "I", "I"] if f8 else ["A3", "B"],
+                    ["M3"],
+                    alpha=1.0,
+                    transA=1,
+                    domain=domain,
+                    computeType=computeType,
+                ),
+                make_node("CastLike", ["M0", "A"], ["M0c"]),
+                make_node("CastLike", ["M1", "A"], ["M1c"]),
+                make_node("CastLike", ["M2", "A"], ["M2c"]),
+                make_node("CastLike", ["M3", "A"], ["M3c"]),
+                make_node("Add", ["M0c", "M1c"], ["M12"]),
+                make_node("Add", ["M2c", "M3c"], ["M23"]),
+                make_node("Add", ["M12", "M23"], ["C"]),
+            ]
+        )
+    else:
+        nodes = [
+            make_node("CastLike", ["I", "A"], ["Ic"]),
+            make_node("Add", ["A", "Ic"], ["A1"]),
+            make_node("Add", ["A1", "Ic"], ["A2"]),
+            make_node("Add", ["A2", "Ic"], ["A3"]),
+            make_node("Gemm", ["A", "B"], ["M0"], transA=1, beta=0.0),
+            make_node("Gemm", ["A1", "B"], ["M1"], transA=1, beta=0.0),
+            make_node("Gemm", ["A2", "B"], ["M2"], transA=1, beta=0.0),
+            make_node("Gemm", ["A3", "B"], ["M3"], transA=1, beta=0.0),
+            make_node("Add", ["M0", "M1"], ["M12"]),
+            make_node("Add", ["M2", "M3"], ["M23"]),
+            make_node("Add", ["M12", "M23"], ["C"]),
+        ]
+    graph = make_graph(nodes, "a", [A, B], [C], inits)
     if mat_type < 16:
         # regular type
         opset, ir = 18, 8
     else:
         opset, ir = 19, 9
     onnx_model = make_model(
-        graph, opset_imports=[make_opsetid("", opset)], ir_version=ir
+        graph,
+        opset_imports=[
+            make_opsetid("", opset),
+            make_opsetid("com.microsoft", 1),
+            make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+        ],
+        ir_version=ir,
     )
     check_model(onnx_model)
     return onnx_model
@@ -110,8 +208,7 @@ types = [
     TensorProto.INT8,
     TensorProto.FLOAT16,
     TensorProto.BFLOAT16,
-    TensorProto.FLOAT8E4M3FN,
-    TensorProto.FLOAT8E5M2,
+    # (TensorProto.FLOAT8E4M3FN, True),
 ]
 engine = [CReferenceEvaluator, InferenceSession]
 providers = [
@@ -126,10 +223,12 @@ dims = [
     (65, 66, 67),
     (100, 100, 100),
     (128, 128, 128),
-    # (256, 256, 256),
+    (256, 256, 256),
     # (400, 400, 400),
     # (512, 512, 512),
 ]
+
+domains = ["", "com.microsoft", "onnx_extented.ortops.tutorial.cuda"]
 
 
 map_type = {TensorProto.FLOAT: numpy.float32, TensorProto.FLOAT16: numpy.float16}
@@ -149,6 +248,8 @@ matrices = {}
 for m, n, k in dims:
     for tt in types:
         for i, j in [(m, k), (k, n)]:
+            if (tt, i, j) in matrices:
+                continue
             try:
                 sess = InferenceSession(
                     create_cast(tt).SerializeToString(),
@@ -170,8 +271,14 @@ print(f"{len(matrices)} matrices were created.")
 
 data = []
 errors = []
-pbar = tqdm(list(product(types, engine, providers, dims)))
-for tt, engine, provider, dim in pbar:
+pbar = tqdm(list(product(types, engine, providers, dims, domains)))
+for tt, engine, provider, dim, domain in pbar:
+    if (
+        tt in {TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2}
+        and properties["major"] < 9
+    ):
+        # f8 now available
+        continue
     if max(dim) <= 200:
         repeat, number = 50, 25
     elif max(dim) <= 256:
@@ -179,10 +286,10 @@ for tt, engine, provider, dim in pbar:
     else:
         repeat, number = 10, 4
 
-    onx = create_model(tt)
+    onx = create_model(tt, domain=domain)
     with open(f"plot_bench_gemm_{tt}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
-    k1 = (tt, dim[0], dim[2])
+    k1 = (tt, dim[2], dim[0])
     k2 = (tt, dim[2], dim[1])
     if k1 not in matrices:
         errors.append(f"Key k1={k1!r} not in matrices.")
@@ -192,6 +299,8 @@ for tt, engine, provider, dim in pbar:
         continue
 
     if engine == CReferenceEvaluator:
+        if domain != "":
+            continue
         if tt == TensorProto.FLOAT16 and max(dim) > 50:
             repeat, number = 2, 2
         if provider != ["CPUExecutionProvider"]:
@@ -215,9 +324,13 @@ for tt, engine, provider, dim in pbar:
             f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}"
         )
         feeds = {"A": matrices[k1], "B": matrices[k2]}
+        opts = SessionOptions()
+        r = get_ort_ext_libs()
+        if r is not None:
+            opts.register_custom_ops_library(r[0])
         try:
-            sess = engine(onx.SerializeToString(), providers=provider)
-        except (NotImplemented, InvalidGraph) as e:
+            sess = engine(onx.SerializeToString(), opts, providers=provider)
+        except (NotImplemented, InvalidGraph, Fail) as e:
             # not implemented
             errors.append(e)
             continue
@@ -236,7 +349,10 @@ for tt, engine, provider, dim in pbar:
                 errors.append(f"issue with cuda and type {tt} - {e}")
                 continue
 
-        sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0]
+        # warmup
+        for i in range(5):
+            sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0]
+        # benchamrk
         obs = measure_time(
             lambda: sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0],
             repeat=repeat,
@@ -246,19 +362,21 @@ for tt, engine, provider, dim in pbar:
     else:
         continue
 
+    stype = {
+        TensorProto.FLOAT: "f32",
+        TensorProto.FLOAT16: "f16",
+        TensorProto.INT8: "i8",
+        TensorProto.INT16: "i16",
+        TensorProto.INT32: "i32",
+        TensorProto.UINT32: "u32",
+    }[tt]
     obs.update(
         dict(
             engine={"InferenceSession": "ort", "CReferenceEvaluator": "np"}[
                 engine.__name__
             ],
-            type={
-                TensorProto.FLOAT: "f32",
-                TensorProto.FLOAT16: "f16",
-                TensorProto.INT8: "i8",
-                TensorProto.INT16: "i16",
-                TensorProto.INT32: "i32",
-                TensorProto.UINT32: "u32",
-            }[tt],
+            stype=stype,
+            type=f"{stype}",
             M=dim[0],
             N=dim[1],
             K=dim[2],
@@ -266,9 +384,15 @@ for tt, engine, provider, dim in pbar:
             cost_s=f"{numpy.prod(dim) * 4}-{dim[0]}x{dim[1]}x{dim[2]}",
             repeat=repeat,
             number=number,
-            provider={"CPUExecutionProvider": "cpu", "CUDAExecutionProvider": "cuda"}[
-                provider[0]
-            ],
+            domain={
+                "": "-",
+                "com.microsoft": "ORT",
+                "onnx_extented.ortops.tutorial.cuda": "EXT",
+            }[domain],
+            provider={
+                "CPUExecutionProvider": "cpu",
+                "CUDAExecutionProvider": "cuda",
+            }[provider[0]],
             platform=platform.processor(),
         )
     )
@@ -294,7 +418,10 @@ for e in list(sorted(set(map(str, errors)))):
 # +++++
 
 piv = pivot_table(
-    df, index=["cost"], columns=["engine", "type", "provider"], values="average"
+    df,
+    index=["cost"],
+    columns=["engine", "type", "provider", "domain"],
+    values="average",
 )
 piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx")
 piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv")
@@ -304,7 +431,10 @@ piv
 ########################################
 # With the dimensions.
 pivs = pivot_table(
-    df, index=["cost_s"], columns=["engine", "type", "provider"], values="average"
+    df,
+    index=["cost_s"],
+    columns=["engine", "type", "provider", "domain"],
+    values="average",
 )
 print(pivs)
 
@@ -315,7 +445,10 @@ dfi = df[
     df.type.isin({"f32", "f16", "bf16", "f8e4m3", "f8e5m2"}) & df.engine.isin({"ort"})
 ]
 pivi = pivot_table(
-    dfi, index=["cost"], columns=["engine", "type", "provider"], values="average"
+    dfi,
+    index=["cost"],
+    columns=["engine", "type", "provider", "domain"],
+    values="average",
 )
 
 fig, ax = plt.subplots(1, 2, figsize=(12, 6))
