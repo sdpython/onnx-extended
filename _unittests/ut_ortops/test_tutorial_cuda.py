@@ -101,7 +101,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                     make_tensor_value_info("scaleB", TensorProto.FLOAT, [1]),
                 ]
             )
-            outputs.append(make_tensor_value_info("scaleY", TensorProto.FLOAT, [1]))
+            outputs.append(make_tensor_value_info("scaleY", TensorProto.FLOAT, [0]))
         graph = make_graph(nodes, "lr", inputs, outputs)
         onnx_model = make_model(
             graph,
@@ -147,8 +147,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             ) from e
         a, b = inputs[:2]
         expected = a.T @ b * kwargs.get("alpha", 1.0)
+        if kwargs.get("rowMakor", 0):
+            expected = expected.T
         if gemm8:
-            self.assertEqualArray(numpy.array([1], numpy.float32), got[1])
+            self.assertEqualArray(numpy.array([], numpy.float32), got[1])
             self.assertEqualArray(expected, got[0])
         else:
             self.assertEqualArray(expected, got[0])
