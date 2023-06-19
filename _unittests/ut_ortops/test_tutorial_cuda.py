@@ -147,9 +147,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             ) from e
         a, b = inputs[:2]
         if kwargs.get("rowMajor", 1):
-            expected = a @ b.T
-        else:
             expected = a.T @ b
+        else:
+            expected = a @ b.T
         expected *= kwargs.get("alpha", 1.0)
         if gemm8:
             self.assertEqualArray(numpy.array([], numpy.float32), got[1])
