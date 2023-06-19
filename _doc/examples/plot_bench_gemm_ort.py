@@ -83,6 +83,14 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         else:
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+        node_kw = dict(
+            alpha=1.0,
+            transA=1,
+            domain=domain,
+            computeType=computeType,
+            fastAccumulationMode=1,
+            rowMajor=0 if op_name == "CustomGemmFloat8E4M3FN" else 1,
+        )
         nodes = []
         nodes.extend(
             [
@@ -94,37 +102,25 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
                     op_name,
                     ["A", "B", "I", "I"] if f8 else ["A", "B"],
                     ["M0"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
+                    **node_kw,
                 ),
                 make_node(
                     op_name,
                     ["A1", "B", "I", "I"] if f8 else ["A1", "B"],
                     ["M1"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
+                    **node_kw,
                 ),
                 make_node(
                     op_name,
                     ["A2", "B", "I", "I"] if f8 else ["A2", "B"],
                     ["M2"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
+                    **node_kw,
                 ),
                 make_node(
                     op_name,
                     ["A3", "B", "I", "I"] if f8 else ["A3", "B"],
                     ["M3"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
+                    **node_kw,
                 ),
                 make_node("CastLike", ["M0", "A"], ["M0c"]),
                 make_node("CastLike", ["M1", "A"], ["M1c"]),
@@ -208,7 +204,7 @@ types = [
     TensorProto.INT8,
     TensorProto.FLOAT16,
     TensorProto.BFLOAT16,
-    # (TensorProto.FLOAT8E4M3FN, True),
+    TensorProto.FLOAT8E4M3FN,
 ]
 engine = [CReferenceEvaluator, InferenceSession]
 providers = [
@@ -224,14 +220,11 @@ dims = [
     (100, 100, 100),
     (128, 128, 128),
     (256, 256, 256),
-    # (400, 400, 400),
-    # (512, 512, 512),
+    (400, 400, 400),
+    (512, 512, 512),
 ]
 
 domains = ["", "com.microsoft", "onnx_extented.ortops.tutorial.cuda"]
-
-
-map_type = {TensorProto.FLOAT: numpy.float32, TensorProto.FLOAT16: numpy.float16}
 
 
 ####################################
@@ -287,7 +280,7 @@ for tt, engine, provider, dim, domain in pbar:
         repeat, number = 10, 4
 
     onx = create_model(tt, domain=domain)
-    with open(f"plot_bench_gemm_{tt}.onnx", "wb") as f:
+    with open(f"plot_bench_gemm_{tt}_{domain}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
     k1 = (tt, dim[2], dim[0])
     k2 = (tt, dim[2], dim[1])
@@ -300,6 +293,9 @@ for tt, engine, provider, dim, domain in pbar:
 
     if engine == CReferenceEvaluator:
         if domain != "":
+            continue
+        if max(dim) > 256:
+            # too slow
             continue
         if tt == TensorProto.FLOAT16 and max(dim) > 50:
             repeat, number = 2, 2
@@ -332,7 +328,7 @@ for tt, engine, provider, dim, domain in pbar:
             sess = engine(onx.SerializeToString(), opts, providers=provider)
         except (NotImplemented, InvalidGraph, Fail) as e:
             # not implemented
-            errors.append(e)
+            errors.append((tt, engine.__class__.__name__, provider, domain, e))
             continue
 
         if provider == ["CPUExecutionProvider"]:
@@ -369,6 +365,8 @@ for tt, engine, provider, dim, domain in pbar:
         TensorProto.INT16: "i16",
         TensorProto.INT32: "i32",
         TensorProto.UINT32: "u32",
+        TensorProto.FLOAT8E4M3FN: "e4m3fn",
+        TensorProto.FLOAT8E5M2: "e5m2",
     }[tt]
     obs.update(
         dict(
@@ -420,7 +418,7 @@ for e in list(sorted(set(map(str, errors)))):
 piv = pivot_table(
     df,
     index=["cost"],
-    columns=["engine", "type", "provider", "domain"],
+    columns=["type", "domain", "provider", "engine"],
     values="average",
 )
 piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx")
@@ -433,7 +431,7 @@ piv
 pivs = pivot_table(
     df,
     index=["cost_s"],
-    columns=["engine", "type", "provider", "domain"],
+    columns=["type", "domain", "provider", "engine"],
     values="average",
 )
 print(pivs)
@@ -447,7 +445,7 @@ dfi = df[
 pivi = pivot_table(
     dfi,
     index=["cost"],
-    columns=["engine", "type", "provider", "domain"],
+    columns=["type", "domain", "provider", "engine"],
     values="average",
 )
 
@@ -461,4 +459,4 @@ if pivi.shape[0] > 0:
         logy=True,
     )
 fig.tight_layout()
-fig.savefig("plot_bench_gemm.png")
+fig.savefig("plot_bench_gemm_ort.png")
