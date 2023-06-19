@@ -280,6 +280,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         sizeof(p_scale_b)));
 
     // float 8
+#if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
     if (out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN ||
         out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) {
       std::vector<int64_t> scale_dimensions{1};
@@ -311,6 +312,10 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
   }
+#else
+  CUBLAS_THROW_IF_ERROR(
+      cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
+#endif
 
   cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
   cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE,
@@ -351,7 +356,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulAlgoGetHeuristic#cublasltmatmulalgogetheuristic
   cublasLtMatmulHeuristicResult_t heuristicResult = {};
   int returnedResults = 0;
-  std::cout << "Heuristic\n";
   cublasStatus_t cuda_status = cublasLtMatmulAlgoGetHeuristic(
       cublasLt, operationDesc, Adesc, Bdesc, Cdesc, Ddesc, preference, 1,
       &heuristicResult, &returnedResults);
@@ -376,8 +380,9 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
               ". Check NVIDIA documentation to see what combination is valid: ",
               "https://docs.nvidia.com/cuda/cublas/"
               "index.html?highlight=cublasLtMatmulAlgoGetHeuristic#"
-              "cublasltmatmulalgogetheuristic.");
-  std::cout << "MatMul\n";
+              "cublasltmatmulalgogetheuristic. "
+              "RowMajor is not supported with float 8.");
+
   void *workspace = nullptr;
   if (workspaceSize > 0) {
     CUDA_THROW_IF_ERROR(cudaMalloc((void **)&workspace, workspaceSize));
@@ -398,7 +403,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }
-  std::cout << "end\n";
 
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulPreferenceDestroy(preference));
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Ddesc));
