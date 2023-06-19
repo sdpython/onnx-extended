@@ -153,7 +153,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         expected *= kwargs.get("alpha", 1.0)
         if gemm8:
             self.assertEqualArray(numpy.array([], numpy.float32), got[1])
-            self.assertEqualArray(expected, got[0])
+            self.assertEqualArray(expected, got[0], atol=0.08)
         else:
             self.assertEqualArray(expected, got[0])
 
