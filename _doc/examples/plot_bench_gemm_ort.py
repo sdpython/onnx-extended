@@ -157,6 +157,7 @@ create_cast(TensorProto.FLOAT16)
 # The benchmark will run the following configurations.
 
 types = [
+    TensorProto.FLOAT8E4M3FN,
     TensorProto.FLOAT,
     TensorProto.UINT32,
     TensorProto.INT32,
@@ -164,12 +165,11 @@ types = [
     TensorProto.INT8,
     TensorProto.FLOAT16,
     TensorProto.BFLOAT16,
-    TensorProto.FLOAT8E4M3FN,
 ]
-engine = [CReferenceEvaluator, InferenceSession]
+engine = [InferenceSession, CReferenceEvaluator]
 providers = [
-    ["CPUExecutionProvider"],
     ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    ["CPUExecutionProvider"],
 ]
 # M, N, K
 dims = [
@@ -185,7 +185,7 @@ dims = [
     (1024, 1024, 1024),
 ]
 
-domains = ["", "com.microsoft", "onnx_extented.ortops.tutorial.cuda"]
+domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
 ####################################
