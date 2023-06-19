@@ -83,6 +83,7 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         else:
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+        if f8:
             inits.append(I1)
         node_kw = dict(
             alpha=1.0,
