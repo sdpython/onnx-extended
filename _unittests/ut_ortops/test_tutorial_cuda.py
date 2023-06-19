@@ -146,7 +146,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"and model=\n{onnx_simple_text_plot(onnx_model)}."
             ) from e
         a, b = inputs[:2]
-        if kwargs.get("rowMajor", 0):
+        if kwargs.get("rowMajor", 1):
             expected = a @ b.T
         else:
             expected = a.T @ b
@@ -162,13 +162,28 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
-    def test_custom_gemm_float32(self):
+    def test_custom_gemm_float32_default(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
             fastAccumulationMode=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_row_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=1,
         )
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
