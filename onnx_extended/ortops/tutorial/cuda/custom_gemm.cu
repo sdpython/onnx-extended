@@ -356,7 +356,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       &heuristicResult, &returnedResults);
   EXT_ENFORCE(returnedResults > 0 && cuda_status == CUBLAS_STATUS_SUCCESS,
               " Unable to find any suitable algorithm due to ",
-              cublasGetErrorEnum(cuda_status), ", preference=", preference,
+              cublasGetErrorEnum(cuda_status),
               ", returnedResults=", returnedResults, ", alpha=", alpha_,
               // ", beta=", beta_,
               ", n_inputs=", n_inputs,
