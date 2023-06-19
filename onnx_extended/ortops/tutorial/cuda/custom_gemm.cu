@@ -371,6 +371,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
               ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
               ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
               ", ldd=", ldd, ", workspaceSize=", workspaceSize,
+              ", row_major_=", (row_major_ ? 1 : 0),
               ". Check NVIDIA documentation to see what combination is valid: ",
               "https://docs.nvidia.com/cuda/cublas/"
               "index.html?highlight=cublasLtMatmulAlgoGetHeuristic#"
