@@ -105,7 +105,6 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
   if (use_fp8) {
     // Split accumulator.
     const int8_t fastAccuMode = (use_split_accumulator) ? 0 : 1;
-    std::cout << "fastAccuMode=" << fastAccuMode << "\n";
     NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_FAST_ACCUM, &fastAccuMode,
         sizeof(fastAccuMode)));
@@ -201,22 +200,6 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
 
   if (returnedResults == 0)
     NVTE_ERROR("Unable to find any suitable algorithms");
-
-  std::cout << "returnedResults=" << returnedResults << ", alpha=" << one <<
-              // ", beta=", beta_,
-              ", use_fp8=" << use_fp8 <<
-              ", A_type=" << A_type <<
-              ", B_type=" << B_type <<
-              ", result_type=" << D_type <<
-              ", bias_type=" << bias_type <<
-              ", scale_type=" << CUDA_R_32F <<
-              ", computeType=" << gemm_compute_type <<
-              ", epilogue=" << epilogue  << ", smCount="  << math_sm_count <<
-              ", transA=" << transa << ", transB="  << transb <<
-              ", fastAccumulationMode="  << ((use_split_accumulator) ? 0 : 1) <<
-              ", lda=" << lda << ", ldb=" << ldb <<
-              ", ldd=" << ldd << ", workspaceSize=" << workspaceSize << "\n";
-
 
   // D = alpha * (A * B) + beta * C
   size_t written;

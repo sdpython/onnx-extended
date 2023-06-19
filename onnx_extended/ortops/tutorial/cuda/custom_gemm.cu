@@ -351,6 +351,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulAlgoGetHeuristic#cublasltmatmulalgogetheuristic
   cublasLtMatmulHeuristicResult_t heuristicResult = {};
   int returnedResults = 0;
+  std::cout << "Heuristic\n";
   cublasStatus_t cuda_status = cublasLtMatmulAlgoGetHeuristic(
       cublasLt, operationDesc, Adesc, Bdesc, Cdesc, Ddesc, preference, 1,
       &heuristicResult, &returnedResults);
@@ -376,9 +377,10 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
               "https://docs.nvidia.com/cuda/cublas/"
               "index.html?highlight=cublasLtMatmulAlgoGetHeuristic#"
               "cublasltmatmulalgogetheuristic.");
+  std::cout << "MatMul\n";
   void *workspace = nullptr;
   if (workspaceSize > 0) {
-    cudaMalloc((void **)&workspace, workspaceSize);
+    CUDA_THROW_IF_ERROR(cudaMalloc((void **)&workspace, workspaceSize));
   }
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
   float beta = 0;
@@ -396,6 +398,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }
+  std::cout << "end\n";
 
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulPreferenceDestroy(preference));
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Ddesc));
