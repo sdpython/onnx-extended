@@ -67,12 +67,12 @@ pprint.pprint(properties)
 
 
 def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
-    I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
     C = make_tensor_value_info("C", mat_type, [None, None])
-    inits = [I1]
+    inits = []
     if domain != "":
+        I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
         f8 = mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2)
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
@@ -83,6 +83,7 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         else:
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+            inits.append(I1)
         node_kw = dict(
             alpha=1.0,
             transA=1,
@@ -94,56 +95,17 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         nodes = []
         nodes.extend(
             [
-                make_node("CastLike", ["I", "A"], ["Ic"]),
-                make_node("Add", ["A", "Ic"], ["A1"]),
-                make_node("Add", ["A1", "Ic"], ["A2"]),
-                make_node("Add", ["A2", "Ic"], ["A3"]),
                 make_node(
                     op_name,
                     ["A", "B", "I", "I"] if f8 else ["A", "B"],
-                    ["M0", "unused"],
+                    ["C", "unused"] if f8 else ["C"],
                     **node_kw,
                 ),
-                make_node(
-                    op_name,
-                    ["A1", "B", "I", "I"] if f8 else ["A1", "B"],
-                    ["M1", "unused1"],
-                    **node_kw,
-                ),
-                make_node(
-                    op_name,
-                    ["A2", "B", "I", "I"] if f8 else ["A2", "B"],
-                    ["M2", "unused2"],
-                    **node_kw,
-                ),
-                make_node(
-                    op_name,
-                    ["A3", "B", "I", "I"] if f8 else ["A3", "B"],
-                    ["M3", "unused3"],
-                    **node_kw,
-                ),
-                make_node("CastLike", ["M0", "A"], ["M0c"]),
-                make_node("CastLike", ["M1", "A"], ["M1c"]),
-                make_node("CastLike", ["M2", "A"], ["M2c"]),
-                make_node("CastLike", ["M3", "A"], ["M3c"]),
-                make_node("Add", ["M0c", "M1c"], ["M12"]),
-                make_node("Add", ["M2c", "M3c"], ["M23"]),
-                make_node("Add", ["M12", "M23"], ["C"]),
             ]
         )
     else:
         nodes = [
-            make_node("CastLike", ["I", "A"], ["Ic"]),
-            make_node("Add", ["A", "Ic"], ["A1"]),
-            make_node("Add", ["A1", "Ic"], ["A2"]),
-            make_node("Add", ["A2", "Ic"], ["A3"]),
-            make_node("Gemm", ["A", "B"], ["M0"], transA=1, beta=0.0),
-            make_node("Gemm", ["A1", "B"], ["M1"], transA=1, beta=0.0),
-            make_node("Gemm", ["A2", "B"], ["M2"], transA=1, beta=0.0),
-            make_node("Gemm", ["A3", "B"], ["M3"], transA=1, beta=0.0),
-            make_node("Add", ["M0", "M1"], ["M12"]),
-            make_node("Add", ["M2", "M3"], ["M23"]),
-            make_node("Add", ["M12", "M23"], ["C"]),
+            make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
         ]
     graph = make_graph(nodes, "a", [A, B], [C], inits)
     if mat_type < 16:
@@ -222,6 +184,7 @@ dims = [
     (256, 256, 256),
     (400, 400, 400),
     (512, 512, 512),
+    (1024, 1024, 1024),
 ]
 
 domains = ["", "com.microsoft", "onnx_extented.ortops.tutorial.cuda"]
