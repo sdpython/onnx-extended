@@ -1,11 +1,11 @@
 #include "cuda_example.cuh"
 #include "cuda_example_reduce.cuh"
 #include "cuda_gemm.cuh"
+#include "cuda_runtime.h"
+#include <iostream>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "cuda_runtime.h"
-#include <iostream>
 #include <sstream>
 
 namespace py = pybind11;

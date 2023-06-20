@@ -73,9 +73,6 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
   cublasLtMatmulDesc_t operationDesc = nullptr;
   cublasLtMatrixLayout_t Adesc = nullptr, Bdesc = nullptr, Cdesc = nullptr,
                          Ddesc = nullptr;
-  cublasLtMatmulPreference_t preference = nullptr;
-  int returnedResults = 0;
-  cublasLtMatmulHeuristicResult_t heuristicResult = {};
   cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
 
   int64_t ld_gelumat = (int64_t)ldd;
@@ -185,10 +182,13 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
   }
   i_epilogue = (int)epilogue;
 
+  cublasLtMatmulPreference_t preference = nullptr;
   NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
       operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE, &epilogue,
       sizeof(epilogue)));
 
+  int returnedResults = 0;
+  cublasLtMatmulHeuristicResult_t heuristicResult = {};
   NVTE_CHECK_CUBLAS(cublasLtMatmulPreferenceCreate(&preference));
   NVTE_CHECK_CUBLAS(cublasLtMatmulPreferenceSetAttribute(
       preference, CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES, &workspaceSize,
@@ -363,7 +363,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
   case 14:
     type_a = CUDA_R_8F_E5M2;
     type_b = CUDA_R_8F_E4M3;
-    type_d = CUDA_R_16BF;
+    type_d = CUDA_R_16F;
     type_compute = CUBLAS_COMPUTE_32F;
     break;
 #endif

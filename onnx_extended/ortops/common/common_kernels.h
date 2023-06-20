@@ -8,7 +8,8 @@
 
 namespace ortops {
 
-inline void _ThrowOnError_(OrtStatus* ort_status, const char* filename, int line, const OrtApi& api) {
+inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
+                           int line, const OrtApi &api) {
   if (ort_status) {
     OrtErrorCode code = api.GetErrorCode(ort_status);
     if (code == ORT_OK) {
@@ -18,19 +19,24 @@ inline void _ThrowOnError_(OrtStatus* ort_status, const char* filename, int line
       api.ReleaseStatus(ort_status);
       if (code != ORT_OK) {
         throw std::runtime_error(
-          orthelpers::MakeString("error: onnxruntime(", code, "), ", message, "\n    ", filename, ":", line));
+            orthelpers::MakeString("error: onnxruntime(", code, "), ", message,
+                                   "\n    ", filename, ":", line));
       }
     }
   }
 }
 
-#define ThrowOnError(api, ort_status) _ThrowOnError_(ort_status, __FILE__, __LINE__, api)
+#define ThrowOnError(api, ort_status)                                          \
+  _ThrowOnError_(ort_status, __FILE__, __LINE__, api)
 
-inline std::string KernelInfoGetOptionalAttributeString(const OrtApi& api, const OrtKernelInfo* info, const char* name, const std::string& default_value) {
+inline std::string KernelInfoGetOptionalAttributeString(
+    const OrtApi &api, const OrtKernelInfo *info, const char *name,
+    const std::string &default_value) {
   size_t size = 0;
   std::string out;
 
-  OrtStatus* status = api.KernelInfoGetAttribute_string(info, name, nullptr, &size);
+  OrtStatus *status =
+      api.KernelInfoGetAttribute_string(info, name, nullptr, &size);
 
   if (status != nullptr) {
     OrtErrorCode code = api.GetErrorCode(status);
@@ -43,14 +49,37 @@ inline std::string KernelInfoGetOptionalAttributeString(const OrtApi& api, const
     api.ReleaseStatus(status);
   }
   out.resize(size);
-  ThrowOnError(api, api.KernelInfoGetAttribute_string(info, name, &out[0], &size));
-  out.resize(size - 1);  // remove the terminating character '\0'
+  ThrowOnError(api,
+               api.KernelInfoGetAttribute_string(info, name, &out[0], &size));
+  out.resize(size - 1); // remove the terminating character '\0'
   return out;
 }
 
-inline int64_t KernelInfoGetOptionalAttributeInt64(const OrtApi& api, const OrtKernelInfo* info, const char* name, int64_t default_value) {
-  int64_t out;
-  OrtStatus* status = api.KernelInfoGetAttribute_int64(info, name, &out);
+template <typename T>
+inline OrtStatus *KernelInfoGetAttributeApi(const OrtApi &api,
+                                            const OrtKernelInfo *info,
+                                            const char *name, T &out);
+
+template <>
+inline OrtStatus *
+KernelInfoGetAttributeApi<int64_t>(const OrtApi &api, const OrtKernelInfo *info,
+                                   const char *name, int64_t &out) {
+  return api.KernelInfoGetAttribute_int64(info, name, &out);
+}
+
+template <>
+inline OrtStatus *
+KernelInfoGetAttributeApi<float>(const OrtApi &api, const OrtKernelInfo *info,
+                                 const char *name, float &out) {
+  return api.KernelInfoGetAttribute_float(info, name, &out);
+}
+
+template <typename T>
+inline T KernelInfoGetOptionalAttribute(const OrtApi &api,
+                                        const OrtKernelInfo *info,
+                                        const char *name, T default_value) {
+  T out;
+  OrtStatus *status = KernelInfoGetAttributeApi<T>(api, info, name, out);
 
   if (status == nullptr) {
     return out;
@@ -65,8 +94,12 @@ inline int64_t KernelInfoGetOptionalAttributeInt64(const OrtApi& api, const OrtK
   return default_value;
 }
 
-inline bool KernelInfoGetOptionalAttributeInt64AsBool(const OrtApi& api, const OrtKernelInfo* info, const char* name, bool default_value) {
-  int64_t value = KernelInfoGetOptionalAttributeInt64(api, info, name, default_value ? 1 : 0);
+inline bool KernelInfoGetOptionalAttributeInt64AsBool(const OrtApi &api,
+                                                      const OrtKernelInfo *info,
+                                                      const char *name,
+                                                      bool default_value) {
+  int64_t value = KernelInfoGetOptionalAttribute<int64_t>(
+      api, info, name, default_value ? 1 : 0);
   return value == 1;
 }
 

@@ -67,12 +67,12 @@ pprint.pprint(properties)
 
 
 def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
-    I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
     C = make_tensor_value_info("C", mat_type, [None, None])
-    inits = [I1]
+    inits = []
     if domain != "":
+        I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
         f8 = mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2)
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
@@ -83,71 +83,27 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         else:
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
-        nodes = []
-        nodes.extend(
-            [
-                make_node("CastLike", ["I", "A"], ["Ic"]),
-                make_node("Add", ["A", "Ic"], ["A1"]),
-                make_node("Add", ["A1", "Ic"], ["A2"]),
-                make_node("Add", ["A2", "Ic"], ["A3"]),
-                make_node(
-                    op_name,
-                    ["A", "B", "I", "I"] if f8 else ["A", "B"],
-                    ["M0"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
-                ),
-                make_node(
-                    op_name,
-                    ["A1", "B", "I", "I"] if f8 else ["A1", "B"],
-                    ["M1"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
-                ),
-                make_node(
-                    op_name,
-                    ["A2", "B", "I", "I"] if f8 else ["A2", "B"],
-                    ["M2"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
-                ),
-                make_node(
-                    op_name,
-                    ["A3", "B", "I", "I"] if f8 else ["A3", "B"],
-                    ["M3"],
-                    alpha=1.0,
-                    transA=1,
-                    domain=domain,
-                    computeType=computeType,
-                ),
-                make_node("CastLike", ["M0", "A"], ["M0c"]),
-                make_node("CastLike", ["M1", "A"], ["M1c"]),
-                make_node("CastLike", ["M2", "A"], ["M2c"]),
-                make_node("CastLike", ["M3", "A"], ["M3c"]),
-                make_node("Add", ["M0c", "M1c"], ["M12"]),
-                make_node("Add", ["M2c", "M3c"], ["M23"]),
-                make_node("Add", ["M12", "M23"], ["C"]),
-            ]
+        if f8:
+            inits.append(I1)
+        node_kw = dict(
+            alpha=1.0,
+            transA=1,
+            domain=domain,
+            computeType=computeType,
+            fastAccumulationMode=1,
+            rowMajor=0 if op_name == "CustomGemmFloat8E4M3FN" else 1,
         )
+        nodes = [
+            make_node(
+                op_name,
+                ["A", "B", "I", "I", "I"] if f8 else ["A", "B"],
+                ["C"],
+                **node_kw,
+            ),
+        ]
     else:
         nodes = [
-            make_node("CastLike", ["I", "A"], ["Ic"]),
-            make_node("Add", ["A", "Ic"], ["A1"]),
-            make_node("Add", ["A1", "Ic"], ["A2"]),
-            make_node("Add", ["A2", "Ic"], ["A3"]),
-            make_node("Gemm", ["A", "B"], ["M0"], transA=1, beta=0.0),
-            make_node("Gemm", ["A1", "B"], ["M1"], transA=1, beta=0.0),
-            make_node("Gemm", ["A2", "B"], ["M2"], transA=1, beta=0.0),
-            make_node("Gemm", ["A3", "B"], ["M3"], transA=1, beta=0.0),
-            make_node("Add", ["M0", "M1"], ["M12"]),
-            make_node("Add", ["M2", "M3"], ["M23"]),
-            make_node("Add", ["M12", "M23"], ["C"]),
+            make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
         ]
     graph = make_graph(nodes, "a", [A, B], [C], inits)
     if mat_type < 16:
@@ -201,6 +157,7 @@ create_cast(TensorProto.FLOAT16)
 # The benchmark will run the following configurations.
 
 types = [
+    TensorProto.FLOAT8E4M3FN,
     TensorProto.FLOAT,
     TensorProto.UINT32,
     TensorProto.INT32,
@@ -208,12 +165,11 @@ types = [
     TensorProto.INT8,
     TensorProto.FLOAT16,
     TensorProto.BFLOAT16,
-    # (TensorProto.FLOAT8E4M3FN, True),
 ]
-engine = [CReferenceEvaluator, InferenceSession]
+engine = [InferenceSession, CReferenceEvaluator]
 providers = [
-    ["CPUExecutionProvider"],
     ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    ["CPUExecutionProvider"],
 ]
 # M, N, K
 dims = [
@@ -224,14 +180,12 @@ dims = [
     (100, 100, 100),
     (128, 128, 128),
     (256, 256, 256),
-    # (400, 400, 400),
-    # (512, 512, 512),
+    (400, 400, 400),
+    (512, 512, 512),
+    (1024, 1024, 1024),
 ]
 
-domains = ["", "com.microsoft", "onnx_extented.ortops.tutorial.cuda"]
-
-
-map_type = {TensorProto.FLOAT: numpy.float32, TensorProto.FLOAT16: numpy.float16}
+domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
 ####################################
@@ -275,7 +229,7 @@ pbar = tqdm(list(product(types, engine, providers, dims, domains)))
 for tt, engine, provider, dim, domain in pbar:
     if (
         tt in {TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2}
-        and properties["major"] < 9
+        and properties.get("major", 0) < 9
     ):
         # f8 now available
         continue
@@ -287,7 +241,7 @@ for tt, engine, provider, dim, domain in pbar:
         repeat, number = 10, 4
 
     onx = create_model(tt, domain=domain)
-    with open(f"plot_bench_gemm_{tt}.onnx", "wb") as f:
+    with open(f"plot_bench_gemm_{tt}_{domain}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
     k1 = (tt, dim[2], dim[0])
     k2 = (tt, dim[2], dim[1])
@@ -300,6 +254,9 @@ for tt, engine, provider, dim, domain in pbar:
 
     if engine == CReferenceEvaluator:
         if domain != "":
+            continue
+        if max(dim) > 256:
+            # too slow
             continue
         if tt == TensorProto.FLOAT16 and max(dim) > 50:
             repeat, number = 2, 2
@@ -332,7 +289,7 @@ for tt, engine, provider, dim, domain in pbar:
             sess = engine(onx.SerializeToString(), opts, providers=provider)
         except (NotImplemented, InvalidGraph, Fail) as e:
             # not implemented
-            errors.append(e)
+            errors.append((tt, engine.__class__.__name__, provider, domain, e))
             continue
 
         if provider == ["CPUExecutionProvider"]:
@@ -369,6 +326,8 @@ for tt, engine, provider, dim, domain in pbar:
         TensorProto.INT16: "i16",
         TensorProto.INT32: "i32",
         TensorProto.UINT32: "u32",
+        TensorProto.FLOAT8E4M3FN: "e4m3fn",
+        TensorProto.FLOAT8E5M2: "e5m2",
     }[tt]
     obs.update(
         dict(
@@ -402,9 +361,9 @@ for tt, engine, provider, dim, domain in pbar:
 
 
 df = DataFrame(data)
-df.to_excel("plot_bench_gemm.xlsx")
-df.to_csv("plot_bench_gemm.csv")
-df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_.csv")
+df.to_excel("plot_bench_gemm_ort.xlsx")
+df.to_csv("plot_bench_gemm_ort.csv")
+df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_ort.csv")
 df
 
 #####################################
@@ -420,11 +379,11 @@ for e in list(sorted(set(map(str, errors)))):
 piv = pivot_table(
     df,
     index=["cost"],
-    columns=["engine", "type", "provider", "domain"],
+    columns=["type", "domain", "provider", "engine"],
     values="average",
 )
-piv.reset_index(drop=False).to_excel("plot_bench_gemm_summary.xlsx")
-piv.reset_index(drop=False).to_csv("plot_bench_gemm_summary.csv")
+piv.reset_index(drop=False).to_excel("plot_bench_gemm_ort_summary.xlsx")
+piv.reset_index(drop=False).to_csv("plot_bench_gemm_ort_summary.csv")
 print(piv)
 piv
 
@@ -433,7 +392,7 @@ piv
 pivs = pivot_table(
     df,
     index=["cost_s"],
-    columns=["engine", "type", "provider", "domain"],
+    columns=["type", "domain", "provider", "engine"],
     values="average",
 )
 print(pivs)
@@ -441,13 +400,11 @@ print(pivs)
 ##############################
 # plot
 
-dfi = df[
-    df.type.isin({"f32", "f16", "bf16", "f8e4m3", "f8e5m2"}) & df.engine.isin({"ort"})
-]
+dfi = df[df.type.isin({"f32", "f16", "bf16", "e4m3", "e5m2"}) & df.engine.isin({"ort"})]
 pivi = pivot_table(
     dfi,
     index=["cost"],
-    columns=["engine", "type", "provider", "domain"],
+    columns=["type", "domain", "provider", "engine"],
     values="average",
 )
 
@@ -461,4 +418,4 @@ if pivi.shape[0] > 0:
         logy=True,
     )
 fig.tight_layout()
-fig.savefig("plot_bench_gemm.png")
+fig.savefig("plot_bench_gemm_ort.png")
