@@ -98,8 +98,6 @@ CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
 
 CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
                                    const OrtKernelInfo *info) {
-  ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "alpha", &alpha_));
-  // ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "beta", &beta_));
   row_major_ =
       KernelInfoGetOptionalAttributeInt64AsBool(api, info, "rowMajor", true);
   transA_ =
@@ -108,7 +106,8 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
       KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transB", false);
   fastAccumulationMode_ = KernelInfoGetOptionalAttributeInt64AsBool(
       api, info, "fastAccumulationMode", true);
-  smCount_ = KernelInfoGetOptionalAttributeInt64(api, info, "smCount", 0);
+  smCount_ = KernelInfoGetOptionalAttribute<int64_t>(api, info, "smCount", 0);
+  alpha_ = KernelInfoGetOptionalAttribute<float>(api, info, "alpha", 1);
 
   // A string attribute.
   std::string compute_type = KernelInfoGetOptionalAttributeString(
@@ -285,11 +284,14 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) {
       std::vector<int64_t> scale_dimensions{1};
       Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
-      p_scale_d = out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN 
-                  ? static_cast<void*>(scale_Y.GetTensorMutableData<Ort::Float8E4M3FN_t>())
-                  : static_cast<void*>(scale_Y.GetTensorMutableData<Ort::Float8E5M2_t>());
+      p_scale_d = out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN
+                      ? static_cast<void *>(
+                            scale_Y.GetTensorMutableData<Ort::Float8E4M3FN_t>())
+                      : static_cast<void *>(
+                            scale_Y.GetTensorMutableData<Ort::Float8E5M2_t>());
       float one = 1;
-      CUDA_THROW_IF_ERROR(cudaMemcpy(p_scale_d, static_cast<const void*>(&one), sizeof(float), cudaMemcpyHostToDevice));
+      CUDA_THROW_IF_ERROR(cudaMemcpy(p_scale_d, static_cast<const void *>(&one),
+                                     sizeof(float), cudaMemcpyHostToDevice));
       p_scale_before = p_scale_d;
       CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
           operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_d,
@@ -319,11 +321,11 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
   }
 #else
-  // An output is still needed but it is not initialized.
-  std::vector<int64_t> scale_dimensions{0};
-  Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
-  CUBLAS_THROW_IF_ERROR(
-      cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
+    // An output is still needed but it is not initialized.
+    std::vector<int64_t> scale_dimensions{0};
+    Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
 #endif
 
   cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
@@ -368,29 +370,28 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   cublasStatus_t cuda_status = cublasLtMatmulAlgoGetHeuristic(
       cublasLt, operationDesc, Adesc, Bdesc, Cdesc, Ddesc, preference, 1,
       &heuristicResult, &returnedResults);
-  EXT_ENFORCE(returnedResults > 0 && cuda_status == CUBLAS_STATUS_SUCCESS,
-              " Unable to find any suitable algorithm due to ",
-              cublasGetErrorEnum(cuda_status),
-              ", returnedResults=", returnedResults, ", alpha=", alpha_,
-              // ", beta=", beta_,
-              ", n_inputs=", n_inputs,
-              ", A_type=", CudaDataTypeToString(a_cuda_type),
-              ", B_type=", CudaDataTypeToString(b_cuda_type),
-              ", result_type=", CudaDataTypeToString(d_cuda_type),
-              ", bias_type=", CudaDataTypeToString(bias_cuda_type),
-              ", scale_type=", CudaDataTypeToString(scale_cuda_type),
-              ", computeType=", CublasComputeTypeToString(computeType_),
-              ", epilogue=", epilogue, ", smCount=", smCount_,
-              ", transA=", transA_, ", transB=", transB_,
-              ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
-              ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
-              ", ldd=", ldd, ", workspaceSize=", workspaceSize,
-              ", row_major_=", (row_major_ ? 1 : 0),
-              ". Check NVIDIA documentation to see what combination is valid: ",
-              "https://docs.nvidia.com/cuda/cublas/"
-              "index.html?highlight=cublasLtMatmulAlgoGetHeuristic#"
-              "cublasltmatmulalgogetheuristic. "
-              "RowMajor is not supported with float 8.");
+  EXT_ENFORCE(
+      returnedResults > 0 && cuda_status == CUBLAS_STATUS_SUCCESS,
+      " Unable to find any suitable algorithm due to ",
+      cublasGetErrorEnum(cuda_status), ", returnedResults=", returnedResults,
+      ", alpha=", alpha_,
+      // ", beta=", beta_,
+      ", n_inputs=", n_inputs, ", A_type=", CudaDataTypeToString(a_cuda_type),
+      ", B_type=", CudaDataTypeToString(b_cuda_type),
+      ", result_type=", CudaDataTypeToString(d_cuda_type),
+      ", bias_type=", CudaDataTypeToString(bias_cuda_type),
+      ", scale_type=", CudaDataTypeToString(scale_cuda_type),
+      ", computeType=", CublasComputeTypeToString(computeType_),
+      ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", transA_,
+      ", transB=", transB_,
+      ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0), ", M=", M,
+      ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb, ", ldd=", ldd,
+      ", workspaceSize=", workspaceSize, ", row_major_=", (row_major_ ? 1 : 0),
+      ". Check NVIDIA documentation to see what combination is valid: ",
+      "https://docs.nvidia.com/cuda/cublas/"
+      "index.html?highlight=cublasLtMatmulAlgoGetHeuristic#"
+      "cublasltmatmulalgogetheuristic. "
+      "RowMajor is not supported with float 8.");
 
   void *workspace = nullptr;
   if (workspaceSize > 0) {
@@ -398,17 +399,17 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   }
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
   float beta = 0;
-  void* C = Y.GetTensorMutableRawData();
+  void *C = Y.GetTensorMutableRawData();
   CUBLAS_THROW_IF_ERROR(cublasLtMatmul(
-      cublasLt, operationDesc, static_cast<const void *>(&alpha_),  /* alpha */
-      input_A.GetTensorRawData(),                                   /* A */
-      Adesc, input_B.GetTensorRawData(),                            /* B */
-      Bdesc, static_cast<const void *>(&beta),                      /* beta */
-      C,                                                            /* C */
-      Cdesc, Y.GetTensorMutableRawData(),                           /* Y */
-      Ddesc, &heuristicResult.algo,                                 /* algo */
-      workspace,                                                    /* workspace */
-      workspaceSize, stream));                                      /* stream */
+      cublasLt, operationDesc, static_cast<const void *>(&alpha_), /* alpha */
+      input_A.GetTensorRawData(),                                  /* A */
+      Adesc, input_B.GetTensorRawData(),                           /* B */
+      Bdesc, static_cast<const void *>(&beta),                     /* beta */
+      C,                                                           /* C */
+      Cdesc, Y.GetTensorMutableRawData(),                          /* Y */
+      Ddesc, &heuristicResult.algo,                                /* algo */
+      workspace,               /* workspace */
+      workspaceSize, stream)); /* stream */
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }

@@ -15,8 +15,6 @@ try:
     from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
 except ImportError:
     onnx_simple_text_plot = str
-from onnx_extended.ortops.tutorial.cuda import documentation
-
 try:
     from onnxruntime import (
         InferenceSession,
@@ -39,7 +37,14 @@ except ImportError:
         None,
         None,
     )
+from onnx_extended.ortops.tutorial.cuda import documentation
 from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended import has_cuda
+
+if has_cuda():
+    from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
+else:
+    get_device_prop = None
 
 
 class TestOrtOpTutorialCuda(ExtTestCase):
@@ -83,9 +88,6 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 node_inputs,
                 node_outputs,
                 domain="onnx_extented.ortops.tutorial.cuda",
-                transA=1,
-                transB=0,
-                alpha=kwargs.get("alpha", 1.0),
                 **kwargs,
             ),
             make_node("Cast", ["Yc"], ["Y"], to=TensorProto.FLOAT),
@@ -168,6 +170,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
             fastAccumulationMode=1,
+            transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
 
@@ -183,6 +186,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             name="cgf",
             fastAccumulationMode=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
             rowMajor=1,
         )
 
@@ -194,11 +198,16 @@ class TestOrtOpTutorialCuda(ExtTestCase):
     @unittest.skipIf(
         Version(ort_version) < Version("1.16"), reason="float8 types not released"
     )
+    @unittest.skipIf(
+        get_device_prop is None or get_device_prop().get("major") < 9,
+        reason="Float 8 not supported on this machine",
+    )
     def test_custom_gemm_float8(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat8E4M3FN",
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
+            transA=1,
             fastAccumulationMode=1,
             rowMajor=0,
         )
