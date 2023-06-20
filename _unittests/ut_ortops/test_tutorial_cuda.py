@@ -179,6 +179,21 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
+    def test_custom_gemm_float16_default(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat16",
+            [TensorProto.FLOAT16 for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F",
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
     def test_custom_gemm_float32_row_major(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",

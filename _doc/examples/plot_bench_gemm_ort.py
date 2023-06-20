@@ -77,9 +77,12 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
-        elif not f8:
+        elif mat_type == TensorProto.FLOAT:
             op_name = "CustomGemmFloat"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+        elif mat_type == TensorProto.FLOAT16:
+            op_name = "CustomGemmFloat16"
+            computeType = "CUBLAS_COMPUTE_32F"
         else:
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
@@ -231,7 +234,7 @@ for tt, engine, provider, dim, domain in pbar:
         tt in {TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2}
         and properties.get("major", 0) < 9
     ):
-        # f8 now available
+        # f8 not available
         continue
     if max(dim) <= 200:
         repeat, number = 50, 25
@@ -276,6 +279,7 @@ for tt, engine, provider, dim, domain in pbar:
 
     elif engine == InferenceSession:
         if provider[0] not in get_available_providers():
+            errors.append(f"provider={provider[0]} is missing")
             continue
         pbar.set_description(
             f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}"
@@ -317,6 +321,7 @@ for tt, engine, provider, dim, domain in pbar:
         )
 
     else:
+        errors.append(f"unknown engine={engine}")
         continue
 
     stype = {
@@ -400,7 +405,7 @@ print(pivs)
 ##############################
 # plot
 
-dfi = df[df.type.isin({"f32", "f16", "bf16", "e4m3", "e5m2"}) & df.engine.isin({"ort"})]
+dfi = df[df.type.isin({"f32", "f16", "bf16", "e4m3fn", "e5m2"}) & df.engine.isin({"ort"})]
 pivi = pivot_table(
     dfi,
     index=["cost"],
