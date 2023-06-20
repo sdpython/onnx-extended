@@ -1,5 +1,6 @@
 import unittest
 import numpy
+from itertools import product
 from packaging.version import Version
 from onnx import TensorProto
 from onnx.helper import (
@@ -63,7 +64,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
 
-    def common_test_custom_gemm(self, op_name, tos, **kwargs):
+    def common_test_custom_gemm(self, op_name, tos, return_sess=False, **kwargs):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
         if TensorProto.FLOAT8E4M3FN in tos or TensorProto.FLOAT8E5M2 in tos:
@@ -129,6 +130,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"Unable to create InferenceSession with "
                 f"onx={onnx_simple_text_plot(onnx_model)}"
             ) from e
+        if return_sess:
+            return onnx_model, sess
+
         inputs = [
             (numpy.arange(256) / 256).astype(numpy.float32).reshape((-1, 16))
             for to in tos
@@ -212,7 +216,140 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_all_possible(self):
+        booleans = [0, 1]
+        dims = [9, 12]
+        shapes = [
+            [(3, 3), (3, 3)],
+            [(3, 3), (3, 3)],
+            [(3, 3), (3, 3)],
+            [(3, 3), (3, 3)],
+            [(3, 3), (3, 3)],
+            [(3, 3), (3, 3)],
+            [(3, 3), (3, 3)],
+            [(3, 3), (3, 3)],
+            [(4, 3), (3, 4)],
+            [(8, 3), (3, 4)],
+            [(12, 3), (3, 4)],
+            [(16, 3), (3, 4)],
+            [(4, 3), (4, 3)],
+            [(8, 3), (4, 3)],
+            [(12, 3), (4, 3)],
+            [(16, 3), (4, 3)],
+            [(4, 3), (4, 3)],
+            [(12, 3), (12, 1)],
+            [(4, 3), (3, 4)],
+            [(4, 3), (3, 4)],
+            [(8, 3), (3, 4)],
+            [(12, 3), (3, 4)],
+            [(16, 3), (3, 4)],
+            [(4, 3), (4, 3)],
+            [(8, 3), (4, 3)],
+            [(12, 3), (4, 3)],
+            [(16, 3), (4, 3)],
+            [(4, 3), (4, 3)],
+            [(12, 3), (12, 1)],
+            [(4, 3), (3, 4)],
+        ]
+
+        for N, rm, transa, transb, sh in product(
+            dims, booleans, booleans, booleans, shapes
+        ):
+            row_major = 1 - rm
+            order = "C" if row_major else "F"
+
+            sha, shb = sh
+            a = (
+                numpy.arange(numpy.prod(sha))
+                .reshape(sha, order=order)
+                .astype(numpy.float32)
+            )
+            b = (numpy.arange(numpy.prod(shb)).reshape(shb, order=order) * 10).astype(
+                numpy.float32
+            )
+            shapes = [a.shape, b.shape]
+
+            with self.subTest(
+                transa=transa,
+                transB=transb,
+                rowMajor=row_major,
+                sh1=a.shape,
+                sh2=b.shape,
+            ):
+                if not row_major:
+                    # onnxruntime does not take into account the storage.
+                    # it is always row major.
+                    # A matrix RxC column major is equal to A.T
+
+                    if a.shape[0] == a.shape[1] and b.shape[0] == b.shape[1]:
+                        am = a.T.copy()
+                        bm = b.T.copy()
+                    else:
+                        am = a.T.copy().reshape(a.shape)
+                        bm = b.T.copy().reshape(b.shape)
+                    at = am.T if transa else am
+                    bt = bm.T if transb else bm
+
+                    try:
+                        expected = (at @ bt).T
+                    except ValueError:
+                        # Not possible
+                        continue
+                else:
+                    at = a.T if transa else a
+                    bt = b.T if transb else b
+
+                    try:
+                        expected = at @ bt
+                    except ValueError:
+                        # Not possible
+                        continue
+
+                onx, sess = self.common_test_custom_gemm(
+                    "CustomGemmFloat",
+                    [TensorProto.FLOAT for i in range(2)],
+                    name="cgf",
+                    fastAccumulationMode=1,
+                    computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+                    transA=transa,
+                    transB=transb,
+                    rowMajor=row_major,
+                    return_sess=True,
+                )
+
+                feeds = {"A": a, "B": b}
+                try:
+                    got = sess.run(None, feeds)[0]
+                except Exception as e:
+                    raise AssertionError(
+                        f"Unable to execute model with a.shape={a.shape}, "
+                        f"b.shape={b.shape} and row_major={row_major}."
+                        f"\n{onnx_simple_text_plot(onx)}."
+                    ) from e
+                try:
+                    self.assertEqualArray(expected, got)
+                except AssertionError as e:
+                    strn = (  # noqa: E731
+                        lambda s: str(s)
+                        .replace("\n", " ")
+                        .replace("  ", " ")
+                        .replace(" : ", ":")
+                    )
+                    raise AssertionError(
+                        f"row_major={row_major}, transa={transa}, transb={transb}, "
+                        f"\na.shape={a.shape},\na.flags={strn(a.flags)}, "
+                        f"\nb.shape={b.shape},\nb.flags={strn(b.flags)}, "
+                        f"\nexpected.shape={expected.shape},"
+                        f"\nexpected.flags={strn(expected.flags)}, "
+                        f"\na=\n{a}\nb=\n{b}\n"
+                    ) from e
+
 
 if __name__ == "__main__":
-    # TestOrtOpTutorialCuda().test_custom_gemm_float32()
+    TestOrtOpTutorialCuda().test_custom_gemm_all_possible()
     unittest.main(verbosity=2)

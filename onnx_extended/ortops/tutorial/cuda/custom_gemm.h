@@ -11,7 +11,9 @@ struct CustomGemmKernel {
   void Compute(OrtKernelContext *context);
 
 private:
-  void set(int M, int N, int K, int &lda, int &ldb, int &ldd) const;
+  void set(const std::vector<int64_t> &shape_a,
+           const std::vector<int64_t> &shape_b, int &M, int &N, int &K,
+           int &lda, int &ldb, int &ldd) const;
 
   float alpha_;
   // float beta_;

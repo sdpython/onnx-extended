@@ -127,22 +127,39 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   }
 }
 
-void CustomGemmKernel::set(int M, int N, int K, int &lda, int &ldb,
-                           int &ldd) const {
+void CustomGemmKernel::set(const std::vector<int64_t> &a_shape,
+                           const std::vector<int64_t> &b_shape, int &M, int &N,
+                           int &K, int &lda, int &ldb, int &ldd) const {
+  constexpr int ir = 0;
+  constexpr int ic = 1 - ir;
   if (transA_ && !transB_) { // TN
-    lda = K;
-    ldb = K;
-    ldd = M;
+    M = a_shape[ic];
+    N = b_shape[ic];
+    K = a_shape[ir];
+    lda = a_shape[row_major_ ? ic : ir];
+    ldb = b_shape[row_major_ ? ic : ir];
+    ldd = b_shape[row_major_ ? ic : ir];
   } else if (!transA_ && !transB_) { // NN
-    lda = M;
-    ldb = K;
-    ldd = M;
+    M = a_shape[ir];
+    N = b_shape[ic];
+    K = a_shape[ic];
+    lda = a_shape[row_major_ ? ic : ir];
+    ldb = b_shape[row_major_ ? ic : ir];
+    ldd = b_shape[row_major_ ? ic : ir];
   } else if (!transA_ && transB_) { // NT
-    lda = M;
-    ldb = N;
-    ldd = M;
+    M = a_shape[ir];
+    N = b_shape[ir];
+    K = a_shape[ic];
+    lda = a_shape[row_major_ ? ic : ir];
+    ldb = b_shape[row_major_ ? ic : ir];
+    ldd = b_shape[row_major_ ? ir : ic];
   } else { // TT
-    EXT_THROW("transA_ == true && transB_ == true not allowed.");
+    M = a_shape[ic];
+    N = b_shape[ir];
+    K = a_shape[ir];
+    lda = a_shape[row_major_ ? ir : ic];
+    ldb = b_shape[row_major_ ? ir : ic];
+    ldd = b_shape[row_major_ ? ic : ir];
   }
 }
 
@@ -192,18 +209,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
                     : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
   };
 
-  int M, N, K;
-  if (transA_) {
-    M = a_shape[1];
-    K = a_shape[0];
-  } else {
-    M = a_shape[0];
-    K = a_shape[1];
-  }
-
-  N = transB_ ? b_shape[0] : b_shape[1];
-  EXT_ENFORCE(M >= 0 && K > 0 && N >= 0);
-
+  int M, N, K, lda, ldb, ldd;
+  set(a_shape, b_shape, M, N, K, lda, ldb, ldd);
   std::vector<int64_t> dimensions{M, N};
   Ort::UnownedValue Y = ctx.GetOutput(0, dimensions);
   ONNXTensorElementDataType out_dtype =
@@ -217,12 +224,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   cublasLtHandle_t cublasLt;
   CUBLAS_THROW_IF_ERROR(cublasLtCreate(&cublasLt));
 
-  // #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
-  int lda, ldb, ldd;
-  set(M, N, K, lda, ldb, ldd);
-
-  // Gemm, note that CUDA assumes col-major.
-  // so Y(N,M) = alpha * op(B) x op(A).
   cublasLtMatmulDesc_t operationDesc = nullptr;
   cublasLtMatrixLayout_t Adesc = nullptr, Bdesc = nullptr, Cdesc = nullptr,
                          Ddesc = nullptr;
@@ -235,12 +236,31 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       ToCudaDataType(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
   cudaDataType_t scale_cuda_type = bias_cuda_type;
 
-  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-      &Adesc, a_cuda_type, transA_ ? M : K, transA_ ? K : M, lda));
-  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-      &Bdesc, b_cuda_type, transB_ ? K : N, transB_ ? N : K, ldb));
-  CUBLAS_THROW_IF_ERROR(
-      cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
+  if (row_major_) {
+    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
+        &Adesc, a_cuda_type, transA_ ? K : M, transA_ ? M : K, lda));
+    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
+        &Bdesc, b_cuda_type, transB_ ? N : K, transB_ ? K : N, ldb));
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
+
+    cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Adesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Bdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+  } else {
+    // onnxruntime only supports row major.
+    // A matric RxC column major is like a transposed matrix CxR row major
+    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
+        &Adesc, a_cuda_type, transA_ ? K : M, transA_ ? M : K, lda));
+    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
+        &Bdesc, b_cuda_type, transB_ ? N : K, transB_ ? K : N, ldb));
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
+  }
 
   CUBLAS_THROW_IF_ERROR(
       cublasLtMatmulDescCreate(&operationDesc, computeType_, scale_cuda_type));
@@ -328,6 +348,16 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
 #endif
 
+  if (row_major_) {
+    cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Cdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+    CUBLAS_THROW_IF_ERROR(
+        cublasLtMatrixLayoutSetAttribute(Ddesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
+                                         &matrixOrder, sizeof(matrixOrder)));
+  }
+
   cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
   cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE,
                                  &epilogue, sizeof(epilogue));
@@ -347,22 +377,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   cublasLtMatmulPreferenceSetAttribute(preference,
                                        CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
                                        &workspaceSize, sizeof(workspaceSize));
-
-  if (row_major_) {
-    cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
-    CUBLAS_THROW_IF_ERROR(
-        cublasLtMatrixLayoutSetAttribute(Adesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
-                                         &matrixOrder, sizeof(matrixOrder)));
-    CUBLAS_THROW_IF_ERROR(
-        cublasLtMatrixLayoutSetAttribute(Bdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
-                                         &matrixOrder, sizeof(matrixOrder)));
-    CUBLAS_THROW_IF_ERROR(
-        cublasLtMatrixLayoutSetAttribute(Cdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
-                                         &matrixOrder, sizeof(matrixOrder)));
-    CUBLAS_THROW_IF_ERROR(
-        cublasLtMatrixLayoutSetAttribute(Ddesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
-                                         &matrixOrder, sizeof(matrixOrder)));
-  }
 
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmulAlgoGetHeuristic#cublasltmatmulalgogetheuristic
   cublasLtMatmulHeuristicResult_t heuristicResult = {};
@@ -384,14 +398,15 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       ", computeType=", CublasComputeTypeToString(computeType_),
       ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", transA_,
       ", transB=", transB_,
-      ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0), ", M=", M,
-      ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb, ", ldd=", ldd,
-      ", workspaceSize=", workspaceSize, ", row_major_=", (row_major_ ? 1 : 0),
+      ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
+      ", a_shape=", a_shape[0], "x", a_shape[1], ", b_shape=", b_shape[0], "x",
+      b_shape[1], ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
+      ", ldd=", ldd, ", workspaceSize=", workspaceSize,
+      ", rowMajor=", (row_major_ ? 1 : 0),
       ". Check NVIDIA documentation to see what combination is valid: ",
       "https://docs.nvidia.com/cuda/cublas/"
       "index.html?highlight=cublasLtMatmulAlgoGetHeuristic#"
-      "cublasltmatmulalgogetheuristic. "
-      "RowMajor is not supported with float 8.");
+      "cublasltmatmulalgogetheuristic.");
 
   void *workspace = nullptr;
   if (workspaceSize > 0) {
