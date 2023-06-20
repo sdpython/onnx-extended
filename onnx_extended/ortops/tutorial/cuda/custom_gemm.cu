@@ -204,8 +204,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   EXT_ENFORCE(a_shape.size() == 2);
   EXT_ENFORCE(b_shape.size() == 2);
 
-  auto dtype_A =  input_A.GetTensorTypeAndShapeInfo().GetElementType();
-auto dtype_B =  input_B.GetTensorTypeAndShapeInfo().GetElementType();
+  auto dtype_A = input_A.GetTensorTypeAndShapeInfo().GetElementType();
+  auto dtype_B = input_B.GetTensorTypeAndShapeInfo().GetElementType();
 
   int M, N, K, lda, ldb, ldd;
   set(a_shape, b_shape, M, N, K, lda, ldb, ldd);

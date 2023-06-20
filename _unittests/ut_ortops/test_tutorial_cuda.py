@@ -218,6 +218,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         reason="CUDA provider not available",
     )
     def test_custom_gemm_all_possible(self):
+        excs = []
         booleans = [0, 1]
         dims = [9, 12]
         shapes = [
@@ -256,6 +257,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         for N, rm, transa, transb, sh in product(
             dims, booleans, booleans, booleans, shapes
         ):
+            if len(excs) > 1:
+                # too many errors
+                break
             row_major = 1 - rm
             order = "C" if row_major else "F"
 
@@ -322,6 +326,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 try:
                     got = sess.run(None, feeds)[0]
                 except Exception as e:
+                    excs.append(("A", N, row_major, transa, transb, sh))
                     raise AssertionError(
                         f"Unable to execute model with a.shape={a.shape}, "
                         f"b.shape={b.shape} and row_major={row_major}."
@@ -336,6 +341,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                         .replace("  ", " ")
                         .replace(" : ", ":")
                     )
+                    excs.append(("B", N, row_major, transa, transb, sh))
                     raise AssertionError(
                         f"row_major={row_major}, transa={transa}, transb={transb}, "
                         f"\na.shape={a.shape},\na.flags={strn(a.flags)}, "
@@ -347,5 +353,5 @@ class TestOrtOpTutorialCuda(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOrtOpTutorialCuda().test_custom_gemm_all_possible()
+    # TestOrtOpTutorialCuda().test_custom_gemm_all_possible()
     unittest.main(verbosity=2)
