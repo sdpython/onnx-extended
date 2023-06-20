@@ -96,8 +96,8 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         nodes = [
             make_node(
                 op_name,
-                ["A", "B", "I", "I"] if f8 else ["A", "B"],
-                ["C", "unused"] if f8 else ["C"],
+                ["A", "B", "I", "I", "I"] if f8 else ["A", "B"],
+                ["C"],
                 **node_kw,
             ),
         ]

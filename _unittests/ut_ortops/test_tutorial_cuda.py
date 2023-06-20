@@ -80,8 +80,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         node_inputs = [c + "c" for c in "AB"]
         node_outputs = ["Yc"]
         if gemm8:
-            node_inputs += ["scaleA", "scaleB"]
-            node_outputs += ["scaleY"]
+            node_inputs += ["scaleA", "scaleB", "scaleY"]
         nodes = [
             *casts,
             make_node(
@@ -102,9 +101,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 [
                     make_tensor_value_info("scaleA", TensorProto.FLOAT, [1]),
                     make_tensor_value_info("scaleB", TensorProto.FLOAT, [1]),
+                    make_tensor_value_info("scaleY", TensorProto.FLOAT, [1]),
                 ]
             )
-            outputs.append(make_tensor_value_info("scaleY", TensorProto.FLOAT, [0]))
         graph = make_graph(nodes, "lr", inputs, outputs)
         onnx_model = make_model(
             graph,
@@ -141,6 +140,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         if gemm8:
             feeds["scaleA"] = numpy.array([1], dtype=numpy.float32)
             feeds["scaleB"] = numpy.array([1], dtype=numpy.float32)
+            feeds["scaleY"] = numpy.array([1], dtype=numpy.float32)
         try:
             got = sess.run(None, feeds)
         except OrtFail as e:
@@ -157,11 +157,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         else:
             expected = a @ b.T
         expected *= kwargs.get("alpha", 1.0)
-        if gemm8:
-            self.assertEqualArray(numpy.array([], numpy.float32), got[1])
-            self.assertEqualArray(expected, got[0], atol=0.08)
-        else:
-            self.assertEqualArray(expected, got[0])
+        self.assertEqualArray(expected, got[0], atol=0.08 if gemm8 else 1e-6)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(

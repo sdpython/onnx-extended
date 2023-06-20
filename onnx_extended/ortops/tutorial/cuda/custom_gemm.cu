@@ -59,7 +59,7 @@ const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
 };
 
-size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 4; };
+size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
 
 ONNXTensorElementDataType
 CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
@@ -69,13 +69,14 @@ CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
   case 2: // scale A
   case 3: // scale B
+  case 4: // scale Y
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
     EXT_THROW("index=", index, " is out of boundary.");
   }
 };
 
-size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 2; };
+size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType
 CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
@@ -83,8 +84,6 @@ CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
   switch (index) {
   case 0:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
-  case 1:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
     EXT_THROW("index=", index, " is out of boundary.");
   }
@@ -167,7 +166,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_A = ctx.GetInput(0);
   Ort::ConstValue input_B = ctx.GetInput(1);
-  Ort::ConstValue scale_A, scale_B;
+  Ort::ConstValue scale_A, scale_B, scale_Y;
 
   auto memA = input_A.GetTensorMemoryInfo();
   EXT_ENFORCE(memA.GetDeviceType() ==
@@ -179,9 +178,10 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
               "Input B is not on CUDA");
 
   int n_inputs = ctx.GetInputCount();
-  if (n_inputs == 4) {
+  if (n_inputs == 5) {
     scale_A = ctx.GetInput(2);
     scale_B = ctx.GetInput(3);
+    scale_Y = ctx.GetInput(4);
     auto memsA = scale_A.GetTensorMemoryInfo();
     EXT_ENFORCE(memsA.GetDeviceType() ==
                     OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
@@ -190,8 +190,12 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     EXT_ENFORCE(memsB.GetDeviceType() ==
                     OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
                 "Scale B is not on CUDA");
+    auto memsY = scale_Y.GetTensorMemoryInfo();
+    EXT_ENFORCE(memsB.GetDeviceType() ==
+                    OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+                "Scale Y is not on CUDA");
   } else if (n_inputs != 2) {
-    EXT_THROW("Number of inputs must be 2 or 4.");
+    EXT_THROW("Number of inputs must be 2 or 5.");
   }
 
   std::vector<int64_t> a_shape = input_A.GetTensorTypeAndShapeInfo().GetShape();
@@ -200,14 +204,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   EXT_ENFORCE(a_shape.size() == 2);
   EXT_ENFORCE(b_shape.size() == 2);
 
-  ONNXTensorElementDataType dtypes[4] = {
-      input_A.GetTensorTypeAndShapeInfo().GetElementType(),
-      input_B.GetTensorTypeAndShapeInfo().GetElementType(),
-      n_inputs == 4 ? scale_A.GetTensorTypeAndShapeInfo().GetElementType()
-                    : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-      n_inputs == 4 ? scale_B.GetTensorTypeAndShapeInfo().GetElementType()
-                    : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-  };
+  auto dtype_A =  input_A.GetTensorTypeAndShapeInfo().GetElementType();
+auto dtype_B =  input_B.GetTensorTypeAndShapeInfo().GetElementType();
 
   int M, N, K, lda, ldb, ldd;
   set(a_shape, b_shape, M, N, K, lda, ldb, ldd);
@@ -229,20 +227,21 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
                          Ddesc = nullptr;
 
   // Create matrix descriptors. Not setting any extra attributes.
-  cudaDataType_t a_cuda_type = ToCudaDataType(dtypes[0]);
-  cudaDataType_t b_cuda_type = ToCudaDataType(dtypes[1]);
+  cudaDataType_t a_cuda_type = ToCudaDataType(dtype_A);
+  cudaDataType_t b_cuda_type = ToCudaDataType(dtype_B);
   cudaDataType_t d_cuda_type = ToCudaDataType(out_dtype);
   cudaDataType_t bias_cuda_type =
       ToCudaDataType(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
   cudaDataType_t scale_cuda_type = bias_cuda_type;
 
+  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
+      &Adesc, a_cuda_type, transA_ ? K : M, transA_ ? M : K, lda));
+  CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
+      &Bdesc, b_cuda_type, transB_ ? N : K, transB_ ? K : N, ldb));
+  CUBLAS_THROW_IF_ERROR(
+      cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
+
   if (row_major_) {
-    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-        &Adesc, a_cuda_type, transA_ ? K : M, transA_ ? M : K, lda));
-    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-        &Bdesc, b_cuda_type, transB_ ? N : K, transB_ ? K : N, ldb));
-    CUBLAS_THROW_IF_ERROR(
-        cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
 
     cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
     CUBLAS_THROW_IF_ERROR(
@@ -251,15 +250,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutSetAttribute(Bdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
                                          &matrixOrder, sizeof(matrixOrder)));
-  } else {
-    // onnxruntime only supports row major.
-    // A matric RxC column major is like a transposed matrix CxR row major
-    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-        &Adesc, a_cuda_type, transA_ ? K : M, transA_ ? M : K, lda));
-    CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-        &Bdesc, b_cuda_type, transB_ ? N : K, transB_ ? K : N, ldb));
-    CUBLAS_THROW_IF_ERROR(
-        cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
   }
 
   CUBLAS_THROW_IF_ERROR(
@@ -280,9 +270,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
 
   const void *p_scale_a = nullptr;
   const void *p_scale_b = nullptr;
-  void *p_scale_d = nullptr;
-  void *p_scale_before = nullptr;
-  if (n_inputs == 4) {
+  const void *p_scale_y = nullptr;
+  if (n_inputs == 5) {
     // gemm float 8
     const int8_t ifast_accumulation_mode = fastAccumulationMode_ ? 1 : 0;
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
@@ -297,29 +286,15 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER, &p_scale_b,
         sizeof(p_scale_b)));
+    p_scale_y = scale_Y.GetTensorRawData();
+    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+        operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_y,
+        sizeof(p_scale_b)));
 
     // float 8
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
     if (out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN ||
         out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) {
-      std::vector<int64_t> scale_dimensions{1};
-      Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
-      p_scale_d = out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN
-                      ? static_cast<void *>(
-                            scale_Y.GetTensorMutableData<Ort::Float8E4M3FN_t>())
-                      : static_cast<void *>(
-                            scale_Y.GetTensorMutableData<Ort::Float8E5M2_t>());
-      float one = 1;
-      CUDA_THROW_IF_ERROR(cudaMemcpy(p_scale_d, static_cast<const void *>(&one),
-                                     sizeof(float), cudaMemcpyHostToDevice));
-      p_scale_before = p_scale_d;
-      CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-          operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_d,
-          sizeof(p_scale_d)));
-      auto memsY = scale_Y.GetTensorMemoryInfo();
-      EXT_ENFORCE(memsY.GetDeviceType() ==
-                      OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-                  "output scale D is not on CUDA");
       // For FP8 output, cuBLAS requires C_type to be same as bias_type
       CUBLAS_THROW_IF_ERROR(
           cublasLtMatrixLayoutCreate(&Cdesc, bias_cuda_type, M, N, ldd));
@@ -327,23 +302,15 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
           operationDesc, CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE, &bias_cuda_type,
           sizeof(bias_cuda_type)));
     } else {
-      // An output is still needed but it is not initialized.
-      std::vector<int64_t> scale_dimensions{0};
-      Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
       CUBLAS_THROW_IF_ERROR(
           cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
     }
   } else {
-    // An output is still needed but it is not initialized.
-    std::vector<int64_t> scale_dimensions{0};
-    Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
   }
 #else
     // An output is still needed but it is not initialized.
-    std::vector<int64_t> scale_dimensions{0};
-    Ort::UnownedValue scale_Y = ctx.GetOutput(1, scale_dimensions);
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
 #endif
@@ -436,7 +403,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Adesc));
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescDestroy(operationDesc));
   CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
-  EXT_ENFORCE(p_scale_d == p_scale_before, "Output scale needs to be copied.");
 }
 
 } // namespace ortops
