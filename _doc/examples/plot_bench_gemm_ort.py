@@ -66,25 +66,43 @@ pprint.pprint(properties)
 # ++++++++++++++++++
 
 
-def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
+def create_model(
+    mat_type=TensorProto.FLOAT, provider="CUDAExecutionProvider", domain="com.microsoft"
+):
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
-    C = make_tensor_value_info("C", mat_type, [None, None])
+    outputs = [make_tensor_value_info("C", mat_type, [None, None])]
     inits = []
     if domain != "":
-        I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
-        f8 = mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2)
+        if provider != "CUDAExecutionProvider":
+            return None
+        f8 = False
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
-        elif not f8:
+            node_output = ["C"]
+        elif mat_type == TensorProto.FLOAT:
             op_name = "CustomGemmFloat"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
-        else:
+            node_output = ["C", "time"]
+            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
+        elif mat_type == TensorProto.FLOAT16:
+            op_name = "CustomGemmFloat16"
+            computeType = "CUBLAS_COMPUTE_16F"
+            node_output = ["C", "time"]
+            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
+        elif mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
+            f8 = True
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
-        if f8:
-            inits.append(I1)
+            node_output = ["C", "time"]
+            outputs = [
+                make_tensor_value_info("C", TensorProto.FLOAT16, [None, None]),
+                make_tensor_value_info("time", TensorProto.DOUBLE, [None]),
+            ]
+            inits.append(from_array(numpy.array([1], dtype=numpy.float32), name="I"))
+        else:
+            return None
         node_kw = dict(
             alpha=1.0,
             transA=1,
@@ -93,11 +111,17 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
             fastAccumulationMode=1,
             rowMajor=0 if op_name == "CustomGemmFloat8E4M3FN" else 1,
         )
+        node_kw["name"] = (
+            f"{mat_type}.{len(node_output)}.{len(outputs)}."
+            f"{domain}..{node_kw['rowMajor']}.."
+            f"{node_kw['fastAccumulationMode']}..{node_kw['computeType']}.."
+            f"{f8}"
+        )
         nodes = [
             make_node(
                 op_name,
                 ["A", "B", "I", "I", "I"] if f8 else ["A", "B"],
-                ["C"],
+                node_output,
                 **node_kw,
             ),
         ]
@@ -105,7 +129,7 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         nodes = [
             make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
         ]
-    graph = make_graph(nodes, "a", [A, B], [C], inits)
+    graph = make_graph(nodes, "a", [A, B], outputs, inits)
     if mat_type < 16:
         # regular type
         opset, ir = 18, 8
@@ -130,11 +154,17 @@ create_model()
 # A model to cast
 
 
-def create_cast(to):
+def create_cast(to, cuda=False):
     A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
     C = make_tensor_value_info("C", to, [None, None])
-    node1 = make_node("Cast", ["A"], ["C"], to=to)
-    graph = make_graph([node1], "a", [A], [C])
+    if cuda:
+        nodes = [
+            make_node("Cast", ["A"], ["Cc"], to=to),
+            make_node("MemcpyFromHost", ["Cc"], ["C"]),
+        ]
+    else:
+        nodes = [make_node("Cast", ["A"], ["C"], to=to)]
+    graph = make_graph(nodes, "a", [A], [C])
     if to < 16:
         # regular type
         opset, ir = 18, 8
@@ -143,7 +173,9 @@ def create_cast(to):
     onnx_model = make_model(
         graph, opset_imports=[make_opsetid("", opset)], ir_version=ir
     )
-    check_model(onnx_model)
+    if not cuda:
+        # OpType: MemcpyFromHost
+        check_model(onnx_model)
     return onnx_model
 
 
@@ -159,12 +191,12 @@ create_cast(TensorProto.FLOAT16)
 types = [
     TensorProto.FLOAT8E4M3FN,
     TensorProto.FLOAT,
-    TensorProto.UINT32,
-    TensorProto.INT32,
-    TensorProto.INT16,
-    TensorProto.INT8,
     TensorProto.FLOAT16,
-    TensorProto.BFLOAT16,
+    # TensorProto.BFLOAT16,
+    # TensorProto.UINT32,
+    # TensorProto.INT32,
+    # TensorProto.INT16,
+    # TensorProto.INT8,
 ]
 engine = [InferenceSession, CReferenceEvaluator]
 providers = [
@@ -172,17 +204,20 @@ providers = [
     ["CPUExecutionProvider"],
 ]
 # M, N, K
+# we use multiple of 8, otherwise, float8 does not work.
 dims = [
-    (10, 10, 10),
-    (61, 62, 63),
+    (32, 32, 32),
+    (56, 64, 72),
     (64, 64, 64),
-    (65, 66, 67),
-    (100, 100, 100),
+    (64, 72, 80),
     (128, 128, 128),
     (256, 256, 256),
     (400, 400, 400),
     (512, 512, 512),
     (1024, 1024, 1024),
+    (2048, 2048, 2048),
+    (4096, 4096, 4096),
+    # (16384, 16384, 16384),
 ]
 
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
@@ -199,23 +234,43 @@ def to_ort_value(m):
 
 
 matrices = {}
+matrices_cuda = {}
 for m, n, k in dims:
     for tt in types:
-        for i, j in [(m, k), (k, n)]:
+        for i, j in [(m, k), (k, n), (k, m)]:
             if (tt, i, j) in matrices:
                 continue
+            # CPU
             try:
                 sess = InferenceSession(
                     create_cast(tt).SerializeToString(),
                     providers=["CPUExecutionProvider"],
                 )
+                cpu = True
             except (InvalidGraph, InvalidArgument, NotImplemented):
                 # not support by this version of onnxruntime
+                cpu = False
+
+            if cpu:
+                vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
+                ov = to_ort_value(vect)
+                ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
+                matrices[tt, i, j] = ovtt
+            else:
                 continue
+
+            # CUDA
+            if "CUDAExecutionProvider" not in get_available_providers():
+                # No CUDA
+                continue
+            sess = InferenceSession(
+                create_cast(tt, cuda=True).SerializeToString(),
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
             vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
             ov = to_ort_value(vect)
             ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-            matrices[tt, i, j] = ovtt
+            matrices_cuda[tt, i, j] = ovtt
 
 print(f"{len(matrices)} matrices were created.")
 
@@ -231,7 +286,16 @@ for tt, engine, provider, dim, domain in pbar:
         tt in {TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2}
         and properties.get("major", 0) < 9
     ):
-        # f8 now available
+        # f8 not available
+        if provider[0] == "CPUExecutionProvider":
+            continue
+        errors.append(
+            f"f8 not available, major={properties.get('major', 0)}, "
+            f"tt={tt}, provider={provider!r}, domain={domain!r}."
+        )
+        continue
+    elif provider[0] == "CPUExecutionProvider" and max(dim) > 2000:
+        # too long
         continue
     if max(dim) <= 200:
         repeat, number = 50, 25
@@ -240,7 +304,14 @@ for tt, engine, provider, dim, domain in pbar:
     else:
         repeat, number = 10, 4
 
-    onx = create_model(tt, domain=domain)
+    onx = create_model(tt, provider=provider[0], domain=domain)
+    if onx is None:
+        if provider[0] == "CPUExecutionProvider":
+            continue
+        errors.append(
+            f"No model for tt={tt}, provider={provider!r}, domain={domain!r}."
+        )
+        continue
     with open(f"plot_bench_gemm_{tt}_{domain}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
     k1 = (tt, dim[2], dim[0])
@@ -276,11 +347,11 @@ for tt, engine, provider, dim, domain in pbar:
 
     elif engine == InferenceSession:
         if provider[0] not in get_available_providers():
+            errors.append(f"provider={provider[0]} is missing")
             continue
         pbar.set_description(
             f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}"
         )
-        feeds = {"A": matrices[k1], "B": matrices[k2]}
         opts = SessionOptions()
         r = get_ort_ext_libs()
         if r is not None:
@@ -293,30 +364,32 @@ for tt, engine, provider, dim, domain in pbar:
             continue
 
         if provider == ["CPUExecutionProvider"]:
-            the_feeds = feeds
+            the_feeds = {"A": matrices[k1], "B": matrices[k2]}
         else:
-            # moving values to CUDA
-            device = C_OrtDevice(C_OrtDevice.cuda(), C_OrtDevice.default_memory(), 0)
-            try:
-                the_feeds = {
-                    k: C_OrtValue.ortvalue_from_numpy(v.numpy(), device)
-                    for k, v in feeds.items()
-                }
-            except RuntimeError as e:
-                errors.append(f"issue with cuda and type {tt} - {e}")
-                continue
+            the_feeds = {"A": matrices_cuda[k1], "B": matrices_cuda[k2]}
 
         # warmup
-        for i in range(5):
-            sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0]
-        # benchamrk
-        obs = measure_time(
-            lambda: sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0],
-            repeat=repeat,
-            number=number,
+        out_names = (
+            ["C", "time"] if domain == "onnx_extented.ortops.tutorial.cuda" else ["C"]
         )
+        for i in range(5):
+            sess._sess.run_with_ort_values(the_feeds, out_names, None)[0]
+        # benchamrk
+        times = []
+
+        def fct_benchmarked():
+            got = sess._sess.run_with_ort_values(the_feeds, out_names, None)
+            if len(got) > 1:
+                times.append(got[1])
+
+        obs = measure_time(fct_benchmarked, repeat=repeat, number=number)
+        internal_time = None
+        if len(times) > 0:
+            np_times = [t.numpy() for t in times]
+            internal_time = (sum(np_times) / len(times))[0]
 
     else:
+        errors.append(f"unknown engine={engine}")
         continue
 
     stype = {
@@ -353,6 +426,7 @@ for tt, engine, provider, dim, domain in pbar:
                 "CUDAExecutionProvider": "cuda",
             }[provider[0]],
             platform=platform.processor(),
+            intime=internal_time,
         )
     )
     data.append(obs)
@@ -364,43 +438,50 @@ df = DataFrame(data)
 df.to_excel("plot_bench_gemm_ort.xlsx")
 df.to_csv("plot_bench_gemm_ort.csv")
 df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_ort.csv")
+print(df.head().T)
 df
 
 #####################################
-# The errors.
-
-for e in list(sorted(set(map(str, errors)))):
-    print(e)
+# The errors
+# ++++++++++
+for i, e in enumerate(errors):
+    print(f"{i+1}/{len(errors)}-{e}")
 
 ##############################################
-# Plots
-# +++++
+# Summary
+# +++++++
 
 piv = pivot_table(
     df,
     index=["cost"],
-    columns=["type", "domain", "provider", "engine"],
-    values="average",
+    columns=["provider", "type", "domain", "engine"],
+    values=["average", "intime"],
 )
 piv.reset_index(drop=False).to_excel("plot_bench_gemm_ort_summary.xlsx")
 piv.reset_index(drop=False).to_csv("plot_bench_gemm_ort_summary.csv")
+
+
+print("summary")
 print(piv)
 piv
 
 ########################################
 # With the dimensions.
+
 pivs = pivot_table(
     df,
     index=["cost_s"],
-    columns=["type", "domain", "provider", "engine"],
-    values="average",
+    columns=["provider", "type", "domain", "engine"],
+    values=["average", "intime"],
 )
 print(pivs)
 
 ##############################
 # plot
 
-dfi = df[df.type.isin({"f32", "f16", "bf16", "e4m3", "e5m2"}) & df.engine.isin({"ort"})]
+dfi = df[
+    df.type.isin({"f32", "f16", "bf16", "e4m3fn", "e5m2"}) & df.engine.isin({"ort"})
+]
 pivi = pivot_table(
     dfi,
     index=["cost"],

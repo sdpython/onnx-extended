@@ -13,6 +13,7 @@ from itertools import product
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pandas import DataFrame
+from onnx_extended.ext_test_case import unit_test_going
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import (
@@ -45,16 +46,16 @@ if prop["major"] <= 0:
     # No CUDA.
     tests = []
     dims = []
-elif prop["major"] < 8:
+elif prop["major"] < 7:
     # No float 8.
     tests = list(range(5))
     dims = [16, 32, 64]
-elif prop["major"] < 9:
+elif prop["major"] < 9:  # T100, A100
     # No float 8.
     tests = list(range(5))
     dims = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 else:
-    tests = list(range(15))
+    tests = list(range(15))  # H100
     dims = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
 
 ##############################
@@ -106,13 +107,15 @@ for test, dim in pbar:
     )
     res.update(update)
     obs.append(res)
+    if unit_test_going() and len(obs) > 2:
+        break
 
 df = DataFrame(obs)
 df.to_csv("plot_bench_gemm_f8.csv", index=False)
 df.to_excel("plot_bench_gemm_f8.xlsx", index=False)
-print(df.head())
+print(df.head().T)
 
-df.head()
+df.head().T
 
 ###################################
 # Test definition
@@ -125,11 +128,11 @@ if df.shape[0] > 0:
     print(gr)
 
 ###################################
-# Simplified
-# ++++++++++
+# Total time and only gemm
+# ++++++++++++++++++++++++
 
 if df.shape[0] > 0:
-    dfi = df[col_def + ["dim", "t-gemm_sync"]]
+    dfi = df[col_def + ["dim", "t-total", "t-gemm_sync"]]
     print(dfi)
 
 ###################################
@@ -139,7 +142,13 @@ if df.shape[0] > 0:
 if df.shape[0] > 0:
     subset = {1, 3, 4, 5, 7}
     dfis = dfi[dfi.test.isin(subset)]
+    print()
+    print("t-gemm_sync")
     pivi = dfis.pivot_table(index="dim", columns="name", values="t-gemm_sync")
+    print(pivi)
+    print()
+    print("t-total")
+    pivi = dfis.pivot_table(index="dim", columns="name", values="t-total")
     print(pivi)
 
 

@@ -16,6 +16,7 @@ struct BenchmarkGemm {
   double gemm;
   double gemm_in;
   double gemm_sync;
+  double total;
   BenchmarkGemm();
   void zero();
   void to_map(std::unordered_map<std::string, double> &bench);

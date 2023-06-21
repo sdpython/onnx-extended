@@ -149,13 +149,13 @@ inline int32_t TypeSize(ONNXTensorElementDataType element_type) {
 inline void _CublasThrowOnError_(cublasStatus_t status, const char *file,
                                  int line, const char *expr) {
   if (status != CUBLAS_STATUS_SUCCESS) {
-    EXT_THROW("Expression [", expr, "] failed.\nFile ", file, ":", line);
+    EXT_THROW("Status=", cublasGetErrorEnum(status), " Expression [", expr,
+              "] failed.\nFile ", file, ":", line);
   }
 }
 
 #define CUBLAS_THROW_IF_ERROR(expr)                                            \
   _CublasThrowOnError_((expr), __FILE__, __LINE__, #expr)
-
 
 template <typename T>
 void _check_cuda(T err, const char *const func, const char *const file,

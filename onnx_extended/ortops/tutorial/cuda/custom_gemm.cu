@@ -1,5 +1,6 @@
 #include "common/common_kernels_cuda.h"
 #include "custom_gemm.h"
+#include <chrono>
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_bf16.h>
@@ -20,25 +21,68 @@ namespace ortops {
 void *CustomGemmOpFloat::CreateKernel(const OrtApi &api,
                                       const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
-};
+}
 
-const char *CustomGemmOpFloat::GetName() const { return "CustomGemmFloat"; };
+const char *CustomGemmOpFloat::GetName() const { return "CustomGemmFloat"; }
 
 const char *CustomGemmOpFloat::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
-};
+}
 
-size_t CustomGemmOpFloat::GetInputTypeCount() const { return 2; };
+size_t CustomGemmOpFloat::GetInputTypeCount() const { return 2; }
 
 ONNXTensorElementDataType CustomGemmOpFloat::GetInputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-};
+}
 
-size_t CustomGemmOpFloat::GetOutputTypeCount() const { return 1; };
+size_t CustomGemmOpFloat::GetOutputTypeCount() const { return 2; }
 
 ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-};
+  switch (index) {
+  case 0:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  case 1:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
+  }
+}
+
+//////////////////////
+// CustomGemmOpFloat16
+//////////////////////
+
+void *CustomGemmOpFloat16::CreateKernel(const OrtApi &api,
+                                        const OrtKernelInfo *info) const {
+  return std::make_unique<CustomGemmKernel>(api, info).release();
+}
+
+const char *CustomGemmOpFloat16::GetName() const { return "CustomGemmFloat16"; }
+
+const char *CustomGemmOpFloat16::GetExecutionProviderType() const {
+  return "CUDAExecutionProvider";
+}
+
+size_t CustomGemmOpFloat16::GetInputTypeCount() const { return 2; }
+
+ONNXTensorElementDataType
+CustomGemmOpFloat16::GetInputType(size_t index) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+}
+
+size_t CustomGemmOpFloat16::GetOutputTypeCount() const { return 2; }
+
+ONNXTensorElementDataType
+CustomGemmOpFloat16::GetOutputType(size_t index) const {
+  switch (index) {
+  case 0:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  case 1:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
+  }
+}
 
 ///////////////////////////
 // CustomGemmOpFloat8E4M3FN
@@ -49,15 +93,15 @@ ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
 void *CustomGemmOpFloat8E4M3FN::CreateKernel(const OrtApi &api,
                                              const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
-};
+}
 
 const char *CustomGemmOpFloat8E4M3FN::GetName() const {
   return "CustomGemmFloat8E4M3FN";
-};
+}
 
 const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
-};
+}
 
 size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
 
@@ -74,9 +118,9 @@ CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
   default:
     EXT_THROW("index=", index, " is out of boundary.");
   }
-};
+}
 
-size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 1; };
+size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 2; }
 
 ONNXTensorElementDataType
 CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
@@ -84,6 +128,8 @@ CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
   switch (index) {
   case 0:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  case 1:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
   default:
     EXT_THROW("index=", index, " is out of boundary.");
   }
@@ -163,6 +209,8 @@ void CustomGemmKernel::set(const std::vector<int64_t> &a_shape,
 }
 
 void CustomGemmKernel::Compute(OrtKernelContext *context) {
+  auto time0 = std::chrono::high_resolution_clock::now();
+
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_A = ctx.GetInput(0);
   Ort::ConstValue input_B = ctx.GetInput(1);
@@ -242,7 +290,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
 
   if (row_major_) {
-
     cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutSetAttribute(Adesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
@@ -356,7 +403,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       " Unable to find any suitable algorithm due to ",
       cublasGetErrorEnum(cuda_status), ", returnedResults=", returnedResults,
       ", alpha=", alpha_,
-      // ", beta=", beta_,
       ", n_inputs=", n_inputs, ", A_type=", CudaDataTypeToString(a_cuda_type),
       ", B_type=", CudaDataTypeToString(b_cuda_type),
       ", result_type=", CudaDataTypeToString(d_cuda_type),
@@ -382,7 +428,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
   float beta = 0;
   void *C = Y.GetTensorMutableRawData();
-  CUBLAS_THROW_IF_ERROR(cublasLtMatmul(
+  cuda_status = cublasLtMatmul(
       cublasLt, operationDesc, static_cast<const void *>(&alpha_), /* alpha */
       input_A.GetTensorRawData(),                                  /* A */
       Adesc, input_B.GetTensorRawData(),                           /* B */
@@ -390,8 +436,28 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       C,                                                           /* C */
       Cdesc, Y.GetTensorMutableRawData(),                          /* Y */
       Ddesc, &heuristicResult.algo,                                /* algo */
-      workspace,               /* workspace */
-      workspaceSize, stream)); /* stream */
+      workspace,                                                   /* workspace */
+      workspaceSize, stream);                                      /* stream */
+  EXT_ENFORCE(
+      cuda_status == CUBLAS_STATUS_SUCCESS,
+      " Unable to run cublasLtMatmul due to ",
+      cublasGetErrorEnum(cuda_status), ", returnedResults=", returnedResults,
+      ", alpha=", alpha_,
+      ", n_inputs=", n_inputs, ", A_type=", CudaDataTypeToString(a_cuda_type),
+      ", B_type=", CudaDataTypeToString(b_cuda_type),
+      ", result_type=", CudaDataTypeToString(d_cuda_type),
+      ", bias_type=", CudaDataTypeToString(bias_cuda_type),
+      ", scale_type=", CudaDataTypeToString(scale_cuda_type),
+      ", computeType=", CublasComputeTypeToString(computeType_),
+      ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", transA_,
+      ", transB=", transB_,
+      ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
+      ", a_shape=", a_shape[0], "x", a_shape[1], ", b_shape=", b_shape[0], "x",
+      b_shape[1], ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
+      ", ldd=", ldd, ", workspaceSize=", workspaceSize,
+      ", rowMajor=", (row_major_ ? 1 : 0),
+      ".");
+
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }
@@ -403,6 +469,14 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutDestroy(Adesc));
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescDestroy(operationDesc));
   CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
+
+  std::vector<int64_t> tdims{1};
+  Ort::UnownedValue ttime = ctx.GetOutput(1, tdims);
+  void *ptr_time = ttime.GetTensorMutableRawData();
+  double performance = std::chrono::duration<double>(
+                           std::chrono::high_resolution_clock::now() - time0)
+                           .count();
+  cudaMemcpy(ptr_time, &performance, sizeof(double), cudaMemcpyHostToDevice);
 }
 
 } // namespace ortops

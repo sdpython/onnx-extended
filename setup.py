@@ -189,13 +189,12 @@ def _run_subprocess(
                 or "CMake Error" in output
                 or "gmake: ***" in output
                 or "): error C" in output
+                or ": error: " in output
             ):
                 raise_exception = True
     rc = p.poll()
     if raise_exception:
-        raise RuntimeError(
-            "'fatal error:' was found in the output. The build is stopped."
-        )
+        raise RuntimeError("An error was found in the output. The build is stopped.")
     return rc
 
 

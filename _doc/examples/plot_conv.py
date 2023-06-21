@@ -84,7 +84,7 @@ print(f"speedup is {t1['average'] / t2['average']}")
 # Let's add :epkg:`onnxruntime` as well.
 
 sess3 = InferenceSession(
-    onnx_model.SerializeToString(), provider=["CPUExecutionProvider"]
+    onnx_model.SerializeToString(), providers=["CPUExecutionProvider"]
 )
 
 t3 = measure_time(lambda: sess3.run(None, feeds))
