@@ -17,18 +17,13 @@ class TestCudaGemm(ExtTestCase):
         r = get_device_prop()
         self.assertIsInstance(r, dict)
         self.assertEqual(len(r), 12)
-        self.assertIn("NVIDIA", r["name"])
+        self.assertIn("GB", r["name"])
 
     def gemm_test(self, test):
         r = gemm_benchmark_test(test)
         self.assertIsInstance(r, dict)
-        self.assertEqual(len(r), 18)
+        self.assertEqual(len(r), 19)
         self.assertEqual(r["N"], 5)
-        if __name__ == "__main__":
-            import pprint
-
-            r["test"] = test
-            pprint.pprint(r)
 
     @unittest.skipIf(gemm_benchmark_test is None, reason="CUDA not available")
     def test_gemm_test_float32(self):

@@ -403,7 +403,6 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       " Unable to find any suitable algorithm due to ",
       cublasGetErrorEnum(cuda_status), ", returnedResults=", returnedResults,
       ", alpha=", alpha_,
-      // ", beta=", beta_,
       ", n_inputs=", n_inputs, ", A_type=", CudaDataTypeToString(a_cuda_type),
       ", B_type=", CudaDataTypeToString(b_cuda_type),
       ", result_type=", CudaDataTypeToString(d_cuda_type),
@@ -429,7 +428,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
   float beta = 0;
   void *C = Y.GetTensorMutableRawData();
-  CUBLAS_THROW_IF_ERROR(cublasLtMatmul(
+  cuda_status = cublasLtMatmul(
       cublasLt, operationDesc, static_cast<const void *>(&alpha_), /* alpha */
       input_A.GetTensorRawData(),                                  /* A */
       Adesc, input_B.GetTensorRawData(),                           /* B */
@@ -437,8 +436,28 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       C,                                                           /* C */
       Cdesc, Y.GetTensorMutableRawData(),                          /* Y */
       Ddesc, &heuristicResult.algo,                                /* algo */
-      workspace,               /* workspace */
-      workspaceSize, stream)); /* stream */
+      workspace,                                                   /* workspace */
+      workspaceSize, stream);                                      /* stream */
+  EXT_ENFORCE(
+      cuda_status == CUBLAS_STATUS_SUCCESS,
+      " Unable to run cublasLtMatmul due to ",
+      cublasGetErrorEnum(cuda_status), ", returnedResults=", returnedResults,
+      ", alpha=", alpha_,
+      ", n_inputs=", n_inputs, ", A_type=", CudaDataTypeToString(a_cuda_type),
+      ", B_type=", CudaDataTypeToString(b_cuda_type),
+      ", result_type=", CudaDataTypeToString(d_cuda_type),
+      ", bias_type=", CudaDataTypeToString(bias_cuda_type),
+      ", scale_type=", CudaDataTypeToString(scale_cuda_type),
+      ", computeType=", CublasComputeTypeToString(computeType_),
+      ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", transA_,
+      ", transB=", transB_,
+      ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
+      ", a_shape=", a_shape[0], "x", a_shape[1], ", b_shape=", b_shape[0], "x",
+      b_shape[1], ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
+      ", ldd=", ldd, ", workspaceSize=", workspaceSize,
+      ", rowMajor=", (row_major_ ? 1 : 0),
+      ".");
+
   if (workspaceSize > 0) {
     cudaFree(workspace);
   }

@@ -46,16 +46,16 @@ if prop["major"] <= 0:
     # No CUDA.
     tests = []
     dims = []
-elif prop["major"] < 8:
+elif prop["major"] < 7:
     # No float 8.
     tests = list(range(5))
     dims = [16, 32, 64]
-elif prop["major"] < 9:
+elif prop["major"] < 9:  # T100, A100
     # No float 8.
     tests = list(range(5))
     dims = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 else:
-    tests = list(range(15))
+    tests = list(range(15))  # H100
     dims = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
 
 ##############################
@@ -142,7 +142,13 @@ if df.shape[0] > 0:
 if df.shape[0] > 0:
     subset = {1, 3, 4, 5, 7}
     dfis = dfi[dfi.test.isin(subset)]
+    print()
+    print("t-gemm_sync")
     pivi = dfis.pivot_table(index="dim", columns="name", values="t-gemm_sync")
+    print(pivi)
+    print()
+    print("t-total")
+    pivi = dfis.pivot_table(index="dim", columns="name", values="t-total")
     print(pivi)
 
 
