@@ -66,12 +66,16 @@ pprint.pprint(properties)
 # ++++++++++++++++++
 
 
-def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
+def create_model(
+    mat_type=TensorProto.FLOAT, provider="CUDAExecutionProvider", domain="com.microsoft"
+):
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
     outputs = [make_tensor_value_info("C", mat_type, [None, None])]
     inits = []
     if domain != "":
+        if provider != "CUDAExecutionProvider":
+            return None
         f8 = False
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
@@ -84,7 +88,7 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
             outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
         elif mat_type == TensorProto.FLOAT16:
             op_name = "CustomGemmFloat16"
-            computeType = "CUBLAS_COMPUTE_32F"
+            computeType = "CUBLAS_COMPUTE_16F"
             node_output = ["C", "time"]
             outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
         elif mat_type not in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
@@ -106,6 +110,12 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
             computeType=computeType,
             fastAccumulationMode=1,
             rowMajor=0 if op_name == "CustomGemmFloat8E4M3FN" else 1,
+        )
+        node_kw["name"] = (
+            f"{mat_type}.{len(node_output)}.{len(outputs)}."
+            f"{domain}..{node_kw['rowMajor']}.."
+            f"{node_kw['fastAccumulationMode']}..{node_kw['computeType']}.."
+            f"{f8}"
         )
         nodes = [
             make_node(
@@ -173,12 +183,12 @@ create_cast(TensorProto.FLOAT16)
 types = [
     TensorProto.FLOAT8E4M3FN,
     TensorProto.FLOAT,
-    TensorProto.UINT32,
-    TensorProto.INT32,
-    TensorProto.INT16,
-    TensorProto.INT8,
     TensorProto.FLOAT16,
-    TensorProto.BFLOAT16,
+    # TensorProto.BFLOAT16,
+    # TensorProto.UINT32,
+    # TensorProto.INT32,
+    # TensorProto.INT16,
+    # TensorProto.INT8,
 ]
 engine = [InferenceSession, CReferenceEvaluator]
 providers = [
@@ -246,6 +256,12 @@ for tt, engine, provider, dim, domain in pbar:
         and properties.get("major", 0) < 9
     ):
         # f8 not available
+        if provider[0] == "CPUExecutionProvider":
+            continue
+        errors.append(
+            f"f8 not available, major={properties.get('major', 0)}, "
+            f"tt={tt}, provider={provider!r}, domain={domain!r}."
+        )
         continue
     if max(dim) <= 200:
         repeat, number = 50, 25
@@ -254,9 +270,13 @@ for tt, engine, provider, dim, domain in pbar:
     else:
         repeat, number = 10, 4
 
-    onx = create_model(tt, domain=domain)
+    onx = create_model(tt, provider=provider[0], domain=domain)
     if onx is None:
-        errors.append(f"No model for tt={tt} and domain={domain}.")
+        if provider[0] == "CPUExecutionProvider":
+            continue
+        errors.append(
+            f"No model for tt={tt}, provider={provider!r}, domain={domain!r}."
+        )
         continue
     with open(f"plot_bench_gemm_{tt}_{domain}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
@@ -394,17 +414,18 @@ df = DataFrame(data)
 df.to_excel("plot_bench_gemm_ort.xlsx")
 df.to_csv("plot_bench_gemm_ort.csv")
 df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_ort.csv")
+print(df.head().T)
 df
 
 #####################################
-# The errors.
-
-for e in list(sorted(set(map(str, errors)))):
-    print(e)
+# The errors
+# ++++++++++
+for i, e in enumerate(errors):
+    print(f"{i+1}/{len(errors)}-{e}")
 
 ##############################################
-# Plots
-# +++++
+# Summary
+# +++++++
 
 piv = pivot_table(
     df,
@@ -414,11 +435,15 @@ piv = pivot_table(
 )
 piv.reset_index(drop=False).to_excel("plot_bench_gemm_ort_summary.xlsx")
 piv.reset_index(drop=False).to_csv("plot_bench_gemm_ort_summary.csv")
+
+
+print("summary")
 print(piv)
 piv
 
 ########################################
 # With the dimensions.
+
 pivs = pivot_table(
     df,
     index=["cost_s"],
