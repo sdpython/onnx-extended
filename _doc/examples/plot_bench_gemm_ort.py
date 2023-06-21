@@ -91,7 +91,7 @@ def create_model(
             computeType = "CUBLAS_COMPUTE_16F"
             node_output = ["C", "time"]
             outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
-        elif mat_type not in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
+        elif mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
             f8 = True
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
@@ -196,17 +196,19 @@ providers = [
     ["CPUExecutionProvider"],
 ]
 # M, N, K
+# we use multiple of 8, otherwise, float8 does not work.
 dims = [
-    (10, 10, 10),
-    (61, 62, 63),
+    (32, 32, 32),
+    (56, 64, 72),
     (64, 64, 64),
-    (65, 66, 67),
-    (100, 100, 100),
+    (64, 72, 80),
     (128, 128, 128),
     (256, 256, 256),
     (400, 400, 400),
     (512, 512, 512),
     (1024, 1024, 1024),
+    (2048, 2048, 2048),
+    (4096, 4096, 4096),
 ]
 
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
@@ -341,8 +343,8 @@ for tt, engine, provider, dim, domain in pbar:
                     for k, v in feeds.items()
                 }
             except RuntimeError as e:
-                errors.append(f"issue with cuda and type {tt} - {e}")
-                continue
+                # We keep the data on CPU.
+                the_feeds = feeds
 
         # warmup
         out_names = (
