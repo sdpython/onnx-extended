@@ -69,7 +69,7 @@ pprint.pprint(properties)
 def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
     A = make_tensor_value_info("A", mat_type, [None, None])
     B = make_tensor_value_info("B", mat_type, [None, None])
-    C = make_tensor_value_info("C", mat_type, [None, None])
+    outputs = [make_tensor_value_info("C", mat_type, [None, None])]
     inits = []
     if domain != "":
         I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
@@ -77,15 +77,22 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+            node_output = ["C"]
         elif mat_type == TensorProto.FLOAT:
             op_name = "CustomGemmFloat"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+            node_output = ["C", "time"]
+            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
         elif mat_type == TensorProto.FLOAT16:
             op_name = "CustomGemmFloat16"
             computeType = "CUBLAS_COMPUTE_32F"
+            node_output = ["C", "time"]
+            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
         else:
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+            node_output = ["C", "time"]
+            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
         if f8:
             inits.append(I1)
         node_kw = dict(
@@ -100,7 +107,7 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
             make_node(
                 op_name,
                 ["A", "B", "I", "I", "I"] if f8 else ["A", "B"],
-                ["C"],
+                node_output,
                 **node_kw,
             ),
         ]
@@ -108,7 +115,7 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
         nodes = [
             make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
         ]
-    graph = make_graph(nodes, "a", [A, B], [C], inits)
+    graph = make_graph(nodes, "a", [A, B], outputs, inits)
     if mat_type < 16:
         # regular type
         opset, ir = 18, 8
@@ -311,14 +318,24 @@ for tt, engine, provider, dim, domain in pbar:
                 continue
 
         # warmup
-        for i in range(5):
-            sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0]
-        # benchamrk
-        obs = measure_time(
-            lambda: sess._sess.run_with_ort_values(the_feeds, ["C"], None)[0],
-            repeat=repeat,
-            number=number,
+        out_names = (
+            ["C", "time"] if domain == "onnx_extented.ortops.tutorial.cuda" else ["C"]
         )
+        for i in range(5):
+            sess._sess.run_with_ort_values(the_feeds, out_names, None)[0]
+        # benchamrk
+        times = []
+
+        def fct_benchmarked():
+            got = sess._sess.run_with_ort_values(the_feeds, out_names, None)
+            if len(got) > 1:
+                times.append(got[1])
+
+        obs = measure_time(fct_benchmarked, repeat=repeat, number=number)
+        internal_time = None
+        if len(times) > 0:
+            np_times = [t.numpy() for t in times]
+            internal_time = (sum(np_times) / len(times))[0]
 
     else:
         errors.append(f"unknown engine={engine}")
@@ -358,6 +375,7 @@ for tt, engine, provider, dim, domain in pbar:
                 "CUDAExecutionProvider": "cuda",
             }[provider[0]],
             platform=platform.processor(),
+            intime=internal_time,
         )
     )
     data.append(obs)
@@ -385,7 +403,7 @@ piv = pivot_table(
     df,
     index=["cost"],
     columns=["type", "domain", "provider", "engine"],
-    values="average",
+    values=["average", "intime"],
 )
 piv.reset_index(drop=False).to_excel("plot_bench_gemm_ort_summary.xlsx")
 piv.reset_index(drop=False).to_csv("plot_bench_gemm_ort_summary.csv")
@@ -398,14 +416,16 @@ pivs = pivot_table(
     df,
     index=["cost_s"],
     columns=["type", "domain", "provider", "engine"],
-    values="average",
+    values=["average", "intime"],
 )
 print(pivs)
 
 ##############################
 # plot
 
-dfi = df[df.type.isin({"f32", "f16", "bf16", "e4m3fn", "e5m2"}) & df.engine.isin({"ort"})]
+dfi = df[
+    df.type.isin({"f32", "f16", "bf16", "e4m3fn", "e5m2"}) & df.engine.isin({"ort"})
+]
 pivi = pivot_table(
     dfi,
     index=["cost"],

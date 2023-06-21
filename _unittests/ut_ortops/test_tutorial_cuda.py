@@ -78,7 +78,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
 
         casts = [make_node("Cast", [c], [c + "c"], to=to) for c, to in zip("AB", tos)]
         node_inputs = [c + "c" for c in "AB"]
-        node_outputs = ["Yc"]
+        node_outputs = ["Yc", "time"]
         if gemm8:
             node_inputs += ["scaleA", "scaleB", "scaleY"]
         nodes = [
@@ -95,7 +95,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         inputs = [
             make_tensor_value_info(c, TensorProto.FLOAT, [None, None]) for c in "AB"
         ]
-        outputs = [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])]
+        outputs = [
+            make_tensor_value_info("Y", TensorProto.FLOAT, [None, None]),
+            make_tensor_value_info("time", TensorProto.DOUBLE, [None]),
+        ]
         if gemm8:
             inputs.extend(
                 [
@@ -157,7 +160,11 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         else:
             expected = a @ b.T
         expected *= kwargs.get("alpha", 1.0)
-        self.assertEqualArray(expected, got[0], atol=0.08 if gemm8 else 1e-6)
+        if tos[0] == TensorProto.FLOAT16:
+            atol = 1e-2
+        else:
+            atol = 0.08 if gemm8 else 1e-6
+        self.assertEqualArray(expected, got[0], atol=atol)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(

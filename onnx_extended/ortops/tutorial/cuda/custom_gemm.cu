@@ -1,6 +1,6 @@
 #include "common/common_kernels_cuda.h"
-#include <chrono>
 #include "custom_gemm.h"
+#include <chrono>
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_bf16.h>
@@ -21,32 +21,32 @@ namespace ortops {
 void *CustomGemmOpFloat::CreateKernel(const OrtApi &api,
                                       const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
-};
+}
 
-const char *CustomGemmOpFloat::GetName() const { return "CustomGemmFloat"; };
+const char *CustomGemmOpFloat::GetName() const { return "CustomGemmFloat"; }
 
 const char *CustomGemmOpFloat::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
-};
+}
 
-size_t CustomGemmOpFloat::GetInputTypeCount() const { return 2; };
+size_t CustomGemmOpFloat::GetInputTypeCount() const { return 2; }
 
 ONNXTensorElementDataType CustomGemmOpFloat::GetInputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-};
+}
 
-size_t CustomGemmOpFloat::GetOutputTypeCount() const { return 2; };
+size_t CustomGemmOpFloat::GetOutputTypeCount() const { return 2; }
 
 ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
-  switch(index) {
-    case 0:
-      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-    case 1:
-      return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
-    default:
-      EXT_THROW("index=", index, " is out of boundary.");
+  switch (index) {
+  case 0:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  case 1:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
   }
-};
+}
 
 //////////////////////
 // CustomGemmOpFloat16
@@ -54,33 +54,35 @@ ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
 
 void *CustomGemmOpFloat16::CreateKernel(const OrtApi &api,
                                         const OrtKernelInfo *info) const {
-  return std::make_unique<CustomGemmOpFloat16>(api, info).release();
-};
+  return std::make_unique<CustomGemmKernel>(api, info).release();
+}
 
-const char *CustomGemmOpFloat16::GetName() const { return "CustomGemmFloat16"; };
+const char *CustomGemmOpFloat16::GetName() const { return "CustomGemmFloat16"; }
 
 const char *CustomGemmOpFloat16::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
-};
+}
 
-size_t CustomGemmOpFloat16::GetInputTypeCount() const { return 2; };
+size_t CustomGemmOpFloat16::GetInputTypeCount() const { return 2; }
 
-ONNXTensorElementDataType CustomGemmOpFloat16::GetInputType(size_t index) const {
+ONNXTensorElementDataType
+CustomGemmOpFloat16::GetInputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
-};
+}
 
-size_t CustomGemmOpFloat16::GetOutputTypeCount() const { return 2; };
+size_t CustomGemmOpFloat16::GetOutputTypeCount() const { return 2; }
 
-ONNXTensorElementDataType CustomGemmOpFloat16::GetOutputType(size_t index) const {
-  switch(index) {
-    case 0:
-      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
-    case 1:
-      return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
-    default:
-      EXT_THROW("index=", index, " is out of boundary.");
+ONNXTensorElementDataType
+CustomGemmOpFloat16::GetOutputType(size_t index) const {
+  switch (index) {
+  case 0:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  case 1:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
   }
-};
+}
 
 ///////////////////////////
 // CustomGemmOpFloat8E4M3FN
@@ -91,15 +93,15 @@ ONNXTensorElementDataType CustomGemmOpFloat16::GetOutputType(size_t index) const
 void *CustomGemmOpFloat8E4M3FN::CreateKernel(const OrtApi &api,
                                              const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
-};
+}
 
 const char *CustomGemmOpFloat8E4M3FN::GetName() const {
   return "CustomGemmFloat8E4M3FN";
-};
+}
 
 const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
-};
+}
 
 size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
 
@@ -116,9 +118,9 @@ CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
   default:
     EXT_THROW("index=", index, " is out of boundary.");
   }
-};
+}
 
-size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 2; };
+size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 2; }
 
 ONNXTensorElementDataType
 CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
@@ -449,11 +451,13 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescDestroy(operationDesc));
   CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
 
+  std::vector<int64_t> tdims{1};
+  Ort::UnownedValue ttime = ctx.GetOutput(1, tdims);
+  void *ptr_time = ttime.GetTensorMutableRawData();
   double performance = std::chrono::duration<double>(
                            std::chrono::high_resolution_clock::now() - time0)
-                           .count();}
-  std::vector<int64_t> tdims{1};
-  Ort::UnownedValue t = ctx.GetOutput(1, tdims);
-  void *C = Y.GetTensorMutableRawData();
-  cudaMemcpy(C, &performance, sizeof(double), cudaMemcpyHostToDevice);
+                           .count();
+  cudaMemcpy(ptr_time, &performance, sizeof(double), cudaMemcpyHostToDevice);
+}
+
 } // namespace ortops

@@ -110,9 +110,9 @@ for test, dim in pbar:
 df = DataFrame(obs)
 df.to_csv("plot_bench_gemm_f8.csv", index=False)
 df.to_excel("plot_bench_gemm_f8.xlsx", index=False)
-print(df.head())
+print(df.head().T)
 
-df.head()
+df.head().T
 
 ###################################
 # Test definition
@@ -125,11 +125,11 @@ if df.shape[0] > 0:
     print(gr)
 
 ###################################
-# Simplified
-# ++++++++++
+# Total time and only gemm
+# ++++++++++++++++++++++++
 
 if df.shape[0] > 0:
-    dfi = df[col_def + ["dim", "t-gemm_sync"]]
+    dfi = df[col_def + ["dim", "t-total", "t-gemm_sync"]]
     print(dfi)
 
 ###################################

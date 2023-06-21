@@ -251,6 +251,7 @@ void BenchmarkGemm::zero() {
   gemm_in = 0;
   gemm_sync = 0;
   clean = 0;
+  total = 0;
 }
 
 void BenchmarkGemm::to_map(std::unordered_map<std::string, double> &bench) {
@@ -264,6 +265,7 @@ void BenchmarkGemm::to_map(std::unordered_map<std::string, double> &bench) {
   bench["t-gemm"] = gemm;
   bench["t-gemm_sync"] = gemm_sync;
   bench["t-clean"] = clean;
+  bench["t-total"] = total;
 }
 
 std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
@@ -429,6 +431,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
     time_type t6 = std::chrono::high_resolution_clock::now();
     ++results.N;
     results.workspace_free += to_double(t5, t6);
+    results.total += to_double(t0, t6);
   }
 
   std::unordered_map<std::string, double> bench;
