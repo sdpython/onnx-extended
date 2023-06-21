@@ -217,6 +217,7 @@ dims = [
     (1024, 1024, 1024),
     (2048, 2048, 2048),
     (4096, 4096, 4096),
+    # (16384, 16384, 16384),
 ]
 
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
@@ -259,6 +260,9 @@ for m, n, k in dims:
                 continue
 
             # CUDA
+            if "CUDAExecutionProvider" not in get_available_providers():
+                # No CUDA
+                continue
             sess = InferenceSession(
                 create_cast(tt, cuda=True).SerializeToString(),
                 providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
