@@ -154,11 +154,17 @@ create_model()
 # A model to cast
 
 
-def create_cast(to):
+def create_cast(to, cuda=False):
     A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
     C = make_tensor_value_info("C", to, [None, None])
-    node1 = make_node("Cast", ["A"], ["C"], to=to)
-    graph = make_graph([node1], "a", [A], [C])
+    if cuda:
+        nodes = [
+            make_node("Cast", ["A"], ["Cc"], to=to),
+            make_node("MemcpyFromHost", ["Cc"], ["C"]),
+        ]
+    else:
+        nodes = [make_node("Cast", ["A"], ["C"], to=to)]
+    graph = make_graph(nodes, "a", [A], [C])
     if to < 16:
         # regular type
         opset, ir = 18, 8
@@ -167,7 +173,9 @@ def create_cast(to):
     onnx_model = make_model(
         graph, opset_imports=[make_opsetid("", opset)], ir_version=ir
     )
-    check_model(onnx_model)
+    if not cuda:
+        # OpType: MemcpyFromHost
+        check_model(onnx_model)
     return onnx_model
 
 
@@ -225,23 +233,40 @@ def to_ort_value(m):
 
 
 matrices = {}
+matrices_cuda = {}
 for m, n, k in dims:
     for tt in types:
         for i, j in [(m, k), (k, n), (k, m)]:
             if (tt, i, j) in matrices:
                 continue
+            # CPU
             try:
                 sess = InferenceSession(
                     create_cast(tt).SerializeToString(),
                     providers=["CPUExecutionProvider"],
                 )
+                cpu = True
             except (InvalidGraph, InvalidArgument, NotImplemented):
                 # not support by this version of onnxruntime
+                cpu = False
+
+            if cpu:
+                vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
+                ov = to_ort_value(vect)
+                ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
+                matrices[tt, i, j] = ovtt
+            else:
                 continue
+
+            # CUDA
+            sess = InferenceSession(
+                create_cast(tt, cuda=True).SerializeToString(),
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
             vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
             ov = to_ort_value(vect)
             ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-            matrices[tt, i, j] = ovtt
+            matrices_cuda[tt, i, j] = ovtt
 
 print(f"{len(matrices)} matrices were created.")
 
@@ -264,6 +289,9 @@ for tt, engine, provider, dim, domain in pbar:
             f"f8 not available, major={properties.get('major', 0)}, "
             f"tt={tt}, provider={provider!r}, domain={domain!r}."
         )
+        continue
+    elif provider[0] == "CPUExecutionProvider" and max(dim) > 2000:
+        # too long
         continue
     if max(dim) <= 200:
         repeat, number = 50, 25
@@ -320,7 +348,6 @@ for tt, engine, provider, dim, domain in pbar:
         pbar.set_description(
             f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}"
         )
-        feeds = {"A": matrices[k1], "B": matrices[k2]}
         opts = SessionOptions()
         r = get_ort_ext_libs()
         if r is not None:
@@ -333,18 +360,9 @@ for tt, engine, provider, dim, domain in pbar:
             continue
 
         if provider == ["CPUExecutionProvider"]:
-            the_feeds = feeds
+            the_feeds = {"A": matrices[k1], "B": matrices[k2]}
         else:
-            # moving values to CUDA
-            device = C_OrtDevice(C_OrtDevice.cuda(), C_OrtDevice.default_memory(), 0)
-            try:
-                the_feeds = {
-                    k: C_OrtValue.ortvalue_from_numpy(v.numpy(), device)
-                    for k, v in feeds.items()
-                }
-            except RuntimeError as e:
-                # We keep the data on CPU.
-                the_feeds = feeds
+            the_feeds = {"A": matrices_cuda[k1], "B": matrices_cuda[k2]}
 
         # warmup
         out_names = (
