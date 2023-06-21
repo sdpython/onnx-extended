@@ -13,6 +13,7 @@ from itertools import product
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pandas import DataFrame
+from onnx_extended.ext_test_case import unit_test_going
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import (
@@ -106,6 +107,8 @@ for test, dim in pbar:
     )
     res.update(update)
     obs.append(res)
+    if unit_test_going() and len(obs) > 2:
+        break
 
 df = DataFrame(obs)
 df.to_csv("plot_bench_gemm_f8.csv", index=False)
