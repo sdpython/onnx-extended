@@ -72,8 +72,7 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
     outputs = [make_tensor_value_info("C", mat_type, [None, None])]
     inits = []
     if domain != "":
-        I1 = from_array(numpy.array([1], dtype=numpy.float32), name="I")
-        f8 = mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2)
+        f8 = False
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
@@ -88,13 +87,18 @@ def create_model(mat_type=TensorProto.FLOAT, domain="com.microsoft"):
             computeType = "CUBLAS_COMPUTE_32F"
             node_output = ["C", "time"]
             outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
-        else:
+        elif mat_type not in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
+            f8 = True
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
             node_output = ["C", "time"]
-            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
-        if f8:
-            inits.append(I1)
+            outputs = [
+                make_tensor_value_info("C", TensorProto.FLOAT16, [None, None]),
+                make_tensor_value_info("time", TensorProto.DOUBLE, [None]),
+            ]
+            inits.append(from_array(numpy.array([1], dtype=numpy.float32), name="I"))
+        else:
+            return None
         node_kw = dict(
             alpha=1.0,
             transA=1,
@@ -211,7 +215,7 @@ def to_ort_value(m):
 matrices = {}
 for m, n, k in dims:
     for tt in types:
-        for i, j in [(m, k), (k, n)]:
+        for i, j in [(m, k), (k, n), (k, m)]:
             if (tt, i, j) in matrices:
                 continue
             try:
@@ -251,6 +255,9 @@ for tt, engine, provider, dim, domain in pbar:
         repeat, number = 10, 4
 
     onx = create_model(tt, domain=domain)
+    if onx is None:
+        errors.append(f"No model for tt={tt} and domain={domain}.")
+        continue
     with open(f"plot_bench_gemm_{tt}_{domain}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
     k1 = (tt, dim[2], dim[0])
@@ -402,7 +409,7 @@ for e in list(sorted(set(map(str, errors)))):
 piv = pivot_table(
     df,
     index=["cost"],
-    columns=["type", "domain", "provider", "engine"],
+    columns=["provider", "type", "domain", "engine"],
     values=["average", "intime"],
 )
 piv.reset_index(drop=False).to_excel("plot_bench_gemm_ort_summary.xlsx")
@@ -415,7 +422,7 @@ piv
 pivs = pivot_table(
     df,
     index=["cost_s"],
-    columns=["type", "domain", "provider", "engine"],
+    columns=["provider", "type", "domain", "engine"],
     values=["average", "intime"],
 )
 print(pivs)
