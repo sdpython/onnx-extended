@@ -220,7 +220,7 @@ providers = [
 ]
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
-if properties["major"] < 7:
+if properties.get("major", 0) < 7:
     dims = [
         (256, 256, 256),
         (512, 512, 512),
