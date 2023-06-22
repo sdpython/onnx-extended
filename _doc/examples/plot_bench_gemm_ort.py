@@ -1,13 +1,16 @@
 """
-.. _l-example-bench-gemm:
+.. _l-example-bench-gemm-ort:
 
-Measuring performance about Gemm
-================================
+Measuring performance about Gemm with onnxruntime
+=================================================
 
-Differents types, differents backend, differents
+The benchmark measures the performance of Gemm for different
+types and configuration. That includes a custom operator
+only available on CUDA calling function :epkg:`cublasLtMatmul`.
+This function offers many options.
 
-Onnx Model
-++++++++++
+Device properties
++++++++++++++++++
 """
 import pprint
 import platform
@@ -40,6 +43,10 @@ from onnxruntime.capi.onnxruntime_pybind11_state import (
 )
 
 try:
+    from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
+except ImportError:
+    onnx_simple_text_plot = str
+try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
@@ -64,6 +71,11 @@ pprint.pprint(properties)
 ###################################
 # Model to benchmark
 # ++++++++++++++++++
+#
+# It includes one Gemm. The operator changes.
+# It can the regular Gemm, a custom Gemm from domain `com.microsoft`
+# or a custom implementation from domain
+# `onnx_extented.ortops.tutorial.cuda`.
 
 
 def create_model(
@@ -79,7 +91,7 @@ def create_model(
         f8 = False
         if domain == "com.microsoft":
             op_name = "GemmFloat8"
-            computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+            computeType = "CUBLAS_COMPUTE_32F"
             node_output = ["C"]
         elif mat_type == TensorProto.FLOAT:
             op_name = "CustomGemmFloat"
@@ -94,7 +106,7 @@ def create_model(
         elif mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
             f8 = True
             op_name = "CustomGemmFloat8E4M3FN"
-            computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
+            computeType = "CUBLAS_COMPUTE_32F"
             node_output = ["C", "time"]
             outputs = [
                 make_tensor_value_info("C", TensorProto.FLOAT16, [None, None]),
@@ -148,10 +160,13 @@ def create_model(
     return onnx_model
 
 
-create_model()
+print(onnx_simple_text_plot(create_model()))
 
 ###########################################
-# A model to cast
+# A model to cast into anytype.
+# numpy does not support float 8. onnxruntime is used
+# to cast a float array into any type.
+# It must be called with tensor of type `OrtValue`.
 
 
 def create_cast(to, cuda=False):
@@ -179,7 +194,7 @@ def create_cast(to, cuda=False):
     return onnx_model
 
 
-create_cast(TensorProto.FLOAT16)
+print(onnx_simple_text_plot(create_cast(TensorProto.FLOAT16)))
 
 
 ##############################
@@ -192,7 +207,7 @@ types = [
     TensorProto.FLOAT8E4M3FN,
     TensorProto.FLOAT,
     TensorProto.FLOAT16,
-    # TensorProto.BFLOAT16,
+    TensorProto.BFLOAT16,
     # TensorProto.UINT32,
     # TensorProto.INT32,
     # TensorProto.INT16,
@@ -233,49 +248,101 @@ def to_ort_value(m):
     return ort_value
 
 
-matrices = {}
-matrices_cuda = {}
-for m, n, k in dims:
-    for tt in types:
-        for i, j in [(m, k), (k, n), (k, m)]:
-            if (tt, i, j) in matrices:
-                continue
-            # CPU
-            try:
-                sess = InferenceSession(
-                    create_cast(tt).SerializeToString(),
-                    providers=["CPUExecutionProvider"],
-                )
-                cpu = True
-            except (InvalidGraph, InvalidArgument, NotImplemented):
-                # not support by this version of onnxruntime
-                cpu = False
+def cached_inputs(dims, types):
+    matrices = {}
+    matrices_cuda = {}
+    for m, n, k in dims:
+        for tt in types:
+            for i, j in [(m, k), (k, n), (k, m)]:
+                if (tt, i, j) in matrices:
+                    continue
+                # CPU
+                try:
+                    sess = InferenceSession(
+                        create_cast(tt).SerializeToString(),
+                        providers=["CPUExecutionProvider"],
+                    )
+                    cpu = True
+                except (InvalidGraph, InvalidArgument, NotImplemented):
+                    # not support by this version of onnxruntime
+                    cpu = False
 
-            if cpu:
+                if cpu:
+                    vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
+                    ov = to_ort_value(vect)
+                    ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
+                    matrices[tt, i, j] = ovtt
+                else:
+                    continue
+
+                # CUDA
+                if "CUDAExecutionProvider" not in get_available_providers():
+                    # No CUDA
+                    continue
+                sess = InferenceSession(
+                    create_cast(tt, cuda=True).SerializeToString(),
+                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                )
                 vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
                 ov = to_ort_value(vect)
                 ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-                matrices[tt, i, j] = ovtt
-            else:
-                continue
+                matrices_cuda[tt, i, j] = ovtt
+    return matrices, matrices_cuda
 
-            # CUDA
-            if "CUDAExecutionProvider" not in get_available_providers():
-                # No CUDA
-                continue
-            sess = InferenceSession(
-                create_cast(tt, cuda=True).SerializeToString(),
-                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-            )
-            vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
-            ov = to_ort_value(vect)
-            ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-            matrices_cuda[tt, i, j] = ovtt
 
+matrices, matrices_cuda = cached_inputs(dims, types)
 print(f"{len(matrices)} matrices were created.")
 
 ###################################
 # Let's run the benchmark
+
+
+def rendering_obs(obs, dim, number, repeat, domain, provider, internal_time):
+    stype = {
+        TensorProto.FLOAT: "f32",
+        TensorProto.FLOAT16: "f16",
+        TensorProto.BFLOAT16: "bf16",
+        TensorProto.INT8: "i8",
+        TensorProto.INT16: "i16",
+        TensorProto.INT32: "i32",
+        TensorProto.UINT32: "u32",
+        TensorProto.FLOAT8E4M3FN: "e4m3fn",
+        TensorProto.FLOAT8E5M2: "e5m2",
+    }[tt]
+    obs.update(
+        dict(
+            engine={"InferenceSession": "ort", "CReferenceEvaluator": "np"}[
+                engine.__name__
+            ],
+            stype=stype,
+            type=f"{stype}",
+            M=dim[0],
+            N=dim[1],
+            K=dim[2],
+            cost=numpy.prod(dim) * 4,
+            cost_s=f"{numpy.prod(dim) * 4}-{dim[0]}x{dim[1]}x{dim[2]}",
+            repeat=repeat,
+            number=number,
+            domain={
+                "": "-",
+                "com.microsoft": "ORT",
+                "onnx_extented.ortops.tutorial.cuda": "EXT",
+            }[domain],
+            provider={
+                "CPUExecutionProvider": "cpu",
+                "CUDAExecutionProvider": "cuda",
+            }[provider[0]],
+            platform=platform.processor(),
+            intime=internal_time,
+        )
+    )
+    return obs
+
+
+opts = SessionOptions()
+r = get_ort_ext_libs()
+if r is not None:
+    opts.register_custom_ops_library(r[0])
 
 
 data = []
@@ -312,7 +379,7 @@ for tt, engine, provider, dim, domain in pbar:
             f"No model for tt={tt}, provider={provider!r}, domain={domain!r}."
         )
         continue
-    with open(f"plot_bench_gemm_{tt}_{domain}.onnx", "wb") as f:
+    with open(f"plot_bench_gemm_ort_{tt}_{domain}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
     k1 = (tt, dim[2], dim[0])
     k2 = (tt, dim[2], dim[1])
@@ -323,22 +390,19 @@ for tt, engine, provider, dim, domain in pbar:
         errors.append(f"Key k2={k2!r} not in matrices.")
         continue
 
+    pbar.set_description(f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}")
+
     if engine == CReferenceEvaluator:
-        if domain != "":
-            continue
-        if max(dim) > 256:
-            # too slow
+        if (
+            domain != ""
+            or max(dim) > 256
+            or provider != ["CPUExecutionProvider"]
+            or tt not in [TensorProto.FLOAT, TensorProto.FLOAT16]
+        ):
+            # All impossible or slow cases.
             continue
         if tt == TensorProto.FLOAT16 and max(dim) > 50:
             repeat, number = 2, 2
-        if provider != ["CPUExecutionProvider"]:
-            continue
-        if tt not in [TensorProto.FLOAT, TensorProto.FLOAT16]:
-            continue
-
-        pbar.set_description(
-            f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}"
-        )
 
         feeds = {"A": matrices[k1].numpy(), "B": matrices[k2].numpy()}
         sess = engine(onx)
@@ -349,13 +413,6 @@ for tt, engine, provider, dim, domain in pbar:
         if provider[0] not in get_available_providers():
             errors.append(f"provider={provider[0]} is missing")
             continue
-        pbar.set_description(
-            f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}"
-        )
-        opts = SessionOptions()
-        r = get_ort_ext_libs()
-        if r is not None:
-            opts.register_custom_ops_library(r[0])
         try:
             sess = engine(onx.SerializeToString(), opts, providers=provider)
         except (NotImplemented, InvalidGraph, Fail) as e:
@@ -363,17 +420,19 @@ for tt, engine, provider, dim, domain in pbar:
             errors.append((tt, engine.__class__.__name__, provider, domain, e))
             continue
 
-        if provider == ["CPUExecutionProvider"]:
-            the_feeds = {"A": matrices[k1], "B": matrices[k2]}
-        else:
-            the_feeds = {"A": matrices_cuda[k1], "B": matrices_cuda[k2]}
-
-        # warmup
+        the_feeds = (
+            {"A": matrices[k1], "B": matrices[k2]}
+            if provider == ["CPUExecutionProvider"]
+            else {"A": matrices_cuda[k1], "B": matrices_cuda[k2]}
+        )
         out_names = (
             ["C", "time"] if domain == "onnx_extented.ortops.tutorial.cuda" else ["C"]
         )
+
+        # warmup
         for i in range(5):
             sess._sess.run_with_ort_values(the_feeds, out_names, None)[0]
+
         # benchamrk
         times = []
 
@@ -392,47 +451,15 @@ for tt, engine, provider, dim, domain in pbar:
         errors.append(f"unknown engine={engine}")
         continue
 
-    stype = {
-        TensorProto.FLOAT: "f32",
-        TensorProto.FLOAT16: "f16",
-        TensorProto.INT8: "i8",
-        TensorProto.INT16: "i16",
-        TensorProto.INT32: "i32",
-        TensorProto.UINT32: "u32",
-        TensorProto.FLOAT8E4M3FN: "e4m3fn",
-        TensorProto.FLOAT8E5M2: "e5m2",
-    }[tt]
-    obs.update(
-        dict(
-            engine={"InferenceSession": "ort", "CReferenceEvaluator": "np"}[
-                engine.__name__
-            ],
-            stype=stype,
-            type=f"{stype}",
-            M=dim[0],
-            N=dim[1],
-            K=dim[2],
-            cost=numpy.prod(dim) * 4,
-            cost_s=f"{numpy.prod(dim) * 4}-{dim[0]}x{dim[1]}x{dim[2]}",
-            repeat=repeat,
-            number=number,
-            domain={
-                "": "-",
-                "com.microsoft": "ORT",
-                "onnx_extented.ortops.tutorial.cuda": "EXT",
-            }[domain],
-            provider={
-                "CPUExecutionProvider": "cpu",
-                "CUDAExecutionProvider": "cuda",
-            }[provider[0]],
-            platform=platform.processor(),
-            intime=internal_time,
-        )
-    )
+    # improves the rendering
+    obs = rendering_obs(obs, dim, number, repeat, domain, provider, internal_time)
     data.append(obs)
     if unit_test_going() and len(data) >= 2:
         break
 
+############################
+# Results
+# +++++++
 
 df = DataFrame(data)
 df.to_excel("plot_bench_gemm_ort.xlsx")
