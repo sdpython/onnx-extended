@@ -5,8 +5,7 @@ Measuring Gemm performance with different input and output types
 ================================================================
 
 This benchmark looks into various combinations allowed by functions
-`cublasLtMatMul
-<https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul>`_.
+:epkg:`cublasLtMatMul`.
 """
 import pprint
 from itertools import product

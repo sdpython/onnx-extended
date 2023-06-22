@@ -1,13 +1,12 @@
 """
-.. _l-example-bench-gemm-ort:
+.. _l-example-bench-gemm-ort-profile:
 
-Measuring performance about Gemm with onnxruntime
-=================================================
+Profiles a simple onnx graph including a singleGemm
+===================================================
 
-The benchmark measures the performance of Gemm for different
+The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
-This function offers many options.
 
 Device properties
 +++++++++++++++++
@@ -18,7 +17,7 @@ from itertools import product
 import numpy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from pandas import DataFrame, pivot_table
+from pandas import DataFrame, pivot_table, concat
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -44,8 +43,10 @@ from onnxruntime.capi.onnxruntime_pybind11_state import (
 
 try:
     from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
+    from onnx_array_api.ort.ort_profile import ort_profile
 except ImportError:
     onnx_simple_text_plot = str
+    ort_profile = None
 try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
@@ -198,8 +199,8 @@ print(onnx_simple_text_plot(create_cast(TensorProto.FLOAT16)))
 
 
 ##############################
-# Performance
-# +++++++++++
+# Profiling
+# +++++++++
 #
 # The benchmark will run the following configurations.
 
@@ -213,27 +214,22 @@ types = [
     # TensorProto.INT16,
     # TensorProto.INT8,
 ]
-engine = [InferenceSession, CReferenceEvaluator]
+engine = [InferenceSession]
 providers = [
     ["CUDAExecutionProvider", "CPUExecutionProvider"],
-    ["CPUExecutionProvider"],
 ]
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
-dims = [
-    (32, 32, 32),
-    (56, 64, 72),
-    (64, 64, 64),
-    (64, 72, 80),
-    (128, 128, 128),
-    (256, 256, 256),
-    (400, 400, 400),
-    (512, 512, 512),
-    (1024, 1024, 1024),
-    (2048, 2048, 2048),
-    (4096, 4096, 4096),
-    # (16384, 16384, 16384),
-]
+if properties.get("major", 0) < 7:
+    dims = [
+        (256, 256, 256),
+        (512, 512, 512),
+    ]
+else:
+    dims = [
+        (2048, 2048, 2048),
+        (4096, 4096, 4096),
+    ]
 
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 
@@ -294,49 +290,7 @@ matrices, matrices_cuda = cached_inputs(dims, types)
 print(f"{len(matrices)} matrices were created.")
 
 ###################################
-# Let's run the benchmark
-
-
-def rendering_obs(obs, dim, number, repeat, domain, provider, internal_time):
-    stype = {
-        TensorProto.FLOAT: "f32",
-        TensorProto.FLOAT16: "f16",
-        TensorProto.BFLOAT16: "bf16",
-        TensorProto.INT8: "i8",
-        TensorProto.INT16: "i16",
-        TensorProto.INT32: "i32",
-        TensorProto.UINT32: "u32",
-        TensorProto.FLOAT8E4M3FN: "e4m3fn",
-        TensorProto.FLOAT8E5M2: "e5m2",
-    }[tt]
-    obs.update(
-        dict(
-            engine={"InferenceSession": "ort", "CReferenceEvaluator": "np"}[
-                engine.__name__
-            ],
-            stype=stype,
-            type=f"{stype}",
-            M=dim[0],
-            N=dim[1],
-            K=dim[2],
-            cost=numpy.prod(dim) * 4,
-            cost_s=f"{numpy.prod(dim) * 4}-{dim[0]}x{dim[1]}x{dim[2]}",
-            repeat=repeat,
-            number=number,
-            domain={
-                "": "-",
-                "com.microsoft": "ORT",
-                "onnx_extented.ortops.tutorial.cuda": "EXT",
-            }[domain],
-            provider={
-                "CPUExecutionProvider": "cpu",
-                "CUDAExecutionProvider": "cuda",
-            }[provider[0]],
-            platform=platform.processor(),
-            intime=internal_time,
-        )
-    )
-    return obs
+# Let's run the profiles
 
 
 opts = SessionOptions()
@@ -346,114 +300,53 @@ if r is not None:
 
 
 data = []
-errors = []
 pbar = tqdm(list(product(types, engine, providers, dims, domains)))
 for tt, engine, provider, dim, domain in pbar:
+    if "CUDAExecutionProvider" not in get_available_providers():
+        # No CUDA.
+        continue
     if (
         tt in {TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2}
         and properties.get("major", 0) < 9
     ):
         # f8 not available
-        if provider[0] == "CPUExecutionProvider":
-            continue
-        errors.append(
-            f"f8 not available, major={properties.get('major', 0)}, "
-            f"tt={tt}, provider={provider!r}, domain={domain!r}."
-        )
         continue
-    elif provider[0] == "CPUExecutionProvider" and max(dim) > 2000:
-        # too long
-        continue
-    if max(dim) <= 200:
-        repeat, number = 50, 25
-    elif max(dim) <= 256:
-        repeat, number = 25, 10
-    else:
-        repeat, number = 10, 4
 
     onx = create_model(tt, provider=provider[0], domain=domain)
     if onx is None:
-        if provider[0] == "CPUExecutionProvider":
-            continue
-        errors.append(
-            f"No model for tt={tt}, provider={provider!r}, domain={domain!r}."
-        )
+        # Not available on this machine
         continue
-    with open(f"plot_bench_gemm_ort_{tt}_{domain}.onnx", "wb") as f:
+    with open(f"plot_bench_gemm_profile_{tt}_{domain}.onnx", "wb") as f:
         f.write(onx.SerializeToString())
     k1 = (tt, dim[2], dim[0])
     k2 = (tt, dim[2], dim[1])
-    if k1 not in matrices:
-        errors.append(f"Key k1={k1!r} not in matrices.")
-        continue
-    if k2 not in matrices:
-        errors.append(f"Key k2={k2!r} not in matrices.")
-        continue
 
     pbar.set_description(f"t={tt} e={engine.__name__} p={provider[0][:4]} dim={dim}")
 
-    if engine == CReferenceEvaluator:
-        if (
-            domain != ""
-            or max(dim) > 256
-            or provider != ["CPUExecutionProvider"]
-            or tt not in [TensorProto.FLOAT, TensorProto.FLOAT16]
-        ):
-            # All impossible or slow cases.
-            continue
-        if tt == TensorProto.FLOAT16 and max(dim) > 50:
-            repeat, number = 2, 2
-
-        feeds = {"A": matrices[k1].numpy(), "B": matrices[k2].numpy()}
-        sess = engine(onx)
-        sess.run(None, feeds)
-        obs = measure_time(lambda: sess.run(None, feeds), repeat=repeat, number=number)
-
-    elif engine == InferenceSession:
-        if provider[0] not in get_available_providers():
-            errors.append(f"provider={provider[0]} is missing")
-            continue
-        try:
-            sess = engine(onx.SerializeToString(), opts, providers=provider)
-        except (NotImplemented, InvalidGraph, Fail) as e:
-            # not implemented
-            errors.append((tt, engine.__class__.__name__, provider, domain, e))
-            continue
-
-        the_feeds = (
-            {"A": matrices[k1], "B": matrices[k2]}
-            if provider == ["CPUExecutionProvider"]
-            else {"A": matrices_cuda[k1], "B": matrices_cuda[k2]}
-        )
-        out_names = (
-            ["C", "time"] if domain == "onnx_extented.ortops.tutorial.cuda" else ["C"]
-        )
-
-        # warmup
-        for i in range(5):
-            sess._sess.run_with_ort_values(the_feeds, out_names, None)[0]
-
-        # benchamrk
-        times = []
-
-        def fct_benchmarked():
-            got = sess._sess.run_with_ort_values(the_feeds, out_names, None)
-            if len(got) > 1:
-                times.append(got[1])
-
-        obs = measure_time(fct_benchmarked, repeat=repeat, number=number)
-        internal_time = None
-        if len(times) > 0:
-            np_times = [t.numpy() for t in times]
-            internal_time = (sum(np_times) / len(times))[0]
-
-    else:
-        errors.append(f"unknown engine={engine}")
+    try:
+        sess = engine(onx.SerializeToString(), opts, providers=provider)
+    except Exception:
+        # Seomthing went wrong.
         continue
 
-    # improves the rendering
-    obs = rendering_obs(obs, dim, number, repeat, domain, provider, internal_time)
-    data.append(obs)
+    the_feeds = {"A": matrices_cuda[k1], "B": matrices_cuda[k2]}
+    out_names = (
+        ["C", "time"] if domain == "onnx_extented.ortops.tutorial.cuda" else ["C"]
+    )
+
+    if ort_profile is None:
+        raise ImportError("Could not import ort_profile from onnx-array-api.")
+    df = ort_profile(
+        onx, the_feeds, sess_options=opts, repeat=17, as_df=True, providers=provider,
+        first_it_out=True, agg=True
+    ).reset_index(drop=False)
+    columns = ["xdim", "xdomain", "xdtype"] + list(df.columns)
+    df["xdim"] = "x".join(map(str, dim))
+    df["xdomain"] = {'onnx_extented.ortops.tutorial.cuda': 'ext', "": ".", "com.microsoft": "com"}[domain]
+    df["xdtype"] = {1: "f32", 10: "f16", 16: "bf16", 17:"e4m3fn", 18:"e5m2"}[tt]
+    df = df[columns]
+    data.append(df)
+
     if unit_test_going() and len(data) >= 2:
         break
 
@@ -461,69 +354,87 @@ for tt, engine, provider, dim, domain in pbar:
 # Results
 # +++++++
 
-df = DataFrame(data)
-df.to_excel("plot_bench_gemm_ort.xlsx")
-df.to_csv("plot_bench_gemm_ort.csv")
-df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_ort.csv")
-print(df.head().T)
-df
-
-#####################################
-# The errors
-# ++++++++++
-for i, e in enumerate(errors):
-    print(f"{i+1}/{len(errors)}-{e}")
+if len(data) > 0:
+    df = concat(data, axis=0)
+    df.to_excel("plot_profile_gemm_ort.xlsx")
+    df.to_csv("plot_profile_gemm_ort.csv")
+    print(df.head().T)
 
 ##############################################
 # Summary
 # +++++++
 
-piv = pivot_table(
-    df,
-    index=["cost"],
-    columns=["provider", "type", "domain", "engine"],
-    values=["average", "intime"],
-)
-piv.reset_index(drop=False).to_excel("plot_bench_gemm_ort_summary.xlsx")
-piv.reset_index(drop=False).to_csv("plot_bench_gemm_ort_summary.csv")
+if len(data) > 0:
+    piv = pivot_table(
+        df[df["it==0"] == 0],
+        index=["xdim", "cat", "event_name"],
+        columns=["xdtype", "xdomain", "args_op_name"],
+        values=["dur"],
+    )
+    piv.reset_index(drop=False).to_excel("plot_profile_gemm_ort_summary.xlsx")
+    piv.reset_index(drop=False).to_csv("plot_profile_gemm_ort_summary.csv")
 
+    print()
+    print("summary")
+    print(piv)
 
-print("summary")
-print(piv)
-piv
-
-########################################
-# With the dimensions.
-
-pivs = pivot_table(
-    df,
-    index=["cost_s"],
-    columns=["provider", "type", "domain", "engine"],
-    values=["average", "intime"],
-)
-print(pivs)
 
 ##############################
 # plot
 
-dfi = df[
-    df.type.isin({"f32", "f16", "bf16", "e4m3fn", "e5m2"}) & df.engine.isin({"ort"})
-]
-pivi = pivot_table(
-    dfi,
-    index=["cost"],
-    columns=["type", "domain", "provider", "engine"],
-    values="average",
-)
+if len(data) > 0:
+    print()
+    print("compact")
 
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-piv.plot(ax=ax[0], title="Gemm performance\nlower is better", logx=True, logy=True)
-if pivi.shape[0] > 0:
-    pivi.plot(
-        ax=ax[1],
-        title=f"Gemm performance ORT\n{platform.processor()}",
-        logx=True,
-        logy=True,
+    pivi = pivot_table(
+        df[(df["it==0"] == 0) & (df["event_name"] == "kernel_time")],
+        index=["xdim"],
+        columns=["xdtype", "xdomain", "args_op_name"],
+        values="dur",
     )
-fig.tight_layout()
-fig.savefig("plot_bench_gemm_ort.png")
+    print(pivi)
+
+    print()
+    print("not operator")
+
+    pivinot = pivot_table(
+        df[df["cat"] != "Node"],
+        index=["xdim", "event_name"],
+        columns=["xdtype", "xdomain"],
+        values="dur",
+    )
+    print(pivinot)
+
+
+if len(data) > 0:
+    fig, ax = plt.subplots(2, 2, figsize=(12, 8))
+    pivi.T.plot(
+        ax=ax[0, 0],
+        title="kernel time",
+        kind="barh",
+        logx=True,
+    )
+    pivinot.T.plot(
+        ax=ax[1, 0],
+        title="Global times",
+        kind="barh",
+        logx=True,
+    )
+
+    for i, name in enumerate(["fence_before", "fence_after"]):
+        pivi = pivot_table(
+            df[(df["it==0"] == 0) & (df["event_name"] == name)],
+            index=["xdim"],
+            columns=["xdtype", "xdomain", "args_op_name"],
+            values="dur",
+        )
+        pivi.T.plot(
+            ax=ax[i, 1],
+            title=f"{name}",
+            kind="barh",
+            logx=True,
+        )
+
+
+    fig.tight_layout()
+    fig.savefig("plot_bench_gemm_ort.png")
