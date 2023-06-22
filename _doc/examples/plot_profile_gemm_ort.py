@@ -354,86 +354,87 @@ for tt, engine, provider, dim, domain in pbar:
 # Results
 # +++++++
 
-df = concat(data, axis=0)
-df.to_excel("plot_profile_gemm_ort.xlsx")
-df.to_csv("plot_profile_gemm_ort.csv")
-print(df.head().T)
-df
+if len(data) > 0:
+    df = concat(data, axis=0)
+    df.to_excel("plot_profile_gemm_ort.xlsx")
+    df.to_csv("plot_profile_gemm_ort.csv")
+    print(df.head().T)
 
 ##############################################
 # Summary
 # +++++++
 
-piv = pivot_table(
-    df[df["it==0"] == 0],
-    index=["xdim", "cat", "event_name"],
-    columns=["xdtype", "xdomain", "args_op_name"],
-    values=["dur"],
-)
-piv.reset_index(drop=False).to_excel("plot_profile_gemm_ort_summary.xlsx")
-piv.reset_index(drop=False).to_csv("plot_profile_gemm_ort_summary.csv")
+if len(data) > 0:
+    piv = pivot_table(
+        df[df["it==0"] == 0],
+        index=["xdim", "cat", "event_name"],
+        columns=["xdtype", "xdomain", "args_op_name"],
+        values=["dur"],
+    )
+    piv.reset_index(drop=False).to_excel("plot_profile_gemm_ort_summary.xlsx")
+    piv.reset_index(drop=False).to_csv("plot_profile_gemm_ort_summary.csv")
 
-
-print()
-print("summary")
-print(piv)
-piv
+    print()
+    print("summary")
+    print(piv)
 
 
 ##############################
 # plot
 
-print()
-print("compact")
+if len(data) > 0:
+    print()
+    print("compact")
 
-pivi = pivot_table(
-    df[(df["it==0"] == 0) & (df["event_name"] == "kernel_time")],
-    index=["xdim"],
-    columns=["xdtype", "xdomain", "args_op_name"],
-    values="dur",
-)
-print(pivi)
-
-print()
-print("not operator")
-
-pivinot = pivot_table(
-    df[df["cat"] != "Node"],
-    index=["xdim", "event_name"],
-    columns=["xdtype", "xdomain"],
-    values="dur",
-)
-print(pivinot)
-
-
-fig, ax = plt.subplots(2, 2, figsize=(12, 8))
-pivi.T.plot(
-    ax=ax[0, 0],
-    title="kernel time",
-    kind="barh",
-    logx=True,
-)
-pivinot.T.plot(
-    ax=ax[1, 0],
-    title="Global times",
-    kind="barh",
-    logx=True,
-)
-
-for i, name in enumerate(["fence_before", "fence_after"]):
     pivi = pivot_table(
-        df[(df["it==0"] == 0) & (df["event_name"] == name)],
+        df[(df["it==0"] == 0) & (df["event_name"] == "kernel_time")],
         index=["xdim"],
         columns=["xdtype", "xdomain", "args_op_name"],
         values="dur",
     )
+    print(pivi)
+
+    print()
+    print("not operator")
+
+    pivinot = pivot_table(
+        df[df["cat"] != "Node"],
+        index=["xdim", "event_name"],
+        columns=["xdtype", "xdomain"],
+        values="dur",
+    )
+    print(pivinot)
+
+
+if len(data) > 0:
+    fig, ax = plt.subplots(2, 2, figsize=(12, 8))
     pivi.T.plot(
-        ax=ax[i, 1],
-        title=f"{name}",
+        ax=ax[0, 0],
+        title="kernel time",
+        kind="barh",
+        logx=True,
+    )
+    pivinot.T.plot(
+        ax=ax[1, 0],
+        title="Global times",
         kind="barh",
         logx=True,
     )
 
+    for i, name in enumerate(["fence_before", "fence_after"]):
+        pivi = pivot_table(
+            df[(df["it==0"] == 0) & (df["event_name"] == name)],
+            index=["xdim"],
+            columns=["xdtype", "xdomain", "args_op_name"],
+            values="dur",
+        )
+        pivi.T.plot(
+            ax=ax[i, 1],
+            title=f"{name}",
+            kind="barh",
+            logx=True,
+        )
 
-fig.tight_layout()
-fig.savefig("plot_bench_gemm_ort.png")
+
+    fig.tight_layout()
+    fig.savefig("plot_bench_gemm_ort.png")
