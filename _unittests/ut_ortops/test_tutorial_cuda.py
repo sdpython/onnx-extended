@@ -76,8 +76,11 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             ir_version = 8
             opset = 18
 
-        casts = [make_node("Cast", [c], [c + "c"], to=to) for c, to in zip("AB", tos)]
-        node_inputs = [c + "c" for c in "AB"]
+        bias = kwargs.get("beta", 0) != 0
+        input_names = "ABC" if bias else "AB"
+        self.assertEqual(len(input_names), len(tos))
+        casts = [make_node("Cast", [c], [c + "c"], to=to) for c, to in zip(input_names, tos)]
+        node_inputs = [c + "c" for c in input_names]
         node_outputs = ["Yc", "time"]
         if gemm8:
             node_inputs += ["scaleA", "scaleB", "scaleY"]
@@ -93,7 +96,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             make_node("Cast", ["Yc"], ["Y"], to=TensorProto.FLOAT),
         ]
         inputs = [
-            make_tensor_value_info(c, TensorProto.FLOAT, [None, None]) for c in "AB"
+            make_tensor_value_info(c, TensorProto.FLOAT, [None, None]) for c in input_names
         ]
         outputs = [
             make_tensor_value_info("Y", TensorProto.FLOAT, [None, None]),
@@ -139,7 +142,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             (numpy.arange(256) / 256).astype(numpy.float32).reshape((-1, 16))
             for to in tos
         ]
-        feeds = dict(zip("AB", inputs))
+        feeds = dict(zip(input_names, inputs))
         if gemm8:
             feeds["scaleA"] = numpy.array([1], dtype=numpy.float32)
             feeds["scaleB"] = numpy.array([1], dtype=numpy.float32)
@@ -160,6 +163,8 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         else:
             expected = a @ b.T
         expected *= kwargs.get("alpha", 1.0)
+        if bias:
+            expected += inputs[2] * kwargs.get("beta", 0)
         if tos[0] == TensorProto.FLOAT16:
             atol = 1e-2
         else:
@@ -179,6 +184,22 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_bias(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            beta=1.0,
         )
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
@@ -239,7 +260,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
-    def test_custom_gemm_all_possible(self):
+    def test_custom_gemm_many_possible(self):
         excs = []
         booleans = [0, 1]
         dims = [9, 12]
@@ -362,5 +383,5 @@ class TestOrtOpTutorialCuda(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOrtOpTutorialCuda().test_custom_gemm_all_possible()
+    TestOrtOpTutorialCuda().test_custom_gemm_float32_bias()
     unittest.main(verbosity=2)

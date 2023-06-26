@@ -16,6 +16,7 @@ private:
            int &lda, int &ldb, int &ldd) const;
 
   float alpha_;
+  float beta_;
   // float beta_;
   bool transA_;
   bool transB_;
@@ -32,6 +33,8 @@ struct CustomGemmOpFloat
   const char *GetExecutionProviderType() const;
   size_t GetInputTypeCount() const;
   ONNXTensorElementDataType GetInputType(size_t index) const;
+  OrtCustomOpInputOutputCharacteristic
+  GetInputCharacteristic(size_t index) const;
   size_t GetOutputTypeCount() const;
   ONNXTensorElementDataType GetOutputType(size_t index) const;
 };
@@ -43,6 +46,8 @@ struct CustomGemmOpFloat16
   const char *GetExecutionProviderType() const;
   size_t GetInputTypeCount() const;
   ONNXTensorElementDataType GetInputType(size_t index) const;
+  OrtCustomOpInputOutputCharacteristic
+  GetInputCharacteristic(size_t index) const;
   size_t GetOutputTypeCount() const;
   ONNXTensorElementDataType GetOutputType(size_t index) const;
 };
@@ -56,6 +61,8 @@ struct CustomGemmOpFloat8E4M3FN
   const char *GetExecutionProviderType() const;
   size_t GetInputTypeCount() const;
   ONNXTensorElementDataType GetInputType(size_t index) const;
+  OrtCustomOpInputOutputCharacteristic
+  GetInputCharacteristic(size_t index) const;
   size_t GetOutputTypeCount() const;
   ONNXTensorElementDataType GetOutputType(size_t index) const;
 };
