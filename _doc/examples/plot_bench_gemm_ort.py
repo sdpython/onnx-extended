@@ -117,14 +117,12 @@ def create_model(
             f"{node_kw['fastAccumulationMode']}..{node_kw['computeType']}.."
             f"{f8}"
         )
-        nodes = [
-            make_node(
-                op_name,
-                ["A", "B", "I", "I", "I"] if f8 else ["A", "B"],
-                node_output,
-                **node_kw,
-            ),
-        ]
+        node_inputs = ["A", "B"]
+        if f8:
+            if domain == "com.microsoft":
+                node_inputs.append("")
+            node_inputs.extend(["I"] * 3)
+        nodes = [make_node(op_name, node_inputs, node_output, **node_kw)]
     else:
         nodes = [
             make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
@@ -418,7 +416,7 @@ for tt, engine, provider, dim, domain in pbar:
             number=number,
             domain={
                 "": "-",
-                "com.microsoft": "ORT",
+                "com.microsoft": "COM",
                 "onnx_extented.ortops.tutorial.cuda": "EXT",
             }[domain],
             provider={
