@@ -81,7 +81,7 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 #define EXT_ENFORCE(cond, ...)                                                 \
   if (!(cond))                                                                 \
     throw std::runtime_error(                                                  \
-        orthelpers::MakeString("`", #cond, "` failed.", orthelpers::MakeString(__VA_ARGS__)));
+        orthelpers::MakeString("`", #cond, "` failed. ", orthelpers::MakeString(__VA_ARGS__)));
 #define _ENFORCE_DEFINED
 #endif
 

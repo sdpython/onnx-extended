@@ -213,7 +213,7 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
     EXT_THROW("Unexpected value for compute_type '", compute_type, "'.");
   }
 
-#if CUDA_VERSION >= 12000
+#if CUDA_VERSION < 12000
   EXT_ENFORCE(beta_ == 0, "beta != 0 only supported for CUDA >= 12.0.");
 #endif
 }
