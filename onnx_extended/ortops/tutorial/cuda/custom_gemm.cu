@@ -129,7 +129,7 @@ const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
 }
 
-size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
+size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 6; };
 
 ONNXTensorElementDataType
 CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
@@ -137,9 +137,11 @@ CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
   case 0: // A
   case 1: // B
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
-  case 2: // scale A
-  case 3: // scale B
-  case 4: // scale Y
+  case 2: // B
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  case 3: // scale A
+  case 4: // scale B
+  case 5: // scale Y
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
     EXT_THROW("index=", index, " is out of boundary.");

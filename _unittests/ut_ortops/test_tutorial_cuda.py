@@ -87,7 +87,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         node_inputs = [c + "c" for c in input_names]
         node_outputs = ["Yc", "time"]
         if gemm8:
-            node_inputs += ["scaleA", "scaleB", "scaleY"]
+            if len(tos) == 2:
+                node_inputs.append("")
+            node_inputs.extend(["scaleA", "scaleB", "scaleY"])
         nodes = [
             *casts,
             make_node(
