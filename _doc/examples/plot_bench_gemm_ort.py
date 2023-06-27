@@ -220,9 +220,9 @@ providers = [
 # we use multiple of 8, otherwise, float8 does not work.
 dims = [
     (32, 32, 32),
-    (56, 64, 72),
-    (64, 64, 64),
-    (64, 72, 80),
+    # (56, 64, 72),
+    # (64, 64, 64),
+    # (64, 72, 80),
     (128, 128, 128),
     (256, 256, 256),
     (400, 400, 400),
@@ -230,11 +230,19 @@ dims = [
     (1024, 1024, 1024),
 ]
 if properties.get("major", 0) >= 7:
-    dims.extend([
-    (2048, 2048, 2048),
-    (4096, 4096, 4096),
-    (16384, 16384, 16384),
-])
+    dims.extend(
+        [
+            (2048, 2048, 2048),
+            (4096, 4096, 4096),
+        ]
+    )
+
+if properties.get("major", 0) >= 9:
+    dims.extend(
+        [
+            (16384, 16384, 16384),
+        ]
+    )
 
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 
