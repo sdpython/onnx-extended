@@ -29,7 +29,20 @@ const char *CustomGemmOpFloat::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
 }
 
-size_t CustomGemmOpFloat::GetInputTypeCount() const { return 2; }
+size_t CustomGemmOpFloat::GetInputTypeCount() const { return 3; }
+
+OrtCustomOpInputOutputCharacteristic
+CustomGemmOpFloat::GetInputCharacteristic(size_t index) const {
+  switch (index) {
+  case 0:
+  case 1:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
+  case 2:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
+  }
+}
 
 ONNXTensorElementDataType CustomGemmOpFloat::GetInputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
@@ -70,6 +83,19 @@ CustomGemmOpFloat16::GetInputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
 }
 
+OrtCustomOpInputOutputCharacteristic
+CustomGemmOpFloat16::GetInputCharacteristic(size_t index) const {
+  switch (index) {
+  case 0:
+  case 1:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
+  case 2:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
+  }
+}
+
 size_t CustomGemmOpFloat16::GetOutputTypeCount() const { return 2; }
 
 ONNXTensorElementDataType
@@ -103,7 +129,7 @@ const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
 }
 
-size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 5; };
+size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 6; };
 
 ONNXTensorElementDataType
 CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
@@ -111,10 +137,28 @@ CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
   case 0: // A
   case 1: // B
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
-  case 2: // scale A
-  case 3: // scale B
-  case 4: // scale Y
+  case 2: // B
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  case 3: // scale A
+  case 4: // scale B
+  case 5: // scale Y
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  default:
+    EXT_THROW("index=", index, " is out of boundary.");
+  }
+}
+
+OrtCustomOpInputOutputCharacteristic
+CustomGemmOpFloat8E4M3FN::GetInputCharacteristic(size_t index) const {
+  switch (index) {
+  case 0:
+  case 1:
+  case 3:
+  case 4:
+  case 5:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
+  case 2:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
   default:
     EXT_THROW("index=", index, " is out of boundary.");
   }
@@ -143,8 +187,7 @@ CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
 
 CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
                                    const OrtKernelInfo *info) {
-  row_major_ =
-      KernelInfoGetOptionalAttributeInt64AsBool(api, info, "rowMajor", true);
+  rowMajor_ = KernelInfoGetOptionalAttribute<int64_t>(api, info, "rowMajor", 1);
   transA_ =
       KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transA", false);
   transB_ =
@@ -153,6 +196,7 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
       api, info, "fastAccumulationMode", true);
   smCount_ = KernelInfoGetOptionalAttribute<int64_t>(api, info, "smCount", 0);
   alpha_ = KernelInfoGetOptionalAttribute<float>(api, info, "alpha", 1);
+  beta_ = KernelInfoGetOptionalAttribute<float>(api, info, "beta", 0);
 
   // A string attribute.
   std::string compute_type = KernelInfoGetOptionalAttributeString(
@@ -170,103 +214,200 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   } else {
     EXT_THROW("Unexpected value for compute_type '", compute_type, "'.");
   }
+
+#if CUDA_VERSION < 12000
+  EXT_ENFORCE(beta_ == 0, "beta != 0 only supported for CUDA >= 12.0.");
+#endif
 }
 
-void CustomGemmKernel::set(const std::vector<int64_t> &a_shape,
-                           const std::vector<int64_t> &b_shape, int &M, int &N,
-                           int &K, int &lda, int &ldb, int &ldd) const {
+void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
+                           const std::vector<int64_t> &shape_B, int &M, int &N,
+                           int &K, int &lda, int &ldb, int &ldd,
+                           int row_major) const {
   constexpr int ir = 0;
   constexpr int ic = 1 - ir;
   if (transA_ && !transB_) { // TN
-    M = a_shape[ic];
-    N = b_shape[ic];
-    K = a_shape[ir];
-    lda = a_shape[row_major_ ? ic : ir];
-    ldb = b_shape[row_major_ ? ic : ir];
-    ldd = b_shape[row_major_ ? ic : ir];
+    M = shape_A[ic];
+    N = shape_B[ic];
+    K = shape_A[ir];
+    lda = shape_A[row_major ? ic : ir];
+    ldb = shape_B[row_major ? ic : ir];
+    ldd = shape_B[row_major ? ic : ir];
   } else if (!transA_ && !transB_) { // NN
-    M = a_shape[ir];
-    N = b_shape[ic];
-    K = a_shape[ic];
-    lda = a_shape[row_major_ ? ic : ir];
-    ldb = b_shape[row_major_ ? ic : ir];
-    ldd = b_shape[row_major_ ? ic : ir];
+    M = shape_A[ir];
+    N = shape_B[ic];
+    K = shape_A[ic];
+    lda = shape_A[row_major ? ic : ir];
+    ldb = shape_B[row_major ? ic : ir];
+    ldd = shape_B[row_major ? ic : ir];
   } else if (!transA_ && transB_) { // NT
-    M = a_shape[ir];
-    N = b_shape[ir];
-    K = a_shape[ic];
-    lda = a_shape[row_major_ ? ic : ir];
-    ldb = b_shape[row_major_ ? ic : ir];
-    ldd = b_shape[row_major_ ? ir : ic];
+    M = shape_A[ir];
+    N = shape_B[ir];
+    K = shape_A[ic];
+    lda = shape_A[row_major ? ic : ir];
+    ldb = shape_B[row_major ? ic : ir];
+    ldd = shape_B[row_major ? ir : ic];
   } else { // TT
-    M = a_shape[ic];
-    N = b_shape[ir];
-    K = a_shape[ir];
-    lda = a_shape[row_major_ ? ir : ic];
-    ldb = b_shape[row_major_ ? ir : ic];
-    ldd = b_shape[row_major_ ? ic : ir];
+    M = shape_A[ic];
+    N = shape_B[ir];
+    K = shape_A[ir];
+    lda = shape_A[row_major ? ir : ic];
+    ldb = shape_B[row_major ? ir : ic];
+    ldd = shape_B[row_major ? ic : ir];
   }
 }
 
+void check_device(const Ort::ConstValue &input, const char *name) {
+  auto mem = input.GetTensorMemoryInfo();
+  EXT_ENFORCE(mem.GetDeviceType() ==
+                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+              "Input '", name, "' is not on CUDA");
+}
+
+void check_device(const Ort::UnownedValue &output, const char *name) {
+  auto mem = output.GetTensorMemoryInfo();
+  EXT_ENFORCE(mem.GetDeviceType() ==
+                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+              "Output '", name, "' is not on CUDA");
+}
+
+template <typename TValue>
+ONNXTensorElementDataType GetTypeAndShape(const TValue &input,
+                                          std::vector<int64_t> &shape,
+                                          bool swap = false) {
+  auto t = input.GetTensorTypeAndShapeInfo();
+  shape = t.GetShape();
+  EXT_ENFORCE(shape.size() == 2);
+  if (swap) {
+    std::swap(shape[0], shape[1]);
+  }
+  return t.GetElementType();
+}
+
 void CustomGemmKernel::Compute(OrtKernelContext *context) {
-  auto time0 = std::chrono::high_resolution_clock::now();
-
   Ort::KernelContext ctx(context);
-  Ort::ConstValue input_A = ctx.GetInput(0);
-  Ort::ConstValue input_B = ctx.GetInput(1);
-  Ort::ConstValue scale_A, scale_B, scale_Y;
-
-  auto memA = input_A.GetTensorMemoryInfo();
-  EXT_ENFORCE(memA.GetDeviceType() ==
-                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-              "Input A is not on CUDA");
-  auto memB = input_B.GetTensorMemoryInfo();
-  EXT_ENFORCE(memB.GetDeviceType() ==
-                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-              "Input B is not on CUDA");
 
   int n_inputs = ctx.GetInputCount();
-  if (n_inputs == 5) {
-    scale_A = ctx.GetInput(2);
-    scale_B = ctx.GetInput(3);
-    scale_Y = ctx.GetInput(4);
-    auto memsA = scale_A.GetTensorMemoryInfo();
-    EXT_ENFORCE(memsA.GetDeviceType() ==
-                    OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-                "Scale A is not on CUDA");
-    auto memsB = scale_B.GetTensorMemoryInfo();
-    EXT_ENFORCE(memsB.GetDeviceType() ==
-                    OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-                "Scale B is not on CUDA");
-    auto memsY = scale_Y.GetTensorMemoryInfo();
-    EXT_ENFORCE(memsB.GetDeviceType() ==
-                    OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-                "Scale Y is not on CUDA");
-  } else if (n_inputs != 2) {
-    EXT_THROW("Number of inputs must be 2 or 5.");
+  Ort::ConstValue scale_A, scale_B, scale_Y;
+  Ort::ConstValue input_A = ctx.GetInput(0);
+  Ort::ConstValue input_B = ctx.GetInput(1);
+  Ort::ConstValue input_C;
+  bool has_bias;
+  if (n_inputs > 2 && ctx.GetInput(2).IsTensor()) {
+    input_C = ctx.GetInput(2);
+    has_bias = input_C.IsTensor();
+  } else {
+    has_bias = false;
   }
 
-  std::vector<int64_t> a_shape = input_A.GetTensorTypeAndShapeInfo().GetShape();
-  std::vector<int64_t> b_shape = input_B.GetTensorTypeAndShapeInfo().GetShape();
+  check_device(input_A, "A");
+  check_device(input_B, "B");
+  if (has_bias)
+    check_device(input_C, "C");
 
-  EXT_ENFORCE(a_shape.size() == 2);
-  EXT_ENFORCE(b_shape.size() == 2);
+  bool has_scales = n_inputs > 3;
+  if (has_scales) {
+    EXT_ENFORCE(n_inputs == 6, "Number of inputs must be 6 but is ", n_inputs, ".");
+    scale_A = ctx.GetInput(3);
+    scale_B = ctx.GetInput(4);
+    scale_Y = ctx.GetInput(5);
+    check_device(scale_A, "scale_A");
+    check_device(scale_B, "scale_B");
+    check_device(scale_Y, "scale_Y");
+  } else if (n_inputs != 2 && n_inputs != 3) {
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", n_inputs, ".");
+  }
 
-  auto dtype_A = input_A.GetTensorTypeAndShapeInfo().GetElementType();
-  auto dtype_B = input_B.GetTensorTypeAndShapeInfo().GetElementType();
+  switch (rowMajor_) {
+  case 0:
+    ComputeColMajor(ctx, n_inputs, has_bias, has_scales, input_A, input_B,
+                    input_C, scale_A, scale_B, scale_Y);
+    break;
+  case 1:
+    ComputeRowMajor(ctx, n_inputs, has_bias, has_scales, input_A, input_B,
+                    input_C, scale_A, scale_B, scale_Y);
+    break;
+  default:
+    EXT_THROW("Unexpected value for rowMajor_=", rowMajor_, ".");
+  }
+}
+
+void CustomGemmKernel::ComputeRowMajor(
+    Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
+    Ort::ConstValue &input_A, Ort::ConstValue &input_B,
+    Ort::ConstValue &input_C, Ort::ConstValue &scale_A,
+    Ort::ConstValue &scale_B, Ort::ConstValue &scale_Y) {
+  std::vector<int64_t> shape_A, shape_B, shape_C, shape_Y;
+  ONNXTensorElementDataType dtype_A, dtype_B, dtype_C, dtype_Y;
+  dtype_A = GetTypeAndShape(input_A, shape_A);
+  dtype_B = GetTypeAndShape(input_B, shape_B);
 
   int M, N, K, lda, ldb, ldd;
-  set(a_shape, b_shape, M, N, K, lda, ldb, ldd);
+  set(shape_A, shape_B, M, N, K, lda, ldb, ldd, 1);
+
   std::vector<int64_t> dimensions{M, N};
   Ort::UnownedValue Y = ctx.GetOutput(0, dimensions);
-  ONNXTensorElementDataType out_dtype =
-      Y.GetTensorTypeAndShapeInfo().GetElementType();
-  auto memY = Y.GetTensorMemoryInfo();
-  EXT_ENFORCE(memY.GetDeviceType() ==
-                  OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-              "Output 1 is not on CUDA");
+  check_device(Y, "Y");
+  dtype_Y = GetTypeAndShape(Y, shape_Y);
+  dtype_C = has_bias ? GetTypeAndShape(input_C, shape_C)
+                     : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  ComputeGemm(ctx, n_inputs, has_bias, has_scales, dtype_A, dtype_B, dtype_C,
+              dtype_Y, shape_A, shape_B, shape_C, shape_Y, transA_, transB_,
+              input_A.GetTensorRawData(), input_B.GetTensorRawData(),
+              has_bias ? input_C.GetTensorRawData() : nullptr,
+              has_scales ? scale_A.GetTensorRawData() : nullptr,
+              has_scales ? scale_B.GetTensorRawData() : nullptr,
+              has_scales ? scale_Y.GetTensorRawData() : nullptr,
+              Y.GetTensorMutableRawData(), M, N, K, lda, ldb, ldd);
+}
 
+void CustomGemmKernel::ComputeColMajor(
+    Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
+    Ort::ConstValue &input_A, Ort::ConstValue &input_B,
+    Ort::ConstValue &input_C, Ort::ConstValue &scale_A,
+    Ort::ConstValue &scale_B, Ort::ConstValue &scale_Y) {
+  std::vector<int64_t> shape_A, shape_B, shape_C, shape_Y;
+  ONNXTensorElementDataType dtype_A, dtype_B, dtype_C, dtype_Y;
+  dtype_A = GetTypeAndShape(input_A, shape_A);
+  dtype_B = GetTypeAndShape(input_B, shape_B);
+
+  int M, N, K, lda, ldb, ldd;
+  set(shape_A, shape_B, M, N, K, lda, ldb, ldd, 1);
+
+  std::swap(shape_A[0], shape_A[1]);
+  std::swap(shape_B[0], shape_B[1]);
+
+  std::vector<int64_t> dimensions{M, N};
+  Ort::UnownedValue Y = ctx.GetOutput(0, dimensions);
+  check_device(Y, "Y");
+  dtype_Y = GetTypeAndShape(Y, shape_Y);
+  dtype_C = has_bias ? GetTypeAndShape(input_C, shape_C, true)
+                     : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+
+  ComputeGemm(ctx, n_inputs, has_bias, has_scales, dtype_B, dtype_A, dtype_C,
+              dtype_Y, shape_B, shape_A, shape_C, shape_Y, transB_, transA_,
+              input_B.GetTensorRawData(), input_A.GetTensorRawData(),
+              has_bias ? input_C.GetTensorRawData() : nullptr,
+              has_scales ? scale_B.GetTensorRawData() : nullptr,
+              has_scales ? scale_A.GetTensorRawData() : nullptr,
+              has_scales ? scale_Y.GetTensorRawData() : nullptr,
+              Y.GetTensorMutableRawData(), N, M, K, ldb, lda, ldd);
+}
+
+void CustomGemmKernel::ComputeGemm(
+    Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
+    ONNXTensorElementDataType dtype_A, ONNXTensorElementDataType dtype_B,
+    ONNXTensorElementDataType dtype_C, ONNXTensorElementDataType dtype_Y,
+    const std::vector<int64_t> &shape_A, const std::vector<int64_t> &shape_B,
+    const std::vector<int64_t> &shape_C, const std::vector<int64_t> &shape_Y,
+    bool trans_A, bool trans_B, const void *p_input_a, const void *p_input_b,
+    const void *p_input_c, const void *p_scale_a, const void *p_scale_b,
+    const void *p_scale_y, void *p_output_y, int M, int N, int K, int lda,
+    int ldb, int ldd) {
   cudaStream_t stream = (cudaStream_t)ctx.GetGPUComputeStream();
+  CUDA_THROW_IF_ERROR(cudaStreamSynchronize(stream));
+  auto time0 = std::chrono::high_resolution_clock::now();
+
   cublasLtHandle_t cublasLt;
   CUBLAS_THROW_IF_ERROR(cublasLtCreate(&cublasLt));
 
@@ -277,19 +418,19 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // Create matrix descriptors. Not setting any extra attributes.
   cudaDataType_t a_cuda_type = ToCudaDataType(dtype_A);
   cudaDataType_t b_cuda_type = ToCudaDataType(dtype_B);
-  cudaDataType_t d_cuda_type = ToCudaDataType(out_dtype);
-  cudaDataType_t bias_cuda_type =
+  cudaDataType_t d_cuda_type = ToCudaDataType(dtype_Y);
+  cudaDataType_t scale_cuda_type =
       ToCudaDataType(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
-  cudaDataType_t scale_cuda_type = bias_cuda_type;
+  cudaDataType_t bias_cuda_type = ToCudaDataType(dtype_C);
 
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-      &Adesc, a_cuda_type, transA_ ? K : M, transA_ ? M : K, lda));
+      &Adesc, a_cuda_type, trans_A ? K : M, trans_A ? M : K, lda));
   CUBLAS_THROW_IF_ERROR(cublasLtMatrixLayoutCreate(
-      &Bdesc, b_cuda_type, transB_ ? N : K, transB_ ? K : N, ldb));
+      &Bdesc, b_cuda_type, trans_B ? N : K, trans_B ? K : N, ldb));
   CUBLAS_THROW_IF_ERROR(
       cublasLtMatrixLayoutCreate(&Ddesc, d_cuda_type, M, N, ldd));
 
-  if (row_major_) {
+  if (rowMajor_) {
     cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutSetAttribute(Adesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
@@ -301,12 +442,12 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
 
   CUBLAS_THROW_IF_ERROR(
       cublasLtMatmulDescCreate(&operationDesc, computeType_, scale_cuda_type));
-  cublasOperation_t transa = transA_ ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t transb = transB_ ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t ctransa = trans_A ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t ctransb = trans_B ? CUBLAS_OP_T : CUBLAS_OP_N;
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-      operationDesc, CUBLASLT_MATMUL_DESC_TRANSA, &transa, sizeof(transa)));
+      operationDesc, CUBLASLT_MATMUL_DESC_TRANSA, &ctransa, sizeof(ctransa)));
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-      operationDesc, CUBLASLT_MATMUL_DESC_TRANSB, &transb, sizeof(transb)));
+      operationDesc, CUBLASLT_MATMUL_DESC_TRANSB, &ctransb, sizeof(ctransb)));
 
   if (smCount_ != 0) {
     int math_sm_count = static_cast<int>(smCount_);
@@ -315,33 +456,27 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         sizeof(math_sm_count)));
   }
 
-  const void *p_scale_a = nullptr;
-  const void *p_scale_b = nullptr;
-  const void *p_scale_y = nullptr;
-  if (n_inputs == 5) {
+  if (has_scales) {
     // gemm float 8
     const int8_t ifast_accumulation_mode = fastAccumulationMode_ ? 1 : 0;
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc,
         cublasLtMatmulDescAttributes_t::CUBLASLT_MATMUL_DESC_FAST_ACCUM,
         &ifast_accumulation_mode, sizeof(ifast_accumulation_mode)));
-    p_scale_a = scale_A.GetTensorRawData();
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_A_SCALE_POINTER, &p_scale_a,
         sizeof(p_scale_a)));
-    p_scale_b = scale_B.GetTensorRawData();
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER, &p_scale_b,
         sizeof(p_scale_b)));
-    p_scale_y = scale_Y.GetTensorRawData();
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_y,
         sizeof(p_scale_b)));
 
     // float 8
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
-    if (out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN ||
-        out_dtype == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) {
+    if (dtype_Y == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN ||
+        dtype_Y == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) {
       // For FP8 output, cuBLAS requires C_type to be same as bias_type
       CUBLAS_THROW_IF_ERROR(
           cublasLtMatrixLayoutCreate(&Cdesc, bias_cuda_type, M, N, ldd));
@@ -362,7 +497,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
 #endif
 
-  if (row_major_) {
+  if (rowMajor_) {
     cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutSetAttribute(Cdesc, CUBLASLT_MATRIX_LAYOUT_ORDER,
@@ -381,11 +516,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   // The workspace should be allocated once from OpKernelContext assuming
   // only one cuda function is running at a time (which is not necessarily true
   // with H100).
-  size_t workspaceSize = std::max(
-      (size_t)1 << 20,
-      (std::min((size_t)(1 << 24), (size_t)std::max(K * M, K * N) * 4) +
-       16)); // suggested fixed value 24Mb
-  workspaceSize -= workspaceSize % 16;
+  size_t workspaceSize = (size_t)(1 << 25); // suggested fixed value 32Mb
   cublasLtMatmulPreference_t preference = nullptr;
   cublasLtMatmulPreferenceCreate(&preference);
   cublasLtMatmulPreferenceSetAttribute(preference,
@@ -402,20 +533,22 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       returnedResults > 0 && cuda_status == CUBLAS_STATUS_SUCCESS,
       " Unable to find any suitable algorithm due to ",
       cublasGetErrorEnum(cuda_status), ", returnedResults=", returnedResults,
-      ", alpha=", alpha_,
-      ", n_inputs=", n_inputs, ", A_type=", CudaDataTypeToString(a_cuda_type),
+      ", alpha=", alpha_, ", beta=", beta_, ", n_inputs=", n_inputs,
+      ", A_type=", CudaDataTypeToString(a_cuda_type),
       ", B_type=", CudaDataTypeToString(b_cuda_type),
+      ", C_type=", CudaDataTypeToString(bias_cuda_type),
       ", result_type=", CudaDataTypeToString(d_cuda_type),
       ", bias_type=", CudaDataTypeToString(bias_cuda_type),
       ", scale_type=", CudaDataTypeToString(scale_cuda_type),
       ", computeType=", CublasComputeTypeToString(computeType_),
-      ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", transA_,
-      ", transB=", transB_,
+      ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", trans_A,
+      ", transB=", trans_B,
       ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
-      ", a_shape=", a_shape[0], "x", a_shape[1], ", b_shape=", b_shape[0], "x",
-      b_shape[1], ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
-      ", ldd=", ldd, ", workspaceSize=", workspaceSize,
-      ", rowMajor=", (row_major_ ? 1 : 0),
+      ", shape_A=", shape_A[0], "x", shape_A[1], ", shape_B=", shape_B[0], "x",
+      shape_B[1], ", shape_C=", (shape_C.size() > 0 ? shape_C[0] : 0), "x",
+      (shape_C.size() > 1 ? shape_C[1] : 0), ", M=", M, ", N=", N, ", K=", K,
+      ", lda=", lda, ", ldb=", ldb, ", ldd=", ldd,
+      ", workspaceSize=", workspaceSize, ", rowMajor=", (rowMajor_ ? 1 : 0),
       ". Check NVIDIA documentation to see what combination is valid: ",
       "https://docs.nvidia.com/cuda/cublas/"
       "index.html?highlight=cublasLtMatmulAlgoGetHeuristic#"
@@ -426,40 +559,37 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     CUDA_THROW_IF_ERROR(cudaMalloc((void **)&workspace, workspaceSize));
   }
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul
-  float beta = 0;
-  void *C = Y.GetTensorMutableRawData();
+  const void *bias = has_bias ? p_input_c : p_output_y;
   cuda_status = cublasLtMatmul(
       cublasLt, operationDesc, static_cast<const void *>(&alpha_), /* alpha */
-      input_A.GetTensorRawData(),                                  /* A */
-      Adesc, input_B.GetTensorRawData(),                           /* B */
-      Bdesc, static_cast<const void *>(&beta),                     /* beta */
-      C,                                                           /* C */
-      Cdesc, Y.GetTensorMutableRawData(),                          /* Y */
+      p_input_a,                                                   /* A */
+      Adesc, p_input_b,                                            /* B */
+      Bdesc, static_cast<const void *>(&beta_),                    /* beta */
+      bias,                                                        /* C */
+      Cdesc, p_output_y,                                           /* Y */
       Ddesc, &heuristicResult.algo,                                /* algo */
-      workspace,                                                   /* workspace */
-      workspaceSize, stream);                                      /* stream */
+      workspace,              /* workspace */
+      workspaceSize, stream); /* stream */
   EXT_ENFORCE(
       cuda_status == CUBLAS_STATUS_SUCCESS,
-      " Unable to run cublasLtMatmul due to ",
-      cublasGetErrorEnum(cuda_status), ", returnedResults=", returnedResults,
-      ", alpha=", alpha_,
+      " Unable to run cublasLtMatmul due to ", cublasGetErrorEnum(cuda_status),
+      ", returnedResults=", returnedResults, ", alpha=", alpha_,
       ", n_inputs=", n_inputs, ", A_type=", CudaDataTypeToString(a_cuda_type),
       ", B_type=", CudaDataTypeToString(b_cuda_type),
       ", result_type=", CudaDataTypeToString(d_cuda_type),
       ", bias_type=", CudaDataTypeToString(bias_cuda_type),
       ", scale_type=", CudaDataTypeToString(scale_cuda_type),
       ", computeType=", CublasComputeTypeToString(computeType_),
-      ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", transA_,
-      ", transB=", transB_,
+      ", epilogue=", epilogue, ", smCount=", smCount_, ", transA=", trans_A,
+      ", transB=", trans_B,
       ", fastAccumulationMode=", (fastAccumulationMode_ ? 1 : 0),
-      ", a_shape=", a_shape[0], "x", a_shape[1], ", b_shape=", b_shape[0], "x",
-      b_shape[1], ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
+      ", shape_A=", shape_A[0], "x", shape_A[1], ", shape_B=", shape_B[0], "x",
+      shape_B[1], ", M=", M, ", N=", N, ", K=", K, ", lda=", lda, ", ldb=", ldb,
       ", ldd=", ldd, ", workspaceSize=", workspaceSize,
-      ", rowMajor=", (row_major_ ? 1 : 0),
-      ".");
+      ", rowMajor=", (rowMajor_ ? 1 : 0), ".");
 
   if (workspaceSize > 0) {
-    cudaFree(workspace);
+    CUDA_THROW_IF_ERROR(cudaFree(workspace));
   }
 
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulPreferenceDestroy(preference));
@@ -470,13 +600,15 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescDestroy(operationDesc));
   CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
 
+  CUDA_THROW_IF_ERROR(cudaStreamSynchronize(stream));
   std::vector<int64_t> tdims{1};
   Ort::UnownedValue ttime = ctx.GetOutput(1, tdims);
   void *ptr_time = ttime.GetTensorMutableRawData();
   double performance = std::chrono::duration<double>(
                            std::chrono::high_resolution_clock::now() - time0)
                            .count();
-  cudaMemcpy(ptr_time, &performance, sizeof(double), cudaMemcpyHostToDevice);
+  CUDA_THROW_IF_ERROR(cudaMemcpy(ptr_time, &performance, sizeof(double),
+                                 cudaMemcpyHostToDevice));
 }
 
 } // namespace ortops

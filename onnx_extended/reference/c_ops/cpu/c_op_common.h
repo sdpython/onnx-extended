@@ -511,7 +511,7 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 #define EXT_ENFORCE(cond, ...)                                                    \
   if (!(cond))                                                                 \
     throw std::runtime_error(                                                  \
-        MakeString("`", #cond, "` failed.", MakeString(__VA_ARGS__)));
+        MakeString("`", #cond, "` failed. ", MakeString(__VA_ARGS__)));
 #define _ENFORCE_DEFINED
 #endif
 

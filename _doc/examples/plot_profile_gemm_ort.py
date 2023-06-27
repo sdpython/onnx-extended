@@ -12,12 +12,11 @@ Device properties
 +++++++++++++++++
 """
 import pprint
-import platform
 from itertools import product
 import numpy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from pandas import DataFrame, pivot_table, concat
+from pandas import pivot_table, concat
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -35,7 +34,6 @@ from onnxruntime.capi._pybind_state import (
     OrtDevice as C_OrtDevice,
 )
 from onnxruntime.capi.onnxruntime_pybind11_state import (
-    Fail,
     NotImplemented,
     InvalidGraph,
     InvalidArgument,
@@ -51,7 +49,7 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.ext_test_case import unit_test_going, measure_time
+from onnx_extended.ext_test_case import unit_test_going
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
@@ -130,14 +128,11 @@ def create_model(
             f"{node_kw['fastAccumulationMode']}..{node_kw['computeType']}.."
             f"{f8}"
         )
-        nodes = [
-            make_node(
-                op_name,
-                ["A", "B", "I", "I", "I"] if f8 else ["A", "B"],
-                node_output,
-                **node_kw,
-            ),
-        ]
+        node_inputs = ["A", "B"]
+        if f8:
+            node_inputs.append("")
+            node_inputs.extend(["I"] * 3)
+        nodes = [make_node(op_name, node_inputs, node_output, **node_kw)]
     else:
         nodes = [
             make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
@@ -337,13 +332,28 @@ for tt, engine, provider, dim, domain in pbar:
     if ort_profile is None:
         raise ImportError("Could not import ort_profile from onnx-array-api.")
     df = ort_profile(
-        onx, the_feeds, sess_options=opts, repeat=17, as_df=True, providers=provider,
-        first_it_out=True, agg=True
+        onx,
+        the_feeds,
+        sess_options=opts,
+        repeat=17,
+        as_df=True,
+        providers=provider,
+        first_it_out=True,
+        agg=True,
     ).reset_index(drop=False)
     columns = ["xdim", "xdomain", "xdtype"] + list(df.columns)
     df["xdim"] = "x".join(map(str, dim))
-    df["xdomain"] = {'onnx_extented.ortops.tutorial.cuda': 'ext', "": ".", "com.microsoft": "com"}[domain]
-    df["xdtype"] = {1: "f32", 10: "f16", 16: "bf16", 17:"e4m3fn", 18:"e5m2"}[tt]
+    df["xdomain"] = {
+        "onnx_extented.ortops.tutorial.cuda": "EXT",
+        "": "ORT",
+        "com.microsoft": "COM",
+    }[domain]
+    df["args_op_name"] = {
+        "onnx_extented.ortops.tutorial.cuda": "CG",
+        "": "Gemm",
+        "com.microsoft": "G8",
+    }[domain]
+    df["xdtype"] = {1: "f32", 10: "f16", 16: "bf16", 17: "e4m3fn", 18: "e5m2"}[tt]
     df = df[columns]
     data.append(df)
 
@@ -434,7 +444,6 @@ if len(data) > 0:
             kind="barh",
             logx=True,
         )
-
 
     fig.tight_layout()
     fig.savefig("plot_bench_gemm_ort.png")

@@ -20,7 +20,8 @@ _deps/*
 *.dir/*
 Release/*
 Testing/*
-plot_*
+plot_*.csv
+plot_*.xlsx
 x64/*
 CMakeFiles/*
 dist/*

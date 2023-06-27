@@ -117,11 +117,11 @@ def create_model(
             return None
         node_kw = dict(
             alpha=1.0,
-            transA=1,
+            transB=1,
             domain=domain,
             computeType=computeType,
             fastAccumulationMode=1,
-            rowMajor=0 if op_name == "CustomGemmFloat8E4M3FN" else 1,
+            rowMajor=0 if op_name.startswith("CustomGemmFloat") else 1,
         )
         node_kw["name"] = (
             f"{mat_type}.{len(node_output)}.{len(outputs)}."
@@ -129,14 +129,11 @@ def create_model(
             f"{node_kw['fastAccumulationMode']}..{node_kw['computeType']}.."
             f"{f8}"
         )
-        nodes = [
-            make_node(
-                op_name,
-                ["A", "B", "I", "I", "I"] if f8 else ["A", "B"],
-                node_output,
-                **node_kw,
-            ),
-        ]
+        node_inputs = ["A", "B"]
+        if f8:
+            node_inputs.append("")
+            node_inputs.extend(["I"] * 3)
+        nodes = [make_node(op_name, node_inputs, node_output, **node_kw)]
     else:
         nodes = [
             make_node("Gemm", ["A", "B"], ["C"], transA=1, beta=0.0),
@@ -222,18 +219,29 @@ providers = [
 # we use multiple of 8, otherwise, float8 does not work.
 dims = [
     (32, 32, 32),
-    (56, 64, 72),
-    (64, 64, 64),
-    (64, 72, 80),
+    # (56, 64, 72),
+    # (64, 64, 64),
+    # (64, 72, 80),
     (128, 128, 128),
     (256, 256, 256),
     (400, 400, 400),
     (512, 512, 512),
     (1024, 1024, 1024),
-    (2048, 2048, 2048),
-    (4096, 4096, 4096),
-    # (16384, 16384, 16384),
 ]
+if properties.get("major", 0) >= 7:
+    dims.extend(
+        [
+            (2048, 2048, 2048),
+            (4096, 4096, 4096),
+        ]
+    )
+
+if properties.get("major", 0) >= 9:
+    dims.extend(
+        [
+            (16384, 16384, 16384),
+        ]
+    )
 
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 
@@ -251,42 +259,44 @@ def to_ort_value(m):
 def cached_inputs(dims, types):
     matrices = {}
     matrices_cuda = {}
-    for m, n, k in dims:
-        for tt in types:
-            for i, j in [(m, k), (k, n), (k, m)]:
-                if (tt, i, j) in matrices:
-                    continue
-                # CPU
-                try:
-                    sess = InferenceSession(
-                        create_cast(tt).SerializeToString(),
-                        providers=["CPUExecutionProvider"],
-                    )
-                    cpu = True
-                except (InvalidGraph, InvalidArgument, NotImplemented):
-                    # not support by this version of onnxruntime
-                    cpu = False
-
-                if cpu:
-                    vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
-                    ov = to_ort_value(vect)
-                    ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-                    matrices[tt, i, j] = ovtt
-                else:
-                    continue
-
-                # CUDA
-                if "CUDAExecutionProvider" not in get_available_providers():
-                    # No CUDA
-                    continue
+    pbar = tqdm(list(product(dims, types)))
+    for dim, tt in pbar:
+        m, n, k = dim
+        pbar.set_description(f"t={tt} dim={dim}")
+        for i, j in [(m, k), (k, n), (k, m)]:
+            if (tt, i, j) in matrices:
+                continue
+            # CPU
+            try:
                 sess = InferenceSession(
-                    create_cast(tt, cuda=True).SerializeToString(),
-                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                    create_cast(tt).SerializeToString(),
+                    providers=["CPUExecutionProvider"],
                 )
+                cpu = True
+            except (InvalidGraph, InvalidArgument, NotImplemented):
+                # not support by this version of onnxruntime
+                cpu = False
+
+            if cpu:
                 vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
                 ov = to_ort_value(vect)
                 ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-                matrices_cuda[tt, i, j] = ovtt
+                matrices[tt, i, j] = ovtt
+            else:
+                continue
+
+            # CUDA
+            if "CUDAExecutionProvider" not in get_available_providers():
+                # No CUDA
+                continue
+            sess = InferenceSession(
+                create_cast(tt, cuda=True).SerializeToString(),
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
+            vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
+            ov = to_ort_value(vect)
+            ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
+            matrices_cuda[tt, i, j] = ovtt
     return matrices, matrices_cuda
 
 
@@ -324,8 +334,8 @@ def rendering_obs(obs, dim, number, repeat, domain, provider, internal_time):
             repeat=repeat,
             number=number,
             domain={
-                "": "-",
-                "com.microsoft": "ORT",
+                "": "ORT",
+                "com.microsoft": "COM",
                 "onnx_extented.ortops.tutorial.cuda": "EXT",
             }[domain],
             provider={
