@@ -214,7 +214,7 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   }
 
 #if CUDA_VERSION >= 12000
-  EXt_ENFORCE(beta_ == 0, "beta != 0 only supported for CUDA >= 12.0.");
+  EXT_ENFORCE(beta_ == 0, "beta != 0 only supported for CUDA >= 12.0.");
 #endif
 }
 
