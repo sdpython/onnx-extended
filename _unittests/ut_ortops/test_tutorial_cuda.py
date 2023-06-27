@@ -423,8 +423,8 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         get_device_prop is None or get_device_prop().get("major") < 9,
         reason="Float 8 not supported on this machine",
     )
-    def test_custom_gemm_float8(self):
-        self.common_test_custom_gemm_not_square(
+    def test_custom_gemm_float8_not_square(self):
+        self.common_test_custom_gemm(
             "CustomGemmFloat8E4M3FN",
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
