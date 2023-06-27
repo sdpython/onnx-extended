@@ -117,7 +117,7 @@ def create_model(
             return None
         node_kw = dict(
             alpha=1.0,
-            transA=1,
+            transB=1,
             domain=domain,
             computeType=computeType,
             fastAccumulationMode=1,
@@ -228,10 +228,13 @@ dims = [
     (400, 400, 400),
     (512, 512, 512),
     (1024, 1024, 1024),
+]
+if properties.get("major", 0) >= 7:
+    dims.extend([
     (2048, 2048, 2048),
     (4096, 4096, 4096),
-    # (16384, 16384, 16384),
-]
+    (16384, 16384, 16384),
+])
 
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 

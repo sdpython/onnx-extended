@@ -13,7 +13,28 @@ struct CustomGemmKernel {
 private:
   void set(const std::vector<int64_t> &shape_a,
            const std::vector<int64_t> &shape_b, int &M, int &N, int &K,
-           int &lda, int &ldb, int &ldd) const;
+           int &lda, int &ldb, int &ldd, int row_major) const;
+
+  void ComputeRowMajor(Ort::KernelContext &ctx, int n_inputs, bool has_bias,
+                       bool has_scales, Ort::ConstValue &input_A,
+                       Ort::ConstValue &input_B, Ort::ConstValue &input_C,
+                       Ort::ConstValue &scale_A, Ort::ConstValue &scale_B,
+                       Ort::ConstValue &scale_Y);
+  void ComputeColMajor(Ort::KernelContext &ctx, int n_inputs, bool has_bias,
+                       bool has_scales, Ort::ConstValue &input_A,
+                       Ort::ConstValue &input_B, Ort::ConstValue &input_C,
+                       Ort::ConstValue &scale_A, Ort::ConstValue &scale_B,
+                       Ort::ConstValue &scale_Y);
+  void ComputeGemm(
+      Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
+      ONNXTensorElementDataType dtype_A, ONNXTensorElementDataType dtype_b,
+      ONNXTensorElementDataType dtype_c, ONNXTensorElementDataType dtype_Y,
+      const std::vector<int64_t> &shape_A, const std::vector<int64_t> &shape_B,
+      const std::vector<int64_t> &shape_C, const std::vector<int64_t> &shape_Y,
+      bool transa, bool transb, const void *p_input_a, const void *p_input_b,
+      const void *p_input_c, const void *p_scale_a, const void *p_scale_b,
+      const void *p_scale_y, void *p_output_y, int M, int N, int K, int lda,
+      int ldb, int ldd);
 
   float alpha_;
   float beta_;
@@ -21,7 +42,7 @@ private:
   bool transA_;
   bool transB_;
   bool fastAccumulationMode_;
-  bool row_major_;
+  int64_t rowMajor_;
   int64_t smCount_;
   cublasComputeType_t computeType_;
 };

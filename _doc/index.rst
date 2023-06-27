@@ -36,6 +36,7 @@ see also `code coverage <cov/index.html>`_.
 
     tutorial/index
     api/index
+    tech/index
     auto_examples/index
     ../CHANGELOGS
 

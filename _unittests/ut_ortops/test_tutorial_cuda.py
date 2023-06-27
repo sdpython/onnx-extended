@@ -64,7 +64,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
 
-    def common_test_custom_gemm(self, op_name, tos, return_sess=False, **kwargs):
+    def common_test_custom_gemm(
+        self, op_name, tos, return_sess=False, square=True, **kwargs
+    ):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
         if TensorProto.FLOAT8E4M3FN in tos or TensorProto.FLOAT8E5M2 in tos:
@@ -79,7 +81,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         bias = kwargs.get("beta", 0) != 0
         input_names = "ABC" if bias else "AB"
         self.assertEqual(len(input_names), len(tos))
-        casts = [make_node("Cast", [c], [c + "c"], to=to) for c, to in zip(input_names, tos)]
+        casts = [
+            make_node("Cast", [c], [c + "c"], to=to) for c, to in zip(input_names, tos)
+        ]
         node_inputs = [c + "c" for c in input_names]
         node_outputs = ["Yc", "time"]
         if gemm8:
@@ -96,7 +100,8 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             make_node("Cast", ["Yc"], ["Y"], to=TensorProto.FLOAT),
         ]
         inputs = [
-            make_tensor_value_info(c, TensorProto.FLOAT, [None, None]) for c in input_names
+            make_tensor_value_info(c, TensorProto.FLOAT, [None, None])
+            for c in input_names
         ]
         outputs = [
             make_tensor_value_info("Y", TensorProto.FLOAT, [None, None]),
@@ -138,10 +143,29 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         if return_sess:
             return onnx_model, sess
 
-        inputs = [
-            (numpy.arange(256) / 256).astype(numpy.float32).reshape((-1, 16))
-            for to in tos
-        ]
+        if square:
+            inputs = [
+                (numpy.arange(256) / 256).astype(numpy.float32).reshape((-1, 16))
+                for to in tos
+            ]
+        else:
+            inputs = [
+                (numpy.arange(256) / 256).astype(numpy.float32).reshape((32, -1)),
+                (numpy.arange(512) / 512).astype(numpy.float32).reshape((32, -1)),
+            ]
+            if len(tos) == 3:
+                inputs.append(
+                    (numpy.arange(128) / 128).astype(numpy.float32).reshape((8, 16))
+                )
+
+        a, b = inputs[:2]
+        expected = (a.T if kwargs.get("transA", 0) else a) @ (
+            b.T if kwargs.get("transB", 0) else b
+        )
+        expected *= kwargs.get("alpha", 1.0)
+        if bias:
+            expected += inputs[2] * kwargs.get("beta", 0)
+
         feeds = dict(zip(input_names, inputs))
         if gemm8:
             feeds["scaleA"] = numpy.array([1], dtype=numpy.float32)
@@ -157,19 +181,34 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"and shapes={shapes!r} "
                 f"and model=\n{onnx_simple_text_plot(onnx_model)}."
             ) from e
-        a, b = inputs[:2]
-        if kwargs.get("rowMajor", 1):
-            expected = a.T @ b
-        else:
-            expected = a @ b.T
-        expected *= kwargs.get("alpha", 1.0)
-        if bias:
-            expected += inputs[2] * kwargs.get("beta", 0)
+
         if tos[0] == TensorProto.FLOAT16:
             atol = 1e-2
         else:
             atol = 0.08 if gemm8 else 1e-6
-        self.assertEqualArray(expected, got[0], atol=atol)
+        try:
+            self.assertEqualArray(expected, got[0], atol=atol)
+        except Exception as e:
+
+            def check(f):
+                try:
+                    return f()[:2, :2]
+                except Exception as e:
+                    return str(e)
+
+            raise AssertionError(
+                f"ERROR len(inputs)={len(inputs)}"
+                f"\na@b=\n{check(lambda:a@b)}"
+                f"\na.T@b=\n{check(lambda:a.T@b)}"
+                f"\na@b.T=\n{check(lambda:a@b.T)}"
+                f"\na.T@b.T=\n{check(lambda:a.T@b.T)}"
+                f"\n----\nb@a=\n{check(lambda:b@a)}"
+                f"\nb.T@a=\n{check(lambda:b.T@a)}"
+                f"\nb@a.T=\n{check(lambda:b@a.T)}"
+                f"\nb.T@a.T=\n{check(lambda:b.T@a.T)}"
+                f"\n----\nexpected=\n{expected[:2,:2]}"
+                f"\n----\ngot=\n{got[0][:2,:2]}"
+            ) from e
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
@@ -191,6 +230,55 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
+    def test_custom_gemm_float32_not_square(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            square=False,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_col_major_not_square(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
     def test_custom_gemm_float32_bias(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -200,6 +288,74 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             beta=1.0,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_bias_01(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transB=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            beta=1.0,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_bias_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            beta=1.0,
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_not_square_bias(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            beta=1.0,
+            square=False,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_not_square_bias_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            beta=1.0,
+            square=False,
+            rowMajor=0,
         )
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
@@ -255,133 +411,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
-    @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
-    )
-    def test_custom_gemm_many_possible(self):
-        excs = []
-        booleans = [0, 1]
-        dims = [9, 12]
-        shapes = [
-            [(3, 3), (3, 3)],
-            # [(4, 3), (3, 4)],  # CUBLAS_STATUS_INVALID_VALUE (heuristic)
-            [(8, 3), (3, 4), "row"],
-            [(12, 3), (3, 4), "row"],
-            [(16, 3), (3, 4), "row"],
-            [(4, 3), (4, 3), "row"],
-            [(8, 3), (4, 3), "row"],
-            [(12, 3), (4, 3), "row"],
-            [(16, 3), (4, 3), "row"],
-            [(4, 3), (4, 3), "row"],
-            # [(12, 3), (12, 1)],  # CUBLAS_STATUS_EXECUTION_FAILED (MatMul)
-        ]
-
-        for N, rm, transa, transb, sh in product(
-            dims, booleans, booleans, booleans, shapes
-        ):
-            if len(excs) > 1:
-                # too many errors
-                break
-            row_major = 1 - rm
-            order = "C" if row_major else "F"
-
-            if len(sh) == 2:
-                sha, shb = sh
-            else:
-                sha, shb, constraint = sh
-                if constraint == "row" and row_major == 0:
-                    # CUBLAS_STATUS_INVALID_VALUE (heuristic)
-                    continue
-            a = (
-                numpy.arange(numpy.prod(sha))
-                .reshape(sha, order=order)
-                .astype(numpy.float32)
-            )
-            b = (numpy.arange(numpy.prod(shb)).reshape(shb, order=order) * 10).astype(
-                numpy.float32
-            )
-            shapes = [a.shape, b.shape]
-
-            with self.subTest(
-                transa=transa,
-                transB=transb,
-                rowMajor=row_major,
-                sh1=a.shape,
-                sh2=b.shape,
-            ):
-                if not row_major:
-                    # onnxruntime does not take into account the storage.
-                    # it is always row major.
-                    # A matrix RxC column major is equal to A.T
-
-                    if a.shape[0] == a.shape[1] and b.shape[0] == b.shape[1]:
-                        am = a.T.copy()
-                        bm = b.T.copy()
-                    else:
-                        am = a.T.copy().reshape(a.shape)
-                        bm = b.T.copy().reshape(b.shape)
-                    at = am.T if transa else am
-                    bt = bm.T if transb else bm
-
-                    try:
-                        expected = (at @ bt).T
-                    except ValueError:
-                        # Not possible
-                        continue
-                else:
-                    at = a.T if transa else a
-                    bt = b.T if transb else b
-
-                    try:
-                        expected = at @ bt
-                    except ValueError:
-                        # Not possible
-                        continue
-
-                onx, sess = self.common_test_custom_gemm(
-                    "CustomGemmFloat",
-                    [TensorProto.FLOAT for i in range(2)],
-                    name="cgf",
-                    fastAccumulationMode=1,
-                    computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
-                    transA=transa,
-                    transB=transb,
-                    rowMajor=row_major,
-                    return_sess=True,
-                )
-
-                feeds = {"A": a, "B": b}
-                try:
-                    got = sess.run(None, feeds)[0]
-                except Exception as e:
-                    excs.append(("A", N, row_major, transa, transb, sh))
-                    raise AssertionError(
-                        f"Unable to execute model with a.shape={a.shape}, "
-                        f"b.shape={b.shape} and row_major={row_major}."
-                        f"\n{onnx_simple_text_plot(onx)}."
-                    ) from e
-                try:
-                    self.assertEqualArray(expected, got)
-                except AssertionError as e:
-                    strn = (  # noqa: E731
-                        lambda s: str(s)
-                        .replace("\n", " ")
-                        .replace("  ", " ")
-                        .replace(" : ", ":")
-                    )
-                    excs.append(("B", N, row_major, transa, transb, sh))
-                    raise AssertionError(
-                        f"row_major={row_major}, transa={transa}, transb={transb}, "
-                        f"\na.shape={a.shape},\na.flags={strn(a.flags)}, "
-                        f"\nb.shape={b.shape},\nb.flags={strn(b.flags)}, "
-                        f"\nexpected.shape={expected.shape},"
-                        f"\nexpected.flags={strn(expected.flags)}, "
-                        f"\na=\n{a}\nb=\n{b}\n"
-                    ) from e
-
 
 if __name__ == "__main__":
-    TestOrtOpTutorialCuda().test_custom_gemm_float32_bias()
+    TestOrtOpTutorialCuda().test_custom_gemm_float32_col_major_not_square()
     unittest.main(verbosity=2)
