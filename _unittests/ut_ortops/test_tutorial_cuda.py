@@ -1,6 +1,5 @@
 import unittest
 import numpy
-from itertools import product
 from packaging.version import Version
 from onnx import TensorProto
 from onnx.helper import (

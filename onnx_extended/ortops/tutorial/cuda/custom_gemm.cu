@@ -293,7 +293,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   Ort::ConstValue input_B = ctx.GetInput(1);
   Ort::ConstValue input_C;
   bool has_bias;
-  if (n_inputs > 2) {
+  if (n_inputs > 2 && ctx.GetInput(2).IsTensor()) {
     input_C = ctx.GetInput(2);
     has_bias = input_C.IsTensor();
   } else {

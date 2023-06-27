@@ -12,12 +12,11 @@ Device properties
 +++++++++++++++++
 """
 import pprint
-import platform
 from itertools import product
 import numpy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from pandas import DataFrame, pivot_table, concat
+from pandas import pivot_table, concat
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -35,7 +34,6 @@ from onnxruntime.capi._pybind_state import (
     OrtDevice as C_OrtDevice,
 )
 from onnxruntime.capi.onnxruntime_pybind11_state import (
-    Fail,
     NotImplemented,
     InvalidGraph,
     InvalidArgument,
@@ -51,7 +49,7 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.ext_test_case import unit_test_going, measure_time
+from onnx_extended.ext_test_case import unit_test_going
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
