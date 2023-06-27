@@ -303,8 +303,9 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   if (has_bias)
     check_device(input_C, "C");
 
-  bool has_scales = n_inputs == 6;
+  bool has_scales = n_inputs > 3;
   if (has_scales) {
+    EXT_ENFORCE(n_inputs == 6, "Number of inputs must be 6 but is ", n_inputs, ".");
     scale_A = ctx.GetInput(3);
     scale_B = ctx.GetInput(4);
     scale_Y = ctx.GetInput(5);

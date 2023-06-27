@@ -131,8 +131,7 @@ def create_model(
         )
         node_inputs = ["A", "B"]
         if f8:
-            if domain == "com.microsoft":
-                node_inputs.append("")
+            node_inputs.append("")
             node_inputs.extend(["I"] * 3)
         nodes = [make_node(op_name, node_inputs, node_output, **node_kw)]
     else:
@@ -260,42 +259,44 @@ def to_ort_value(m):
 def cached_inputs(dims, types):
     matrices = {}
     matrices_cuda = {}
-    for m, n, k in dims:
-        for tt in types:
-            for i, j in [(m, k), (k, n), (k, m)]:
-                if (tt, i, j) in matrices:
-                    continue
-                # CPU
-                try:
-                    sess = InferenceSession(
-                        create_cast(tt).SerializeToString(),
-                        providers=["CPUExecutionProvider"],
-                    )
-                    cpu = True
-                except (InvalidGraph, InvalidArgument, NotImplemented):
-                    # not support by this version of onnxruntime
-                    cpu = False
-
-                if cpu:
-                    vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
-                    ov = to_ort_value(vect)
-                    ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-                    matrices[tt, i, j] = ovtt
-                else:
-                    continue
-
-                # CUDA
-                if "CUDAExecutionProvider" not in get_available_providers():
-                    # No CUDA
-                    continue
+    pbar = tqdm(list(product(dims, types)))
+    for dim, tt in pbar:
+        m, n, k = dim
+        pbar.set_description(f"t={tt} dim={dim}")
+        for i, j in [(m, k), (k, n), (k, m)]:
+            if (tt, i, j) in matrices:
+                continue
+            # CPU
+            try:
                 sess = InferenceSession(
-                    create_cast(tt, cuda=True).SerializeToString(),
-                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                    create_cast(tt).SerializeToString(),
+                    providers=["CPUExecutionProvider"],
                 )
+                cpu = True
+            except (InvalidGraph, InvalidArgument, NotImplemented):
+                # not support by this version of onnxruntime
+                cpu = False
+
+            if cpu:
                 vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
                 ov = to_ort_value(vect)
                 ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
-                matrices_cuda[tt, i, j] = ovtt
+                matrices[tt, i, j] = ovtt
+            else:
+                continue
+
+            # CUDA
+            if "CUDAExecutionProvider" not in get_available_providers():
+                # No CUDA
+                continue
+            sess = InferenceSession(
+                create_cast(tt, cuda=True).SerializeToString(),
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
+            vect = (numpy.random.randn(i, j) * 10).astype(numpy.float32)
+            ov = to_ort_value(vect)
+            ovtt = sess._sess.run_with_ort_values({"A": ov}, ["C"], None)[0]
+            matrices_cuda[tt, i, j] = ovtt
     return matrices, matrices_cuda
 
 
