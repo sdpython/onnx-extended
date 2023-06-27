@@ -406,12 +406,35 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             "CustomGemmFloat8E4M3FN",
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
-            transA=1,
+            transB=1,
             fastAccumulationMode=1,
             rowMajor=0,
         )
 
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(ort_version) < Version("1.16"), reason="float8 types not released"
+    )
+    @unittest.skipIf(
+        get_device_prop is None or get_device_prop().get("major") < 9,
+        reason="Float 8 not supported on this machine",
+    )
+    def test_custom_gemm_float8(self):
+        self.common_test_custom_gemm_not_square(
+            "CustomGemmFloat8E4M3FN",
+            [TensorProto.FLOAT8E4M3FN for i in range(2)],
+            name="cgf8",
+            transB=1,
+            fastAccumulationMode=1,
+            rowMajor=0,
+            square=False,
+        )
+
 
 if __name__ == "__main__":
-    TestOrtOpTutorialCuda().test_custom_gemm_float32_col_major_not_square()
+    # TestOrtOpTutorialCuda().test_custom_gemm_float32_col_major_not_square()
     unittest.main(verbosity=2)
