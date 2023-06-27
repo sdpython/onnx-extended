@@ -132,8 +132,7 @@ def create_model(
         )
         node_inputs = ["A", "B"]
         if f8:
-            if domain == "com.microsoft":
-                node_inputs.append("")
+            node_inputs.append("")
             node_inputs.extend(["I"] * 3)
         nodes = [make_node(op_name, node_inputs, node_output, **node_kw)]
     else:
