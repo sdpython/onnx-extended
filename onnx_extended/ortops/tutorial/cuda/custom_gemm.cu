@@ -499,15 +499,11 @@ void CustomGemmKernel::ComputeGemm(
       CUBLAS_THROW_IF_ERROR(
           cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
     }
+#endif
   } else {
     CUBLAS_THROW_IF_ERROR(
         cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
   }
-#else
-    // An output is still needed but it is not initialized.
-    CUBLAS_THROW_IF_ERROR(
-        cublasLtMatrixLayoutCreate(&Cdesc, d_cuda_type, M, N, ldd));
-#endif
 
   if (rowMajor_) {
     cublasLtOrder_t matrixOrder = CUBLASLT_ORDER_ROW;
