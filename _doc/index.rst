@@ -122,3 +122,8 @@ its functionalities. *onnx-extended* tries to build a cython wrapper
 around the C/C++ API of onnxruntime. cython relies on python C API
 and is faster than pybind11. This different may be significant when
 onnxruntime is used on small graphs and tensors.
+
+Older versions
+++++++++++++++
+
+* `0.1.0 <v0.1.0/index.html>`_
