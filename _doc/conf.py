@@ -1,7 +1,20 @@
 import os
 import sys
-
 from onnx_extended import __version__
+
+for name in ["CHANGELOGS.rst", "LICENSE.txt"]:
+    s = os.path.join(os.path.dirname(__file__), "..", name)
+    if name == "LICENSE.txt":
+        d = os.path.join(os.path.dirname(__file__), name.replace(".txt", ".rst"))
+        with open(s, "r", encoding="utf-8") as f:
+            with open(d, "w", encoding="utf-8") as g:
+                g.write("LICENSE\n=======\n\n")
+                g.write(f.read())
+    else:
+        d = os.path.join(os.path.dirname(__file__), name)
+        with open(s, "r", encoding="utf-8") as f:
+            with open(d, "w", encoding="utf-8") as g:
+                g.write(f.read())
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -67,6 +80,7 @@ epkg_dictionary = {
     "cython": "https://cython.org/",
     "DOT": "https://graphviz.org/doc/info/lang.html",
     "eigen": "https://eigen.tuxfamily.org/",
+    "gcc": "https://gcc.gnu.org/",
     "JIT": "https://en.wikipedia.org/wiki/Just-in-time_compilation",
     "nccl": "https://developer.nvidia.com/nccl",
     "numpy": "https://numpy.org/",
@@ -86,6 +100,7 @@ epkg_dictionary = {
         "https://onnxruntime.ai/docs/performance/model-optimizations/graph-optimizations.html"
     ),
     "openmp": "https://www.openmp.org/",
+    "protobuf": "https://github.com/protocolbuffers/protobuf",
     "pybind11": "https://github.com/pybind/pybind11",
     "pyinstrument": "https://github.com/joerick/pyinstrument",
     "python": "https://www.python.org/",

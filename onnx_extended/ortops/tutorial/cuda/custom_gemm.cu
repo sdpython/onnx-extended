@@ -215,6 +215,18 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
     EXT_THROW("Unexpected value for compute_type '", compute_type, "'.");
   }
 
+  std::string activation = KernelInfoGetOptionalAttributeString(
+      api, info, "activation", "DEFUALT");
+  if (activation == "DEFUALT") {
+    epilogue_ = EpiloqueGemmKernel::Default;
+  } else if (activation == "RELU") {
+    epilogue_ = EpiloqueGemmKernel::Relu;
+  } else if (activation == "GELU") {
+    epilogue_ = EpiloqueGemmKernel::Gelu;
+  } else {
+    EXT_THROW("Unexpected value for activation '", activation, "'.");
+  }
+
 #if CUDA_VERSION < 12000
   EXT_ENFORCE(beta_ == 0, "beta != 0 only supported for CUDA >= 12.0.");
 #endif
@@ -507,7 +519,18 @@ void CustomGemmKernel::ComputeGemm(
                                          &matrixOrder, sizeof(matrixOrder)));
   }
 
-  cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
+  cublasLtEpilogue_t epilogue;
+  switch(epilogue_) {
+    case EpiloqueGemmKernel::Default:
+    epilogue = CUBLASLT_EPILOGUE_DEFAULT;
+    break;
+    case EpiloqueGemmKernel::Relu:
+    epilogue = CUBLASLT_EPILOGUE_RELU;
+    break;
+    case EpiloqueGemmKernel::Gelu:
+    epilogue = CUBLASLT_EPILOGUE_GELU;
+    break;
+  } 
   cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE,
                                  &epilogue, sizeof(epilogue));
 

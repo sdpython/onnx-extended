@@ -1,6 +1,6 @@
 
-onnx-extended: more operator for onnx
-=====================================
+onnx-extended: more operators for onnx
+======================================
 
 .. image:: https://dev.azure.com/xavierdupre3/onnx-extended/_apis/build/status/sdpython.onnx-extended
     :target: https://dev.azure.com/xavierdupre3/onnx-extended/
@@ -32,13 +32,14 @@ Source are available on `github/onnx-extended
 see also `code coverage <cov/index.html>`_.
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     tutorial/index
     api/index
     tech/index
     auto_examples/index
-    ../CHANGELOGS
+    CHANGELOGS
+    LICENSE
 
 Use C++ a implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++
@@ -122,3 +123,8 @@ its functionalities. *onnx-extended* tries to build a cython wrapper
 around the C/C++ API of onnxruntime. cython relies on python C API
 and is faster than pybind11. This different may be significant when
 onnxruntime is used on small graphs and tensors.
+
+Older versions
+++++++++++++++
+
+* `0.1.0 <v0.1.0/index.html>`_

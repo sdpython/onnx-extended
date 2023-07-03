@@ -6,6 +6,12 @@
 
 namespace ortops {
 
+typedef enum _EpiloqueGemmKernel {
+  Default = 0,
+  Relu = 1,
+  Gelu = 2
+} EpiloqueGemmKernel;
+
 struct CustomGemmKernel {
   CustomGemmKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
@@ -45,6 +51,7 @@ private:
   int64_t rowMajor_;
   int64_t smCount_;
   cublasComputeType_t computeType_;
+  EpiloqueGemmKernel epilogue_;
 };
 
 struct CustomGemmOpFloat

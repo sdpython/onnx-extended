@@ -5,7 +5,7 @@ Measuring Gemm performance with different input and output types
 ================================================================
 
 This benchmark looks into various combinations allowed by functions
-:epkg:`cublasLtMatMul`.
+:epkg:`cublasLtMatmul`.
 """
 import pprint
 from itertools import product

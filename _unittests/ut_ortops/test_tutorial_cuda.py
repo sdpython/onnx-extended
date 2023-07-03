@@ -231,6 +231,72 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
+    def test_custom_gemm_float32_relu(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            activation="RELU",
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_gelu(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            activation="GELU",
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_col_major_relu(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            activation="RELU",
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
+    def test_custom_gemm_float32_col_major_gelu(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            activation="GELU",
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(
+        "CUDAExecutionProvider" not in get_available_providers(),
+        reason="CUDA provider not available",
+    )
     def test_custom_gemm_float32_not_square(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
