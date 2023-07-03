@@ -1,6 +1,6 @@
 
-onnx-extended: more operator for onnx
-=====================================
+onnx-extended: more operators for onnx
+======================================
 
 .. image:: https://dev.azure.com/xavierdupre3/onnx-extended/_apis/build/status/sdpython.onnx-extended
     :target: https://dev.azure.com/xavierdupre3/onnx-extended/
@@ -32,7 +32,7 @@ Source are available on `github/onnx-extended
 see also `code coverage <cov/index.html>`_.
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     tutorial/index
     api/index
