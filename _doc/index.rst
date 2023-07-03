@@ -38,7 +38,8 @@ see also `code coverage <cov/index.html>`_.
     api/index
     tech/index
     auto_examples/index
-    ../CHANGELOGS
+    CHANGELOGS
+    LICENSE
 
 Use C++ a implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++
