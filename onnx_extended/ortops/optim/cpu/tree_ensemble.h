@@ -10,7 +10,7 @@ struct TreeEnsembleKernel {
   void Compute(OrtKernelContext* context);
 
   // Attributes
-  onnx_c_ops::RuntimeTreeEnsembleCommon<float>* reg_float;
+  onnx_c_ops::TreeEnsembleCommon<float, float, float>* reg_float;
 };
 
 struct TreeEnsembleRegressor : Ort::CustomOpBase<TreeEnsembleRegressor, TreeEnsembleKernel> {
