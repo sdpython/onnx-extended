@@ -1,12 +1,16 @@
 #pragma once
 
 #include "common/common_kernels.h"
+#include "cpu/c_op_tree_ensemble_common_.hpp"
 
 namespace ortops {
 
 struct TreeEnsembleKernel {
-  TreeEnsembleRegressorKernel(const OrtApi &api, const OrtKernelInfo *info);
+  TreeEnsembleKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext* context);
+
+  // Attributes
+  onnx_c_ops::RuntimeTreeEnsembleCommon<float>* reg_float;
 };
 
 struct TreeEnsembleRegressor : Ort::CustomOpBase<TreeEnsembleRegressor, TreeEnsembleKernel> {

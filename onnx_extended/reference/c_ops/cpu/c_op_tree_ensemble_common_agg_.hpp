@@ -9,12 +9,6 @@
 #include <thread>
 #include <vector>
 
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
-
 #include "c_op_common.h"
 
 namespace onnx_c_ops {

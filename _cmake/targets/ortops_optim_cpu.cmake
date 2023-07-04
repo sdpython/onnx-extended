@@ -14,4 +14,5 @@ target_include_directories(
   ortops_optim_cpu
   PRIVATE
   "${ORTAPI_INCLUDE_DIR}"
-  "${ORTOPS_INCLUDE_DIR}")
+  "${ORTOPS_INCLUDE_DIR}"
+  "${REFOPS_INCLUDE_DIR}")

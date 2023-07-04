@@ -6,6 +6,7 @@
 
 #include "c_op_common_parallel.hpp"
 #include "c_op_tree_ensemble_common_agg_.hpp"
+#include <deque>
 
 // #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
 #define DEBUG_PRINT(...)

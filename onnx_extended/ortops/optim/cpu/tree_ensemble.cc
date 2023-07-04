@@ -24,8 +24,12 @@ ONNXTensorElementDataType TreeEnsembleRegressor::GetOutputType(size_t index) con
 
 
 
-TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api, const OrtKernelInfo *info) {
+////////////////////////
+// Kernel initialization
+////////////////////////
 
+TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api, const OrtKernelInfo *info) {
+    reg_float = nullptr;
 }
 
 
@@ -52,4 +56,3 @@ void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
 }
 
 } // namespace ortops
-

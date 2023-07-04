@@ -3,6 +3,13 @@
 
 #include "c_op_tree_ensemble_common_.hpp"
 
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+namespace py = pybind11;
+
+
 #define py_array_t_int64_t                                                     \
   py::array_t<int64_t, py::array::c_style | py::array::forcecast>
 #define py_array_t_ntype_t                                                     \

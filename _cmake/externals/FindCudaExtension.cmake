@@ -14,6 +14,22 @@ message(STATUS "CUDAToolkit_FOUND=${CUDAToolkit_FOUND}")
 
 if(CUDAToolkit_FOUND)
 
+  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "")
+    set(CMAKE_CUDA_ARCHITECTURES "native")
+  endif()
+  if(CMAKE_CUDA_COMPILER STREQUAL "CMAKE_CUDA_COMPILER-NOTFOUND")
+    if(CUDA_VERSION STREQUAL "")
+      message(FATAL_ERROR "No CMAKE_CUDA_COMPILER for CUDA_VERSION=${CUDA_VERSION}. "
+                          "You can use --cuda-version=<CUDA_VERSION> or set "
+                          "CUDACXX=/usr/local/cuda-<CUDA_VERSION>/bin/nvcc")
+    else()
+      set(CMAKE_CUDA_COMPILER "/usr/local/cuda-${CUDA_VERSION}/bin/nvcc")
+      message(STATUS "set CMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")
+    endif()
+  endif()
+
+  message(STATUS "before language CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
+  message(STATUS "before language CMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")
   enable_language(CUDA)
   message(STATUS "------------- CUDA settings")
   message(STATUS "CUDA_VERSION=${CUDA_VERSION}")
@@ -30,7 +46,7 @@ if(CUDAToolkit_FOUND)
                         "< ${CUDA_VERSION}, nvcc is not setup properly. "
                         "Try 'whereis nvcc' and chack the version.")
   endif()
-  
+
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
@@ -64,25 +80,36 @@ if(CUDAToolkit_FOUND)
     endif()
 
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11)
-      message(FATAL_ERROR "CUDA verions must be >= 11 but is ${CMAKE_CUDA_COMPILER_VERSION}.")
+      message(FATAL_ERROR "CUDA verions must be >= 11 but is "
+                          "${CMAKE_CUDA_COMPILER_VERSION}.")
     endif()
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 12)
-      # 37, 50 still work in CUDA 11 but are marked deprecated and will be removed in future CUDA version.
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_37,code=sm_37") # K80
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_50,code=sm_50") # M series
+      # 37, 50 still work in CUDA 11
+      # but are marked deprecated and will be removed in future CUDA version.
+      # K80
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_37,code=sm_37")
+      # M series
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_50,code=sm_50")
     endif()
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_52,code=sm_52") # M60
-    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_60,code=sm_60") # P series
-    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_61,code=sm_61") # P series
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_70,code=sm_70") # V series
-    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_75,code=sm_75") # T series
+    # M60
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_52,code=sm_52")
+    # P series
+    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_60,code=sm_60")
+    # P series
+    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_61,code=sm_61")
+    # V series
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_70,code=sm_70")
+    # T series
+    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_75,code=sm_75")
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11)
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_80,code=sm_80") # A series
-      # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_86,code=sm_86") # A series
-      # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_87,code=sm_87") # A series
+      # A series
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_80,code=sm_80")
+      # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_86,code=sm_86")
+      # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_87,code=sm_87")
     endif()
     if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.8)
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90") # H series
+      # H series
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90")
     endif()
   endif()
 
