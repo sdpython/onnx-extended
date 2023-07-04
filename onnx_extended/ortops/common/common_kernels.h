@@ -8,6 +8,22 @@
 
 namespace ortops {
 
+inline std::vector<std::string> SplitString(const std::string &input,
+                                            char delimiter) {
+  std::vector<std::string> parts;
+  std::string::size_type start = 0;
+  std::string::size_type end = input.find(delimiter);
+
+  while (end != std::string::npos) {
+    parts.push_back(input.substr(start, end - start));
+    start = end + 1;
+    end = input.find(delimiter, start);
+  }
+
+  parts.push_back(input.substr(start));
+  return parts;
+}
+
 inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
 
 template <typename T>
@@ -69,7 +85,6 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
   MakeStringInternal(ss, args...);
   return std::string(ss.str());
 }
-
 
 inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
                            int line, const OrtApi &api) {
@@ -137,6 +152,52 @@ KernelInfoGetAttributeApi<float>(const OrtApi &api, const OrtKernelInfo *info,
   return api.KernelInfoGetAttribute_float(info, name, &out);
 }
 
+template <>
+inline OrtStatus *KernelInfoGetAttributeApi<std::vector<float>>(
+    const OrtApi &api, const OrtKernelInfo *info, const char *name,
+    std::vector<float> &output) {
+  size_t size = 0;
+  std::vector<float> out;
+
+  // Feed nullptr for the data buffer to query the true size of the attribute
+  OrtStatus *status =
+      api.KernelInfoGetAttributeArray_float(info, name, nullptr, &size);
+
+  if (status == nullptr) {
+    out.resize(size);
+    status =
+        api.KernelInfoGetAttributeArray_float(info, name, out.data(), &size);
+  }
+  return status;
+}
+
+template <>
+inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
+    const OrtApi &api, const OrtKernelInfo *info, const char *name,
+    std::vector<int64_t> &output) {
+  size_t size = 0;
+  std::vector<int64_t> out;
+
+  // Feed nullptr for the data buffer to query the true size of the attribute
+  OrtStatus *status =
+      api.KernelInfoGetAttributeArray_int64(info, name, nullptr, &size);
+
+  if (status == nullptr) {
+    out.resize(size);
+    ThrowOnError(api, api.KernelInfoGetAttributeArray_int64(info, name,
+                                                            out.data(), &size));
+  }
+  return status;
+}
+
+template <>
+inline OrtStatus *KernelInfoGetAttributeApi<std::vector<std::string>>(
+    const OrtApi &api, const OrtKernelInfo *info, const char *name,
+    std::vector<std::string> &output) {
+  EXT_THROW("Unable to retrieve attribute as an array of strings. "
+            "You should use a single comma separated string.");
+}
+
 template <typename T>
 inline T KernelInfoGetOptionalAttribute(const OrtApi &api,
                                         const OrtKernelInfo *info,
@@ -144,9 +205,8 @@ inline T KernelInfoGetOptionalAttribute(const OrtApi &api,
   T out;
   OrtStatus *status = KernelInfoGetAttributeApi<T>(api, info, name, out);
 
-  if (status == nullptr) {
+  if (status == nullptr)
     return out;
-  }
   OrtErrorCode code = api.GetErrorCode(status);
   if (code == ORT_FAIL) {
     api.ReleaseStatus(status);

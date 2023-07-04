@@ -215,8 +215,8 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
     EXT_THROW("Unexpected value for compute_type '", compute_type, "'.");
   }
 
-  std::string activation = KernelInfoGetOptionalAttributeString(
-      api, info, "activation", "DEFUALT");
+  std::string activation =
+      KernelInfoGetOptionalAttributeString(api, info, "activation", "DEFUALT");
   if (activation == "DEFUALT") {
     epilogue_ = EpiloqueGemmKernel::Default;
   } else if (activation == "RELU") {
@@ -319,7 +319,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
 
   bool has_scales = n_inputs > 3;
   if (has_scales) {
-    EXT_ENFORCE(n_inputs == 6, "Number of inputs must be 6 but is ", n_inputs, ".");
+    EXT_ENFORCE(n_inputs == 6, "Number of inputs must be 6 but is ", n_inputs,
+                ".");
     scale_A = ctx.GetInput(3);
     scale_B = ctx.GetInput(4);
     scale_Y = ctx.GetInput(5);
@@ -516,17 +517,17 @@ void CustomGemmKernel::ComputeGemm(
   }
 
   cublasLtEpilogue_t epilogue;
-  switch(epilogue_) {
-    case EpiloqueGemmKernel::Default:
+  switch (epilogue_) {
+  case EpiloqueGemmKernel::Default:
     epilogue = CUBLASLT_EPILOGUE_DEFAULT;
     break;
-    case EpiloqueGemmKernel::Relu:
+  case EpiloqueGemmKernel::Relu:
     epilogue = CUBLASLT_EPILOGUE_RELU;
     break;
-    case EpiloqueGemmKernel::Gelu:
+  case EpiloqueGemmKernel::Gelu:
     epilogue = CUBLASLT_EPILOGUE_GELU;
     break;
-  } 
+  }
   cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE,
                                  &epilogue, sizeof(epilogue));
 

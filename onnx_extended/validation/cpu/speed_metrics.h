@@ -27,7 +27,7 @@ inline bool _isnan_(double x) {
 }
 
 inline bool _isnan_(float x) {
-  uint32_t* pv = reinterpret_cast<uint32_t*>(&x);
+  uint32_t *pv = reinterpret_cast<uint32_t *>(&x);
   uint32_t b = *pv;
   return (b & 0x7fc00000) == 0x7fc00000;
 }

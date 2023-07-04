@@ -166,38 +166,39 @@ float vector_sum_array_avx_parallel(int nc,
 }
 
 py_array_float vector_add(const py_array_float &v1, const py_array_float &v2) {
-    // Based on tutorial https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html
-    if (v1.ndim() != v2.ndim()) {
-        throw std::runtime_error("Vector v1 and v2 must have the same shape.");
+  // Based on tutorial
+  // https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html
+  if (v1.ndim() != v2.ndim()) {
+    throw std::runtime_error("Vector v1 and v2 must have the same shape.");
+  }
+  for (int i = 0; i < v1.ndim(); ++i) {
+    if (v1.shape(i) != v2.shape(i)) {
+      throw std::runtime_error("Vector v1 and v2 must have the same shape.");
     }
-    for(int i = 0; i < v1.ndim(); ++i) {
-        if (v1.shape(i) != v2.shape(i)) {
-            throw std::runtime_error("Vector v1 and v2 must have the same shape.");
-        }
-    }
-    std::vector<int64_t> shape(v1.ndim());
-    for (int i = 0; i < v1.ndim(); ++i) {
-        shape[i] = v1.shape(i);
-    }
-    py::buffer_info b1 = v1.request();
-    py::buffer_info b2 = v2.request();
-    py_array_float result = py::array_t<float>(shape);
-    py::buffer_info br = result.request();
-    
-    const float * p1 = static_cast<const float*>(b1.ptr);  // pointer on v1 data
-    const float * p2 = static_cast<const float*>(b2.ptr);  // pointer on v2 data
-    float * pr = static_cast<float*>(br.ptr);  // pointer on result data
-    if (p1 == nullptr || p2 == nullptr || pr == nullptr) {
-        throw std::runtime_error("One vector is empty.");
-    }
+  }
+  std::vector<int64_t> shape(v1.ndim());
+  for (int i = 0; i < v1.ndim(); ++i) {
+    shape[i] = v1.shape(i);
+  }
+  py::buffer_info b1 = v1.request();
+  py::buffer_info b2 = v2.request();
+  py_array_float result = py::array_t<float>(shape);
+  py::buffer_info br = result.request();
 
-    // Here the addition.
-    int64_t size = v1.size();
-    for(int64_t i = 0; i < size; ++i) {      
-      pr[i] = p1[i] + p2[i];
-    }
-    
-    return result;
+  const float *p1 = static_cast<const float *>(b1.ptr); // pointer on v1 data
+  const float *p2 = static_cast<const float *>(b2.ptr); // pointer on v2 data
+  float *pr = static_cast<float *>(br.ptr); // pointer on result data
+  if (p1 == nullptr || p2 == nullptr || pr == nullptr) {
+    throw std::runtime_error("One vector is empty.");
+  }
+
+  // Here the addition.
+  int64_t size = v1.size();
+  for (int64_t i = 0; i < size; ++i) {
+    pr[i] = p1[i] + p2[i];
+  }
+
+  return result;
 }
 
 } // namespace validation

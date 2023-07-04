@@ -6,6 +6,6 @@
 
 namespace validation {
 
-float vector_sum(int nl, int nc, const float* values, int by_rows);
+float vector_sum(int nl, int nc, const float *values, int by_rows);
 
 } // namespace validation

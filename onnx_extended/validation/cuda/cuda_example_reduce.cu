@@ -13,11 +13,11 @@
 
 namespace cuda_example {
 
-#define reduce6_block_and_sync(I,I2)                    \
-    if ((blockSize >= I) && (tid < I2)) {               \
-        sdata[tid] = mySum = mySum + sdata[tid + I2];   \
-    }                                                   \
-    __syncthreads();
+#define reduce6_block_and_sync(I, I2)                                          \
+  if ((blockSize >= I) && (tid < I2)) {                                        \
+    sdata[tid] = mySum = mySum + sdata[tid + I2];                              \
+  }                                                                            \
+  __syncthreads();
 
 template <typename T, unsigned int blockSize, bool nIsPow2>
 __global__ void kernel_reduce6(const T *g_idata, T *g_odata, unsigned int n) {
@@ -43,13 +43,12 @@ __global__ void kernel_reduce6(const T *g_idata, T *g_odata, unsigned int n) {
   sdata[tid] = mySum;
   __syncthreads();
 
-
   // reduction within a block in shared memory
   reduce6_block_and_sync(512, 256);
   reduce6_block_and_sync(256, 128);
   reduce6_block_and_sync(128, 64);
 
-#if (__CUDA_ARCH__ >= 300 )
+#if (__CUDA_ARCH__ >= 300)
   if (tid < 32) {
     if (blockSize >= 64) {
       mySum += sdata[tid + 32];
@@ -82,20 +81,23 @@ bool isPow2(unsigned int n) {
   return (n & (n - 1)) == 0;
 }
 
-#define case_vector_sum_6_block(T, I, B)  \
-  case I:  \
-      kernel_reduce6<T, I, B><<<dimGrid, dimBlock, smemSize>>>(gpu_ptr, gpu_block_ptr, size); \
-      break;
+#define case_vector_sum_6_block(T, I, B)                                       \
+  case I:                                                                      \
+    kernel_reduce6<T, I, B>                                                    \
+        <<<dimGrid, dimBlock, smemSize>>>(gpu_ptr, gpu_block_ptr, size);       \
+    break;
 
-float kernel_vector_sum_6(unsigned int size, const float* gpu_ptr, int maxThreads) {
+float kernel_vector_sum_6(unsigned int size, const float *gpu_ptr,
+                          int maxThreads) {
 
   int threads = (size < maxThreads) ? nextPow2(size) : maxThreads;
-  int blocks = (size + threads - 1) / threads;  
+  int blocks = (size + threads - 1) / threads;
   dim3 dimBlock(threads, 1, 1);
   dim3 dimGrid(blocks, 1, 1);
-  float* gpu_block_ptr;
+  float *gpu_block_ptr;
   checkCudaErrors(cudaMalloc(&gpu_block_ptr, blocks * sizeof(float)));
-  int smemSize = (threads <= 32) ? 2 * threads * sizeof(float) : threads * sizeof(float);
+  int smemSize =
+      (threads <= 32) ? 2 * threads * sizeof(float) : threads * sizeof(float);
 
   if (isPow2(size)) {
     switch (threads) {
@@ -110,8 +112,7 @@ float kernel_vector_sum_6(unsigned int size, const float* gpu_ptr, int maxThread
       case_vector_sum_6_block(float, 2, true);
       case_vector_sum_6_block(float, 1, true);
     }
-  }
-  else {
+  } else {
     switch (threads) {
       case_vector_sum_6_block(float, 512, false);
       case_vector_sum_6_block(float, 256, false);
@@ -128,8 +129,9 @@ float kernel_vector_sum_6(unsigned int size, const float* gpu_ptr, int maxThread
 
   // the last reduction happens on CPU, the first step is to move
   // the data from GPU to CPU.
-  float* cpu_ptr = new float[blocks];
-  checkCudaErrors(cudaMemcpy(cpu_ptr, gpu_block_ptr, blocks * sizeof(float), cudaMemcpyDeviceToHost));
+  float *cpu_ptr = new float[blocks];
+  checkCudaErrors(cudaMemcpy(cpu_ptr, gpu_block_ptr, blocks * sizeof(float),
+                             cudaMemcpyDeviceToHost));
   float gpu_result = 0;
   for (int i = 0; i < blocks; ++i) {
     gpu_result += cpu_ptr[i];
@@ -137,18 +139,17 @@ float kernel_vector_sum_6(unsigned int size, const float* gpu_ptr, int maxThread
   checkCudaErrors(cudaFree(gpu_block_ptr));
   delete[] cpu_ptr;
   return gpu_result;
-
 }
 
-float vector_sum6(unsigned int size, const float* ptr, int maxThreads,
+float vector_sum6(unsigned int size, const float *ptr, int maxThreads,
                   int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
   NVTX_SCOPE("vector_sum6")
   float *gpu_ptr;
   checkCudaErrors(cudaSetDevice(cudaDevice));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
-  checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float),
-                             cudaMemcpyHostToDevice));
+  checkCudaErrors(
+      cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
 
   // execute the code
   float result = kernel_vector_sum_6(size, gpu_ptr, maxThreads);

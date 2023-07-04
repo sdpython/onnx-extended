@@ -73,18 +73,17 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 }
 
 #if !defined(_THROW_DEFINED)
-#define EXT_THROW(...) throw std::runtime_error(orthelpers::MakeString(__VA_ARGS__));
+#define EXT_THROW(...)                                                         \
+  throw std::runtime_error(orthelpers::MakeString(__VA_ARGS__));
 #define _THROW_DEFINED
 #endif
 
 #if !defined(_ENFORCE_DEFINED)
 #define EXT_ENFORCE(cond, ...)                                                 \
   if (!(cond))                                                                 \
-    throw std::runtime_error(                                                  \
-        orthelpers::MakeString("`", #cond, "` failed. ", orthelpers::MakeString(__VA_ARGS__)));
+    throw std::runtime_error(orthelpers::MakeString(                           \
+        "`", #cond, "` failed. ", orthelpers::MakeString(__VA_ARGS__)));
 #define _ENFORCE_DEFINED
 #endif
-
-
 
 } // namespace orthelpers
