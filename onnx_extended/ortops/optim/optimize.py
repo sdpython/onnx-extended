@@ -13,6 +13,23 @@ def has_subgraph(node: NodeProto) -> bool:
     return False
 
 
+def get_node_attribute(node: NodeProto, name: str) -> AttributeProto:
+    """
+    Returns the value of one attribute.
+
+    :param node: node
+    :param name: attribute name
+    :return: value
+    """
+    for att in node.attribute:
+        if att.name == name:
+            return att
+    raise KeyError(
+        f"Unable to find {name!r} among "
+        f"{list(att.name for att in node.attribute)}."
+    )
+
+
 def change_onnx_operator_domain(
     onx: Union[ModelProto, GraphProto, FunctionProto],
     op_type: str,

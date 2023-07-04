@@ -136,6 +136,10 @@ file(WRITE "../_setup_ext.txt" "")
 # \argn: C++ file to compile
 #
 function(ort_add_custom_op name provider folder)
+  if (WIN32)
+    file(WRITE "${folder}/${name}.def" "LIBRARY \"${name}.dll\"\nEXPORTS\n  RegisterCustomOps @1")
+    list(APPEND ARGN "${folder}/${name}.def")
+  endif()
   if (provider STREQUAL "CUDA")
     message(STATUS "ort custom op ${provider}: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})

@@ -9,6 +9,7 @@
 *.sln
 *.cmake
 *.whl
+*.def
 /*.png
 /*.onnx
 .build_path.txt
@@ -50,3 +51,4 @@ onnx_extended/_config.py
 onnx_extended/validation/cython/*.c
 onnx_extended/validation/cython/vector_function_cy.c*
 onnx_extended/ortcy/wrap/ortinf.c*
+onnx_extended/ortops/tutorial/cpu/ortops_tutorial_cpu.def

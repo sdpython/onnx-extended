@@ -45,9 +45,9 @@ jobs:
   - script: |
       python -m pip install . -v -v -v
     displayName: 'install wheel'
-#   - script: |  # It fails due to ModuleNotFoundError: No module named 'onnx_extended.reference.c_ops.cpu.c_op_conv_'
-#       python -m pytest . --durations=10
-#     displayName: 'Runs Unit Tests'
+  - script: |  # It fails due to ModuleNotFoundError: No module named 'onnx_extended.reference.c_ops.cpu.c_op_conv_'
+      python -m pytest _unittests --durations=10
+    displayName: 'Runs Unit Tests'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-linux-wheel-$(python.version)'
@@ -109,9 +109,7 @@ jobs:
     displayName: 'Run C++ Unit Tests'
 
   - script: |
-      cd _unittests
-      python -m pytest . --durations=10
-      cd ..
+      python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel
@@ -160,9 +158,7 @@ jobs:
         ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
-      cd _unittests
-      python -m pytest . --durations=10
-      cd ..
+      python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
         python -u setup.py bdist_wheel
@@ -223,9 +219,7 @@ jobs:
     displayName: 'build wheel'
   - script: |
       source activate myEnvironment
-      cd _unittests
-      python -m pytest . --durations=10
-      cd ..
+      python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel

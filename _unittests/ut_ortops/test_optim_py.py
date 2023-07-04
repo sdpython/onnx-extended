@@ -94,6 +94,71 @@ class TestOrtOpOptimPy(ExtTestCase):
         got = ref.run(None, {"X": x})
         self.assertEqualArray(numpy.argmax(x, axis=0, keepdims=1), got[0])
 
+    def test_replace_domain(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
+        node = make_node("Add", ["X", "Y"], ["Z"])
+        graph = make_graph([node], "g", [X, Y], [Z])
+        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        check_model(onnx_model)
+
+        repl = change_onnx_operator_domain(
+            onnx_model,
+            op_type="Add",
+            new_op_type="Sub",
+            new_op_domain="NEW",
+        )
+        check_model(repl)
+        self.assertEqual(len(repl.graph.node), 1)
+        self.assertEqual(repl.graph.node[0].op_type, "Sub")
+        self.assertIn('domain: "NEW"', str(repl))
+
+    def test_replace_domain_att(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
+        node = make_node("Add", ["X", "Y"], ["Z"])
+        graph = make_graph([node], "g", [X, Y], [Z])
+        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        check_model(onnx_model)
+
+        repl = change_onnx_operator_domain(
+            onnx_model,
+            op_type="Add",
+            new_op_type="Sub",
+            new_op_domain="NEW",
+            ATTR=6,
+        )
+        check_model(repl)
+        self.assertEqual(len(repl.graph.node), 1)
+        self.assertEqual(repl.graph.node[0].op_type, "Sub")
+        self.assertIn('domain: "NEW"', str(repl))
+        self.assertIn('name: "ATTR"', str(repl))
+        self.assertIn("i: 6", str(repl))
+
+    def test_replace_domain_att_same(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
+        node = make_node("Add", ["X", "Y"], ["Z"])
+        graph = make_graph([node], "g", [X, Y], [Z])
+        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        check_model(onnx_model)
+
+        repl = change_onnx_operator_domain(
+            onnx_model,
+            op_type="Add",
+            new_op_domain="NEW",
+            ATTR=6,
+        )
+        check_model(repl)
+        self.assertEqual(len(repl.graph.node), 1)
+        self.assertEqual(repl.graph.node[0].op_type, "Add")
+        self.assertIn('domain: "NEW"', str(repl))
+        self.assertIn('name: "ATTR"', str(repl))
+        self.assertIn("i: 6", str(repl))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

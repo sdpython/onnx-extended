@@ -4,7 +4,10 @@ from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
 from skl2onnx import to_onnx
 from onnx_extended.ortops.tutorial.cpu import documentation
-from onnx_extended.ortops.optim.optimize import change_onnx_operator_domain
+from onnx_extended.ortops.optim.optimize import (
+    change_onnx_operator_domain,
+    get_node_attribute,
+)
 from onnx_extended.ext_test_case import ExtTestCase
 
 try:
@@ -47,12 +50,17 @@ class TestOrtOpOptimCpu(ExtTestCase):
         )
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(expected, got, atol=1e-5)
+        att = get_node_attribute(onx.graph.node[0], "nodes_modes")
+        modes = ",".join(map(lambda s:s.decode("ascii"), att.strings))
 
         onx2 = change_onnx_operator_domain(
             onx,
             op_type="TreeEnsembleRegressor",
+            op_domain="ai.onnx.ml",
             new_op_domain="onnx_extented.ortops.optim.cpu",
+            nodes_modes=modes,
         )
+        self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
 
         r = get_ort_ext_libs()
         self.assertExists(r[0])

@@ -7,6 +7,7 @@
 #include "c_op_common_parallel.hpp"
 #include "c_op_tree_ensemble_common_agg_.hpp"
 #include <deque>
+#include <unordered_map>
 
 // #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":",
 // __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
@@ -187,7 +188,9 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
   DEBUG_PRINT("Init")
   EXT_ENFORCE(n_targets_or_classes > 0);
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_featureids.size());
-  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_modes.size());
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_modes.size(),
+              "nodes_falsenodeids.size()=", nodes_falsenodeids.size(),
+              " nodes_modes.size()=", nodes_modes.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_nodeids.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_treeids.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_truenodeids.size());

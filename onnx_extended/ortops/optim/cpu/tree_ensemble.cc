@@ -78,6 +78,14 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
       api, info, "target_class_weights", std::vector<float>());
 
   std::vector<std::string> nodes_modes = SplitString(nodes_modes_single, ',');
+  EXT_ENFORCE(n_targets_or_classes > 0);
+  EXT_ENFORCE(nodes_values.size() > 0);
+  EXT_ENFORCE(nodes_nodeids.size() > 0);
+  EXT_ENFORCE(nodes_modes.size() == nodes_falsenodeids.size(),
+              " nodes_modes.size()==",
+              nodes_modes.size(), "!=",
+              nodes_falsenodeids.size(),
+              ", nodes_modes=", nodes_modes_single, ".");
 
   std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<float, float, float>> ptr(
       new onnx_c_ops::TreeEnsembleCommon<float, float, float>());
