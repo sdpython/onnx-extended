@@ -63,6 +63,7 @@ include("targets/vector_function_cy.cmake")
 set(ORTOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortops")
 include("targets/ortops_tutorial_cpu.cmake")
 include("targets/ortops_tutorial_cuda.cmake")
+include("targets/ortops_optim_cpu.cmake")
 
 #
 # write version
