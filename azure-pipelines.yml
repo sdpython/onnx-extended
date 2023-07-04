@@ -30,8 +30,8 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      cmake-lint _cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
-      cmake-lint _cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/Find* --disabled-codes C0103 C0113 --line-width=88
+      cmake-lint _cmake/CMake* --disabled-codes C0103 C0113 --line-width=88
     displayName: 'cmake-lint'
   - script: |
       rstcheck -r ./_doc ./onnx_extended
@@ -88,8 +88,8 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      cmake-lint _cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
-      cmake-lint _cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/Find* --disabled-codes C0103 C0113 --line-width=88
+      cmake-lint _cmake/CMake* --disabled-codes C0103 C0113 --line-width=88
     displayName: 'cmake-lint'
   - script: |
       cython-lint .
