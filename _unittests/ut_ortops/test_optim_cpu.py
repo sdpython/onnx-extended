@@ -55,6 +55,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
         )
 
         r = get_ort_ext_libs()
+        self.assertExists(r[0])
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
         sess = InferenceSession(
