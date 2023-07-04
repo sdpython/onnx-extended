@@ -3,6 +3,11 @@
 ortops.optim
 ============
 
+optimize
+========
+
+.. autofunction:: onnx_extended.ortops.optim.optimize.change_onnx_operator_domain
+
 CPU: onnx_extented.ortops.optim.cpu
 ===================================
 
