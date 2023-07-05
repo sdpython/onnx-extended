@@ -22,3 +22,5 @@ target_include_directories(
   "${ORTAPI_INCLUDE_DIR}"
   "${ORTOPS_INCLUDE_DIR}"
   "${REFOPS_INCLUDE_DIR}")
+
+target_link_libraries(ortops_optim_cpu PRIVATE OpenMP::OpenMP_CXX)
