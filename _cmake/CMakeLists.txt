@@ -45,8 +45,8 @@ list(APPEND CMAKE_MODULE_PATH
 # Packages and constants
 #
 
-include("load_externals.cmake")
 include("constants.cmake")
+include("load_externals.cmake")
 
 #
 # modules

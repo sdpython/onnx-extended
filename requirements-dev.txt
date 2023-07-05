@@ -14,7 +14,7 @@ matplotlib
 ml-dtypes
 onnx-array-api
 onnxmltools
-onnxruntime; python_version < '3.11'
+onnxruntime
 openpyxl
 packaging
 pandas

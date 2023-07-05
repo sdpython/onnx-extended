@@ -71,12 +71,6 @@ else()
   message(STATUS "Use find_package(Python3).")
   set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
   if(APPLE)
-    message(STATUS "APPLE: set env var for open mp: CC, CCX, LDFLAGS, CPPFLAGS")
-    set(ENV{CC} "/usr/local/opt/llvm/bin/clang")
-    set(ENV{CXX} "/usr/local/opt/llvm/bin/clang++")
-    set(ENV{LDFLAGS} "-L/usr/local/opt/llvm/lib")
-    set(ENV{CPPFLAGS} "-I/usr/local/opt/llvm/include")
-
     find_package(Python3 ${PYTHON_VERSION} COMPONENTS
                 Interpreter Development.Module
                 REQUIRED)

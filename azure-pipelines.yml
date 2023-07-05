@@ -206,6 +206,7 @@ jobs:
       pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: |
+      gcc --version
       python -c "import sys;print('PYTHON', sys.executable)"
       python -c "import sys;print('PYTHON', sys.version_info)"
       python -c "import numpy;print('numpy', numpy.__version__)"
