@@ -19,6 +19,7 @@ try:
     from onnxruntime import InferenceSession
 except ImportError:
     InferenceSession = None
+    ort_version = "0.0"
 if InferenceSession is not None:
     from onnxruntime import (
         SessionOptions,
