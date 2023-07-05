@@ -13,6 +13,7 @@ else:
 
 
 class TestCudaGemm(ExtTestCase):
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_get_device_prop(self):
         r = get_device_prop()
         self.assertIsInstance(r, dict)

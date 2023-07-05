@@ -19,7 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = ["numpy", "onnx>=1.14.0", "scipy"]
-description = "Extends the list of supported operators in onnx reference implementation, or implements faster versions in C++."
+description = "Extends the list of supported operators in onnx reference implementation and onnxruntime, or implements faster versions in C++."
 keywords = ["onnx", "onnxruntime", "CUDA", "openmp", "cmake", "cython", "pybind11"]
 license = {file = "LICENSE.txt"}
 name = "onnx-extended"
@@ -31,7 +31,7 @@ version = "0.2.0"
 homepage = "https://sdpython.github.io/doc/onnx-extended/"
 documentation = "https://sdpython.github.io/doc/onnx-extended/"
 repository = "https://github.com/sdpython/onnx-extended"
-# changelog = "https://github.com/sdpython/onnx-extended/CHANGELOG.md"
+changelog = "https://github.com/sdpython/onnx-extended/CHANGELOGS.rst"
 
 [project.optional-dependencies]
 dev = [
@@ -51,7 +51,7 @@ dev = [
     "ml-dtypes",
     "onnx-array-api",
     "onnxmltools",
-    "onnxruntime; python_version < '3.11'",
+    "onnxruntime",
     "pandas",
     "psutil",
     "pyquickhelper>=1.12.3821",
@@ -96,7 +96,7 @@ ignore_messages = "Duplicate implicit target name: \"setup.py\""
 namespaces = false
 
 [tool.setuptools.package-data]
-"*" = ["*.cc", "*.cpp", "*.cu", "*.cuh", "*.dylib", "*.h", "*.hpp", "*.pyd", "*.so*"]
+"*" = ["*.cc", "*.cpp", "*.cu", "*.cuh", "*.dll", "*.dylib", "*.h", "*.hpp", "*.pyd", "*.so*"]
 
 [tool.cibuildwheel]
 build = "*"
@@ -105,7 +105,7 @@ manylinux-x86_64-image = "manylinux2014"
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp311-* pypy* *musllinux*"
+skip = "cp36-* cp37-* cp38-* cp39-* pypy* *musllinux*"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]

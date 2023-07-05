@@ -51,7 +51,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(expected, got, atol=1e-5)
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-        modes = ",".join(map(lambda s:s.decode("ascii"), att.strings))
+        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
 
         onx2 = change_onnx_operator_domain(
             onx,

@@ -25,8 +25,7 @@ def get_node_attribute(node: NodeProto, name: str) -> AttributeProto:
         if att.name == name:
             return att
     raise KeyError(
-        f"Unable to find {name!r} among "
-        f"{list(att.name for att in node.attribute)}."
+        f"Unable to find {name!r} among {list(att.name for att in node.attribute)}."
     )
 
 

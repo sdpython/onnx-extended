@@ -48,6 +48,7 @@ else:
 
 
 class TestOrtOpTutorialCuda(ExtTestCase):
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_get_ort_ext_libs(self):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
