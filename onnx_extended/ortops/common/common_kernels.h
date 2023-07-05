@@ -1,101 +1,13 @@
 #pragma once
 
-#include "helpers.h"
 #define ORT_API_MANUAL_INIT
 #include <onnxruntime_c_api.h>
 #include <onnxruntime_cxx_api.h>
 #undef ORT_API_MANUAL_INIT
 
+#include "onnx_extended_helpers.h"
+
 namespace ortops {
-
-/////////////////
-// string helpers
-/////////////////
-
-inline std::vector<std::string> SplitString(const std::string &input,
-                                            char delimiter) {
-  std::vector<std::string> parts;
-  std::string::size_type start = 0;
-  std::string::size_type end = input.find(delimiter);
-
-  while (end != std::string::npos) {
-    parts.push_back(input.substr(start, end - start));
-    start = end + 1;
-    end = input.find(delimiter, start);
-  }
-
-  parts.push_back(input.substr(start));
-  return parts;
-}
-
-inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
-
-template <typename T>
-inline void MakeStringInternal(std::ostringstream &ss, const T &t) noexcept {
-  ss << t;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int32_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint32_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int64_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint64_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int16_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint16_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<std::string> &t) noexcept {
-  for (auto it : t)
-    ss << "," << it;
-}
-
-template <typename T, typename... Args>
-inline void MakeStringInternal(std::ostringstream &ss, const T &t,
-                               const Args &...args) noexcept {
-  MakeStringInternal(ss, t);
-  MakeStringInternal(ss, args...);
-}
-
-template <typename... Args> inline std::string MakeString(const Args &...args) {
-  std::ostringstream ss;
-  MakeStringInternal(ss, args...);
-  return std::string(ss.str());
-}
 
 ////////////////////////
 // errors and exceptions
@@ -111,9 +23,9 @@ inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
       std::string message(api.GetErrorMessage(ort_status));
       api.ReleaseStatus(ort_status);
       if (code != ORT_OK) {
-        throw std::runtime_error(
-            orthelpers::MakeString("error: onnxruntime(", code, "), ", message,
-                                   "\n    ", filename, ":", line));
+        throw std::runtime_error(onnx_extended_helpers::MakeString(
+            "error: onnxruntime(", code, "), ", message, "\n    ", filename,
+            ":", line));
       }
     }
   }

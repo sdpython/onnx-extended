@@ -14,6 +14,11 @@ ort_add_custom_op(
 target_include_directories(
   ortops_optim_cpu
   PRIVATE
+  ${ROOT_INCLUDE_PATH}/onnx_extended)
+
+target_include_directories(
+  ortops_optim_cpu
+  PRIVATE
   "${ORTAPI_INCLUDE_DIR}"
   "${ORTOPS_INCLUDE_DIR}"
   "${REFOPS_INCLUDE_DIR}")

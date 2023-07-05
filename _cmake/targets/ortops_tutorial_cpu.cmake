@@ -10,9 +10,11 @@ ort_add_custom_op(
   ../onnx_extended/ortops/tutorial/cpu/my_kernel.cc
   ../onnx_extended/ortops/tutorial/cpu/my_kernel_attr.cc
   ../onnx_extended/ortops/tutorial/cpu/ort_tutorial_cpu_lib.cc)
-# needed to include helpers.h
+
+# needed to include onnx_extended_helpers.h
 target_include_directories(
   ortops_tutorial_cpu
   PRIVATE
+  "${ROOT_INCLUDE_PATH}/onnx_extended"
   "${ORTAPI_INCLUDE_DIR}"
   "${ORTOPS_INCLUDE_DIR}")

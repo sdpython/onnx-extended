@@ -1,5 +1,7 @@
 #include "c_op_conv_common.h"
 
+using namespace onnx_extended_helpers;
+
 namespace onnx_c_ops {
 
 template <typename T>

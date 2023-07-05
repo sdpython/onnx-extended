@@ -2,7 +2,7 @@
 
 #include "common_kernels.h"
 #include "cublas_v2.h"
-#include "helpers.h"
+#include "onnx_extended_helpers.h"
 #include <cuda_runtime.h>
 
 namespace ortops {

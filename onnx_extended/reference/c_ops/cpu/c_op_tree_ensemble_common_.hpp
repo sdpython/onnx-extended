@@ -16,6 +16,8 @@
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
 // http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
 
+using namespace onnx_extended_helpers;
+
 namespace onnx_c_ops {
 
 template <class Tp> struct TreeAlloc {

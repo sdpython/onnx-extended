@@ -12,10 +12,13 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/ortops/tutorial/cuda
     ../onnx_extended/ortops/tutorial/cuda/custom_gemm.cu
     ../onnx_extended/ortops/tutorial/cuda/ort_tutorial_cuda_lib.cc)
-  # needed to include helpers.h
+
+  # needed to include onnx_extended_helpers.h
   target_include_directories(
     ortops_tutorial_cuda
     PRIVATE
+    "${ROOT_INCLUDE_PATH}/onnx_extended"
     "${ORTAPI_INCLUDE_DIR}"
     "${ORTOPS_INCLUDE_DIR}")
+
 endif()

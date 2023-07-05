@@ -1,5 +1,5 @@
 #include "ortapi.h"
-#include "helpers.h"
+#include "onnx_extended_helpers.h"
 #include "ortapi_inline.h"
 #ifdef _WIN32
 #include <codecvt>

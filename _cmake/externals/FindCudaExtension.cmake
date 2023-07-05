@@ -58,11 +58,13 @@ if(CUDAToolkit_FOUND)
 
   if(CUDA_BUILD STREQUAL "H100opt")
 
-    # see https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+    # see https://arnon.dk/
+    # matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
     set(CMAKE_CUDA_ARCHITECTURES 90)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=sm_90a")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=compute_90a")
+    set(CMAKE_CUDA_FLAGS
+        "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=compute_90a")
 
   else()  # H100, DEFAULT
 

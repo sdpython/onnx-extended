@@ -68,14 +68,15 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
       api, info, "nodes_values", std::vector<float>());
   std::string post_transform =
       KernelInfoGetOptionalAttributeString(api, info, "post_transform", "NONE");
+
   std::vector<int64_t> target_class_ids = KernelInfoGetOptionalAttribute(
-      api, info, "target_class_ids", std::vector<int64_t>());
+      api, info, "target_ids", std::vector<int64_t>());
   std::vector<int64_t> target_class_nodeids = KernelInfoGetOptionalAttribute(
-      api, info, "target_class_nodeids", std::vector<int64_t>());
+      api, info, "target_nodeids", std::vector<int64_t>());
   std::vector<int64_t> target_class_treeids = KernelInfoGetOptionalAttribute(
-      api, info, "target_class_treeids", std::vector<int64_t>());
+      api, info, "target_treeids", std::vector<int64_t>());
   std::vector<float> target_class_weights = KernelInfoGetOptionalAttribute(
-      api, info, "target_class_weights", std::vector<float>());
+      api, info, "target_weights", std::vector<float>());
 
   std::vector<std::string> nodes_modes = SplitString(nodes_modes_single, ',');
   EXT_ENFORCE(n_targets_or_classes > 0);
@@ -85,6 +86,7 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
               " nodes_modes.size()==", nodes_modes.size(),
               "!=", nodes_falsenodeids.size(),
               ", nodes_modes=", nodes_modes_single, ".");
+  EXT_ENFORCE(n_targets_or_classes > 0);
 
   std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<float, float, float>> ptr(
       new onnx_c_ops::TreeEnsembleCommon<float, float, float>());
@@ -130,6 +132,8 @@ void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
   if (reg_float_float_float.get() != nullptr) {
     const float *X = input_X.GetTensorData<float>();
     float *out = output.GetTensorMutableData<float>();
+    reg_float_float_float->Compute(dimensions_in[0], dimensions_in[1], X, out,
+                                   nullptr);
   } else {
     EXT_ENFORCE("No implementation yet for input type=",
                 input_X.GetTensorTypeAndShapeInfo().GetElementType(),

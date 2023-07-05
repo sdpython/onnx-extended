@@ -40,6 +40,7 @@ known_extensions = [
     "*.dll",
 ]
 package_data = {
+    "onnx_extended": known_extensions,
     "onnx_extended.ortops.optim.cpu": known_extensions,
     "onnx_extended.ortops.tutorial.cpu": known_extensions,
     "onnx_extended.ortops.tutorial.cuda": known_extensions,
