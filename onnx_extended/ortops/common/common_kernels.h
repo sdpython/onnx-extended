@@ -8,6 +8,10 @@
 
 namespace ortops {
 
+/////////////////
+// string helpers
+/////////////////
+
 inline std::vector<std::string> SplitString(const std::string &input,
                                             char delimiter) {
   std::vector<std::string> parts;
@@ -73,6 +77,13 @@ inline void MakeStringInternal(std::ostringstream &ss,
     ss << "x" << it;
 }
 
+template <>
+inline void MakeStringInternal(std::ostringstream &ss,
+                               const std::vector<std::string> &t) noexcept {
+  for (auto it : t)
+    ss << "," << it;
+}
+
 template <typename T, typename... Args>
 inline void MakeStringInternal(std::ostringstream &ss, const T &t,
                                const Args &...args) noexcept {
@@ -85,6 +96,10 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
   MakeStringInternal(ss, args...);
   return std::string(ss.str());
 }
+
+////////////////////////
+// errors and exceptions
+////////////////////////
 
 inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
                            int line, const OrtApi &api) {
@@ -106,6 +121,10 @@ inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
 
 #define ThrowOnError(api, ort_status)                                          \
   _ThrowOnError_(ort_status, __FILE__, __LINE__, api)
+
+////////////////////
+// kernel attributes
+////////////////////
 
 inline std::string KernelInfoGetOptionalAttributeString(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
@@ -155,9 +174,8 @@ KernelInfoGetAttributeApi<float>(const OrtApi &api, const OrtKernelInfo *info,
 template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<float>>(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
-    std::vector<float> &output) {
+    std::vector<float> &out) {
   size_t size = 0;
-  std::vector<float> out;
 
   // Feed nullptr for the data buffer to query the true size of the attribute
   OrtStatus *status =
@@ -168,15 +186,15 @@ inline OrtStatus *KernelInfoGetAttributeApi<std::vector<float>>(
     status =
         api.KernelInfoGetAttributeArray_float(info, name, out.data(), &size);
   }
+
   return status;
 }
 
 template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
-    std::vector<int64_t> &output) {
+    std::vector<int64_t> &out) {
   size_t size = 0;
-  std::vector<int64_t> out;
 
   // Feed nullptr for the data buffer to query the true size of the attribute
   OrtStatus *status =

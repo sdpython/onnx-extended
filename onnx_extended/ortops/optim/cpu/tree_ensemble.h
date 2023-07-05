@@ -11,6 +11,7 @@ struct TreeEnsembleKernel {
   void Compute(OrtKernelContext *context);
 
   // Attributes
+  int64_t n_targets_or_classes;
   std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<float, float, float>>
       reg_float_float_float;
 };

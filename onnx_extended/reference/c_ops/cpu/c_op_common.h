@@ -489,6 +489,13 @@ inline void MakeStringInternal(std::ostringstream &ss,
     ss << "x" << it;
 }
 
+template <>
+inline void MakeStringInternal(std::ostringstream &ss,
+                               const std::vector<std::string> &t) noexcept {
+  for (auto it : t)
+    ss << "," << it;
+}
+
 template <typename T, typename... Args>
 inline void MakeStringInternal(std::ostringstream &ss, const T &t,
                                const Args &...args) noexcept {

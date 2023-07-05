@@ -13,6 +13,9 @@ from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
     TreeEnsembleClassifier_1,
     TreeEnsembleClassifier_3,
 )
+from onnx_extended.reference.c_custom_ops.custom_op_tree_ensemble_regressor import (
+    TreeEnsembleRegressor_1 as TreeEnsembleRegressor_1_Float,
+)
 
 
 class CReferenceEvaluator(ReferenceEvaluator):
@@ -35,6 +38,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
         TreeEnsembleClassifier_3,
         TreeEnsembleRegressor_1,
         TreeEnsembleRegressor_3,
+        TreeEnsembleRegressor_1_Float,
     ]
 
     @staticmethod

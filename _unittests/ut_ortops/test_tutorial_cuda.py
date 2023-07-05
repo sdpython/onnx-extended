@@ -16,27 +16,18 @@ try:
 except ImportError:
     onnx_simple_text_plot = str
 try:
+    from onnxruntime import InferenceSession
+except ImportError:
+    InferenceSession = None
+if InferenceSession is not None:
     from onnxruntime import (
-        InferenceSession,
         SessionOptions,
         get_available_providers,
         __version__ as ort_version,
     )
     from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
-except ImportError:
-    (
-        SessionOptions,
-        InferenceSession,
-        get_available_providers,
-        ort_version,
-        OrtFail,
-    ) = (
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
+
+
 from onnx_extended.ortops.tutorial.cuda import documentation
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended import has_cuda
@@ -45,6 +36,9 @@ if has_cuda():
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
 else:
     get_device_prop = None
+
+
+from onnx_extended.validation.cuda import cuda_version
 
 
 class TestOrtOpTutorialCuda(ExtTestCase):
@@ -347,6 +341,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
+    )
     def test_custom_gemm_float32_bias(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -363,6 +361,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
+    )
     def test_custom_gemm_float32_bias_01(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -378,6 +380,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
     @unittest.skipIf(
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
     )
     def test_custom_gemm_float32_bias_col_major(self):
         self.common_test_custom_gemm(
@@ -396,6 +402,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
     )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
+    )
     def test_custom_gemm_float32_not_square_bias(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -412,6 +422,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
     @unittest.skipIf(
         "CUDAExecutionProvider" not in get_available_providers(),
         reason="CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
     )
     def test_custom_gemm_float32_not_square_bias_col_major(self):
         self.common_test_custom_gemm(

@@ -8,6 +8,7 @@ from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
     get_node_attribute,
 )
+from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import ExtTestCase
 
 try:
@@ -45,14 +46,21 @@ class TestOrtOpOptimCpu(ExtTestCase):
         onx = to_onnx(rf, X[:1])
         feeds = {"X": X[80:]}
 
+        # check with onnxruntime
         sess = InferenceSession(
             onx.SerializeToString(), providers=["CPUExecutionProvider"]
         )
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(expected, got, atol=1e-5)
+
+        # check with CReferenceEvaluator
+        ref = CReferenceEvaluator(onx)
+        got = ref.run(None, feeds)[0]
+        self.assertEqualArray(expected, got.reshape((-1, 1)), atol=1e-5)
+
+        # transformation
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
         modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
-
         onx2 = change_onnx_operator_domain(
             onx,
             op_type="TreeEnsembleRegressor",
@@ -62,6 +70,12 @@ class TestOrtOpOptimCpu(ExtTestCase):
         )
         self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
 
+        # check with CReferenceEvaluator
+        ref = CReferenceEvaluator(onx2)
+        got = ref.run(None, feeds)[0]
+        self.assertEqualArray(expected, got.reshape((-1, 1)), atol=1e-5)
+
+        # check with onnxruntime + custom op
         r = get_ort_ext_libs()
         self.assertExists(r[0])
         opts = SessionOptions()

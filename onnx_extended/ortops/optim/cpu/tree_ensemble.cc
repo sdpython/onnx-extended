@@ -45,7 +45,7 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
       api, info, "aggregate_function", "SUM");
   std::vector<float> base_values = KernelInfoGetOptionalAttribute(
       api, info, "base_values", std::vector<float>());
-  int64_t n_targets_or_classes = KernelInfoGetOptionalAttribute(
+  n_targets_or_classes = KernelInfoGetOptionalAttribute(
       api, info, "n_targets", static_cast<int64_t>(1));
   std::vector<int64_t> nodes_falsenodeids = KernelInfoGetOptionalAttribute(
       api, info, "nodes_falsenodeids", std::vector<int64_t>());
@@ -82,9 +82,8 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
   EXT_ENFORCE(nodes_values.size() > 0);
   EXT_ENFORCE(nodes_nodeids.size() > 0);
   EXT_ENFORCE(nodes_modes.size() == nodes_falsenodeids.size(),
-              " nodes_modes.size()==",
-              nodes_modes.size(), "!=",
-              nodes_falsenodeids.size(),
+              " nodes_modes.size()==", nodes_modes.size(),
+              "!=", nodes_falsenodeids.size(),
               ", nodes_modes=", nodes_modes_single, ".");
 
   std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<float, float, float>> ptr(
@@ -124,20 +123,19 @@ void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
   Ort::ConstValue input_X = ctx.GetInput(0);
   std::vector<int64_t> dimensions_in =
       input_X.GetTensorTypeAndShapeInfo().GetShape();
-
-  /*
+  EXT_ENFORCE(dimensions_in.size() == 2, "TreeEnsemble only allows 2D inputs.");
+  std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
   Ort::UnownedValue output = ctx.GetOutput(0, dimensions_out);
 
-
-  float *out = output.GetTensorMutableData<float>();
-  const float *X = input_X.GetTensorData<float>();
-
-  // Setup output, which is assumed to have the same dimensions as the inputs.
-
-
-  const size_t size = output.GetTensorTypeAndShapeInfo().GetElementCount();
-  */
-  EXT_THROW("Not implemented Yet");
+  if (reg_float_float_float.get() != nullptr) {
+    const float *X = input_X.GetTensorData<float>();
+    float *out = output.GetTensorMutableData<float>();
+  } else {
+    EXT_ENFORCE("No implementation yet for input type=",
+                input_X.GetTensorTypeAndShapeInfo().GetElementType(),
+                " and output type=",
+                output.GetTensorTypeAndShapeInfo().GetElementType(), ".");
+  }
 }
 
 } // namespace ortops
