@@ -488,8 +488,11 @@ class cmake_build_ext(build_ext):
         cfg = "Release"
         cmake_args = self.get_cmake_args(cfg)
         build_path, build_lib = self.build_cmake(cfg, cmake_args)
+        print("-- process_setup_ext")
         self.process_setup_ext(cfg, build_path, "_setup_ext.txt")
+        print("-- process_extensions")
         self.process_extensions(cfg, build_path, build_lib)
+        print("-- done")
 
 
 def get_ext_modules():

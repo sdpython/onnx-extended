@@ -40,17 +40,21 @@ jobs:
       cython-lint .
     displayName: 'cython-lint'
   - script: |
-      python -m pip wheel . --wheel-dir dist --config-settings="--with_cuda=0" -v -v -v
+      python -m pip wheel . --config-settings="--with_cuda=0" -v
     displayName: 'build wheel'
   - script: |
-      python -m pip install . -v -v -v
+      mkdir dist
+      cp onnx-extended*.whl dist
+    displayName: 'copy wheel'
+  - script: |
+      python -m pip install . -v
     displayName: 'install wheel'
   - script: |  # It fails due to ModuleNotFoundError: No module named 'onnx_extended.reference.c_ops.cpu.c_op_conv_'
       python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
   - task: PublishPipelineArtifact@0
     inputs:
-      artifactName: 'wheel-linux-wheel-$(python.version)'
+      artifactName: 'wheel-linux-pip-$(python.version)'
       targetPath: 'dist'
 
 - job: 'TestLinux'
