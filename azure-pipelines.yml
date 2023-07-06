@@ -49,6 +49,10 @@ jobs:
       mkdir dist
       cp onnx_extended*.whl dist
     displayName: 'copy wheel'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'wheel-linux-pip-$(python.version)'
+      targetPath: 'dist'
   - script: |
       export USE_CUDA=0
       python -m pip install . -v
@@ -56,10 +60,6 @@ jobs:
   - script: |  # It fails due to ModuleNotFoundError: No module named 'onnx_extended.reference.c_ops.cpu.c_op_conv_'
       python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
-  - task: PublishPipelineArtifact@0
-    inputs:
-      artifactName: 'wheel-linux-pip-$(python.version)'
-      targetPath: 'dist'
 
 - job: 'TestLinux'
   pool:

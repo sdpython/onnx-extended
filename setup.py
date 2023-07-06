@@ -290,6 +290,8 @@ class cmake_build_ext(build_ext):
             self.use_nvtx = False
 
     def finalize_options(self):
+        build_ext.finalize_options(self)
+
         b_values = {0, 1, "1", "0", True, False}
         if self.use_nvtx not in b_values:
             raise ValueError(f"use_nvtx={self.use_nvtx!r} must be in {b_values}.")
@@ -302,8 +304,6 @@ class cmake_build_ext(build_ext):
         build = {"DEFAULT", "H100", "H100opt"}
         if self.cuda_build not in build:
             raise ValueError(f"cuda-build={self.cuda_build!r} not in {build}.")
-
-        build_ext.finalize_options(self)
 
         for opt in self.user_options:
             name = opt[0]
