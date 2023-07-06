@@ -55,9 +55,9 @@ jobs:
       targetPath: 'dist'
   - script: |
       export USE_CUDA=0
-      python -m pip install . -v
+      python -m pip install -e . -v
     displayName: 'install wheel'
-  - script: |  # It fails due to ModuleNotFoundError: No module named 'onnx_extended.reference.c_ops.cpu.c_op_conv_'
+  - script: |
       python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
 
