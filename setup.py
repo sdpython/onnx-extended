@@ -307,7 +307,10 @@ class cmake_build_ext(build_ext):
         if self.cuda_build not in build:
             raise ValueError(f"cuda-build={self.cuda_build!r} not in {build}.")
 
-        for opt in sorted(self.user_options):
+        options = {o[0]: o for o in self.user_options}
+        keys = list(sorted(options.keys()))
+        for na in keys:
+            opt = options[na]
             name = opt[0].replace("-", "_")
             print(f"-- setup: option {name}={getattr(self, name, None)}")
 
@@ -457,7 +460,7 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(f"Unable to find {look!r}.")
             if not os.path.exists(dest):
                 raise FileNotFoundError(f"Unable to find folder {dest!r}.")
-            print(f"-- setup-1:copy {look!r} to {dest!r}")
+            print(f"-- copy {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
     def _process_setup_ext_line(self, cfg, build_path, line):
@@ -489,7 +492,7 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(
                     f"Unable to find library {fullname!r} (line={line!r})."
                 )
-            print(f"-- setup-2:copy {fullname!r} to {fulldest!r}")
+            print(f"-- copy {fullname!r} to {fulldest!r}")
             shutil.copy(fullname, fulldest)
         else:
             raise RuntimeError(f"Unable to interpret line {line!r}.")
