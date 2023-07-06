@@ -217,13 +217,13 @@ class CMakeExtension(Extension):
 class cmake_build_ext(build_ext):
     user_options = [
         *build_ext.user_options,
-        ("enable-nvtx=", None, "Enables compilation with NVTX events."),
         (
-            "with-cuda=",
+            "use-cuda=",
             None,
             "If cuda is available, CUDA is "
             "used by default unless this option is set to 0",
         ),
+        ("use-nvtx=", None, "Enables compilation with NVTX events."),
         (
             "cuda-version=",
             None,
@@ -251,28 +251,63 @@ class cmake_build_ext(build_ext):
     ]
 
     def initialize_options(self):
-        self.enable_nvtx = None
-        self.with_cuda = None
+        self.use_nvtx = None
+        self.use_cuda = None
         self.cuda_version = None
         self.parallel = None
         self.ort_version = DEFAULT_ORT_VERSION
         self.cuda_build = "DEFAULT"
+
         build_ext.initialize_options(self)
 
+        # boolean
+        b_values = {0, 1, "1", "0", True, False}
+        t_values = {1, "1", True}
+        for att in ["use_nvtx", "use_cuda"]:
+            v = getattr(self, att)
+            if v is not None:
+                continue
+            v = os.environ.get(att.upper(), None)
+            if v is None:
+                continue
+            if v not in b_values:
+                raise ValueError(f"Unable to interpret value {v} for {att.upper()!r}.")
+            print(f"-- setup: use env {att.upper()}={v in t_values}")
+            setattr(self, att, v in t_values)
+        if self.ort_version is None:
+            self.ort_version = os.environ.get("ORT_VERSION", None)
+            if self.ort_version not in ("", None):
+                print(f"-- setup: use env ORT_VERSION={self.ort_version}")
+        if self.cuda_build is None:
+            self.cuda_build = os.environ.get("CUDA_BUILD", None)
+            if self.cuda_build not in ("", None):
+                print(f"-- setup: use env CUDA_BUILD={self.cuda_build}")
+        if self.cuda_version is None:
+            self.cuda_version = os.environ.get("CUDA_VERSION", None)
+            if self.cuda_version not in ("", None):
+                print(f"-- setup: use env CUDA_VERSION={self.cuda_version}")
+        if self.use_nvtx is None:
+            self.use_nvtx = False
+
     def finalize_options(self):
-        b_values = {None, 0, 1, "1", "0", True, False}
-        if self.enable_nvtx not in b_values:
-            raise ValueError(f"enable_nvtx={self.enable_nvtx!r} must be in {b_values}.")
-        if self.with_cuda not in b_values:
-            raise ValueError(f"with_cuda={self.with_cuda!r} must be in {b_values}.")
-        self.enable_nvtx = self.enable_nvtx in {1, "1", True, "True"}
-        self.with_cuda = self.with_cuda in {1, "1", True, "True", None}
+        b_values = {0, 1, "1", "0", True, False}
+        if self.use_nvtx not in b_values:
+            raise ValueError(f"use_nvtx={self.use_nvtx!r} must be in {b_values}.")
+        if self.use_cuda not in b_values:
+            raise ValueError(f"use_cuda={self.use_cuda!r} must be in {b_values}.")
+        self.use_nvtx = self.use_nvtx in {1, "1", True, "True"}
+        self.use_cuda = self.use_cuda in {1, "1", True, "True", None}
         if self.cuda_version in (None, ""):
             self.cuda_version = None
         build = {"DEFAULT", "H100", "H100opt"}
         if self.cuda_build not in build:
-            raise ValueError(f"cuda-built={self.cuda_build} not in {build}.")
+            raise ValueError(f"cuda-build={self.cuda_build!r} not in {build}.")
+
         build_ext.finalize_options(self)
+
+        for opt in self.user_options:
+            name = opt[0]
+            print(f"-- setup: option {name}={getattr(self, name, None)}")
 
     def get_cmake_args(self, cfg: str) -> List[str]:
         """
@@ -304,14 +339,12 @@ class cmake_build_ext(build_ext):
         if self.parallel is not None:
             cmake_args.append(f"-j{self.parallel}")
 
-        if os.environ.get("USE_NVTX", "0") in (1, "1") or self.enable_nvtx:
+        if self.use_nvtx:
             cmake_args.append("-DUSE_NVTX=1")
-        if os.environ.get("USE_CUDA", "1") in (0, "0") or not self.with_cuda:
-            cmake_args.append("-DUSE_CUDA=0")
-        else:
-            cmake_args.append("-DUSE_CUDA=1")
+        cmake_args.append(f"-DUSE_CUDA={1 if self.use_cuda else 0}")
+        if self.use_cuda:
             cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
-        cuda_version = self.cuda_version or os.environ.get("CUDA_VERSION", "")
+        cuda_version = self.cuda_version
         if cuda_version not in (None, ""):
             cmake_args.append(f"-DCUDA_VERSION={cuda_version}")
 
@@ -507,8 +540,8 @@ def get_ext_modules():
     has_cuda = find_cuda()
     if has_cuda:
         add_cuda = True
-        if "--with-cuda" in sys.argv:
-            pos = sys.argv.index("--with-cuda")
+        if "--use-cuda" in sys.argv:
+            pos = sys.argv.index("--use-cuda")
             if len(sys.argv) > pos + 1 and sys.argv[pos + 1] in (
                 "0",
                 0,
@@ -516,10 +549,8 @@ def get_ext_modules():
                 "False",
             ):
                 add_cuda = False
-        elif "--with-cuda=0" in sys.argv:
+        elif os.environ.get("USE_CUDA", None) in {0, "0", False}:
             add_cuda = False
-        elif "--with-cuda=1" in sys.argv or "--with-cuda=guess":
-            add_cuda = True
         if add_cuda:
             cuda_extensions.extend(
                 [

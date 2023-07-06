@@ -74,7 +74,9 @@ sphinx_gallery_conf = {
 epkg_dictionary = {
     "cmake": "https://cmake.org/",
     "CPUExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
-    "cublasLtMatmul": "https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasltmatmul#cublasltmatmul",
+    "cublasLtMatmul":
+        "https://docs.nvidia.com/cuda/cublas/index.html?"
+        "highlight=cublasltmatmul#cublasltmatmul",
     "CUDA": "https://developer.nvidia.com/",
     "cudnn": "https://developer.nvidia.com/cudnn",
     "cython": "https://cython.org/",
@@ -90,14 +92,16 @@ epkg_dictionary = {
     "onnx": "https://onnx.ai/onnx/",
     "ONNX": "https://onnx.ai/",
     "onnxruntime": "https://onnxruntime.ai/",
-    "onnxruntime-training": "https://github.com/microsoft/onnxruntime/tree/master/orttraining",
+    "onnxruntime-training":
+        "https://github.com/microsoft/onnxruntime/tree/master/orttraining",
     "onnxruntime releases": "https://github.com/microsoft/onnxruntime/releases",
     "onnx-array-api": (
         "http://www.xavierdupre.fr/app/" "onnx-array-api/helpsphinx/index.html"
     ),
     "onnxruntime C API": "https://onnxruntime.ai/docs/api/c/",
     "onnxruntime Graph Optimizations": (
-        "https://onnxruntime.ai/docs/performance/model-optimizations/graph-optimizations.html"
+        "https://onnxruntime.ai/docs/performance/"
+        "model-optimizations/graph-optimizations.html"
     ),
     "openmp": "https://www.openmp.org/",
     "protobuf": "https://github.com/protocolbuffers/protobuf",

@@ -40,13 +40,17 @@ jobs:
       cython-lint .
     displayName: 'cython-lint'
   - script: |
-      python -m pip wheel . --config-settings="--with_cuda=0" -v
+      # --config-settings does not work yet.
+      # python -m pip wheel . --config-settings="--use_cuda=0" -v
+      export USE_CUDA=0
+      python -m pip wheel . -v
     displayName: 'build wheel'
   - script: |
       mkdir dist
       cp onnx_extended*.whl dist
     displayName: 'copy wheel'
   - script: |
+      export USE_CUDA=0
       python -m pip install . -v
     displayName: 'install wheel'
   - script: |  # It fails due to ModuleNotFoundError: No module named 'onnx_extended.reference.c_ops.cpu.c_op_conv_'

@@ -4,6 +4,14 @@
 # Defines USE_NTVX to enable profiling with NVIDIA profiler.
 # CUDA_VERSION must be defined as well.
 
+if(${CMAKE_CUDA_COMPILER} STREQUAL "/usr/bin/nvcc")
+  message(FATAL_ERROR
+          "CMAKE_CUDA_COMPILER is equal to '${CMAKE_CUDA_COMPILER}', "
+          "CUDA_VERSION=${CUDA_VERSION}, "
+          "CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}, "
+          "You should specify the cuda version by adding --cuda-version=...")
+endif()
+
 if(CUDA_VERSION)
   find_package(CUDAToolkit ${CUDA_VERSION} EXACT)
 else()
@@ -13,6 +21,10 @@ endif()
 message(STATUS "CUDAToolkit_FOUND=${CUDAToolkit_FOUND}")
 
 if(CUDAToolkit_FOUND)
+
+  message(STATUS "befor1 language CUDA_VERSION=${CUDA_VERSION}")
+  message(STATUS "befor1 language CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
+  message(STATUS "befor1 language CMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")
 
   if(CMAKE_CUDA_ARCHITECTURES STREQUAL "")
     set(CMAKE_CUDA_ARCHITECTURES "native")
@@ -28,6 +40,7 @@ if(CUDAToolkit_FOUND)
     endif()
   endif()
 
+  message(STATUS "before language CUDA_VERSION=${CUDA_VERSION}")
   message(STATUS "before language CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
   message(STATUS "before language CMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")
   enable_language(CUDA)
