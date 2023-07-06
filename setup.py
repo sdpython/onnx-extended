@@ -460,7 +460,7 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(f"Unable to find {look!r}.")
             if not os.path.exists(dest):
                 raise FileNotFoundError(f"Unable to find folder {dest!r}.")
-            print(f"-- copy {look!r} to {dest!r}")
+            print(f"-- setup: copy-2 {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
     def _process_setup_ext_line(self, cfg, build_path, line):
@@ -492,7 +492,7 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(
                     f"Unable to find library {fullname!r} (line={line!r})."
                 )
-            print(f"-- copy {fullname!r} to {fulldest!r}")
+            print(f"-- setup: copy-1 {fullname!r} to {fulldest!r}")
             shutil.copy(fullname, fulldest)
         else:
             raise RuntimeError(f"Unable to interpret line {line!r}.")
