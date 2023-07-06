@@ -295,6 +295,8 @@ class cmake_build_ext(build_ext):
         b_values = {0, 1, "1", "0", True, False}
         if self.use_nvtx not in b_values:
             raise ValueError(f"use_nvtx={self.use_nvtx!r} must be in {b_values}.")
+        if self.use_cuda is None:
+            self.use_cuda = find_cuda()
         if self.use_cuda not in b_values:
             raise ValueError(f"use_cuda={self.use_cuda!r} must be in {b_values}.")
         self.use_nvtx = self.use_nvtx in {1, "1", True, "True"}
