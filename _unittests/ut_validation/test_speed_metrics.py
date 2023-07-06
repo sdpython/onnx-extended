@@ -1,17 +1,21 @@
 import unittest
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.validation.cpu._validation import (
-    benchmark_cache,
-    benchmark_cache_tree,
-)
 
 
 class TestSpeedMetrics(ExtTestCase):
     def test_benchmark_cache(self):
+        from onnx_extended.validation.cpu._validation import (
+            benchmark_cache,
+        )
+
         res = benchmark_cache(1000, False)
         self.assertGreater(res, 0)
 
     def test_benchmark_cache_tree(self):
+        from onnx_extended.validation.cpu._validation import (
+            benchmark_cache_tree,
+        )
+
         res = benchmark_cache_tree(1000)
         self.assertIsInstance(res, list)
         self.assertEqual(len(res), 1000)
