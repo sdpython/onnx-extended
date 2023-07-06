@@ -44,7 +44,7 @@ jobs:
     displayName: 'build wheel'
   - script: |
       mkdir dist
-      cp onnx-extended*.whl dist
+      cp onnx_extended*.whl dist
     displayName: 'copy wheel'
   - script: |
       python -m pip install . -v
