@@ -29,7 +29,7 @@ onnx-extended: extensions for onnx and onnxruntime
 **onnx-extended** extends the list of supported operators in onnx
 reference implementation, or implements faster versions in C++.
 Documentation `onnx-extended
-<http://www.xavierdupre.fr/app/onnx-extended/helpsphinx/index.html>`_.
+<https://sdpython.github.io/doc/onnx-extended/>`_.
 Source are available on `github/onnx-extended
 <https://github.com/sdpython/onnx-extended>`_.
 

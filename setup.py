@@ -292,7 +292,7 @@ class cmake_build_ext(build_ext):
     def finalize_options(self):
         build_ext.finalize_options(self)
 
-        b_values = {0, 1, "1", "0", True, False}
+        b_values = {0, 1, "1", "0", True, False, "True", "False"}
         if self.use_nvtx not in b_values:
             raise ValueError(f"use_nvtx={self.use_nvtx!r} must be in {b_values}.")
         if self.use_cuda is None:
@@ -300,15 +300,15 @@ class cmake_build_ext(build_ext):
         if self.use_cuda not in b_values:
             raise ValueError(f"use_cuda={self.use_cuda!r} must be in {b_values}.")
         self.use_nvtx = self.use_nvtx in {1, "1", True, "True"}
-        self.use_cuda = self.use_cuda in {1, "1", True, "True", None}
+        self.use_cuda = self.use_cuda in {1, "1", True, "True"}
         if self.cuda_version in (None, ""):
             self.cuda_version = None
         build = {"DEFAULT", "H100", "H100opt"}
         if self.cuda_build not in build:
             raise ValueError(f"cuda-build={self.cuda_build!r} not in {build}.")
 
-        for opt in self.user_options:
-            name = opt[0]
+        for opt in sorted(self.user_options):
+            name = opt[0].replace("-", "_")
             print(f"-- setup: option {name}={getattr(self, name, None)}")
 
     def get_cmake_args(self, cfg: str) -> List[str]:
@@ -457,7 +457,7 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(f"Unable to find {look!r}.")
             if not os.path.exists(dest):
                 raise FileNotFoundError(f"Unable to find folder {dest!r}.")
-            print(f"-- copy {look!r} to {dest!r}")
+            print(f"-- setup-1:copy {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
     def _process_setup_ext_line(self, cfg, build_path, line):
@@ -489,7 +489,7 @@ class cmake_build_ext(build_ext):
                 raise FileNotFoundError(
                     f"Unable to find library {fullname!r} (line={line!r})."
                 )
-            print(f"-- copy {fullname!r} to {fulldest!r}")
+            print(f"-- setup-2:copy {fullname!r} to {fulldest!r}")
             shutil.copy(fullname, fulldest)
         else:
             raise RuntimeError(f"Unable to interpret line {line!r}.")
