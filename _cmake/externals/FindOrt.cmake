@@ -4,6 +4,8 @@
 # downloads onnxruntime as a binary
 # functions ort_add_dependency, ort_add_custom_op
 
+file(WRITE "../_setup_ext.txt" "")
+
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.15.1)
   set(ORT_VERSION_INT 1150)
@@ -107,7 +109,8 @@ function(ort_add_dependency name folder_copy)
     endif()
     if(folder_copy)
       if(NOT EXISTS ${folder_copy}/${file_i})
-        message(STATUS "ort copy-5 '${file_i}' to '${folder_copy}'")
+        message(STATUS "ort: copy-5 '${file_i}' to '${folder_copy}'")
+        # file(APPEND "../_setup_ext.txt" "copy,${file_i},${folder_copy}\n")
         add_custom_command(
           TARGET ${name} POST_BUILD
           COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
@@ -116,8 +119,6 @@ function(ort_add_dependency name folder_copy)
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
 endfunction()
-
-file(WRITE "../_setup_ext.txt" "")
 
 #
 #! ort_add_custom_op : compile a pyx file into cpp
@@ -134,7 +135,7 @@ function(ort_add_custom_op name provider folder)
     list(APPEND ARGN "${folder}/${name}.def")
   endif()
   if (provider STREQUAL "CUDA")
-    message(STATUS "ort custom op ${provider}: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op ${provider}: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
 
     # add property --use_fast_math to cu files
@@ -170,7 +171,7 @@ function(ort_add_custom_op name provider folder)
       PRIVATE
       ${ONNXRUNTIME_INCLUDE_DIR})
   else()
-    message(STATUS "ort custom op CPU: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op CPU: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
     target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
     target_compile_definitions(${name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})
