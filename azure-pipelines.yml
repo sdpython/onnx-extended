@@ -39,16 +39,6 @@ jobs:
   - script: |
       cython-lint .
     displayName: 'cython-lint'
-  - script: |
-      # --config-settings does not work yet.
-      # python -m pip wheel . --config-settings="--use_cuda=0" -v
-      export USE_CUDA=0
-      python -m pip wheel . -v
-    displayName: 'build wheel'
-  - script: |
-      mkdir dist
-      cp onnx_extended*.whl dist
-    displayName: 'copy wheel'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-linux-pip-$(python.version)'
@@ -60,6 +50,16 @@ jobs:
   - script: |
       python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
+  - script: |
+      # --config-settings does not work yet.
+      # python -m pip wheel . --config-settings="--use_cuda=0" -v
+      export USE_CUDA=0
+      python -m pip wheel . -v
+    displayName: 'build wheel'
+  - script: |
+      mkdir dist
+      cp onnx_extended*.whl dist
+    displayName: 'copy wheel'
 
 - job: 'TestLinux'
   pool:

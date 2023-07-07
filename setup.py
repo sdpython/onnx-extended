@@ -66,7 +66,7 @@ try:
 except FileNotFoundError:
     long_description = ""
 
-version_str = "0.1.0"
+VERSION_STR = "0.2.0"
 with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
     line = [
         _
@@ -74,7 +74,7 @@ with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
         if _.startswith("__version__")
     ]
     if len(line) > 0:
-        version_str = line[0].split("=")[1].strip('" ')
+        VERSION_STR = line[0].split("=")[1].strip('" ')
 
 ########################################
 # C++ Helper
@@ -340,6 +340,7 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
             f"-DORT_VERSION={self.ort_version}",
+            f"-DONNX_EXTENDED_VERSION={VERSION_STR}",
         ]
         if self.parallel is not None:
             cmake_args.append(f"-j{self.parallel}")
@@ -598,7 +599,7 @@ def get_ext_modules():
 
 setup(
     name="onnx-extended",
-    version=version_str,
+    version=VERSION_STR,
     description="More operators for onnx reference implementation",
     long_description=long_description,
     author="Xavier Dupré",

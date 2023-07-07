@@ -72,7 +72,7 @@ Validation, Experiments
     ../auto_examples/plot_bench_cpu_vector_sum_parallel
     ../auto_examples/plot_bench_cpu_vector_sum_avx_parallel
     ../auto_examples/plot_bench_gpu_vector_sum_gpu
-    ../auto_examples/plot_bench_ort
+    ../auto_examples/plot_bench_cypy_ort
     ../auto_examples/plot_bench_gemm_f8
     ../auto_examples/plot_bench_gemm_ort
     ../auto_examples/plot_profile_gemm_ort
