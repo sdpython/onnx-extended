@@ -1,6 +1,9 @@
-from typing import Any, Dict, Optional, Union
+from itertools import product
+from typing import Any, Callable, Dict, List, Optional, Union
+import numpy
 from onnx import AttributeProto, ModelProto, NodeProto, GraphProto, FunctionProto
 from onnx.helper import make_model, make_node, make_graph, make_opsetid
+from ...ext_test_case import measure_time
 
 
 def has_subgraph(node: NodeProto) -> bool:
@@ -149,3 +152,103 @@ def change_onnx_operator_domain(
         domain=onx.domain,
     )
     return new_model
+
+
+def optimize_model(
+    onx: ModelProto,
+    feeds: Dict[str, numpy.array],
+    transform: Callable[ModelProto, ModelProto],
+    session: Callable[ModelProto, Any],
+    params: Dict[str, List[Any]],
+    baseline: Optional[Callable[ModelProto, Any]] = None,
+    verbose: bool = False,
+    number: int = 10,
+    repeat: int = 10,
+    warmup: int = 5,
+    n_tries: int = 2,
+) -> List[Dict[str, Union[str, float]]]:
+    """
+    Optimizes a model by trying out many possibilities.
+
+    :param onx: ModelProto
+    :param feeds: inputs as a dictionary of numpy arrays
+    :param transform: function taking a ModelProto and returning a ModelProto
+        based on the values coming from *params*
+    :param session: function which takes a modifed ModelProto
+        and return a session
+    :param baseline: function which takes a modifed ModelProto
+        and return a session, identified as the baseline
+    :param verbose: use :epkg:`tqdm` to show improvment
+    :param number: parameter to :func:`measure_time`
+    :param repeat: parameter to :func:`measure_time`
+    :param warmup: parameter to :func:`measure_time`
+    :param n_tries: number of times to measure, if the measurements returns
+        very different results, values for *number* or *repeat* should
+        be increased
+    :return: list of results returned by :func:`measure_time`
+
+    See example :ref:`l-plot-optim-tree-ensemble` for an example.
+    """
+    keys = ["TRY"] + list(params.keys())
+    sets = [list(range(n_tries))] + [params[k] for k in keys[1:]]
+    loops = list(product(*sets))
+    if verbose:
+        from tqdm import tqdm
+
+        loop = tqdm(loops)
+    else:
+        loop = loops
+
+    res = []
+    if baseline is not None:
+        sess = baseline(onx)
+        obs = measure_time(
+            lambda sess=sess: sess.run(None, feeds),
+            number=number,
+            repeat=repeat,
+            warmup=warmup,
+        )
+        obs["n_exp"] = 0
+        obs["n_exp_name"] = "TRY=0,baseline"
+        obs["short_name"] = "0,baseline"
+        obs["TRY"] = 0
+        res.append(obs)
+
+    for it, values in enumerate(loop):
+        if verbose:
+            msg = [f"i={it+1}/{len(loops)}"]
+            msg.extend([f"{k}={v}" for k, v in zip(keys, values)])
+            loop.set_description(" ".join(msg))
+
+        kwargs = dict(zip(keys, values))
+        del kwargs["TRY"]
+        onx_modified = transform(onx, **kwargs)
+        sess = session(onx_modified)
+        obs = measure_time(
+            lambda sess=sess: sess.run(None, feeds),
+            number=number,
+            repeat=repeat,
+            warmup=warmup,
+        )
+        obs.update(kwargs)
+        obs["n_exp"] = it
+        obs["n_exp_name"] = ",".join(f"{k}={v}" for k, v in zip(keys, values))
+        obs["short_name"] = ",".join(f"{v}" for v in values)
+        res.append(obs)
+
+    if baseline is not None:
+        for n in range(1, n_tries):
+            sess = baseline(onx)
+            obs = measure_time(
+                lambda sess=sess: sess.run(None, feeds),
+                number=number,
+                repeat=repeat,
+                warmup=warmup,
+            )
+            obs["n_exp"] = 0
+            obs["n_exp_name"] = f"TRY={n},baseline"
+            obs["short_name"] = f"{n},baseline"
+            obs["TRY"] = n
+            res.append(obs)
+
+    return res
