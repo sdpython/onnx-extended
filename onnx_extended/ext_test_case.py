@@ -5,7 +5,7 @@ import warnings
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from timeit import Timer
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy
 from numpy.testing import assert_allclose
@@ -42,20 +42,23 @@ def ignore_warnings(warns: List[Warning]) -> Callable:
 
 
 def measure_time(
-    stmt: Callable,
+    stmt: Union[str, Callable],
     context: Optional[Dict[str, Any]] = None,
     repeat: int = 10,
     number: int = 50,
+    warmup: int = 1,
     div_by_number: bool = True,
     max_time: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Measures a statement and returns the results as a dictionary.
 
-    :param stmt: string
+    :param stmt: string or callable
     :param context: variable to know in a dictionary
     :param repeat: average over *repeat* experiment
     :param number: number of executions in one row
+    :param warmup: number of iteration to do before starting the
+        real measurement
     :param div_by_number: divide by the number of executions
     :param max_time: execute the statement until the total goes
         beyond this time (approximatively), *repeat* is ignored,
@@ -87,12 +90,15 @@ def measure_time(
     if context is None:
         context = {}
 
-    import numpy
-
     if isinstance(stmt, str):
         tim = Timer(stmt, globals=context)
     else:
         tim = Timer(stmt)
+
+    if warmup > 0:
+        warmup_time = tim.timeit(warmup)
+    else:
+        warmup_time = 0
 
     if max_time is not None:
         if not div_by_number:
@@ -156,6 +162,7 @@ def measure_time(
             mes["size"] = len(context["values"])
     else:
         mes["context_size"] = sys.getsizeof(context)
+    mes["warmup_time"] = warmup_time
     return mes
 
 

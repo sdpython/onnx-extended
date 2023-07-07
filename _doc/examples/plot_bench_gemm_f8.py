@@ -1,6 +1,4 @@
 """
-.. _l-example-bench-gemm-f8:
-
 Measuring Gemm performance with different input and output types
 ================================================================
 

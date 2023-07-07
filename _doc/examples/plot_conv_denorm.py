@@ -1,6 +1,4 @@
 """
-.. _l-example-conv-denorm:
-
 How float format has an impact on speed computation
 ===================================================
 
