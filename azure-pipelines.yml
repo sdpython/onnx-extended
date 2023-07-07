@@ -42,7 +42,7 @@ jobs:
   - script: |
       export USE_CUDA=0
       python -m pip install -e . -v
-    displayName: 'install wheel inplace'
+    displayName: 'pip install -e . -v'
   - script: |
       python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
