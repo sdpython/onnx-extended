@@ -1,6 +1,4 @@
 """
-.. _l-example-bench-gpu-vector:
-
 Measuring CPU/GPU performance with a vector sum
 ===============================================
 

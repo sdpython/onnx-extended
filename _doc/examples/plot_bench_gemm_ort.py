@@ -1,6 +1,4 @@
 """
-.. _l-example-bench-gemm-ort:
-
 Measuring performance about Gemm with onnxruntime
 =================================================
 

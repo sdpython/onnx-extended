@@ -1,6 +1,4 @@
 """
-.. _l-example-bench-gemm-ort-profile:
-
 Profiles a simple onnx graph including a singleGemm
 ===================================================
 

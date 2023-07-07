@@ -1,6 +1,4 @@
 """
-.. _l-example-bench-cpu-vector-sum:
-
 Measuring CPU performance with a vector sum
 ===========================================
 

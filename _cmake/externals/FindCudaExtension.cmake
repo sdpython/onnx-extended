@@ -4,12 +4,14 @@
 # Defines USE_NTVX to enable profiling with NVIDIA profiler.
 # CUDA_VERSION must be defined as well.
 
-if(${CMAKE_CUDA_COMPILER} STREQUAL "/usr/bin/nvcc")
-  message(FATAL_ERROR
-          "CMAKE_CUDA_COMPILER is equal to '${CMAKE_CUDA_COMPILER}', "
-          "CUDA_VERSION=${CUDA_VERSION}, "
-          "CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}, "
-          "You should specify the cuda version by adding --cuda-version=...")
+if(CMAKE_CUDA_COMPILER STREQUAL "/usr/bin/nvcc")
+  if(CUDA_VERSION STREQUAL "")
+    message(FATAL_ERROR
+            "CMAKE_CUDA_COMPILER is equal to '${CMAKE_CUDA_COMPILER}', "
+            "CUDA_VERSION=${CUDA_VERSION}, "
+            "CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}, "
+            "You should specify the cuda version by adding --cuda-version=...")
+  endif()
 endif()
 
 if(CUDA_VERSION)
