@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.24.0)
-project(onnx_extended VERSION 0.2.0)
+project(onnx_extended VERSION ${ONNX_EXTENDED_VERSION})
 
 #
 # initialisation
 #
 
 message(STATUS "-------------------")
+message(STATUS "ONNX_EXTENDED_VERSION=${ONNX_EXTENDED_VERSION}")
 message(STATUS "CMAKE_VERSION=${CMAKE_VERSION}")
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
@@ -25,6 +26,7 @@ message(STATUS "USE_CUDA=${USE_CUDA}")
 message(STATUS "CUDA_BUILD=${CUDA_BUILD}")
 message(STATUS "USE_NVTX=${USE_NVTX}")
 message(STATUS "ORT_VERSION=${ORT_VERSION}")
+
 # message(STATUS "ENV-PATH=$ENV{PATH}")
 # message(STATUS "ENV-PYTHONPATH=$ENV{PYTHONPATH}")
 message(STATUS "--------------------------------------------")
@@ -44,8 +46,8 @@ list(APPEND CMAKE_MODULE_PATH
 # Packages and constants
 #
 
-include("load_externals.cmake")
 include("constants.cmake")
+include("load_externals.cmake")
 
 #
 # modules
@@ -61,8 +63,10 @@ include("targets/cuda_example_py.cmake")
 include("targets/vector_function_cy.cmake")
 
 set(ORTOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortops")
+set(REFOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/reference/c_ops")
 include("targets/ortops_tutorial_cpu.cmake")
 include("targets/ortops_tutorial_cuda.cmake")
+include("targets/ortops_optim_cpu.cmake")
 
 #
 # write version

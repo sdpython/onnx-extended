@@ -16,27 +16,19 @@ try:
 except ImportError:
     onnx_simple_text_plot = str
 try:
+    from onnxruntime import InferenceSession
+except ImportError:
+    InferenceSession = None
+    ort_version = "0.0"
+if InferenceSession is not None:
     from onnxruntime import (
-        InferenceSession,
         SessionOptions,
         get_available_providers,
         __version__ as ort_version,
     )
     from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
-except ImportError:
-    (
-        SessionOptions,
-        InferenceSession,
-        get_available_providers,
-        ort_version,
-        OrtFail,
-    ) = (
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
+
+
 from onnx_extended.ortops.tutorial.cuda import documentation
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended import has_cuda
@@ -47,7 +39,21 @@ else:
     get_device_prop = None
 
 
+from onnx_extended.validation.cuda import cuda_version
+
+
+def has_cuda_ort():
+    if not has_cuda():
+        return False
+    if InferenceSession is None:
+        return False
+    if "CUDAExecutionProvider" not in get_available_providers():
+        return False
+    return True
+
+
 class TestOrtOpTutorialCuda(ExtTestCase):
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_get_ort_ext_libs(self):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
@@ -211,10 +217,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 f"\n----\ngot=\n{got[0][:2,:2]}"
             ) from e
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_default(self):
         self.common_test_custom_gemm(
@@ -226,10 +231,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_relu(self):
         self.common_test_custom_gemm(
@@ -242,10 +246,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             activation="RELU",
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_gelu(self):
         self.common_test_custom_gemm(
@@ -258,10 +261,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             activation="GELU",
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_col_major_relu(self):
         self.common_test_custom_gemm(
@@ -275,10 +277,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_col_major_gelu(self):
         self.common_test_custom_gemm(
@@ -292,10 +293,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_not_square(self):
         self.common_test_custom_gemm(
@@ -308,10 +308,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_col_major(self):
         self.common_test_custom_gemm(
@@ -324,10 +323,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_col_major_not_square(self):
         self.common_test_custom_gemm(
@@ -341,10 +339,13 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
     )
     def test_custom_gemm_float32_bias(self):
         self.common_test_custom_gemm(
@@ -357,10 +358,13 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             beta=1.0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
     )
     def test_custom_gemm_float32_bias_01(self):
         self.common_test_custom_gemm(
@@ -373,10 +377,13 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             beta=1.0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
     )
     def test_custom_gemm_float32_bias_col_major(self):
         self.common_test_custom_gemm(
@@ -390,10 +397,13 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
     )
     def test_custom_gemm_float32_not_square_bias(self):
         self.common_test_custom_gemm(
@@ -407,10 +417,13 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    @unittest.skipIf(
+        Version(cuda_version()) < Version("12.0"),
+        reason="beta != 0 bugged in CUDA 11.8.",
     )
     def test_custom_gemm_float32_not_square_bias_col_major(self):
         self.common_test_custom_gemm(
@@ -425,10 +438,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float16_default(self):
         self.common_test_custom_gemm(
@@ -440,10 +452,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             computeType="CUBLAS_COMPUTE_32F",
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     def test_custom_gemm_float32_row_major(self):
         self.common_test_custom_gemm(
@@ -456,10 +467,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=1,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     @unittest.skipIf(
         Version(ort_version) < Version("1.16"), reason="float8 types not released"
@@ -478,10 +488,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     @unittest.skipIf(
-        "CUDAExecutionProvider" not in get_available_providers(),
-        reason="CUDA provider not available",
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
     )
     @unittest.skipIf(
         Version(ort_version) < Version("1.16"), reason="float8 types not released"

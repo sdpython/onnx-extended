@@ -3,20 +3,8 @@
 ortops
 ======
 
-get_ort_ext_libs
-================
+.. toctree::
+    :maxdepth:
 
-.. autofunction:: onnx_extended.ortops.tutorial.cpu.get_ort_ext_libs
-
-List of implemented kernels
-===========================
-
-onnx_extented.ortops.tutorial.cpu
-+++++++++++++++++++++++++++++++++
-
-.. runpython::
-    :showcode:
-    :rst:
-
-    from onnx_extended.ortops.tutorial.cpu import documentation
-    print("\n".join(documentation()))
+    ortops_tutorial
+    ortops_optim

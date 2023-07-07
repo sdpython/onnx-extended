@@ -8,7 +8,8 @@
 extern "C" {
 #endif
 
-ORT_EXPORT OrtStatus* ORT_API_CALL RegisterCustomOps(OrtSessionOptions* options, const OrtApiBase* api_base);
+ORT_EXPORT OrtStatus *ORT_API_CALL
+RegisterCustomOps(OrtSessionOptions *options, const OrtApiBase *api_base);
 
 #ifdef __cplusplus
 }

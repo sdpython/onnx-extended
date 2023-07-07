@@ -36,12 +36,12 @@ public:
     }
   }
 
-  Status Init(const std::string &aggregate_function,                  // 3
-              const std::vector<ThresholdType> &base_values,          // 4
-              int64_t n_targets_or_classes,                           // 5
-              const std::vector<int64_t> &nodes_falsenodeids,         // 6
-              const std::vector<int64_t> &nodes_featureids,           // 7
-              const std::vector<ThresholdType> &nodes_hitrates,       // 8
+  Status Init(const std::string &aggregate_function,                       // 3
+              const std::vector<ThresholdType> &base_values,               // 4
+              int64_t n_targets_or_classes,                                // 5
+              const std::vector<int64_t> &nodes_falsenodeids,              // 6
+              const std::vector<int64_t> &nodes_featureids,                // 7
+              const std::vector<ThresholdType> &nodes_hitrates,            // 8
               const std::vector<int64_t> &nodes_missing_value_tracks_true, // 9
               const std::vector<std::string> &nodes_modes,                 // 10
               const std::vector<int64_t> &nodes_nodeids,                   // 11
@@ -55,23 +55,23 @@ public:
               const std::vector<ThresholdType> &class_weights              // 19
   ) {
     TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
-        aggregate_function,                         // 3
-        base_values,                                // 4
-        n_targets_or_classes,                       // 5
-        nodes_falsenodeids,                         // 6
-        nodes_featureids,                           // 7
-        nodes_hitrates,                             // 8
-        nodes_missing_value_tracks_true,            // 9
-        nodes_modes,                                // 10
-        nodes_nodeids,                              // 11
-        nodes_treeids,                              // 12
-        nodes_truenodeids,                          // 13
-        nodes_values,                               // 14
-        post_transform,                             // 15
-        class_ids,                                  // 16
-        class_nodeids,                              // 17
-        class_treeids,                              // 18
-        class_weights                               // 19
+        aggregate_function,              // 3
+        base_values,                     // 4
+        n_targets_or_classes,            // 5
+        nodes_falsenodeids,              // 6
+        nodes_featureids,                // 7
+        nodes_hitrates,                  // 8
+        nodes_missing_value_tracks_true, // 9
+        nodes_modes,                     // 10
+        nodes_nodeids,                   // 11
+        nodes_treeids,                   // 12
+        nodes_truenodeids,               // 13
+        nodes_values,                    // 14
+        post_transform,                  // 15
+        class_ids,                       // 16
+        class_nodeids,                   // 17
+        class_treeids,                   // 18
+        class_weights                    // 19
     );
     DEBUG_PRINT("Init")
 

@@ -67,23 +67,23 @@ public:
     array2vector(ttarget_class_treeids, target_class_treeids, int64_t);
     array2vector(ttarget_class_weights, target_class_weights, NTYPE);
 
-    init_c(aggregate_function,                         // 3
-           cbasevalues,                                // 4
-           n_targets_or_classes,                       // 5
-           tnodes_falsenodeids,                        // 6
-           tnodes_featureids,                          // 7
-           tnodes_hitrates,                            // 8
-           tmissing_tracks_true,                       // 9
-           nodes_modes,                                // 10
-           tnodes_nodeids,                             // 11
-           tnodes_treeids,                             // 12
-           tnodes_truenodeids,                         // 13
-           tnodes_values,                              // 14
-           post_transform,                             // 15
-           ttarget_class_ids,                          // 16
-           ttarget_class_nodeids,                      // 17
-           ttarget_class_treeids,                      // 18
-           ttarget_class_weights                       // 19
+    init_c(aggregate_function,    // 3
+           cbasevalues,           // 4
+           n_targets_or_classes,  // 5
+           tnodes_falsenodeids,   // 6
+           tnodes_featureids,     // 7
+           tnodes_hitrates,       // 8
+           tmissing_tracks_true,  // 9
+           nodes_modes,           // 10
+           tnodes_nodeids,        // 11
+           tnodes_treeids,        // 12
+           tnodes_truenodeids,    // 13
+           tnodes_values,         // 14
+           post_transform,        // 15
+           ttarget_class_ids,     // 16
+           ttarget_class_nodeids, // 17
+           ttarget_class_treeids, // 18
+           ttarget_class_weights  // 19
     );
   }
 
@@ -105,23 +105,23 @@ public:
               const std::vector<int64_t> &target_class_treeids,            // 18
               const std::vector<NTYPE> &target_class_weights               // 19
   ) {
-    this->Init(aggregate_function,                         // 3
-               base_values,                                // 4
-               n_targets_or_classes,                       // 5
-               nodes_falsenodeids,                         // 6
-               nodes_featureids,                           // 7
-               nodes_hitrates,                             // 8
-               nodes_missing_value_tracks_true,            // 9
-               nodes_modes,                                // 10
-               nodes_nodeids,                              // 11
-               nodes_treeids,                              // 12
-               nodes_truenodeids,                          // 13
-               nodes_values,                               // 14
-               post_transform,                             // 15
-               target_class_ids,                           // 16
-               target_class_nodeids,                       // 17
-               target_class_treeids,                       // 18
-               target_class_weights                        // 19
+    this->Init(aggregate_function,              // 3
+               base_values,                     // 4
+               n_targets_or_classes,            // 5
+               nodes_falsenodeids,              // 6
+               nodes_featureids,                // 7
+               nodes_hitrates,                  // 8
+               nodes_missing_value_tracks_true, // 9
+               nodes_modes,                     // 10
+               nodes_nodeids,                   // 11
+               nodes_treeids,                   // 12
+               nodes_truenodeids,               // 13
+               nodes_values,                    // 14
+               post_transform,                  // 15
+               target_class_ids,                // 16
+               target_class_nodeids,            // 17
+               target_class_treeids,            // 18
+               target_class_weights             // 19
     );
   }
 

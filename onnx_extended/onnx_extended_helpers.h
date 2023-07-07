@@ -8,7 +8,23 @@
 #include <thread>
 #include <vector>
 
-namespace orthelpers {
+namespace onnx_extended_helpers {
+
+inline std::vector<std::string> SplitString(const std::string &input,
+                                            char delimiter) {
+  std::vector<std::string> parts;
+  std::string::size_type start = 0;
+  std::string::size_type end = input.find(delimiter);
+
+  while (end != std::string::npos) {
+    parts.push_back(input.substr(start, end - start));
+    start = end + 1;
+    end = input.find(delimiter, start);
+  }
+
+  parts.push_back(input.substr(start));
+  return parts;
+}
 
 inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
 
@@ -73,18 +89,18 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 }
 
 #if !defined(_THROW_DEFINED)
-#define EXT_THROW(...) throw std::runtime_error(orthelpers::MakeString(__VA_ARGS__));
+#define EXT_THROW(...)                                                         \
+  throw std::runtime_error(onnx_extended_helpers::MakeString(__VA_ARGS__));
 #define _THROW_DEFINED
 #endif
 
 #if !defined(_ENFORCE_DEFINED)
 #define EXT_ENFORCE(cond, ...)                                                 \
   if (!(cond))                                                                 \
-    throw std::runtime_error(                                                  \
-        orthelpers::MakeString("`", #cond, "` failed. ", orthelpers::MakeString(__VA_ARGS__)));
+    throw std::runtime_error(onnx_extended_helpers::MakeString(                \
+        "`", #cond, "` failed. ",                                              \
+        onnx_extended_helpers::MakeString(__VA_ARGS__)));
 #define _ENFORCE_DEFINED
 #endif
 
-
-
-} // namespace orthelpers
+} // namespace onnx_extended_helpers

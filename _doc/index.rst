@@ -105,15 +105,15 @@ If not, some extensions might not be available.
 ::
 
     python setup.py build_ext --inplace
-    # or
-    pip install -e . --config-settings="--enable_nvtx=1"
+    # or (not working yet)
+    pip install -e . --config-settings="--use_nvtx=1"
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_
 can be enabled with the following command:
 
 ::
 
-    python setup.py build_ext --inplace --enable_nvtx 1
+    python setup.py build_ext --inplace --use_nvtx 1
 
 Experimental cython binding for onnxruntime
 +++++++++++++++++++++++++++++++++++++++++++

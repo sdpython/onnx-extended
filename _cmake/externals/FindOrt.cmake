@@ -4,6 +4,8 @@
 # downloads onnxruntime as a binary
 # functions ort_add_dependency, ort_add_custom_op
 
+file(WRITE "../_setup_ext.txt" "")
+
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.15.1)
   set(ORT_VERSION_INT 1150)
@@ -58,14 +60,6 @@ else()
   set(ORT_URL ${ORT_VERSION})
 endif()
 
-if(MSVC)
-  set(DLLEXT "dll")
-elseif(APPLE)
-  set(DLLEXT "dylib")
-else()
-  set(DLLEXT "so")
-endif()
-
 find_library(ONNXRUNTIME onnxruntime HINTS "${ONNXRUNTIME_LIB_DIR}")
 if(ONNXRUNTIME-NOTFOUND)
   message(FATAL_ERROR "onnxruntime cannot be found at '${ONNXRUNTIME_LIB_DIR}'")
@@ -96,26 +90,27 @@ endif()
 #
 function(ort_add_dependency name folder_copy)
   get_target_property(target_output_directory ${name} BINARY_DIR)
-  message(STATUS "ort copy ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}'")
+  message(STATUS "ort: copy-1 ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}'")
   if(MSVC)
     set(destination_dir ${target_output_directory}/${CMAKE_BUILD_TYPE})
   else()
     set(destination_dir ${target_output_directory})
   endif()
-  message(STATUS "ort copy to '${destination_dir}'")
+  message(STATUS "ort: copy-2 to '${destination_dir}'")
   if(folder_copy)
-    message(STATUS "ort copy to '${folder_copy}'")
+    message(STATUS "ort: copy-3 to '${folder_copy}'")
   endif()
   foreach(file_i ${ORT_LIB_FILES})
     if(NOT EXISTS ${destination_dir}/${file_i})
-      message(STATUS "ort copy '${file_i}' to '${destination_dir}'")
+      message(STATUS "ort: copy-4 '${file_i}' to '${destination_dir}'")
       add_custom_command(
         TARGET ${name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
     endif()
     if(folder_copy)
       if(NOT EXISTS ${folder_copy}/${file_i})
-        message(STATUS "ort copy '${file_i}' to '${folder_copy}'")
+        message(STATUS "ort: copy-5 '${file_i}' to '${folder_copy}'")
+        # file(APPEND "../_setup_ext.txt" "copy,${file_i},${folder_copy}\n")
         add_custom_command(
           TARGET ${name} POST_BUILD
           COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
@@ -124,8 +119,6 @@ function(ort_add_dependency name folder_copy)
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
 endfunction()
-
-file(WRITE "../_setup_ext.txt" "")
 
 #
 #! ort_add_custom_op : compile a pyx file into cpp
@@ -136,8 +129,13 @@ file(WRITE "../_setup_ext.txt" "")
 # \argn: C++ file to compile
 #
 function(ort_add_custom_op name provider folder)
+  if (WIN32)
+    file(WRITE "${folder}/${name}.def" "LIBRARY "
+               "\"${name}.dll\"\nEXPORTS\n  RegisterCustomOps @1")
+    list(APPEND ARGN "${folder}/${name}.def")
+  endif()
   if (provider STREQUAL "CUDA")
-    message(STATUS "ort custom op ${provider}: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op ${provider}: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
 
     # add property --use_fast_math to cu files
@@ -173,7 +171,7 @@ function(ort_add_custom_op name provider folder)
       PRIVATE
       ${ONNXRUNTIME_INCLUDE_DIR})
   else()
-    message(STATUS "ort custom op CPU: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op CPU: '${name}': ${ARGN}")
     add_library(${name} SHARED ${ARGN})
     target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
     target_compile_definitions(${name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})

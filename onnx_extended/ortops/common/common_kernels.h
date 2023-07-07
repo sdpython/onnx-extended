@@ -1,75 +1,17 @@
 #pragma once
 
-#include "helpers.h"
 #define ORT_API_MANUAL_INIT
 #include <onnxruntime_c_api.h>
 #include <onnxruntime_cxx_api.h>
 #undef ORT_API_MANUAL_INIT
 
+#include "onnx_extended_helpers.h"
+
 namespace ortops {
 
-inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
-
-template <typename T>
-inline void MakeStringInternal(std::ostringstream &ss, const T &t) noexcept {
-  ss << t;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int32_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint32_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int64_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint64_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int16_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint16_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
-
-template <typename T, typename... Args>
-inline void MakeStringInternal(std::ostringstream &ss, const T &t,
-                               const Args &...args) noexcept {
-  MakeStringInternal(ss, t);
-  MakeStringInternal(ss, args...);
-}
-
-template <typename... Args> inline std::string MakeString(const Args &...args) {
-  std::ostringstream ss;
-  MakeStringInternal(ss, args...);
-  return std::string(ss.str());
-}
-
+////////////////////////
+// errors and exceptions
+////////////////////////
 
 inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
                            int line, const OrtApi &api) {
@@ -81,9 +23,9 @@ inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
       std::string message(api.GetErrorMessage(ort_status));
       api.ReleaseStatus(ort_status);
       if (code != ORT_OK) {
-        throw std::runtime_error(
-            orthelpers::MakeString("error: onnxruntime(", code, "), ", message,
-                                   "\n    ", filename, ":", line));
+        throw std::runtime_error(onnx_extended_helpers::MakeString(
+            "error: onnxruntime(", code, "), ", message, "\n    ", filename,
+            ":", line));
       }
     }
   }
@@ -91,6 +33,10 @@ inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
 
 #define ThrowOnError(api, ort_status)                                          \
   _ThrowOnError_(ort_status, __FILE__, __LINE__, api)
+
+////////////////////
+// kernel attributes
+////////////////////
 
 inline std::string KernelInfoGetOptionalAttributeString(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
@@ -137,6 +83,51 @@ KernelInfoGetAttributeApi<float>(const OrtApi &api, const OrtKernelInfo *info,
   return api.KernelInfoGetAttribute_float(info, name, &out);
 }
 
+template <>
+inline OrtStatus *KernelInfoGetAttributeApi<std::vector<float>>(
+    const OrtApi &api, const OrtKernelInfo *info, const char *name,
+    std::vector<float> &out) {
+  size_t size = 0;
+
+  // Feed nullptr for the data buffer to query the true size of the attribute
+  OrtStatus *status =
+      api.KernelInfoGetAttributeArray_float(info, name, nullptr, &size);
+
+  if (status == nullptr) {
+    out.resize(size);
+    status =
+        api.KernelInfoGetAttributeArray_float(info, name, out.data(), &size);
+  }
+
+  return status;
+}
+
+template <>
+inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
+    const OrtApi &api, const OrtKernelInfo *info, const char *name,
+    std::vector<int64_t> &out) {
+  size_t size = 0;
+
+  // Feed nullptr for the data buffer to query the true size of the attribute
+  OrtStatus *status =
+      api.KernelInfoGetAttributeArray_int64(info, name, nullptr, &size);
+
+  if (status == nullptr) {
+    out.resize(size);
+    ThrowOnError(api, api.KernelInfoGetAttributeArray_int64(info, name,
+                                                            out.data(), &size));
+  }
+  return status;
+}
+
+template <>
+inline OrtStatus *KernelInfoGetAttributeApi<std::vector<std::string>>(
+    const OrtApi &api, const OrtKernelInfo *info, const char *name,
+    std::vector<std::string> &output) {
+  EXT_THROW("Unable to retrieve attribute as an array of strings. "
+            "You should use a single comma separated string.");
+}
+
 template <typename T>
 inline T KernelInfoGetOptionalAttribute(const OrtApi &api,
                                         const OrtKernelInfo *info,
@@ -144,9 +135,8 @@ inline T KernelInfoGetOptionalAttribute(const OrtApi &api,
   T out;
   OrtStatus *status = KernelInfoGetAttributeApi<T>(api, info, name, out);
 
-  if (status == nullptr) {
+  if (status == nullptr)
     return out;
-  }
   OrtErrorCode code = api.GetErrorCode(status);
   if (code == ORT_FAIL) {
     api.ReleaseStatus(status);

@@ -37,7 +37,7 @@ with two instructions:
 By default, *cmake* builds with CUDA if it is available. It can be disabled:
 
 * ``python setup.py build_ext --inplace --with-cuda=0``, the legacy way
-* ``pip install -e . --config-settings="--with-cuda=0"``, the new way
+* ``pip install -e . --config-settings="--with-cuda=0"``, the new way (not fully working yet)
 
 In case there are multiple versions of CUDA installed, option `cuda-version`
 can be specified:
@@ -72,7 +72,7 @@ Validation, Experiments
     ../auto_examples/plot_bench_cpu_vector_sum_parallel
     ../auto_examples/plot_bench_cpu_vector_sum_avx_parallel
     ../auto_examples/plot_bench_gpu_vector_sum_gpu
-    ../auto_examples/plot_bench_ort
+    ../auto_examples/plot_bench_cypy_ort
     ../auto_examples/plot_bench_gemm_f8
     ../auto_examples/plot_bench_gemm_ort
     ../auto_examples/plot_profile_gemm_ort

@@ -72,7 +72,7 @@ benchmark_cache_tree(int64_t n_rows, int64_t n_features, int64_t n_trees,
       if (seed > 10037)
         seed = n_features * 7 + 1;
 
-      #pragma omp parallel for
+#pragma omp parallel for
       for (int64_t t = 0; t < n_trees; ++t) {
         int64_t end = batch + step < n_rows ? batch + step : n_rows;
         for (int64_t i = batch; i < end; ++i) {

@@ -4,6 +4,12 @@
 #include "c_op_tree_ensemble_py_.hpp"
 #include "c_op_tree_ensemble_py_classifier_.hpp"
 
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+namespace py = pybind11;
+
 //////////////////////////////////////////
 // Classifier
 //////////////////////////////////////////

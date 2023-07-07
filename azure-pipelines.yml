@@ -4,8 +4,8 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python310-Linux:
-        python.version: '3.10'
+      Python311-Linux:
+        python.version: '3.11'
     maxParallel: 3
 
   steps:
@@ -30,8 +30,8 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      cmake-lint _cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
-      cmake-lint _cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/Find* --disabled-codes C0103 C0113 --line-width=88
+      cmake-lint _cmake/CMake* --disabled-codes C0103 C0113 --line-width=88
     displayName: 'cmake-lint'
   - script: |
       rstcheck -r ./_doc ./onnx_extended
@@ -40,17 +40,25 @@ jobs:
       cython-lint .
     displayName: 'cython-lint'
   - script: |
-      python -m pip wheel . --wheel-dir dist --config-settings="--with_cuda=0" -v -v -v
+      export USE_CUDA=0
+      python -m pip install -e . -v
+    displayName: 'pip install -e . -v'
+  - script: |
+      python -m pytest _unittests --durations=10
+    displayName: 'Runs Unit Tests'
+  - script: |
+      # --config-settings does not work yet.
+      # python -m pip wheel . --config-settings="--use_cuda=0" -v
+      export USE_CUDA=0
+      python -m pip wheel . -v
     displayName: 'build wheel'
   - script: |
-      python -m pip install . -v -v -v
-    displayName: 'install wheel'
-#   - script: |  # It fails due to ModuleNotFoundError: No module named 'onnx_extended.reference.c_ops.cpu.c_op_conv_'
-#       python -m pytest . --durations=10
-#     displayName: 'Runs Unit Tests'
+      mkdir dist
+      cp onnx_extended*.whl dist
+    displayName: 'copy wheel'
   - task: PublishPipelineArtifact@0
     inputs:
-      artifactName: 'wheel-linux-wheel-$(python.version)'
+      artifactName: 'wheel-linux-pip-$(python.version)'
       targetPath: 'dist'
 
 - job: 'TestLinux'
@@ -58,8 +66,8 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python310-Linux:
-        python.version: '3.10'
+      Python311-Linux:
+        python.version: '3.11'
     maxParallel: 3
 
   steps:
@@ -88,8 +96,8 @@ jobs:
       black --diff .
     displayName: 'Black'
   - script: |
-      cmake-lint _cmake/Find*  --disabled-codes C0103 C0113 --linelength=88
-      cmake-lint _cmake/CMake*  --disabled-codes C0103 C0113 --linelength=88
+      cmake-lint _cmake/Find* --disabled-codes C0103 C0113 --line-width=88
+      cmake-lint _cmake/CMake* --disabled-codes C0103 C0113 --line-width=88
     displayName: 'cmake-lint'
   - script: |
       cython-lint .
@@ -109,9 +117,7 @@ jobs:
     displayName: 'Run C++ Unit Tests'
 
   - script: |
-      cd _unittests
-      python -m pytest . --durations=10
-      cd ..
+      python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel
@@ -160,9 +166,7 @@ jobs:
         ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
-      cd _unittests
-      python -m pytest . --durations=10
-      cd ..
+      python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
         python -u setup.py bdist_wheel
@@ -210,6 +214,7 @@ jobs:
       pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: |
+      gcc --version
       python -c "import sys;print('PYTHON', sys.executable)"
       python -c "import sys;print('PYTHON', sys.version_info)"
       python -c "import numpy;print('numpy', numpy.__version__)"
@@ -223,9 +228,7 @@ jobs:
     displayName: 'build wheel'
   - script: |
       source activate myEnvironment
-      cd _unittests
-      python -m pytest . --durations=10
-      cd ..
+      python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py bdist_wheel

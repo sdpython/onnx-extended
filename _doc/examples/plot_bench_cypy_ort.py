@@ -1,6 +1,4 @@
 """
-.. _l-example-bench-ort:
-
 Measuring onnxruntime performance
 =================================
 

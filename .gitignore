@@ -9,6 +9,7 @@
 *.sln
 *.cmake
 *.whl
+*.def
 /*.png
 /*.onnx
 .build_path.txt

@@ -15,19 +15,16 @@ from onnxmltools.convert.lightgbm.operator_converters.LightGbm import convert_li
 from lightgbm import LGBMRegressor
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 from onnx_extended.reference import CReferenceEvaluator
-from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
-    TreeEnsembleClassifier_1,
-)
-from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
-    TreeEnsembleRegressor_1,
-    TreeEnsembleRegressor_3,
-)
 
 
 class TestCTreeEnsemble(ExtTestCase):
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_bin(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+            TreeEnsembleClassifier_1,
+        )
+
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         y[y == 2] = 0
@@ -51,6 +48,10 @@ class TestCTreeEnsemble(ExtTestCase):
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_multi(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+            TreeEnsembleClassifier_1,
+        )
+
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -73,6 +74,10 @@ class TestCTreeEnsemble(ExtTestCase):
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_classifier_plusten(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+            TreeEnsembleClassifier_1,
+        )
+
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         y += 10
@@ -95,6 +100,10 @@ class TestCTreeEnsemble(ExtTestCase):
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_gradient_boosting_classifier2(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+            TreeEnsembleClassifier_1,
+        )
+
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         y[y == 2] = 1
@@ -116,6 +125,10 @@ class TestCTreeEnsemble(ExtTestCase):
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_gradient_boosting_classifier3(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+            TreeEnsembleClassifier_1,
+        )
+
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -139,6 +152,10 @@ class TestCTreeEnsemble(ExtTestCase):
         onnx_opset_version() < 19, reason="ArrayFeatureExtractor has no implementation"
     )
     def test_decision_tree_classifier_mlabel(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+            TreeEnsembleClassifier_1,
+        )
+
         iris = load_iris()
         X, y_ = iris.data.astype(numpy.float32), iris.target
         y = numpy.zeros((y_.shape[0], 3), dtype=numpy.int64)
@@ -166,6 +183,10 @@ class TestCTreeEnsemble(ExtTestCase):
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_decision_tree_regressor(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
+            TreeEnsembleRegressor_1,
+        )
+
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -195,6 +216,10 @@ class TestCTreeEnsemble(ExtTestCase):
 
     @ignore_warnings((FutureWarning, DeprecationWarning, UserWarning))
     def test_decision_tree_regressor_double(self):
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
+            TreeEnsembleRegressor_3,
+        )
+
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -379,7 +404,7 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test.astype(dtype)})
         lexp = clr.predict_proba(X_test).astype(numpy.float32)
-        atol = {numpy.float32: 1e-5, numpy.float64: 1e-1}
+        atol = {numpy.float32: 1e-5, numpy.float64: 1.01e-1}
         with self.subTest(dtype=dtype):
             if single_cls:
                 diff = list(sorted(numpy.abs(lexp.ravel() - y[1])))

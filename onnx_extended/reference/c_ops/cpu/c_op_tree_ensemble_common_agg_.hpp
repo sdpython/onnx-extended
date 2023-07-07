@@ -9,12 +9,6 @@
 #include <thread>
 #include <vector>
 
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
-
 #include "c_op_common.h"
 
 namespace onnx_c_ops {
@@ -278,7 +272,7 @@ public:
     write_scores(predictions, post_transform_, Z, add_second_class);
   }
 
-  const char* kind() const { return "NONE"; }
+  const char *kind() const { return "NONE"; }
 };
 
 /////////////
@@ -354,7 +348,7 @@ public:
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
 
-  const char* kind() const { return "SUM"; }
+  const char *kind() const { return "SUM"; }
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -393,7 +387,7 @@ public:
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
 
-  const char* kind() const { return "AVERAGE"; }
+  const char *kind() const { return "AVERAGE"; }
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -462,7 +456,7 @@ public:
     }
   }
 
-  const char* kind() const { return "MIN"; }
+  const char *kind() const { return "MIN"; }
 };
 
 template <typename InputType, typename ThresholdType, typename OutputType>
@@ -532,7 +526,7 @@ public:
     }
   }
 
-  const char* kind() const { return "MAX"; }
+  const char *kind() const { return "MAX"; }
 };
 
 /////////////////
@@ -710,7 +704,7 @@ public:
       predictions.resize(2);
   }
 
-  const char* kind() const { return "CLASSIFICATION"; }
+  const char *kind() const { return "CLASSIFICATION"; }
 };
 
 } // namespace onnx_c_ops

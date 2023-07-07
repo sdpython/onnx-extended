@@ -13,7 +13,7 @@
 namespace py = pybind11;
 
 namespace validation {
-    
+
 // vector_sum
 
 float vector_sum(int nc, const std::vector<float> &values, bool by_rows);

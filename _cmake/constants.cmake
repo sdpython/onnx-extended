@@ -1,4 +1,15 @@
 #
+# python extension
+#
+if(MSVC)
+  set(DLLEXT "dll")
+elseif(APPLE)
+  set(DLLEXT "dylib")
+else()
+  set(DLLEXT "so")
+endif()
+
+#
 # C++ 14 or C++ 17
 #
 if(MSVC)
@@ -37,6 +48,9 @@ else()
 endif()
 
 if(APPLE)
+  message(STATUS "APPLE: set env var for open mp: CC, CCX, LDFLAGS, CPPFLAGS")
+  set(ENV{CC} "/usr/local/opt/llvm/bin/clang")
+  set(ENV{CXX} "/usr/local/opt/llvm/bin/clang++")
   set(ENV(LDFLAGS) "-L/usr/local/opt/llvm/lib")
   set(ENV(CPPFLAGS) "-I/usr/local/opt/llvm/include")
 endif()

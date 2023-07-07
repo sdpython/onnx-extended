@@ -1,4 +1,5 @@
 import unittest
+import warnings
 import os
 import sys
 import importlib
@@ -9,6 +10,23 @@ from onnx_extended.ext_test_case import ExtTestCase
 
 VERBOSE = 0
 ROOT = os.path.realpath(os.path.abspath(os.path.join(onnx_extended_file, "..", "..")))
+
+try:
+    from onnx_extended.ortcy.wrap.ortinf import OrtSession
+except ImportError as e:
+    msg = "libonnxruntime.so.1.15.1: cannot open shared object file"
+    if msg in str(e):
+        from onnx_extended.ortcy.wrap import __file__ as loc
+
+        all_files = os.listdir(os.path.dirname(loc))
+        warnings.warn(
+            f"Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
+            f"{all_files}."
+        )
+        OrtSession = None
+        here = os.path.dirname(__file__)
+    else:
+        OrtSession = "OrtSession is not initialized"
 
 
 def import_source(module_file_path, module_name):
@@ -64,6 +82,9 @@ class TestDocumentationExamples(ExtTestCase):
         fold = os.path.normpath(os.path.join(this, "..", "..", "_doc", "examples"))
         found = os.listdir(fold)
         for name in found:
+            if OrtSession is None and name in {"plot_bench_cypy_ort.py"}:
+                # The build went wrong.
+                continue
             if name.startswith("plot_") and name.endswith(".py"):
                 short_name = os.path.split(os.path.splitext(name)[0])[-1]
 

@@ -6,12 +6,17 @@
 
 #include "c_op_common_parallel.hpp"
 #include "c_op_tree_ensemble_common_agg_.hpp"
+#include <deque>
+#include <unordered_map>
 
-// #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
+// #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":",
+// __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
 #define DEBUG_PRINT(...)
 
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
 // http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
+
+using namespace onnx_extended_helpers;
 
 namespace onnx_c_ops {
 
@@ -185,7 +190,9 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
   DEBUG_PRINT("Init")
   EXT_ENFORCE(n_targets_or_classes > 0);
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_featureids.size());
-  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_modes.size());
+  EXT_ENFORCE(nodes_falsenodeids.size() == nodes_modes.size(),
+              "nodes_falsenodeids.size()=", nodes_falsenodeids.size(),
+              " nodes_modes.size()=", nodes_modes.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_nodeids.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_treeids.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_truenodeids.size());
@@ -262,8 +269,8 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     auto p =
         idi.insert(std::pair<TreeNodeElementId, uint32_t>(node_tree_id, i));
     if (!p.second) {
-      EXT_THROW("Node ", node_tree_id.node_id, " in tree ", node_tree_id.tree_id,
-             " is already there.");
+      EXT_THROW("Node ", node_tree_id.node_id, " in tree ",
+                node_tree_id.tree_id, " is already there.");
     }
     nodes_.emplace_back(node);
     node_tree_ids.emplace_back(node_tree_id);
@@ -289,11 +296,11 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     auto found = idi.find(coor);
     if (found == idi.end()) {
       EXT_THROW("Unable to find node ", coor.tree_id, "-", coor.node_id,
-             " (truenode).");
+                " (truenode).");
     }
     if (found->second == truenode_ids.size()) {
       EXT_THROW("A node cannot point to itself: ", coor.tree_id, "-",
-             node_tree_id.node_id, " (truenode).");
+                node_tree_id.node_id, " (truenode).");
     }
     truenode_ids.emplace_back(found->second);
 
@@ -302,11 +309,11 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     found = idi.find(coor);
     if (found == idi.end()) {
       EXT_THROW("Unable to find node ", coor.tree_id, "-", coor.node_id,
-             " (falsenode).");
+                " (falsenode).");
     }
     if (found->second == falsenode_ids.size()) {
       EXT_THROW("A node cannot point to itself: ", coor.tree_id, "-",
-             node_tree_id.node_id, " (falsenode).");
+                node_tree_id.node_id, " (falsenode).");
     }
     falsenode_ids.emplace_back(found->second);
     // We could also check that truenode_ids[truenode_ids.size() - 1] !=
@@ -334,7 +341,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     auto found = idi.find(ind);
     if (found == idi.end()) {
       EXT_THROW("Unable to find node ", ind.tree_id, "-", ind.node_id,
-             " (weights).");
+                " (weights).");
     }
 
     TreeNodeElement<ThresholdType> &leaf = nodes_[found->second];
@@ -365,16 +372,16 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     if (!nodes_[i].is_not_leaf()) {
       if (nodes_[i].falsenode_inc_or_n_weights == 0) {
         EXT_THROW("Target is missing for leaf ", ind.tree_id, "-", ind.node_id,
-               ".");
+                  ".");
       }
       continue;
     }
     EXT_ENFORCE(truenode_ids[i] != i); // That would mean the left node is
-                                    // itself, leading to an infinite loop.
+                                       // itself, leading to an infinite loop.
     nodes_[i].truenode_inc_or_first_weight =
         static_cast<int32_t>(truenode_ids[i] - i);
     EXT_ENFORCE(falsenode_ids[i] != i); // That would mean the right node is
-                                     // itself, leading to an infinite loop.
+                                        // itself, leading to an infinite loop.
     nodes_[i].falsenode_inc_or_n_weights =
         static_cast<int32_t>(falsenode_ids[i] - i);
   }
@@ -445,7 +452,8 @@ int TreeEnsembleCommon<InputType, ThresholdType, OutputType>::
   while (!stack.empty()) {
     pair = stack.front();
     stack.pop_front();
-    // EXT_ENFORCE(map_node_to_node3.find(pair.first) == map_node_to_node3.end(),
+    // EXT_ENFORCE(map_node_to_node3.find(pair.first) ==
+    // map_node_to_node3.end(),
     //          "This node index ", pair.first,
     //          " was already added as a TreeNodeElement3.");
     node = pair.second;
@@ -603,7 +611,8 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
   DEBUG_PRINT("max_num_threads=", max_num_threads)
   DEBUG_PRINT("parallel_tree_N_=", parallel_tree_N_)
   DEBUG_PRINT("parallel_tree_n=", parallel_tree_n)
-  DEBUG_PRINT("n_targets_or_classes_=", n_targets_or_classes_, " N=", N, " agg.kind()=", agg.kind())
+  DEBUG_PRINT("n_targets_or_classes_=", n_targets_or_classes_, " N=", N,
+              " agg.kind()=", agg.kind())
 
   if (n_targets_or_classes_ == 1) {
     DEBUG_PRINT()
@@ -654,7 +663,8 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       // That's why the first loop split into batch so that every batch holds
       // on caches, then loop on trees and finally loop on the batch rows.
       DEBUG_PRINT()
-      std::vector<ScoreValue<ThresholdType>> scores(std::min(parallel_tree_n, N));
+      std::vector<ScoreValue<ThresholdType>> scores(
+          std::min(parallel_tree_n, N));
       size_t j;
       int64_t i, batch, batch_end;
 
@@ -806,10 +816,9 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
           }
         }
         for (i = batch; i < batch_end; ++i) {
-          agg.FinalizeScores(scores[i - batch],
-                             z_data + i * n_targets_or_classes_, -1,
-                             label_data == nullptr ? nullptr
-                                                   : (label_data + i));
+          agg.FinalizeScores(
+              scores[i - batch], z_data + i * n_targets_or_classes_, -1,
+              label_data == nullptr ? nullptr : (label_data + i));
         }
       }
       DEBUG_PRINT()
@@ -992,7 +1001,7 @@ const TreeNodeElement<ThresholdType> *
 TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave3(
     size_t root_id, const InputType *x_data) const {
   EXT_ENFORCE(same_mode_, "This optimization is only available when all node "
-                       "follow the same mode.");
+                          "follow the same mode.");
   const TreeNodeElement3<ThresholdType> *root3 = roots3_[root_id];
   const TreeNodeElement<ThresholdType> *root;
   EXT_ENFORCE(root3 != nullptr, "No optimization for tree ", root_id, ".");
@@ -1018,7 +1027,8 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave3(
     }
     break;
   default:
-    EXT_THROW("TreeNodeElement3 not yet implement with mode ", root3->mode(), ".");
+    EXT_THROW("TreeNodeElement3 not yet implement with mode ", root3->mode(),
+              ".");
   }
 }
 
@@ -1047,7 +1057,8 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
         DEBUG_PRINT("LEQ+")
         while (root->is_not_leaf()) {
           val = x_data[root->feature_id];
-          DEBUG_PRINT("val=", val, " root->value_or_unique_weight=", root->value_or_unique_weight)
+          DEBUG_PRINT("val=", val, " root->value_or_unique_weight=",
+                      root->value_or_unique_weight)
           root += val <= root->value_or_unique_weight
                       ? root->truenode_inc_or_first_weight
                       : root->falsenode_inc_or_n_weights;

@@ -4,15 +4,6 @@ from onnx import FunctionProto, ModelProto
 from onnx.defs import get_schema
 from onnx.reference import ReferenceEvaluator
 from onnx.reference.op_run import OpRun
-from onnx_extended.reference.c_ops.c_op_conv import Conv
-from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
-    TreeEnsembleRegressor_1,
-    TreeEnsembleRegressor_3,
-)
-from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
-    TreeEnsembleClassifier_1,
-    TreeEnsembleClassifier_3,
-)
 
 
 class CReferenceEvaluator(ReferenceEvaluator):
@@ -29,13 +20,28 @@ class CReferenceEvaluator(ReferenceEvaluator):
         ref = ReferenceEvaluator(..., new_ops=[Conv])
     """
 
-    default_ops = [
-        Conv,
-        TreeEnsembleClassifier_1,
-        TreeEnsembleClassifier_3,
-        TreeEnsembleRegressor_1,
-        TreeEnsembleRegressor_3,
-    ]
+    def default_ops():
+        from onnx_extended.reference.c_ops.c_op_conv import Conv
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
+            TreeEnsembleRegressor_1,
+            TreeEnsembleRegressor_3,
+        )
+        from onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier import (
+            TreeEnsembleClassifier_1,
+            TreeEnsembleClassifier_3,
+        )
+        from onnx_extended.reference.c_custom_ops.custom_op_tree_ensemble_regressor import (  # noqa: E501
+            TreeEnsembleRegressor_1 as TreeEnsembleRegressor_1_Float,
+        )
+
+        return [
+            Conv,
+            TreeEnsembleClassifier_1,
+            TreeEnsembleClassifier_3,
+            TreeEnsembleRegressor_1,
+            TreeEnsembleRegressor_3,
+            TreeEnsembleRegressor_1_Float,
+        ]
 
     @staticmethod
     def filter_ops(proto, new_ops, opsets):
@@ -84,10 +90,10 @@ class CReferenceEvaluator(ReferenceEvaluator):
         **kwargs,
     ):
         if new_ops is None:
-            new_ops = CReferenceEvaluator.default_ops
+            new_ops = CReferenceEvaluator.default_ops()
         else:
             new_ops = new_ops.copy()
-            new_ops.extend(CReferenceEvaluator.default_ops)
+            new_ops.extend(CReferenceEvaluator.default_ops())
         new_ops = CReferenceEvaluator.filter_ops(proto, new_ops, opsets)
 
         ReferenceEvaluator.__init__(

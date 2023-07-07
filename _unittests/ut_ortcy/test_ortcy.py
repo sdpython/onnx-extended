@@ -1,4 +1,5 @@
 import unittest
+import warnings
 import os
 import numpy
 from onnx import TensorProto
@@ -13,8 +14,26 @@ from onnx.numpy_helper import from_array
 from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
 
+try:
+    from onnx_extended.ortcy.wrap.ortinf import OrtSession
+except ImportError as e:
+    msg = "libonnxruntime.so.1.15.1: cannot open shared object file"
+    if msg in str(e):
+        from onnx_extended.ortcy.wrap import __file__ as loc
+
+        all_files = os.listdir(os.path.dirname(loc))
+        warnings.warn(
+            f"Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
+            f"{all_files}."
+        )
+        OrtSession = None
+        here = os.path.dirname(__file__)
+    else:
+        OrtSession = "OrtSession is not initialized"
+
 
 class TestOrtCy(ExtTestCase):
+    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
     def test_ort_get_available_providers(self):
         from onnx_extended.ortcy.wrap.ortinf import ort_get_available_providers
 
@@ -23,6 +42,7 @@ class TestOrtCy(ExtTestCase):
         self.assertGreater(len(res), 0)
         self.assertIn("CPUExecutionProvider", res)
 
+    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
     def test_session(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
 
@@ -66,6 +86,7 @@ class TestOrtCy(ExtTestCase):
         self.assertEqual(len(got), 1)
         self.assertEqualArray(got[0], x + y)
 
+    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
     def test_my_custom_ops_cy(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
@@ -95,6 +116,7 @@ class TestOrtCy(ExtTestCase):
         got = session.run_2(x, y)[0]
         self.assertEqualArray(x + y, got)
 
+    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
     def test_my_custom_ops_with_attributes(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
