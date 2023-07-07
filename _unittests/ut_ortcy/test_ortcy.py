@@ -22,8 +22,8 @@ except ImportError as e:
 
         all_files = os.listdir(os.path.dirname(loc))
         warnings.warn(
-            "Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
-            "{all_files}."
+            f"Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
+            f"{all_files}."
         )
         OrtSession = None
         here = os.path.dirname(__file__)
