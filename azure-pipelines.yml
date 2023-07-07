@@ -39,10 +39,6 @@ jobs:
   - script: |
       cython-lint .
     displayName: 'cython-lint'
-  - task: PublishPipelineArtifact@0
-    inputs:
-      artifactName: 'wheel-linux-pip-$(python.version)'
-      targetPath: 'dist'
   - script: |
       export USE_CUDA=0
       python -m pip install -e . -v
@@ -60,6 +56,10 @@ jobs:
       mkdir dist
       cp onnx_extended*.whl dist
     displayName: 'copy wheel'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'wheel-linux-pip-$(python.version)'
+      targetPath: 'dist'
 
 - job: 'TestLinux'
   pool:
