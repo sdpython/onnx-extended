@@ -15,6 +15,7 @@ is measuring.
 # ++++++++++++++++
 """
 import os
+import timeit
 import numpy
 import onnx
 import matplotlib.pyplot as plt
@@ -24,6 +25,7 @@ from sklearn.ensemble import RandomForestRegressor
 from skl2onnx import to_onnx
 from onnxruntime import InferenceSession, SessionOptions
 from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
+from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
@@ -113,6 +115,21 @@ got = sess_cus.run(None, {"X": X[-batch_size:]})[0]
 diff = numpy.abs(base - got).max()
 print(f"Discrepancies: {diff}")
 
+########################################
+# Simple verification
+# +++++++++++++++++++
+
+t1 = timeit.timeit(lambda: sess_ort.run(None, {"X": X[-batch_size:]}), number=50)
+print(f"baseline: {t1}")
+
+t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": X[-batch_size:]}), number=50)
+print(f"new time: {t2}")
+
+ref = CReferenceEvaluator(filename)
+ref.run(None, {"X": X[-batch_size:]})
+t3 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=50)
+print(f"CReferenceEvaluator: {t3}")
+
 
 #############################################
 # Time for comparison
@@ -125,9 +142,9 @@ print(f"Discrepancies: {diff}")
 # Let's try out many possibilities.
 
 optim_params = dict(
-    parallel_tree=[0, 40, 80],  # default is 80
-    parallel_tree_N=[0, 64, 128],  # default is 128
-    parallel_N=[0, 25, 50],  # default is 50
+    parallel_tree=[40, 80],  # default is 80
+    parallel_tree_N=[64, 128],  # default is 128
+    parallel_N=[25, 50],  # default is 50
     batch_size_tree=[2],  # [2, 4, 8],  # default is 2
     batch_size_rows=[2],  # [2, 4, 8],  # default is 2
     use_node3=[0],  # [0, 1],  # default is 0
