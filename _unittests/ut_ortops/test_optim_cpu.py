@@ -121,7 +121,6 @@ class TestOrtOpOptimCpu(ExtTestCase):
             )
 
         def create_session(onx):
-            options = SessionOptions()
             opts = SessionOptions()
             r = get_ort_ext_libs()
             if r is None:

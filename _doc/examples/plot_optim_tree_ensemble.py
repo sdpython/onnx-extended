@@ -95,7 +95,6 @@ print(onnx_simple_text_plot(onx_modified))
 
 sess_ort = InferenceSession(filename, providers=["CPUExecutionProvider"])
 
-options = SessionOptions()
 opts = SessionOptions()
 r = get_ort_ext_libs()
 if r is not None:
@@ -139,7 +138,6 @@ optim_params = dict(
 
 
 def create_session(onx):
-    options = SessionOptions()
     opts = SessionOptions()
     r = get_ort_ext_libs()
     if r is None:
