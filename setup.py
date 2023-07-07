@@ -218,30 +218,30 @@ class cmake_build_ext(build_ext):
     user_options = [
         *build_ext.user_options,
         (
-            "use-cuda",
+            "use-cuda=",
             None,
             "If cuda is available, CUDA is "
             "used by default unless this option is set to 0",
         ),
         ("use-nvtx=", None, "Enables compilation with NVTX events."),
         (
-            "cuda-version",
+            "cuda-version=",
             None,
             "If cuda is available, it searches the installed version "
             "unless this option is defined.",
         ),
         (
-            "parallel",
+            "parallel=",
             None,
             "Parallelization",
         ),
         (
-            "ort-version",
+            "ort-version=",
             None,
             "onnxruntime version, a path is allowed",
         ),
         (
-            "cuda-build",
+            "cuda-build=",
             None,
             "CUDA code can be compiled to be working with "
             "different architectures, this flag can optimize "
