@@ -13,6 +13,7 @@ from onnx.helper import (
 from onnx.numpy_helper import from_array
 from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
+
 try:
     from onnx_extended.ortcy.wrap.ortinf import OrtSession
 except ImportError as e:

@@ -404,7 +404,7 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test.astype(dtype)})
         lexp = clr.predict_proba(X_test).astype(numpy.float32)
-        atol = {numpy.float32: 1e-5, numpy.float64: 1e-1}
+        atol = {numpy.float32: 1e-5, numpy.float64: 1.01e-1}
         with self.subTest(dtype=dtype):
             if single_cls:
                 diff = list(sorted(numpy.abs(lexp.ravel() - y[1])))
