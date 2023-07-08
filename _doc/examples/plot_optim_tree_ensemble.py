@@ -18,8 +18,9 @@ import os
 import timeit
 import numpy
 import onnx
+from onnx.reference import ReferenceEvaluator
 import matplotlib.pyplot as plt
-from pandas import DataFrame
+from pandas import DataFrame, concat
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
 from skl2onnx import to_onnx
@@ -118,17 +119,29 @@ print(f"Discrepancies: {diff}")
 ########################################
 # Simple verification
 # +++++++++++++++++++
-
+#
+# Baseline with onnxruntime.
 t1 = timeit.timeit(lambda: sess_ort.run(None, {"X": X[-batch_size:]}), number=50)
 print(f"baseline: {t1}")
 
+#################################
+# The custom implementation.
 t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": X[-batch_size:]}), number=50)
 print(f"new time: {t2}")
 
+#################################
+# The same implementation but ran from the onnx python backend.
 ref = CReferenceEvaluator(filename)
 ref.run(None, {"X": X[-batch_size:]})
 t3 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=50)
 print(f"CReferenceEvaluator: {t3}")
+
+#################################
+# The python implementation but from the onnx python backend.
+ref = ReferenceEvaluator(filename)
+ref.run(None, {"X": X[-batch_size:]})
+t4 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=5)
+print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
 
 
 #############################################
@@ -140,13 +153,14 @@ print(f"CReferenceEvaluator: {t3}")
 # `tree_ensemble.cc <https://github.com/sdpython/onnx-extended/
 # blob/main/onnx_extended/ortops/optim/cpu/tree_ensemble.cc#L102>`_.
 # Let's try out many possibilities.
+# The default values are the first ones.
 
 optim_params = dict(
-    parallel_tree=[40, 80],  # default is 80
-    parallel_tree_N=[64, 128],  # default is 128
-    parallel_N=[25, 50],  # default is 50
-    batch_size_tree=[2],  # [2, 4, 8],  # default is 2
-    batch_size_rows=[2],  # [2, 4, 8],  # default is 2
+    parallel_tree=[80, 40],  # default is 80
+    parallel_tree_N=[128, 64],  # default is 128
+    parallel_N=[50, 25],  # default is 50
+    batch_size_tree=[2],  # [2, 1, 4, 8],  # default is 2
+    batch_size_rows=[2],  # [2, 1, 4, 8],  # default is 2
     use_node3=[0],  # [0, 1],  # default is 0
 )
 
@@ -219,13 +233,16 @@ print(small_df.tail(n=10))
 # ++++
 
 dfi = df[["short_name", "average"]].sort_values("average").reset_index(drop=True)
-if dfi.shape[0] > 50:
-    dfi = dfi[:50]
-dfi = dfi.set_index("short_name")
+baseline = dfi[dfi.short_name.str.contains("baseline")]
+not_baseline = dfi[~dfi.short_name.str.contains("baseline")].reset_index(drop=True)
+if not_baseline.shape[0] > 50:
+    not_baseline = not_baseline[:50]
+merged = concat([baseline, not_baseline], axis=0)
+merged = merged.sort_values("average").reset_index(drop=True).set_index("short_name")
 skeys = ",".join(optim_params.keys())
 
-fig, ax = plt.subplots(1, 1, figsize=(10, dfi.shape[0] / 4))
-dfi.plot.barh(title=f"TreeEnsemble tuning\n{skeys}", ax=ax)
+fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 4))
+merged.plot.barh(title=f"TreeEnsemble tuning\n{skeys}", ax=ax)
 b = df.loc[0, "average"]
 ax.plot([b, b], [0, df.shape[0]], "r--")
 ax.set_xlim(
