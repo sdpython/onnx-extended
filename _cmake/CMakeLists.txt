@@ -55,7 +55,7 @@ include("load_externals.cmake")
 
 message(STATUS "--------------------------------------------")
 set(ROOT_PROJECT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
-set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cpp/include)
+set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../onnx_extended/cpp/include)
 set(ROOT_UNITTEST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../_unittests)
 message(STATUS "ROOT_PROJECT_PATH=${ROOT_PROJECT_PATH}")
 message(STATUS "ROOT_INCLUDE_PATH=${ROOT_INCLUDE_PATH}")

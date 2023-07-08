@@ -1,4 +1,4 @@
-#include "common/common_kernels_cuda.h"
+#include "cuda/common_kernels_cuda.h"
 #include "custom_gemm.h"
 #include <chrono>
 #include <cublasLt.h>
