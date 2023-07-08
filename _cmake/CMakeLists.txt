@@ -53,15 +53,33 @@ include("load_externals.cmake")
 # modules
 #
 
-set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
+set(ROOT_PROJECT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
+set(ROOT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cpp/include)
+message(STATUS "ROOT_PROJECT_PATH=${ROOT_PROJECT_PATH}")
+message(STATUS "ROOT_INCLUDE_PATH=${ROOT_INCLUDE_PATH}")
 
+#
+# standalone modules
+#
 include("targets/_validation.cmake")
-include("targets/ortinf.cmake")
-include("targets/c_op_conv_.cmake")
-include("targets/c_op_tree_ensemble_py_.cmake")
 include("targets/cuda_example_py.cmake")
 include("targets/vector_function_cy.cmake")
 
+#
+# common libraries for kernel implementations
+#
+include("targets/common_kernels.cmake")
+
+#
+# new kernels for the onnx python runtime
+#
+include("targets/ortinf.cmake")
+include("targets/c_op_conv_.cmake")
+include("targets/c_op_tree_ensemble_py_.cmake")
+
+#
+# new kernels for onnxruntime
+#
 set(ORTOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortops")
 set(REFOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/reference/c_ops")
 include("targets/ortops_tutorial_cpu.cmake")

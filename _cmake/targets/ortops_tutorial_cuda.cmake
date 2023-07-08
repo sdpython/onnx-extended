@@ -17,7 +17,7 @@ if(CUDA_AVAILABLE)
   target_include_directories(
     ortops_tutorial_cuda
     PRIVATE
-    "${ROOT_INCLUDE_PATH}/onnx_extended"
+    "${ROOT_INCLUDE_PATH}"
     "${ORTAPI_INCLUDE_DIR}"
     "${ORTOPS_INCLUDE_DIR}")
 

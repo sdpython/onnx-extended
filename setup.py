@@ -41,6 +41,13 @@ known_extensions = [
 ]
 package_data = {
     "onnx_extended": known_extensions,
+    "onnx_extended.cpp": known_extensions,
+    "onnx_extended.include": known_extensions,
+    "onnx_extended.include.common": known_extensions,
+    "onnx_extended.include.cpu": known_extensions,
+    "onnx_extended.include.cuda": known_extensions,
+    "onnx_extended.cpu": known_extensions,
+    "onnx_extended.cuda": known_extensions,
     "onnx_extended.ortops.optim.cpu": known_extensions,
     "onnx_extended.ortops.tutorial.cpu": known_extensions,
     "onnx_extended.ortops.tutorial.cuda": known_extensions,
