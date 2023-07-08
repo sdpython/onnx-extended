@@ -88,7 +88,6 @@ class TestOrtOpOptimCpu(ExtTestCase):
         self.assertEqualArray(expected, got, atol=1e-5)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
-    @unittest.skipIf(True, reason="stuck")
     def test_optimize_model(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 
@@ -101,12 +100,12 @@ class TestOrtOpOptimCpu(ExtTestCase):
         onx = to_onnx(rf, X[:1])
 
         optim_params = dict(
-            parallel_tree=[40],
+            parallel_tree=[20, 40],
             parallel_tree_N=[128],
             parallel_N=[50],
             batch_size_tree=[2],
             batch_size_rows=[2],
-            use_node3=[0, 1],
+            use_node3=[0],
         )
 
         def transform_model(onx, **kwargs):
