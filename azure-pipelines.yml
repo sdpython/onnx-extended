@@ -105,7 +105,7 @@ jobs:
   - script: |
       # python -m pip install -e .
       python setup.py build_ext --inplace
-    displayName: 'build'
+    displayName: 'build inplace'
   - script: |
       python setup.py bdist_wheel
     displayName: 'build wheel'
@@ -124,7 +124,7 @@ jobs:
     displayName: 'Build Package'
   - script: |
       ls dist/*
-      find onnx_extended -type f \( -name "dist/onnx_extended*.whl" \) | while read f; do
+      find dist -type f \( -name "onnx_extended*.whl" \) | while read f; do
           echo "pip install $f";
           python -m pip install $f;
       done
