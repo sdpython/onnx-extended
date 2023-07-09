@@ -544,8 +544,11 @@ class cmake_build_class_extension(Command):
         build_path, build_lib = self.build_cmake(cfg, cmake_args)
         print("-- process_setup_ext")
         self.process_setup_ext(cfg, build_path, "_setup_ext.txt")
-        print("-- process_extensions")
-        self.process_extensions(cfg, build_path, build_lib)
+        if hasattr(self, "extensions"):
+            print("-- process_extensions")
+            self.process_extensions(cfg, build_path, build_lib)
+        else:
+            print("-- skip process_extensions")
         print("-- done")
 
 
@@ -566,7 +569,6 @@ class cmake_build_py(cmake_build_class_extension, build_py):
     user_options = build_py.user_options + cmake_build_class_extension.user_options
 
     def run(self):
-        cmake_build_class_extension.run_cmake(self)
         return build_py.run(self)
 
 
@@ -575,7 +577,6 @@ class cmake_develop(cmake_build_class_extension, develop):
     user_options = develop.user_options + cmake_build_class_extension.user_options
 
     def run(self):
-        cmake_build_class_extension.run_cmake(self)
         return develop.run(self)
 
 
@@ -584,7 +585,6 @@ class cmake_install(cmake_build_class_extension, install):
     user_options = install.user_options + cmake_build_class_extension.user_options
 
     def run(self):
-        cmake_build_class_extension.run_cmake(self)
         return install.run(self)
 
 
@@ -593,7 +593,6 @@ class cmake_bdist_wheel(cmake_build_class_extension, bdist_wheel):
     user_options = bdist_wheel.user_options + cmake_build_class_extension.user_options
 
     def run(self):
-        # scmake_build_class_extension.run_cmake(self)
         return bdist_wheel.run(self)
 
 
@@ -668,36 +667,39 @@ DEFAULT_ORT_VERSION = "1.15.1"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."
-known_extensions = [
-    "*.cc",
-    "*.cpp",
-    "*.cu",
-    "*.cuh",
-    "*.dylib",
-    "*.h",
-    "*.hpp",
-    "*.pyd",
-    "*.so*",
-    "*.dll",
-]
-package_data = {
-    "onnx_extended": known_extensions,
-    "onnx_extended.cpp": known_extensions,
-    "onnx_extended.include": known_extensions,
-    "onnx_extended.include.common": known_extensions,
-    "onnx_extended.include.cpu": known_extensions,
-    "onnx_extended.include.cuda": known_extensions,
-    "onnx_extended.cpu": known_extensions,
-    "onnx_extended.cuda": known_extensions,
-    "onnx_extended.ortops.optim.cpu": known_extensions,
-    "onnx_extended.ortops.tutorial.cpu": known_extensions,
-    "onnx_extended.ortops.tutorial.cuda": known_extensions,
-    "onnx_extended.ortcy.wrap": known_extensions,
-    "onnx_extended.reference.c_ops.cpu": known_extensions,
-    "onnx_extended.validation.cpu": known_extensions,
-    "onnx_extended.validation.cython": known_extensions,
-    "onnx_extended.validation.cuda": known_extensions,
-}
+
+
+def get_package_data():
+    known_extensions = [
+        "*.cc",
+        "*.cpp",
+        "*.cu",
+        "*.cuh",
+        "*.dylib",
+        "*.h",
+        "*.hpp",
+        "*.pyd",
+        "*.so*",
+        "*.dll",
+    ]
+    return {
+        "onnx_extended": known_extensions,
+        "onnx_extended.cpp": known_extensions,
+        "onnx_extended.include": known_extensions,
+        "onnx_extended.include.common": known_extensions,
+        "onnx_extended.include.cpu": known_extensions,
+        "onnx_extended.include.cuda": known_extensions,
+        "onnx_extended.cpu": known_extensions,
+        "onnx_extended.cuda": known_extensions,
+        "onnx_extended.ortops.optim.cpu": known_extensions,
+        "onnx_extended.ortops.tutorial.cpu": known_extensions,
+        "onnx_extended.ortops.tutorial.cuda": known_extensions,
+        "onnx_extended.ortcy.wrap": known_extensions,
+        "onnx_extended.reference.c_ops.cpu": known_extensions,
+        "onnx_extended.validation.cpu": known_extensions,
+        "onnx_extended.validation.cython": known_extensions,
+        "onnx_extended.validation.cuda": known_extensions,
+    }
 
 
 setup(
@@ -708,7 +710,7 @@ setup(
     author="Xavier Dupré",
     author_email="xavier.dupre@gmail.com",
     url="https://github.com/sdpython/onnx-extended",
-    package_data=package_data,
+    package_data=get_package_data(),
     setup_requires=["numpy", "scipy", "onnx"],
     install_requires=get_requirements(here),
     classifiers=[
