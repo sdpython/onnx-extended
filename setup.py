@@ -16,72 +16,57 @@ except ImportError as e:
         f"Numpy is not installed, python _executable=f{sys.executable}."
     ) from e
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension, Command
 from setuptools.command.build_ext import build_ext
-
-######################
-# beginning of setup
-######################
-
-DEFAULT_ORT_VERSION = "1.15.1"
-here = os.path.dirname(__file__)
-if here == "":
-    here = "."
-known_extensions = [
-    "*.cc",
-    "*.cpp",
-    "*.cu",
-    "*.cuh",
-    "*.dylib",
-    "*.h",
-    "*.hpp",
-    "*.pyd",
-    "*.so*",
-    "*.dll",
-]
-package_data = {
-    "onnx_extended": known_extensions,
-    "onnx_extended.cpp": known_extensions,
-    "onnx_extended.include": known_extensions,
-    "onnx_extended.include.common": known_extensions,
-    "onnx_extended.include.cpu": known_extensions,
-    "onnx_extended.include.cuda": known_extensions,
-    "onnx_extended.cpu": known_extensions,
-    "onnx_extended.cuda": known_extensions,
-    "onnx_extended.ortops.optim.cpu": known_extensions,
-    "onnx_extended.ortops.tutorial.cpu": known_extensions,
-    "onnx_extended.ortops.tutorial.cuda": known_extensions,
-    "onnx_extended.ortcy.wrap": known_extensions,
-    "onnx_extended.reference.c_ops.cpu": known_extensions,
-    "onnx_extended.validation.cpu": known_extensions,
-    "onnx_extended.validation.cython": known_extensions,
-    "onnx_extended.validation.cuda": known_extensions,
-}
+from setuptools.command.build_py import build_py
+from setuptools.command.develop import develop
+from setuptools.command.install import install
+from wheel.bdist_wheel import bdist_wheel
 
 
-try:
-    with open(os.path.join(here, "requirements.txt"), "r") as f:
-        requirements = f.read().strip(" \n\r\t").split("\n")
-except FileNotFoundError:
-    requirements = []
-if len(requirements) == 0 or requirements == [""]:
-    requirements = ["numpy", "scipy", "onnx"]
+def get_requirements(here):
+    "Returns the requirements from requirements.txt."
+    try:
+        with open(os.path.join(here, "requirements.txt"), "r") as f:
+            requirements = f.read().strip(" \n\r\t").split("\n")
+    except FileNotFoundError:
+        requirements = []
+    if len(requirements) == 0 or requirements == [""]:
+        requirements = ["numpy", "scipy", "onnx"]
+    return requirements
 
-try:
-    with open(os.path.join(here, "README.rst"), "r", encoding="utf-8") as f:
-        long_description = "onnx-extended:" + f.read().split("onnx-extended:")[1]
-except FileNotFoundError:
-    long_description = ""
 
-VERSION_STR = "0.2.0"
-with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
-    line = [
-        _
-        for _ in [_.strip("\r\n ") for _ in f.readlines()]
-        if _.startswith("__version__")
-    ]
-    if len(line) > 0:
-        VERSION_STR = line[0].split("=")[1].strip('" ')
+def get_long_description(here):
+    "Returns the long description from README.rst."
+    try:
+        with open(os.path.join(here, "README.rst"), "r", encoding="utf-8") as f:
+            long_description = "onnx-extended:" + f.read().split("onnx-extended:")[1]
+    except FileNotFoundError:
+        long_description = ""
+    return long_description
+
+
+def get_description():
+    return (
+        "More operators for onnx reference implementation and "
+        "custom kernel implementation for onnxruntime."
+    )
+
+
+def get_version_str(here, default_version):
+    VERSION_STR = default_version
+    with open(os.path.join(here, "onnx_extended/__init__.py"), "r") as f:
+        line = [
+            _
+            for _ in [_.strip("\r\n ") for _ in f.readlines()]
+            if _.startswith("__version__")
+        ]
+        if len(line) > 0:
+            VERSION_STR = line[0].split("=")[1].strip('" ')
+    if VERSION_STR is None:
+        raise ValueError(f"Unable to guess the package version with here={here!r}.")
+    return VERSION_STR
+
 
 ########################################
 # C++ Helper
@@ -221,7 +206,7 @@ class CMakeExtension(Extension):
         self.library_file = os.fspath(Path(library).resolve())
 
 
-class cmake_build_ext(build_ext):
+class cmake_build_class_extension(Command):
     user_options = [
         *build_ext.user_options,
         (
@@ -273,7 +258,7 @@ class cmake_build_ext(build_ext):
         self.cuda_build = "DEFAULT"
         self.cuda_link = "STATIC"
 
-        build_ext.initialize_options(self)
+        self._parent.initialize_options(self)
 
         # boolean
         b_values = {0, 1, "1", "0", True, False}
@@ -305,7 +290,7 @@ class cmake_build_ext(build_ext):
             self.use_nvtx = False
 
     def finalize_options(self):
-        build_ext.finalize_options(self)
+        self._parent.finalize_options(self)
 
         b_values = {0, 1, "1", "0", True, False, "True", "False"}
         if self.use_nvtx not in b_values:
@@ -351,6 +336,11 @@ class cmake_build_ext(build_ext):
         )
         versmm = f"{sys.version_info.major}.{sys.version_info.minor}"
         module_ext = distutils.sysconfig.get_config_var("EXT_SUFFIX")
+
+        here = os.path.dirname(__file__)
+        if here == "":
+            here = "."
+
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
@@ -358,7 +348,7 @@ class cmake_build_ext(build_ext):
             f"-DPYTHON_VERSION_MM={versmm}",
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
             f"-DORT_VERSION={self.ort_version}",
-            f"-DONNX_EXTENDED_VERSION={VERSION_STR}",
+            f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
         ]
         if self.parallel is not None:
             cmake_args.append(f"-j{self.parallel}")
@@ -404,12 +394,16 @@ class cmake_build_ext(build_ext):
         :param cmake_args: cmake aguments
         :return: build_path, self.build_lib
         """
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+        build_temp = getattr(self, "build_temp", None)
+        if build_temp is None:
+            build_temp = os.path.join(this_dir, "build", "install")
+
+        if not os.path.exists(build_temp):
+            os.makedirs(build_temp)
 
         # Builds the project.
-        this_dir = os.path.dirname(os.path.abspath(__file__))
-        build_path = os.path.abspath(self.build_temp)
+        build_path = os.path.abspath(build_temp)
         with open(
             os.path.join(os.path.dirname(__file__), ".build_path.txt"),
             "w",
@@ -441,7 +435,7 @@ class cmake_build_ext(build_ext):
             cmd, cwd=build_path, capture_output=True, cuda_version=self.cuda_version
         )
         print("-- setup: done.")
-        return build_path, self.build_lib
+        return build_path, getattr(self, "build_lib", build_path)
 
     def process_extensions(self, cfg: str, build_path: str, build_lib: str):
         """
@@ -451,6 +445,8 @@ class cmake_build_ext(build_ext):
         :param build_path: where it was built
         :param build_lib: built library
         """
+        if not hasattr(self, "extensions"):
+            raise RuntimeError(f"Unable to get the list of extensions: {dir(self)}.")
         iswin = is_windows()
         for ext in self.extensions:
             full_name = ext._file_name
@@ -536,7 +532,7 @@ class cmake_build_ext(build_ext):
         for line in lines:
             self._process_setup_ext_line(cfg, build_path, line)
 
-    def build_extensions(self):
+    def run_cmake(self):
         # Ensure that CMake is present and working
         try:
             subprocess.check_output(["cmake", "--version"])
@@ -551,6 +547,54 @@ class cmake_build_ext(build_ext):
         print("-- process_extensions")
         self.process_extensions(cfg, build_path, build_lib)
         print("-- done")
+
+
+class cmake_build_ext(cmake_build_class_extension, build_ext):
+    _parent = build_ext
+    user_options = build_ext.user_options + cmake_build_class_extension.user_options
+
+    def run(self):
+        # cmake_build_class_extension.run_cmake(self)
+        return build_ext.run(self)
+
+    def build_extensions(self):
+        self.run_cmake()
+
+
+class cmake_build_py(cmake_build_class_extension, build_py):
+    _parent = build_py
+    user_options = build_py.user_options + cmake_build_class_extension.user_options
+
+    def run(self):
+        cmake_build_class_extension.run_cmake(self)
+        return build_py.run(self)
+
+
+class cmake_develop(cmake_build_class_extension, develop):
+    _parent = develop
+    user_options = develop.user_options + cmake_build_class_extension.user_options
+
+    def run(self):
+        cmake_build_class_extension.run_cmake(self)
+        return develop.run(self)
+
+
+class cmake_install(cmake_build_class_extension, install):
+    _parent = install
+    user_options = install.user_options + cmake_build_class_extension.user_options
+
+    def run(self):
+        cmake_build_class_extension.run_cmake(self)
+        return install.run(self)
+
+
+class cmake_bdist_wheel(cmake_build_class_extension, bdist_wheel):
+    _parent = bdist_wheel
+    user_options = bdist_wheel.user_options + cmake_build_class_extension.user_options
+
+    def run(self):
+        # scmake_build_class_extension.run_cmake(self)
+        return bdist_wheel.run(self)
 
 
 def get_ext_modules():
@@ -616,17 +660,57 @@ def get_ext_modules():
     return ext_modules
 
 
+######################
+# beginning of setup
+######################
+
+DEFAULT_ORT_VERSION = "1.15.1"
+here = os.path.dirname(__file__)
+if here == "":
+    here = "."
+known_extensions = [
+    "*.cc",
+    "*.cpp",
+    "*.cu",
+    "*.cuh",
+    "*.dylib",
+    "*.h",
+    "*.hpp",
+    "*.pyd",
+    "*.so*",
+    "*.dll",
+]
+package_data = {
+    "onnx_extended": known_extensions,
+    "onnx_extended.cpp": known_extensions,
+    "onnx_extended.include": known_extensions,
+    "onnx_extended.include.common": known_extensions,
+    "onnx_extended.include.cpu": known_extensions,
+    "onnx_extended.include.cuda": known_extensions,
+    "onnx_extended.cpu": known_extensions,
+    "onnx_extended.cuda": known_extensions,
+    "onnx_extended.ortops.optim.cpu": known_extensions,
+    "onnx_extended.ortops.tutorial.cpu": known_extensions,
+    "onnx_extended.ortops.tutorial.cuda": known_extensions,
+    "onnx_extended.ortcy.wrap": known_extensions,
+    "onnx_extended.reference.c_ops.cpu": known_extensions,
+    "onnx_extended.validation.cpu": known_extensions,
+    "onnx_extended.validation.cython": known_extensions,
+    "onnx_extended.validation.cuda": known_extensions,
+}
+
+
 setup(
     name="onnx-extended",
-    version=VERSION_STR,
-    description="More operators for onnx reference implementation",
-    long_description=long_description,
+    version=get_version_str(here, "0.2.0"),
+    description=get_description(),
+    long_description=get_long_description(here),
     author="Xavier Dupré",
     author_email="xavier.dupre@gmail.com",
     url="https://github.com/sdpython/onnx-extended",
     package_data=package_data,
-    setup_requires=["numpy", "scipy"],
-    install_requires=requirements,
+    setup_requires=["numpy", "scipy", "onnx"],
+    install_requires=get_requirements(here),
     classifiers=[
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
@@ -645,6 +729,13 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
     ],
-    cmdclass={"build_ext": cmake_build_ext},
+    cmdclass={
+        "build_ext": cmake_build_ext,
+        "build_py": cmake_build_py,
+        "bdist_wheel": cmake_bdist_wheel,
+        "cmake_build": cmake_build_class_extension,
+        "develop": cmake_develop,
+        "install": cmake_install,
+    },
     ext_modules=get_ext_modules(),
 )
