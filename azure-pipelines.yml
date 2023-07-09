@@ -123,6 +123,11 @@ jobs:
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
   - script: |
+      cd dist
+      python -m pytest ../_unittests
+      cd ..
+    displayName: 'check unit test with the whl'
+  - script: |
       python -m sphinx _doc dist/html
     displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0
