@@ -3,13 +3,13 @@
 // Inspired from
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
 
+#include "common/c_op_common.h"
+
 #include <algorithm>
 #include <iterator>
 #include <limits>
 #include <thread>
 #include <vector>
-
-#include "c_op_common.h"
 
 namespace onnx_c_ops {
 

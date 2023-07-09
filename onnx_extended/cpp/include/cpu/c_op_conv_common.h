@@ -1,6 +1,6 @@
 #pragma once
 
-#include "c_op_common.h"
+#include "common/c_op_common.h"
 #include <Eigen/Dense>
 
 using namespace Eigen;

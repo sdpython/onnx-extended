@@ -1,4 +1,4 @@
-#include "_unittests/test_common.h"
+#include "onnx_extended_test_common.h"
 #include "onnx_extended/validation/cpu/vector_function.h"
 
 using namespace validation;

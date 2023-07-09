@@ -5,24 +5,19 @@ message(STATUS "+ PYBIND11 onnx_extended.reference.c_ops.cpu.c_op_conv_")
 
 local_pybind11_add_module(
   c_op_conv_ OpenMP::OpenMP_CXX
-  ../onnx_extended/reference/c_ops/cpu/c_op_common.cpp
   ../onnx_extended/reference/c_ops/cpu/c_op_conv_.cpp)
 eigen_add_dependency(c_op_conv_)
 
-target_include_directories(
-  c_op_conv_
-  PRIVATE
-  ${ROOT_INCLUDE_PATH}/onnx_extended)
+target_link_libraries(c_op_conv_ PRIVATE common_kernels)
+target_include_directories(c_op_conv_ PRIVATE ${ROOT_INCLUDE_PATH})
 
-add_executable(test_c_op_conv_cpp
-               ../_unittests/ut_reference/test_c_op_conv.cpp
-               ../onnx_extended/reference/c_ops/cpu/c_op_common.cpp)
-
+add_executable(test_c_op_conv_cpp ../_unittests/ut_reference/test_c_op_conv.cpp)
+target_link_libraries(test_c_op_conv_cpp PRIVATE common_kernels)
 target_include_directories(
   test_c_op_conv_cpp
   PRIVATE
   ${ROOT_INCLUDE_PATH}
-  ${ROOT_INCLUDE_PATH}/onnx_extended)
+  ${ROOT_UNITTEST_PATH})
 
 eigen_add_dependency(test_c_op_conv_cpp)
 

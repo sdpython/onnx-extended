@@ -1,7 +1,7 @@
 #pragma once
 // Implements RuntimeTreeEnsembleCommon.
 
-#include "c_op_tree_ensemble_common_.hpp"
+#include "cpu/c_op_tree_ensemble_common_.hpp"
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
