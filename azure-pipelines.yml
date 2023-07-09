@@ -123,11 +123,17 @@ jobs:
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
   - script: |
+      find onnx_extended -type f \( -name "dist/onnx-extended*.whl" \) | while read f; do
+          echo "pip install $f";
+          python -m pip install $f;
+      done
+    displayName: 'install built wheel'
+  - script: |
       cd dist
       python -m pytest ../_unittests
-      cd ..
     displayName: 'check unit test with the whl'
   - script: |
+      cd ..
       python -m sphinx _doc dist/html
     displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0
