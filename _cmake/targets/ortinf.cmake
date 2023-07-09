@@ -30,6 +30,11 @@ target_include_directories(
   ${ORT_DIR}/include)
 message(STATUS "    LINK test_ortcy_inference_cpp <- lib_ortapi onnxruntime")
 target_link_directories(test_ortcy_inference_cpp PRIVATE ${ONNXRUNTIME_LIB_DIR})
-target_link_libraries(test_ortcy_inference_cpp PRIVATE lib_ortapi onnxruntime common_kernels)
+target_link_libraries(
+  test_ortcy_inference_cpp
+  PRIVATE
+  lib_ortapi
+  onnxruntime
+  common_kernels)
 ort_add_dependency(test_ortcy_inference_cpp "")
 add_test(NAME test_ortcy_inference_cpp COMMAND test_ortcy_inference_cpp)

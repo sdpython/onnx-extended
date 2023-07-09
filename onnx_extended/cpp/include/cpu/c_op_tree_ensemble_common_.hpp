@@ -4,8 +4,8 @@
 // Inspired from
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
 
-#include "common/c_op_common_parallel.hpp"
 #include "c_op_tree_ensemble_common_agg_.hpp"
+#include "common/c_op_common_parallel.hpp"
 #include <deque>
 #include <unordered_map>
 
