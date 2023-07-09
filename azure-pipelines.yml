@@ -123,7 +123,7 @@ jobs:
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
   - script: |
-      find onnx_extended -type f \( -name "dist/onnx-extended*.whl" \) | while read f; do
+      find onnx_extended -type f \( -name "dist/onnx_extended*.whl" \) | while read f; do
           echo "pip install $f";
           python -m pip install $f;
       done
