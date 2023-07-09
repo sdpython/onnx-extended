@@ -18,7 +18,7 @@ class TestCudaGemm(ExtTestCase):
         r = get_device_prop()
         self.assertIsInstance(r, dict)
         self.assertEqual(len(r), 12)
-        self.assertIn("GB", r["name"])
+        self.assertIn("NVIDIA", r["name"])
 
     def gemm_test(self, test):
         r = gemm_benchmark_test(test)

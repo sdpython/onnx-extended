@@ -163,7 +163,10 @@ if df.shape[0] > 0:
     piv = df[df.test.isin(subset)].pivot_table(
         index="dim", columns="name", values="t-gemm_sync"
     )
-    piv.plot(ax=ax[1], title="Gemm performance\nlower is better", logx=True, logy=True)
+    if piv.shape[0] > 0:
+        piv.plot(
+            ax=ax[1], title="Gemm performance\nlower is better", logx=True, logy=True
+        )
 
     fig.tight_layout()
     fig.savefig("plot_bench_gemm_f8.png")

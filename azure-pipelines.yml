@@ -134,7 +134,9 @@ jobs:
       python -m pytest ../_unittests
     displayName: 'check unit test with the whl'
   - script: |
-      cd ..
+      ls -l
+    displayName: 'current folder'
+  - script: |
       python -m sphinx _doc dist/html
     displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0

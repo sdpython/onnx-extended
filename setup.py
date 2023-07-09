@@ -255,6 +255,13 @@ class cmake_build_ext(build_ext):
             "for a specific machine, possible values: DEFAULT, "
             "H100, H100opt",
         ),
+        (
+            "cuda-link=",
+            None,
+            "CUDA can statically linked (STATIC) or dynamically "
+            "(SHARED), default is STATIC."
+            "STATIC",
+        ),
     ]
 
     def initialize_options(self):
@@ -264,6 +271,7 @@ class cmake_build_ext(build_ext):
         self.parallel = None
         self.ort_version = DEFAULT_ORT_VERSION
         self.cuda_build = "DEFAULT"
+        self.cuda_link = "STATIC"
 
         build_ext.initialize_options(self)
 
@@ -313,6 +321,9 @@ class cmake_build_ext(build_ext):
         build = {"DEFAULT", "H100", "H100opt"}
         if self.cuda_build not in build:
             raise ValueError(f"cuda-build={self.cuda_build!r} not in {build}.")
+        link = {"STATIC", "SHARED"}
+        if self.cuda_link not in link:
+            raise ValueError(f"cuda-link={self.cuda_link!r} not in {link}.")
 
         options = {o[0]: o for o in self.user_options}
         keys = list(sorted(options.keys()))
@@ -357,6 +368,7 @@ class cmake_build_ext(build_ext):
         cmake_args.append(f"-DUSE_CUDA={1 if self.use_cuda else 0}")
         if self.use_cuda:
             cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
+            cmake_args.append(f"-DCUDA_LINK={self.cuda_link}")
         cuda_version = self.cuda_version
         if cuda_version not in (None, ""):
             cmake_args.append(f"-DCUDA_VERSION={cuda_version}")

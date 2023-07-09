@@ -179,13 +179,21 @@ if(CUDAToolkit_FOUND)
 
   set(CUDA_AVAILABLE 1)
   set(CUDA_VERSION ${CUDAToolkit_VERSION})
-  set(CUDA_LIBRARIES CUDA::cudart_static
-                     CUDA::cufft_static CUDA::cufftw_static
-                     CUDA::curand_static
-                     CUDA::cublas_static CUDA::cublasLt_static
-                     CUDA::cusolver_static
-                     CUDA::cupti_static
-                     CUDA::nvToolsExt)
+  if (CUDA_LINK STREQUAL "STATIC")
+    set(CUDA_LIBRARIES CUDA::cudart_static
+                       CUDA::cufft_static CUDA::cufftw_static
+                       CUDA::curand_static
+                       CUDA::cublas_static CUDA::cublasLt_static
+                       CUDA::cusolver_static
+                       CUDA::cupti_static)
+  else()
+    set(CUDA_LIBRARIES CUDA::cudart
+                       CUDA::cufft CUDA::cufftw
+                       CUDA::curand
+                       CUDA::cublas CUDA::cublasLt
+                       CUDA::cusolver
+                       CUDA::cupti)
+  endif()
 
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
