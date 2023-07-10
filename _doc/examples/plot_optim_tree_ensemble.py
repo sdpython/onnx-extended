@@ -16,7 +16,17 @@ fast. Many more parameters can be tried.
 
 ::
 
-    python plot_optim_tree_ensemble --config=20
+    python plot_optim_tree_ensemble --scenario=LONG
+
+To change the training parameters:
+
+::
+
+    python plot_optim_tree_ensemble.py
+        --n_trees=100
+        --max_depth=10
+        --n_features=50
+        --batch_size=100000 
 
 # Training a model
 # ++++++++++++++++
@@ -105,28 +115,37 @@ def transform_model(onx, **kwargs):
     )
 
 
+print("Tranform model to add a custom node.")
 onx_modified = transform_model(onx)
+print(f"Save into {filename + 'modified.onnx'!r}.")
 with open(filename + "modified.onnx", "wb") as f:
     f.write(onx_modified.SerializeToString())
+print("done.")
 print(onnx_simple_text_plot(onx_modified))
 
 #######################################
 # Comparing onnxruntime and the custom kernel
 # +++++++++++++++++++++++++++++++++++++++++++
 
+print(f"Loading {filename!r}")
 sess_ort = InferenceSession(filename, providers=["CPUExecutionProvider"])
 
-opts = SessionOptions()
 r = get_ort_ext_libs()
+print(f"Creating SessionOptions with {r!r}")
+opts = SessionOptions()
 if r is not None:
     opts.register_custom_ops_library(r[0])
 
+print("Loading modified {filename!r}")
 sess_cus = InferenceSession(
     onx_modified.SerializeToString(), opts, providers=["CPUExecutionProvider"]
 )
 
+print(f"Running once with shape {X[-batch_size:].shape}.")
 base = sess_ort.run(None, {"X": X[-batch_size:]})[0]
+print(f"Running modified with shape {X[-batch_size:].shape}.")
 got = sess_cus.run(None, {"X": X[-batch_size:]})[0]
+print("done.")
 
 #######################################
 # Discrepancies?
