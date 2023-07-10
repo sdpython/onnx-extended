@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cpu/c_op_tree_ensemble_common_classifier_.hpp"
 #include "c_op_tree_ensemble_py_.hpp"
+#include "cpu/c_op_tree_ensemble_common_classifier_.hpp"
 
 namespace onnx_c_ops {
 
