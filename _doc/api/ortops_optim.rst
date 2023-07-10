@@ -8,6 +8,8 @@ optimize
 
 .. autofunction:: onnx_extended.ortops.optim.optimize.change_onnx_operator_domain
 
+.. autofunction:: onnx_extended.ortops.optim.optimize.optimize_model
+
 CPU: onnx_extented.ortops.optim.cpu
 ===================================
 

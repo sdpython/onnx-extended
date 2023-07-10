@@ -2,10 +2,11 @@ import os
 import sys
 import unittest
 import warnings
+from argparse import ArgumentParser
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from timeit import Timer
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy
 from numpy.testing import assert_allclose
@@ -242,3 +243,84 @@ class ExtTestCase(unittest.TestCase):
             with redirect_stderr(serr):
                 res = fct()
         return res, sout.getvalue(), serr.getvalue()
+
+
+def get_parsed_args(
+    name: str,
+    scenarios: Optional[Dict[str, str]] = None,
+    description: Optional[str] = None,
+    epilog: Optional[str] = None,
+    number: int = 10,
+    repeat: int = 10,
+    warmup: int = 5,
+    sleep: float = 0.1,
+    tries: int = 2,
+    **kwargs: Dict[str, Tuple[Union[int, str, float], str]],
+) -> ArgumentParser:
+    """
+    Returns parsed arguments for examples in this package.
+
+    :param name: script name
+    :param scenarios: list of available scenarios
+    :param description: parser description
+    :param epilog: text at the end of the parser
+    :param number: default value for number parameter
+    :param repeat: default value for repeat parameter
+    :param warmup: default value for warmup parameter
+    :param sleep: default value for sleep parameter
+    :param kwargs: additional parameters,
+        example: `n_trees=(10, "number of trees to train")`
+    :return: parser
+    """
+    if description is None:
+        description = f"Available options for {name}.py."
+    if epilog is None:
+        epilog = ""
+    parser = ArgumentParser(prog=name, description=description, epilog=epilog)
+    if scenarios is not None:
+        rows = ", ".join(f"{k}: {v}" for k, v in scenarios.items())
+        parser.add_argument("-s", "--scenario", help=f"Available scenarios: {rows}.")
+    parser.add_argument(
+        "-n",
+        "--number",
+        help="number of executions to measure",
+        type=int,
+        default=number,
+    )
+    parser.add_argument(
+        "-r",
+        "--repeat",
+        help="number of times to repeat the measure",
+        type=int,
+        default=repeat,
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        help="number of times to repeat the measure",
+        type=int,
+        default=warmup,
+    )
+    parser.add_argument(
+        "-S",
+        "--sleep",
+        help="sleeping time between two configurations",
+        type=float,
+        default=sleep,
+    )
+    parser.add_argument(
+        "-t",
+        "--tries",
+        help="number of tries for each configurations",
+        type=int,
+        default=tries,
+    )
+    for k, v in kwargs.items():
+        parser.add_argument(
+            f"--{k}",
+            help=v[1],
+            type=type(v[0]),
+            default=v[0],
+        )
+
+    return parser.parse_args()

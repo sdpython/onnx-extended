@@ -11,6 +11,13 @@ The implementation in :epkg:`onnxruntime` does not let the user changed
 the predetermined settings but a custom kernel might. That's what this example
 is measuring.
 
+The default set of optimized parameters is very short and is meant to be executed
+fast. Many more parameters can be tried.
+
+::
+
+    python plot_optim_tree_ensemble --config=20
+
 # Training a model
 # ++++++++++++++++
 """
@@ -33,11 +40,22 @@ from onnx_extended.ortops.optim.optimize import (
     get_node_attribute,
     optimize_model,
 )
+from onnx_extended.ext_test_case import get_parsed_args
 
-batch_size = 10000
-n_features = 5
-n_trees = 10
-max_depth = 5
+script_args = get_parsed_args(
+    "plot_optim_tree_ensemble",
+    description=__doc__,
+    scenarios={"SHORT": "short optimization", "LONG": "test more options"},
+    n_features=(5, "number of features to generate"),
+    n_trees=(10, "number of trees to train"),
+    max_depth=(5, "max_depth"),
+    batch_size=(10000, "batch size"),
+)
+
+batch_size = script_args.batch_size
+n_features = script_args.n_features
+n_trees = script_args.n_trees
+max_depth = script_args.max_depth
 
 filename = (
     f"plot_optim_tree_ensemble_b{batch_size}-f{n_features}-"
@@ -47,7 +65,7 @@ if not os.path.exists(filename):
     print(f"Training to get {filename!r}")
     X, y = make_regression(batch_size * 2, n_features=n_features, n_targets=1)
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth)
+    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=2)
     model.fit(X[:batch_size], y[:batch_size])
     onx = to_onnx(model, X[:1])
     with open(filename, "wb") as f:
@@ -155,14 +173,28 @@ print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
 # Let's try out many possibilities.
 # The default values are the first ones.
 
-optim_params = dict(
-    parallel_tree=[80, 40],  # default is 80
-    parallel_tree_N=[128, 64],  # default is 128
-    parallel_N=[50, 25],  # default is 50
-    batch_size_tree=[2],  # [2, 1, 4, 8],  # default is 2
-    batch_size_rows=[2],  # [2, 1, 4, 8],  # default is 2
-    use_node3=[0],  # [0, 1],  # default is 0
-)
+if script_args.scenario in (None, "SHORT"):
+    optim_params = dict(
+        parallel_tree=[80, 40],  # default is 80
+        parallel_tree_N=[128, 64],  # default is 128
+        parallel_N=[50, 25],  # default is 50
+        batch_size_tree=[2],  # default is 2
+        batch_size_rows=[2],  # default is 2
+        use_node3=[0],  # default is 0
+    )
+elif script_args.scenario in (None, "LONG"):
+    optim_params = dict(
+        parallel_tree=[80, 160, 40],
+        parallel_tree_N=[256, 128, 64],
+        parallel_N=[100, 50, 25],
+        batch_size_tree=[2, 4, 8],
+        batch_size_rows=[2, 4, 8],
+        use_node3=[0, 1],
+    )
+else:
+    raise ValueError(
+        f"Unknown scenario {script_args.scenario!r}, use --help to get them."
+    )
 
 ##################################
 # Then the optimization.
@@ -189,9 +221,11 @@ res = optimize_model(
     ),
     params=optim_params,
     verbose=True,
-    number=10,
-    repeat=10,
-    warmup=10,
+    number=script_args.number,
+    repeat=script_args.repeat,
+    warmup=script_args.warmup,
+    sleep=script_args.sleep,
+    n_tries=script_args.tries,
 )
 
 ###############################
@@ -242,7 +276,9 @@ merged = merged.sort_values("average").reset_index(drop=True).set_index("short_n
 skeys = ",".join(optim_params.keys())
 
 fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 4))
-merged.plot.barh(title=f"TreeEnsemble tuning\n{skeys}", ax=ax)
+merged.plot.barh(
+    ax=ax, title=f"TreeEnsemble tuning, n_tries={script_args.tries}\n{skeys}"
+)
 b = df.loc[0, "average"]
 ax.plot([b, b], [0, df.shape[0]], "r--")
 ax.set_xlim(
@@ -251,5 +287,7 @@ ax.set_xlim(
         (df["max_exec"].max() + df["average"].max()) / 2,
     ]
 )
+ax.set_xscale("log")
+
 fig.tight_layout()
 fig.savefig("plot_optim_tree_ensemble.png")
