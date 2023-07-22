@@ -17,4 +17,4 @@ Introduction
     usefulcmd
     install_cuda_wsl
     build
-    example
+    examples
