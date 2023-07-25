@@ -29,7 +29,7 @@ skl2onnx>=1.14.1
 sphinx
 sphinx-gallery
 sphinx-issues
-sphinx-runpython
+git+https://github.com/sdpython/sphinx-runpython.git
 tomli
 tqdm
 wheel
