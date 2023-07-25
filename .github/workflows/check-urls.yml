@@ -31,7 +31,7 @@ jobs:
         timeout: 2
         retry_count# : 2
         exclude_urls: https://github.com/microsoft/onnxruntime/blob/
-        exclude_patterns: https://dumps.wikimedia.org/
+        exclude_patterns: https://github.com/microsoft/onnxruntime/blob/
         # force_pass : true
 
     - name: urls-checker-docs
