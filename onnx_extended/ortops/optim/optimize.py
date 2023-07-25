@@ -157,7 +157,7 @@ def change_onnx_operator_domain(
 
 def optimize_model(
     onx: ModelProto,
-    feeds: Dict[str, numpy.array],
+    feeds: Dict[str, numpy.ndarray],
     transform: Callable[ModelProto, ModelProto],
     session: Callable[ModelProto, Any],
     params: Dict[str, List[Any]],
@@ -178,17 +178,22 @@ def optimize_model(
         based on the values coming from *params*
     :param session: function which takes a modifed ModelProto
         and return a session
+    :param params: dictionary of values to test `{ param_name: [ param_values ] }`
     :param baseline: function which takes a modifed ModelProto
         and return a session, identified as the baseline
     :param verbose: use :epkg:`tqdm` to show improvment
-    :param number: parameter to :func:`measure_time`
-    :param repeat: parameter to :func:`measure_time`
-    :param warmup: parameter to :func:`measure_time`
+    :param number: parameter to :func:`measure_time
+        <onnx_extended.ext_test_case.measure_time>`
+    :param repeat: parameter to :func:`measure_time
+        <onnx_extended.ext_test_case.measure_time>`
+    :param warmup: parameter to :func:`measure_time
+        <onnx_extended.ext_test_case.measure_time>`
     :param n_tries: number of times to measure, if the measurements returns
         very different results, values for *number* or *repeat* should
         be increased
     :param sleep: time to sleep between two measurements
-    :return: list of results returned by :func:`measure_time`
+    :return: list of results returned by :func:`measure_time
+        <onnx_extended.ext_test_case.measure_time>`
 
     See example :ref:`l-plot-optim-tree-ensemble` for an example.
     """

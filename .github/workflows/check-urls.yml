@@ -25,7 +25,7 @@ jobs:
     - name: urls-checker-code
       uses: urlstechie/urlchecker-action@master
       with:
-        subfolder: onnx_array_api
+        subfolder: onnx_extended
         file_types: .md,.py,.rst,.ipynb
         print_all: false
         timeout: 2

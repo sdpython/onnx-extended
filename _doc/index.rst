@@ -25,8 +25,6 @@ onnx-extended: more operators for onnx
 
 **onnx-extended** extends the list of supported operators in onnx
 reference implementation, or implements faster versions in C++.
-Documentation `onnx-extended
-<http://www.xavierdupre.fr/app/onnx-extended/helpsphinx/index.html>`_.
 Source are available on `github/onnx-extended
 <https://github.com/sdpython/onnx-extended>`_,
 see also `code coverage <cov/index.html>`_.

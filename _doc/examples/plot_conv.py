@@ -8,7 +8,7 @@ Using C implementation of operator Conv
 in language C++ must faster than the python implementation
 available in package :epkg:`onnx`. These implementations
 are automatically available through class
-:class:`onnx.reference.CReferenceEvaluator`.
+:class:`onnx_extended.reference.CReferenceEvaluator`.
 The following example compares the processing time for three runtimes.
 
 Creation of a simple model

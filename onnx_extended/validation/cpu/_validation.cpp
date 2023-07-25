@@ -60,7 +60,7 @@ See example :ref:`l-example-bench-cpu`.
         py::arg("by_rows"),
         R"pbdoc(Computes the sum of all elements in an array
 by rows or by columns. This function is slower than
-:func:`vector_sum_array <onnx_extended.validation._validation.vector_sum_array>`
+:func:`vector_sum_array <onnx_extended.validation.cpu._validation.vector_sum_array>`
 as this function copies the data from an array to a `std::vector`.
 This copy (and allocation) is bigger than the compution itself.
 
