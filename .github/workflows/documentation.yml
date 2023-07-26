@@ -75,12 +75,12 @@ jobs:
 
       - name: Check for errors and warnings
         run: |
-          if [[ $(grep ERROR doc.txt) ]]; then
+          if [[ $(grep ERROR doc.txt | grep -v 'validation.cuda') ]]; then
             echo "Documentation produces errors."
             grep ERROR doc.txt | grep -v 'validation.cuda'
             exit 1
           fi
-          if [[ $(grep WARNING doc.txt) ]]; then
+          if [[ $(grep WARNING doc.txt | grep -v 'validation.cuda') ]]; then
             echo "Documentation produces warnings."
             grep WARNING doc.txt | grep -v 'validation.cuda'
             exit 1
