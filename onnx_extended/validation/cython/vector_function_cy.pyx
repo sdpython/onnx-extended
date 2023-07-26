@@ -46,6 +46,7 @@ def vector_sum_c(float[:, ::1] m, by_rows):
     return _vector_sum_c(m, by_rows)
 
 
+@cython.embedsignature(True)
 def vector_add_c(v1, v2):
     """
     Computes the addition of two tensors of the same shape.
