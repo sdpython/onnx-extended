@@ -2,7 +2,7 @@ import os
 import sys
 from sphinx_runpython.github_link import make_linkcode_resolve
 from sphinx_runpython.conf_helper import has_dvipng, has_dvisvgm
-from onnx_extended import __version__
+from onnx_extended import __version__, has_cuda
 
 for name in ["CHANGELOGS.rst", "LICENSE.txt"]:
     s = os.path.join(os.path.dirname(__file__), "..", name)
@@ -59,6 +59,11 @@ exclude_patterns = []
 pygments_style = "sphinx"
 todo_include_todos = True
 issues_github_path = "sdpython/onnx-extended"
+
+
+def setup(app):
+    app.add_config_value("HAS_CUDA", "1" if has_cuda() else "0", "env")
+
 
 html_theme = "furo"
 html_theme_path = ["_static"]

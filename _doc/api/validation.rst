@@ -28,14 +28,16 @@ _validation
 
 .. autofunction:: onnx_extended.validation.cpu._validation.vector_sum_array_avx_parallel
 
-cuda_example_py
-+++++++++++++++
+.. ifconfig:: HAS_CUDA in ('1', )
 
-.. autofunction:: onnx_extended.validation.cuda.cuda_example_py.vector_add
+    cuda_example_py
+    +++++++++++++++
 
-.. autofunction:: onnx_extended.validation.cuda.cuda_example_py.vector_sum0
+    .. autofunction:: onnx_extended.validation.cuda.cuda_example_py.vector_add
 
-.. autofunction:: onnx_extended.validation.cuda.cuda_example_py.vector_sum6
+    .. autofunction:: onnx_extended.validation.cuda.cuda_example_py.vector_sum0
+
+    .. autofunction:: onnx_extended.validation.cuda.cuda_example_py.vector_sum6
 
 vector_function_cy
 ++++++++++++++++++
