@@ -19,7 +19,6 @@ openpyxl
 packaging
 pandas
 psutil
-pyquickhelper>=1.12.3821
 pytest
 pytest-cov
 rstcheck[sphinx,toml]

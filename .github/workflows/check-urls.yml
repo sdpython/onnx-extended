@@ -42,6 +42,6 @@ jobs:
         print_all: false
         timeout: 2
         retry_count# : 2
-        exclude_urls: https://hal.archives-ouvertes.fr/hal-00990252/document
+        exclude_urls: 64,14: https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-$,https://developer.download.nvidia.com/compute/cuda/$
         exclude_patterns: https://www.data.gouv.fr/fr/datasets/r/e3d83ab3-dc52-4c99-abaf-8a38050cc68c,https://dev.azure.com/
         # force_pass : true

@@ -54,7 +54,6 @@ dev = [
     "onnxruntime",
     "pandas",
     "psutil",
-    "pyquickhelper>=1.12.3821",
     "pytest",
     "pytest-cov",
     "ruff",

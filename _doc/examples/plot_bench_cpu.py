@@ -13,8 +13,8 @@ Cache Performance
 """
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from pyquickhelper.loghelper import run_cmd
 from pandas import DataFrame, concat
+from sphinx_runpython.runpython import run_cmd
 from onnx_extended.ext_test_case import unit_test_going
 from onnx_extended.validation.cpu._validation import (
     benchmark_cache,
