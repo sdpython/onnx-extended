@@ -33,6 +33,7 @@ build/*
 CMakeCache.txt
 onnxruntime_*.json
 _doc/LICENSE.rst
+_doc/LICENSE.txt
 _doc/CHANGELOGS.rst
 _doc/examples/_cache/*
 _doc/auto_examples/*
