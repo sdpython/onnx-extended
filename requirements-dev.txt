@@ -19,7 +19,6 @@ openpyxl
 packaging
 pandas
 psutil
-pyquickhelper>=1.12.3821
 pytest
 pytest-cov
 rstcheck[sphinx,toml]
@@ -29,6 +28,7 @@ skl2onnx>=1.14.1
 sphinx
 sphinx-gallery
 sphinx-issues
+git+https://github.com/sdpython/sphinx-runpython.git
 tomli
 tqdm
 wheel

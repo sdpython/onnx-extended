@@ -28,10 +28,10 @@ requires-python = ">=3.9"
 version = "0.2.0"
 
 [project.urls]
-homepage = "https://sdpython.github.io/doc/onnx-extended/"
-documentation = "https://sdpython.github.io/doc/onnx-extended/"
-repository = "https://github.com/sdpython/onnx-extended"
-changelog = "https://github.com/sdpython/onnx-extended/CHANGELOGS.rst"
+homepage = "https://sdpython.github.io/doc/dev/onnx-extended/"
+documentation = "https://sdpython.github.io/doc/dev/onnx-extended/"
+repository = "https://github.com/sdpython/onnx-extended/dev/"
+changelog = "https://github.com/sdpython/onnx-extended/dev/CHANGELOGS.rst"
 
 [project.optional-dependencies]
 dev = [
@@ -54,7 +54,6 @@ dev = [
     "onnxruntime",
     "pandas",
     "psutil",
-    "pyquickhelper>=1.12.3821",
     "pytest",
     "pytest-cov",
     "ruff",
@@ -86,6 +85,7 @@ ignore_directives = [
     "autoclass",
     "autofunction",
     "gdot",
+    "ifconfig",
     "image-sg",
     "runpython",
 ]

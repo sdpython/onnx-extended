@@ -1,6 +1,8 @@
 import os
 import sys
-from onnx_extended import __version__
+from sphinx_runpython.github_link import make_linkcode_resolve
+from sphinx_runpython.conf_helper import has_dvipng, has_dvisvgm
+from onnx_extended import __version__, has_cuda
 
 for name in ["CHANGELOGS.rst", "LICENSE.txt"]:
     s = os.path.join(os.path.dirname(__file__), "..", name)
@@ -28,10 +30,20 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinx_issues",
     "matplotlib.sphinxext.plot_directive",
-    "pyquickhelper.sphinxext.sphinx_epkg_extension",
-    "pyquickhelper.sphinxext.sphinx_gdot_extension",
-    "pyquickhelper.sphinxext.sphinx_runpython_extension",
+    "sphinx_runpython.docassert",
+    "sphinx_runpython.epkg",
+    "sphinx_runpython.gdot",
+    "sphinx_runpython.runpython",
 ]
+
+if has_dvisvgm():
+    extensions.append("sphinx.ext.imgmath")
+    imgmath_image_format = "svg"
+elif has_dvipng():
+    extensions.append("sphinx.ext.pngmath")
+    imgmath_image_format = "png"
+else:
+    extensions.append("sphinx.ext.mathjax")
 
 templates_path = ["_templates"]
 html_logo = "_static/logo.png"
@@ -48,21 +60,59 @@ pygments_style = "sphinx"
 todo_include_todos = True
 issues_github_path = "sdpython/onnx-extended"
 
+
+def setup(app):
+    app.add_config_value("HAS_CUDA", "1" if has_cuda() else "0", "env")
+
+
 html_theme = "furo"
 html_theme_path = ["_static"]
 html_theme_options = {}
 html_static_path = ["_static"]
+html_sourcelink_suffix = ""
 
+# The following is used by sphinx.ext.linkcode to provide links to github
+linkcode_resolve = make_linkcode_resolve(
+    "onnx-extended",
+    (
+        "https://github.com/sdpython/onnx-extended/"
+        "blob/{revision}/{package}/"
+        "{path}#L{lineno}"
+    ),
+)
+
+latex_elements = {
+    "papersize": "a4",
+    "pointsize": "10pt",
+    "title": project,
+}
 
 intersphinx_mapping = {
     "onnx": ("https://onnx.ai/onnx/", None),
     "matplotlib": ("https://matplotlib.org/", None),
-    "numpy": ("https://numpy.org/doc/stable", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "python": (f"https://docs.python.org/{sys.version_info.major}", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
 }
+
+# Check intersphinx reference targets exist
+nitpicky = True
+# See also scikit-learn/scikit-learn#26761
+nitpick_ignore = [
+    ("py:class", "False"),
+    ("py:class", "True"),
+    ("py:class", "pipeline.Pipeline"),
+    ("py:class", "default=sklearn.utils.metadata_routing.UNCHANGED"),
+]
+
+nitpick_ignore_regex = [
+    ("py:class", ".*numpy[.].*"),
+    ("py:func", ".*[.]PyCapsule[.].*"),
+    ("py:func", ".*numpy[.].*"),
+    ("py:func", ".*scipy[.].*"),
+]
 
 sphinx_gallery_conf = {
     # path to your examples scripts
@@ -73,6 +123,7 @@ sphinx_gallery_conf = {
 
 epkg_dictionary = {
     "cmake": "https://cmake.org/",
+    "CUDAExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
     "CPUExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
     "cublasLtMatmul": "https://docs.nvidia.com/cuda/cublas/index.html?"
     "highlight=cublasltmatmul#cublasltmatmul",
@@ -111,5 +162,6 @@ epkg_dictionary = {
     "scipy": "https://scipy.org/",
     "sphinx-gallery": "https://github.com/sphinx-gallery/sphinx-gallery",
     "torch": "https://pytorch.org/docs/stable/torch.html",
+    "tqdm": "https://tqdm.github.io/",
     "WSL": "https://docs.microsoft.com/en-us/windows/wsl/install",
 }
