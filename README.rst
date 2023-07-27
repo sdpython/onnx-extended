@@ -31,7 +31,7 @@ reference implementation, or implements faster versions in C++.
 Documentation `onnx-extended
 <https://sdpython.github.io/doc/onnx-extended/dev/>`_.
 Source are available on `github/onnx-extended
-<https://github.com/sdpython/onnx-extended>`_.
+<https://github.com/sdpython/onnx-extended/>`_.
 
 Use C++ a implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++

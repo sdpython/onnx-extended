@@ -26,8 +26,7 @@ onnx-extended: more operators for onnx
 **onnx-extended** extends the list of supported operators in onnx
 reference implementation, or implements faster versions in C++.
 Source are available on `github/onnx-extended
-<https://github.com/sdpython/onnx-extended>`_,
-see also `code coverage <cov/index.html>`_.
+<https://github.com/sdpython/onnx-extended/>`_.
 
 .. toctree::
     :maxdepth: 1
@@ -37,7 +36,7 @@ see also `code coverage <cov/index.html>`_.
     tech/index
     auto_examples/index
     CHANGELOGS
-    LICENSE
+    license
 
 Use C++ a implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++
