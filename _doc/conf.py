@@ -4,20 +4,6 @@ from sphinx_runpython.github_link import make_linkcode_resolve
 from sphinx_runpython.conf_helper import has_dvipng, has_dvisvgm
 from onnx_extended import __version__, has_cuda
 
-for name in ["CHANGELOGS.rst", "LICENSE.txt"]:
-    s = os.path.join(os.path.dirname(__file__), "..", name)
-    if name == "LICENSE.txt":
-        d = os.path.join(os.path.dirname(__file__), name.replace(".txt", ".rst"))
-        with open(s, "r", encoding="utf-8") as f:
-            with open(d, "w", encoding="utf-8") as g:
-                g.write("LICENSE\n=======\n\n")
-                g.write(f.read())
-    else:
-        d = os.path.join(os.path.dirname(__file__), name)
-        with open(s, "r", encoding="utf-8") as f:
-            with open(d, "w", encoding="utf-8") as g:
-                g.write(f.read())
-
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
