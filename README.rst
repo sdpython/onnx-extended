@@ -27,7 +27,9 @@ onnx-extended: extensions for onnx and onnxruntime
     :target: https://github.com/psf/black
 
 **onnx-extended** extends the list of supported operators in onnx
-reference implementation, or implements faster versions in C++.
+reference implementation and `onnxruntime
+<https://github.com/microsoft/onnxruntime>`_,
+or implements faster versions in C++.
 Documentation `onnx-extended
 <https://sdpython.github.io/doc/onnx-extended/dev/>`_.
 Source are available on `github/onnx-extended
@@ -127,3 +129,23 @@ its functionalities. *onnx-extended* tries to build a cython wrapper
 around the C/C++ API of onnxruntime. cython relies on python C API
 and is faster than pybind11. This different may be significant when
 onnxruntime is used on small graphs and tensors.
+
+Custom kernels for onnxruntime
+++++++++++++++++++++++++++++++
+
+onnxruntime provides an API to add custom implementation
+for existing or new onnx operators. An example for CPU.
+
+::
+
+    from onnxruntime import InferenceSession, SessionOptions
+    from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+
+    r = get_ort_ext_libs()
+    opts = SessionOptions()
+    if r is not None:
+        opts.register_custom_ops_library(r[0])
+
+    sess_cus = InferenceSession(
+        onx_modified.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+    )
