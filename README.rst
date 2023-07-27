@@ -17,7 +17,7 @@ onnx-extended: extensions for onnx and onnxruntime
 
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :alt: MIT License
-    :target: http://opensource.org/licenses/MIT
+    :target: https://opensource.org/license/MIT/
 
 .. image:: https://img.shields.io/github/repo-size/sdpython/onnx-extended
     :target: https://github.com/sdpython/onnx-extended/
