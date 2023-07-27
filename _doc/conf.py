@@ -144,9 +144,7 @@ epkg_dictionary = {
     "onnxruntime": "https://onnxruntime.ai/",
     "onnxruntime-training": "https://github.com/microsoft/onnxruntime/tree/master/orttraining",
     "onnxruntime releases": "https://github.com/microsoft/onnxruntime/releases",
-    "onnx-array-api": (
-        "https://sdpython.github.io/doc/onnx-array-api/dev/"
-    ),
+    "onnx-array-api": ("https://sdpython.github.io/doc/onnx-array-api/dev/"),
     "onnxruntime C API": "https://onnxruntime.ai/docs/api/c/",
     "onnxruntime Graph Optimizations": (
         "https://onnxruntime.ai/docs/performance/"
