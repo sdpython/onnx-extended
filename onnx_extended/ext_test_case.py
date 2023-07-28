@@ -225,10 +225,6 @@ class ExtTestCase(unittest.TestCase):
         if not full.startswith(prefix):
             raise AssertionError(f"prefix={prefix!r} does not start string  {full!r}.")
 
-    def assertExists(self, path):
-        if not os.path.exists(path):
-            raise AssertionError(f"Unable to find path {path!r}.")
-
     @classmethod
     def tearDownClass(cls):
         for name, line, w in cls._warns:
