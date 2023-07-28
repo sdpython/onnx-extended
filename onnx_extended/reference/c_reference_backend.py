@@ -5,8 +5,32 @@ import onnx.backend.test
 import onnx.shape_inference
 import onnx.version_converter
 from onnx import ModelProto
-from onnx.backend.base import Device, DeviceType
+from onnx.backend.test.loader import load_model_tests
+from onnx.backend.base import Backend, Device, DeviceType
 from .c_reference_evaluator import CReferenceEvaluator
+
+
+class Runner(onnx.backend.test.BackendTest):
+    def __init__(
+        self,
+        backend: type[Backend],
+        parent_module: Optional[str] = None,
+        path_to_test: Optional[str] = None,
+        kind: Optional[str] = None,
+    ) -> None:
+        onnx.backend.test.BackendTest.__init__(
+            self, backend=backend, parent_module=parent_module
+        )
+
+        if path_to_test is None:
+            if kind is None:
+                for rt in load_model_tests(kind="node"):
+                    self._add_model_test(rt, "Node")
+        if kind is None:
+            raise ValueError("path_to_test is defined, so kind must be as well.")
+
+        for ot in load_model_tests(path_to_test, kind=kind):
+            self._add_model_test(ot, kind)
 
 
 class CReferenceEvaluatorBackendRep(onnx.backend.base.BackendRep):
@@ -104,7 +128,7 @@ def create_reference_backend(
     path_to_test: Optional[str] = None,
     kind: Optional[str] = None,
 ) -> CReferenceEvaluatorBackend:
-    return onnx.backend.test.BackendTest(
+    return Runner(
         backend or CReferenceEvaluatorBackend,
         __name__,
         path_to_test=path_to_test,
