@@ -14,7 +14,7 @@ onnx-extended: more operators for onnx
 
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :alt: MIT License
-    :target: http://opensource.org/licenses/MIT
+    :target: https://opensource.org/license/MIT/
 
 .. image:: https://img.shields.io/github/repo-size/sdpython/onnx-extended
     :target: https://github.com/sdpython/onnx-extended/
@@ -26,8 +26,7 @@ onnx-extended: more operators for onnx
 **onnx-extended** extends the list of supported operators in onnx
 reference implementation, or implements faster versions in C++.
 Source are available on `github/onnx-extended
-<https://github.com/sdpython/onnx-extended>`_,
-see also `code coverage <cov/index.html>`_.
+<https://github.com/sdpython/onnx-extended/>`_.
 
 .. toctree::
     :maxdepth: 1
@@ -37,7 +36,7 @@ see also `code coverage <cov/index.html>`_.
     tech/index
     auto_examples/index
     CHANGELOGS
-    LICENSE
+    license
 
 Use C++ a implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++

@@ -1,4 +1,4 @@
-name: Black Format Checker
+name: Black + Ruff Format Checker
 on: [push, pull_request]
 jobs:
   black-format-check:
@@ -9,3 +9,8 @@ jobs:
         with:
           options: "--diff --check"
           src: "."
+  ruff-format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: chartboost/ruff-action@v1
