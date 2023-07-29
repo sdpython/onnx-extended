@@ -9,6 +9,25 @@ CReferenceEvaluator
 .. autoclass:: onnx_extended.reference.CReferenceEvaluator
     :members: input_names, output_names, opsets, run
 
+Backend
+=======
+
+.. autofunction:: onnx_extended.reference.c_reference_backend.create_reference_backend
+
+.. autoclass:: onnx_extended.reference.c_reference_backend.CReferenceEvaluatorBackend
+    :members: 
+
+.. autoclass:: onnx_extended.reference.c_reference_backend.CReferenceEvaluatorBackendRep
+    :members: 
+
+.. autoclass:: onnx_extended.reference.c_reference_backend.Runner
+    :members: 
+
+Tools
+=====
+
+.. autofunction:: onnx_extended.reference.c_reference_evaluator.from_array_extended
+
 Operators
 =========
 
