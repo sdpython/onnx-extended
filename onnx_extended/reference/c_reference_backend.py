@@ -94,7 +94,7 @@ class Runner:
 
     def tests(self, name="CustomTestCase") -> type[unittest.TestCase]:
         """
-        Returns a subclass of :class:`unittest.TestCase`.
+        Returns a subclass of `unittest.TestCase`.
 
         :param name: name of the subclass
         """
