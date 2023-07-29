@@ -15,6 +15,8 @@ def store_intermediate_results(
     """
     Executes an onnx model with a runtime and stores the
     intermediate results in a folder.
+    See :class:`CReferenceEvaluator <onnx_extended.reference.CReferenceEvaluator>`
+    for further details.
 
     :param model: path to a model of ModelProto
     :param inputs: list of inputs for the model
