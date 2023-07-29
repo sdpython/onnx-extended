@@ -1,14 +1,14 @@
 import os
 import re
 import unittest
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 from unittest.case import SkipTest
 import numpy
 import onnx.backend.base
 import onnx.backend.test
 import onnx.shape_inference
 import onnx.version_converter
-from onnx import ModelProto
+from onnx import FunctionProto, ModelProto, NodeProto
 from onnx.backend.test import BackendTest
 from onnx.backend.test.runner import Pattern, TestItem
 from onnx.backend.test.loader import load_model_tests
@@ -218,20 +218,31 @@ class CReferenceEvaluatorBackend(onnx.backend.base.Backend):
 
     @classmethod
     def is_opset_supported(cls, model):
+        """
+        Tells which opsets are supported.
+        """
         return True, ""
 
     @classmethod
     def supports_device(cls, device: str) -> bool:
+        """
+        Tells if a specific device is supported.
+        """
         d = Device(device)
         return d.type == DeviceType.CPU
 
     @classmethod
-    def create_inference_session(cls, model):
+    def create_inference_session(
+        cls, model: Union[str, ModelProto, NodeProto, FunctionProto]
+    ):
+        """
+        Creates an instance of the class running a model.
+        """
         return cls.cls_inference(model)
 
     @classmethod
     def prepare(
-        cls, model: Any, device: str = "CPU", **kwargs: Any
+        cls, model: Any, device: str = "CPU", **kwargs: Dict[str, Any]
     ) -> CReferenceEvaluatorBackendRep:
         if isinstance(model, cls.cls_inference):
             return CReferenceEvaluatorBackendRep(model)
@@ -241,12 +252,24 @@ class CReferenceEvaluatorBackend(onnx.backend.base.Backend):
         raise TypeError(f"Unexpected type {type(model)} for model.")
 
     @classmethod
-    def run_model(cls, model, inputs, device=None, **kwargs):
+    def run_model(
+        cls,
+        model,
+        inputs: List[Any],
+        device: Optional[str] = None,
+        **kwargs: Dict[str, Any],
+    ):
+        """
+        Called if the onnx proto is a `ModelProto`.
+        """
         rep = cls.prepare(model, device, **kwargs)
         return rep.run(inputs, **kwargs)
 
     @classmethod
     def run_node(cls, node, inputs, device=None, outputs_info=None, **kwargs):
+        """
+        Called if the onnx proto is a `NodeProto`.
+        """
         raise NotImplementedError("Unable to run the model node by node.")
 
 
