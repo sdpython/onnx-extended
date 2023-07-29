@@ -63,21 +63,9 @@ class TestCReferenceEvaluatorSave(ExtTestCase):
             examples = load_model_tests(root, "reference_evaluator_test_save")
             self.assertEqual(len(examples), 2)
 
-            backend = create_reference_backend(
-                path_to_test=root, kind="reference_evaluator_test_save"
-            )
+            backend = create_reference_backend(path_to_test=root)
             backend.exclude("cuda")
-            tests = backend.tests()
-            names = []
-            for att in dir(tests):
-                if att.startswith("test_"):
-                    test = getattr(tests, att)
-                    try:
-                        test()
-                        names.append(att)
-                    except unittest.case.SkipTest:
-                        continue
-            self.assertEqual(names, ["test_node_0_MatMul_cpu", "test_node_1_Add_cpu"])
+            self.assertEqual(len(backend.run()[0]), 2)
 
     def test_reference_evaluator_custom_runtime_save(self):
         onx = self._linear_regression()
@@ -108,23 +96,12 @@ class TestCReferenceEvaluatorSave(ExtTestCase):
             self.assertEqual(new_cls.__name__, "CReferenceEvaluatorBackendNewRef")
             self.assertTrue(issubclass(new_cls.cls_inference, NewRef))
 
-            backend = create_reference_backend(
-                new_cls, path_to_test=root, kind="reference_evaluator_test_save_ref"
-            )
+            backend = create_reference_backend(new_cls, path_to_test=root)
             backend.exclude("cuda")
-            tests = backend.tests()
-            names = []
-            for att in dir(tests):
-                if att.startswith("test_"):
-                    test = getattr(tests, att)
-                    try:
-                        test()
-                        names.append(att)
-                    except unittest.case.SkipTest:
-                        continue
-            self.assertEqual(names, ["test_node_0_MatMul_cpu", "test_node_1_Add_cpu"])
-            self.assertEqual(NewRef.n_inits, 2)
-            self.assertEqual(NewRef.n_calls, 2)
+            run, skipped, failed = backend.run()
+            self.assertEqual(len(skipped), 2)
+            self.assertEqual(len(run), 2)
+            self.assertEqual(len(failed), 0)
 
     @unittest.skipIf(InferenceSession is None, reason="onnxruntime not available")
     def test_reference_evaluator_onnxruntime_runtime_save(self):
@@ -171,23 +148,9 @@ class TestCReferenceEvaluatorSave(ExtTestCase):
             self.assertEqual(new_cls.__name__, "CReferenceEvaluatorBackendNewRef")
             self.assertTrue(issubclass(new_cls.cls_inference, NewRef))
 
-            backend = create_reference_backend(
-                new_cls, path_to_test=root, kind="reference_evaluator_test_save_ort"
-            )
+            backend = create_reference_backend(new_cls, path_to_test=root)
             backend.exclude("cuda")
-            tests = backend.tests()
-            names = []
-            for att in dir(tests):
-                if att.startswith("test_"):
-                    test = getattr(tests, att)
-                    try:
-                        test()
-                        names.append(att)
-                    except unittest.case.SkipTest:
-                        continue
-            self.assertEqual(names, ["test_node_0_MatMul_cpu", "test_node_1_Add_cpu"])
-            self.assertEqual(NewRef.n_inits, 2)
-            self.assertEqual(NewRef.n_calls, 2)
+            self.assertEqual(len(backend.run()[0]), 2)
 
     def _get_loop_model(self) -> ModelProto:
         return helper.make_model(
@@ -377,22 +340,12 @@ class TestCReferenceEvaluatorSave(ExtTestCase):
             examples = load_model_tests(root, "test_reference_evaluator_loop_save")
             self.assertEqual(len(examples), 6)
 
-            backend = create_reference_backend(
-                path_to_test=root, kind="test_reference_evaluator_loop_save"
-            )
+            backend = create_reference_backend(path_to_test=root)
             backend.exclude("cuda")
-            tests = backend.tests()
-            names = []
-            for att in dir(tests):
-                if att.startswith("test_"):
-                    test = getattr(tests, att)
-                    try:
-                        test()
-                        names.append(att)
-                    except unittest.case.SkipTest:
-                        continue
+            run = backend.run()[0]
+            self.assertEqual(len(run), 6)
             self.assertEqual(
-                names,
+                [r[0] for r in run],
                 [
                     "test_node_0_Cast_cpu",
                     "test_node_1_Less_cpu",

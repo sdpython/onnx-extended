@@ -12,10 +12,15 @@ CReferenceEvaluator
 Backend
 =======
 
+.. autofunction:: onnx_extended.reference.c_reference_backend.create_reference_backend
+
 .. autoclass:: onnx_extended.reference.c_reference_backend.CReferenceEvaluatorBackend
     :members: 
 
 .. autoclass:: onnx_extended.reference.c_reference_backend.CReferenceEvaluatorBackendRep
+    :members: 
+
+.. autoclass:: onnx_extended.reference.c_reference_backend.Runner
     :members: 
 
 Tools

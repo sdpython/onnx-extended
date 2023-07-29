@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 import numpy as np
 from onnx import FunctionProto, ModelProto, NodeProto, TensorProto
 from onnx.defs import get_schema
@@ -143,17 +143,8 @@ class CReferenceEvaluator(ReferenceEvaluator):
                 return [o.name for o in self.get_outputs()]
 
         new_cls = ReferenceEvaluatorBackend[NewRef]
-
-        backend = create_reference_backend(
-            new_cls, path_to_test=root, kind="modelrun"
-        )
-        backend.exclude("cuda")
-        tests = backend.tests()
-        names = []
-        for att in dir(tests):
-            if att.startswith("test_"):
-                test = getattr(tests, att)
-                test()
+        backend = create_reference_backend(new_cls, path_to_test=root)
+        beckend.run()
     """
 
     def default_ops():
@@ -320,20 +311,20 @@ class CReferenceEvaluator(ReferenceEvaluator):
         return list_results
 
     @staticmethod
-    def _retrieve_input_names(nodes: list[NodeProto]) -> set[str]:
+    def _retrieve_input_names(nodes: List[NodeProto]) -> Set[str]:
         inputs = set()
         for node in nodes:
             inputs |= set(node.input)
             for att in node.attribute:
                 if att.g:
-                    inputs |= ReferenceEvaluator._retrieve_input_names(att.g.node)
+                    inputs |= CReferenceEvaluator._retrieve_input_names(att.g.node)
         return inputs
 
-    def _retrieve_hidden_inputs(self, node: NodeProto) -> set[str]:
+    def _retrieve_hidden_inputs(self, node: NodeProto) -> Set[str]:
         names = set()
         for att in node.attribute:
             if att.g:
-                names |= ReferenceEvaluator._retrieve_input_names(att.g.node)
+                names |= CReferenceEvaluator._retrieve_input_names(att.g.node)
         return names
 
     def _save_intermerdiate_results(
