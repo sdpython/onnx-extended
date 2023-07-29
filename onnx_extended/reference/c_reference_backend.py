@@ -92,7 +92,7 @@ class Runner:
                 filtered[category][name] = item
         return filtered
 
-    def tests(self, name="CustomTestCase") -> type[unittest.TestCase]:
+    def tests(self, name: str = "CustomTestCase") -> type[unittest.TestCase]:
         """
         Returns a subclass of `unittest.TestCase`.
 
