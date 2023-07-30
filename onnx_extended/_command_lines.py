@@ -4,34 +4,46 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from onnx import ModelProto, TensorProto, ValueInfoProto
 from onnx.helper import tensor_dtype_to_np_dtype
+from onnx.numpy_helper import to_array
+from onnx.reference import ReferenceEvaluator
 
 
-def _type_shape(input_def: Union[str, ValueInfoProto]) -> Tuple[Any, Tuple[int, ...]]:
+def _type_shape(
+    input_def: Union[str, ValueInfoProto]
+) -> Tuple[Any, Tuple[int, ...], str]:
     if isinstance(input_def, str):
-        reg = re.compile("([a-z][a-z0-9]*)[(]([ a-zA-Z,0-9]+)[)]")
+        reg = re.compile(
+            "([a-z][a-z0-9]*)?([(]([ a-zA-Z,0-9]+)[)])?(:([A-Z][A-Z0-9]*))?"
+        )
         search = reg.match(input_def)
         if search is None:
             raise ValueError(f"Unable to interpret string {input_def!r}.")
-        dtype, shape = search.groups()
-        shape = shape.replace(" ", "").split(",")
+        grs = search.groups()
+        dtype = grs[0]
+        shape = None if grs[2] is None else grs[2].replace(" ", "").split(",")
+        law = grs[-1]
         new_shape = []
-        for i in shape:
-            try:
-                vi = int(i)
-                new_shape.append(vi)
-            except ValueError:
-                new_shape.append(i)
-        dt = getattr(np, dtype)
-        return dt, tuple(new_shape)
+        if shape is not None:
+            for i in shape:
+                try:
+                    vi = int(i)
+                    new_shape.append(vi)
+                except ValueError:
+                    new_shape.append(i)
+            rshape = tuple(new_shape)
+        else:
+            rshape = None
+        dt = None if dtype is None else getattr(np, dtype)
+        return dt, rshape, law
 
     if isinstance(input_def, ValueInfoProto):
         try:
             ttype = input_def.type.tensor_type
         except AttributeError:
             raise ValueError(f"Unsupported input type {input_def!r}.")
-        dt = ttype.elem_ttype
+        dt = ttype.elem_type
         new_shape = []
-        for d in ttype.shape.dims:
+        for d in ttype.shape.dim:
             if d.dim_param:
                 new_shape.append(d.dim_param)
             else:
@@ -42,23 +54,43 @@ def _type_shape(input_def: Union[str, ValueInfoProto]) -> Tuple[Any, Tuple[int, 
     raise TypeError(f"Unexpected type {type(input_def)} for input_def.")
 
 
-def create_random_input(
-    input_def: Union[str, ValueInfoProto], dims: Optional[Dict[str, int]] = None
+def _generate_random_inputs(
+    dtype: Any,
+    shape: Tuple[Union[int, str], ...],
+    law: Optional[str] = None,
+    dims: Optional[Dict[str, int]] = None,
 ) -> Tuple[np.ndarray, Dict[str, int]]:
     """
     Creates random or specific inputs.
 
-    :param input_def: a string `float32(4,5)` or `float32(N,5)` or a instance of
-        type :class:`onnx.ValueInfoProto`
+    :param dtype: numpy dtype
+    :param shape: expected shape
+    :param law: law of the coefficients, default is 'U10', uniform law
     :param dims: letter are allowed, contains the named dimensions already
         mapped to a specific value
     :return: tuple (array, updated dims)
 
-    Dimension are modified inplace.
+    Dimensions are modified inplace.
     """
     if dims is None:
         dims = {}
-    typ, shape = _type_shape(input_def)
+    if law is None:
+        law = "U10"
+    new_shape = []
+    for sh in shape:
+        if isinstance(sh, int):
+            new_shape.append(sh)
+        elif isinstance(sh, str):
+            if sh not in dims:
+                dims[sh] = 8
+            new_shape.append(dims[sh])
+    final_shape = tuple(new_shape)
+
+    if law == "U10":
+        res = np.random.random(final_shape).astype(dtype)
+        return res, dims
+
+    raise ValueError(f"Unexpected value for law={law!r}.")
 
 
 def store_intermediate_results(
@@ -92,12 +124,47 @@ def store_intermediate_results(
         from .reference import CReferenceEvaluator
 
         cls_runtime = CReferenceEvaluator
+        add_providers = False
     elif hasattr(runtime, "run"):
         cls_runtime = runtime
+        add_providers = True
     else:
         raise ValueError(f"Unexpected runtime {runtime!r}.")
-    inst = cls_runtime(
-        model, providers=providers, save_intermediate=out, verbose=int(verbose)
-    )
-    got = inst.run(inputs)
+    iv = int(verbose)
+    if add_providers:
+        inst = cls_runtime(
+            model, providers=providers, save_intermediate=out, verbose=iv
+        )
+    else:
+        inst = cls_runtime(model, save_intermediate=out, verbose=iv)
+    names = inst.input_names
+    if len(names) < len(inputs):
+        raise RuntimeError(
+            f"There are more inputs ({len(inputs)}) "
+            f"than names ({len(names)}). Names are {names}."
+        )
+
+    dims = {}
+    feeds = {}
+    for i, (name, inp) in enumerate(zip(names, inputs)):
+        if isinstance(inp, str) and os.path.exists(inp):
+            with open(inp, "rb") as f:
+                vect = f.read()
+            tp = TensorProto()
+            tp.ParseFromString(vect)
+            value = to_array(tp)
+        else:
+            ty, shape, law = _type_shape(inp)
+            if ty is None or shape is None:
+                if isinstance(inst, ReferenceEvaluator):
+                    ty, shape = _type_shape(inst.proto_.graph.input[i])
+                else:
+                    raise RuntimeError(
+                        f"shape or dtype is unknown and cannot "
+                        f"be retrieved from class {type(inst)}."
+                    )
+            value, dims = _generate_random_inputs(ty, shape, law, dims=dims)
+        feeds[name] = value
+
+    got = inst.run(None, feeds)
     return got
