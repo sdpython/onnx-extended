@@ -48,6 +48,7 @@ except ImportError:
 
 DIM = 64 if unit_test_going() else 256
 
+
 def _denorm(x):
     i = int.from_bytes(struct.pack("<f", numpy.float32(x)), "little")
     i &= 0x807FFFFF
