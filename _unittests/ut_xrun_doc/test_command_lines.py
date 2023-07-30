@@ -108,13 +108,13 @@ class TestCommandLines(ExtTestCase):
             ]
             main(args)
 
-            ds = os.listdir(root)
+            ds = list(sorted(os.listdir(root)))
             self.assertEqual(
-                list(sorted(ds)),
+                ds,
                 list(sorted(["test_node_0_Add", "test_node_1_Cos", "model.onnx"])),
             )
             self.assertExists(model_file)
-            for sub in ds[:2]:
+            for sub in ds[1:]:
                 fols = os.listdir(os.path.join(root, sub))
                 self.assertEqual(
                     list(sorted(fols)), list(sorted(["test_data_set_0", "model.onnx"]))

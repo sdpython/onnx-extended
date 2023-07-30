@@ -88,7 +88,7 @@ with open(onnx_file, "wb") as f:
 print(onnx_simple_text_plot(onx))
 
 onnx_model = onnx_file
-input_shape = (1, 256, 14, 14)
+input_shape = (1, 64 if unit_test_going() else 256, 14, 14)
 
 #########################################
 # CReferenceEvaluator and InferenceSession
