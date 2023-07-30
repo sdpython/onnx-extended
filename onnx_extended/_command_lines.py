@@ -1,7 +1,64 @@
 import os
-from typing import List, Union
+import re
+from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
-from onnx import ModelProto, TensorProto
+from onnx import ModelProto, TensorProto, ValueInfoProto
+from onnx.helper import tensor_dtype_to_np_dtype
+
+
+def _type_shape(input_def: Union[str, ValueInfoProto]) -> Tuple[Any, Tuple[int, ...]]:
+    if isinstance(input_def, str):
+        reg = re.compile("([a-z][a-z0-9]*)[(]([ a-zA-Z,0-9]+)[)]")
+        search = reg.match(input_def)
+        if search is None:
+            raise ValueError(f"Unable to interpret string {input_def!r}.")
+        dtype, shape = search.groups()
+        shape = shape.replace(" ", "").split(",")
+        new_shape = []
+        for i in shape:
+            try:
+                vi = int(i)
+                new_shape.append(vi)
+            except ValueError:
+                new_shape.append(i)
+        dt = getattr(np, dtype)
+        return dt, tuple(new_shape)
+
+    if isinstance(input_def, ValueInfoProto):
+        try:
+            ttype = input_def.type.tensor_type
+        except AttributeError:
+            raise ValueError(f"Unsupported input type {input_def!r}.")
+        dt = ttype.elem_ttype
+        new_shape = []
+        for d in ttype.shape.dims:
+            if d.dim_param:
+                new_shape.append(d.dim_param)
+            else:
+                new_shape.append(d.dim_value)
+        ndt = tensor_dtype_to_np_dtype(dt)
+        return ndt, tuple(new_shape)
+
+    raise TypeError(f"Unexpected type {type(input_def)} for input_def.")
+
+
+def create_random_input(
+    input_def: Union[str, ValueInfoProto], dims: Optional[Dict[str, int]] = None
+) -> Tuple[np.ndarray, Dict[str, int]]:
+    """
+    Creates random or specific inputs.
+
+    :param input_def: a string `float32(4,5)` or `float32(N,5)` or a instance of
+        type :class:`onnx.ValueInfoProto`
+    :param dims: letter are allowed, contains the named dimensions already
+        mapped to a specific value
+    :return: tuple (array, updated dims)
+
+    Dimension are modified inplace.
+    """
+    if dims is None:
+        dims = {}
+    typ, shape = _type_shape(input_def)
 
 
 def store_intermediate_results(
@@ -42,5 +99,5 @@ def store_intermediate_results(
     inst = cls_runtime(
         model, providers=providers, save_intermediate=out, verbose=int(verbose)
     )
-    inst.run(inputs)
-    raise NotImplementedError("not finished with {inst!r}")
+    got = inst.run(inputs)
+    return got
