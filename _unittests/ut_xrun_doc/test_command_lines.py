@@ -109,11 +109,16 @@ class TestCommandLines(ExtTestCase):
             main(args)
 
             ds = os.listdir(root)
-            self.assertEqual(ds, ["test_node_0_Add", "test_node_1_Cos", "model.onnx"])
+            self.assertEqual(
+                list(sorted(ds)),
+                list(sorted(["test_node_0_Add", "test_node_1_Cos", "model.onnx"])),
+            )
             self.assertExists(model_file)
             for sub in ds[:2]:
                 fols = os.listdir(os.path.join(root, sub))
-                self.assertEqual(fols, ["test_data_set_0", "model.onnx"])
+                self.assertEqual(
+                    list(sorted(fols)), list(sorted(["test_data_set_0", "model.onnx"]))
+                )
 
 
 if __name__ == "__main__":
