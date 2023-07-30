@@ -46,6 +46,8 @@ except ImportError:
     print("torch is not available")
     torch = None
 
+DIM = 64 if unit_test_going() else 256
+
 
 def _denorm(x):
     i = int.from_bytes(struct.pack("<f", numpy.float32(x)), "little")
@@ -57,10 +59,10 @@ denorm = numpy.vectorize(_denorm)
 
 
 def create_model():
-    X = make_tensor_value_info("X", TensorProto.FLOAT, [1, 256, 14, 14])
+    X = make_tensor_value_info("X", TensorProto.FLOAT, [1, DIM, 14, 14])
     Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None, None, None])
-    B = from_array(numpy.zeros([256], dtype=numpy.float32), name="B")
-    w = numpy.random.randn(256, 256, 3, 3).astype(numpy.float32)
+    B = from_array(numpy.zeros([DIM], dtype=numpy.float32), name="B")
+    w = numpy.random.randn(DIM, DIM, 3, 3).astype(numpy.float32)
 
     # let's randomly denormalize some number
     mask = (numpy.random.randint(2, size=w.shape) % 2).astype(numpy.float32)
@@ -88,7 +90,7 @@ with open(onnx_file, "wb") as f:
 print(onnx_simple_text_plot(onx))
 
 onnx_model = onnx_file
-input_shape = (1, 256, 14, 14)
+input_shape = (1, DIM, 14, 14)
 
 #########################################
 # CReferenceEvaluator and InferenceSession

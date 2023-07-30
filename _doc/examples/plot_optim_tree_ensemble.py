@@ -50,16 +50,16 @@ from onnx_extended.ortops.optim.optimize import (
     get_node_attribute,
     optimize_model,
 )
-from onnx_extended.ext_test_case import get_parsed_args
+from onnx_extended.ext_test_case import get_parsed_args, unit_test_going
 
 script_args = get_parsed_args(
     "plot_optim_tree_ensemble",
     description=__doc__,
     scenarios={"SHORT": "short optimization", "LONG": "test more options"},
-    n_features=(5, "number of features to generate"),
-    n_trees=(10, "number of trees to train"),
-    max_depth=(5, "max_depth"),
-    batch_size=(10000, "batch size"),
+    n_features=(2 if unit_test_going() else 5, "number of features to generate"),
+    n_trees=(3 if unit_test_going() else 10, "number of trees to train"),
+    max_depth=(2 if unit_test_going() else 5, "max_depth"),
+    batch_size=(1000 if unit_test_going() else 10000, "batch size"),
 )
 
 batch_size = script_args.batch_size
@@ -192,7 +192,16 @@ print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
 # Let's try out many possibilities.
 # The default values are the first ones.
 
-if script_args.scenario in (None, "SHORT"):
+if unit_test_going():
+    optim_params = dict(
+        parallel_tree=[40],  # default is 80
+        parallel_tree_N=[128],  # default is 128
+        parallel_N=[50, 25],  # default is 50
+        batch_size_tree=[2],  # default is 2
+        batch_size_rows=[2],  # default is 2
+        use_node3=[0],  # default is 0
+    )
+elif script_args.scenario in (None, "SHORT"):
     optim_params = dict(
         parallel_tree=[80, 40],  # default is 80
         parallel_tree_N=[128, 64],  # default is 128
