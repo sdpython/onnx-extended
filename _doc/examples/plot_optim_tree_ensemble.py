@@ -28,8 +28,8 @@ To change the training parameters:
         --n_features=50
         --batch_size=100000 
 
-# Training a model
-# ++++++++++++++++
+Training a model
+++++++++++++++++
 """
 import os
 import timeit
