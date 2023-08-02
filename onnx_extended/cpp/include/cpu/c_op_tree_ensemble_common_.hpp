@@ -9,9 +9,8 @@
 #include <deque>
 #include <unordered_map>
 
-// #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":",
-// __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
-#define DEBUG_PRINT(...)
+#define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
+// #define DEBUG_PRINT(...)
 
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
 // http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
@@ -698,16 +697,38 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       int64_t end_n, begin_n = 0;
       while (begin_n < N) {
         end_n = std::min(N, begin_n + parallel_tree_n);
+        // TrySimpleParallelFor(n_threads, batch_size, total)
+        //    for (int64_t i = 0; i < total; ++i) fn(i);
+        // total = max_num_threads * this->batch_size_tree_ // total
+        int num_batches = n_trees_ / this->batch_size_tree_ + 1;
         TrySimpleParallelFor(
-            max_num_threads, this->batch_size_tree_, num_threads,
+            // max_num_threads, this->batch_size_tree_, num_threads,
+            num_threads, this->batch_size_tree_, num_batches,
             [this, &agg, &scores, num_threads, x_data, N, begin_n, end_n,
              stride](int64_t batch_num) {
-              auto work = PartitionWork(batch_num, num_threads, this->n_trees_);
+              // PartitionWork(batch_idx, num_batches, total_work)
+              /*
+              work_per_batch = total_work / num_batches;
+              work_per_batch_extra = total_work % num_batches;
+
+              if (batch_idx < work_per_batch_extra) {
+                info.start = (work_per_batch + 1) * batch_idx;
+                info.end = info.start + work_per_batch + 1;
+              } else {
+                info.start = work_per_batch * batch_idx + work_per_batch_extra;
+                info.end = info.start + work_per_batch;
+              }
+              */
+                        
+              auto work = PartitionWork(batch_num, num_batches, this->n_trees_);
               for (int64_t i = begin_n; i < end_n; ++i) {
                 scores[batch_num * N + i] = {0, 0};
               }
               for (auto j = work.start; j < work.end; ++j) {
                 for (int64_t i = begin_n; i < end_n; ++i) {
+                  if (batch_num * N + i >= scores.size()) {
+                    throw std::runtime_error(MakeString("ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size()));
+                  }
                   agg.ProcessTreeNodePrediction1(
                       scores[batch_num * N + i],
                       *ProcessTreeNodeLeave(j, x_data + i * stride));
@@ -716,13 +737,17 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
             });
         begin_n = end_n;
       }
+      DEBUG_PRINT()
       TrySimpleParallelFor(
-          max_num_threads, batch_size_tree_, num_threads,
+          num_threads, batch_size_tree_, num_threads,
           [this, &agg, &scores, num_threads, label_data, z_data,
            N](int64_t batch_num) {
             auto work = PartitionWork(batch_num, num_threads, N);
             for (auto i = work.start; i < work.end; ++i) {
               for (int64_t j = 1; j < num_threads; ++j) {
+                if (i >= scores.size()) {
+                  throw std::runtime_error(MakeString("ERROR i=", i, " scores.size()=", scores.size()));
+                }
                 agg.MergePrediction1(scores[i],
                                      scores[j * static_cast<int64_t>(N) + i]);
               }
@@ -1044,8 +1069,8 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
   if (same_mode_) {
     switch (root->mode()) {
     case NODE_MODE::BRANCH_LEQ:
-      DEBUG_PRINT("LEQ")
       if (has_missing_tracks_) {
+        DEBUG_PRINT("LEQ1")
         while (root->is_not_leaf()) {
           val = x_data[root->feature_id];
           root += (val <= root->value_or_unique_weight ||
@@ -1054,16 +1079,17 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
                       : root->falsenode_inc_or_n_weights;
         }
       } else {
-        DEBUG_PRINT("LEQ+")
+        DEBUG_PRINT("LEQ2")
         while (root->is_not_leaf()) {
           val = x_data[root->feature_id];
-          DEBUG_PRINT("val=", val, " root->value_or_unique_weight=",
-                      root->value_or_unique_weight)
+          // DEBUG_PRINT("val=", val, " root->value_or_unique_weight=",
+          //             root->value_or_unique_weight)
           root += val <= root->value_or_unique_weight
                       ? root->truenode_inc_or_first_weight
                       : root->falsenode_inc_or_n_weights;
         }
       }
+      DEBUG_PRINT("LEQ3")
       break;
     case NODE_MODE::BRANCH_LT:
       TREE_FIND_VALUE(<)

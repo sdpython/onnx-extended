@@ -121,6 +121,7 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
 ////////////////////////
 
 void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
+  std::cout << "A\n";
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_X = ctx.GetInput(0);
   std::vector<int64_t> dimensions_in =
@@ -129,17 +130,21 @@ void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
   std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
   Ort::UnownedValue output = ctx.GetOutput(0, dimensions_out);
 
+  std::cout << "B\n";
   if (reg_float_float_float.get() != nullptr) {
+    std::cout << "C\n";
     const float *X = input_X.GetTensorData<float>();
     float *out = output.GetTensorMutableData<float>();
     reg_float_float_float->Compute(dimensions_in[0], dimensions_in[1], X, out,
                                    nullptr);
   } else {
+    std::cout << "D\n";
     EXT_ENFORCE("No implementation yet for input type=",
                 input_X.GetTensorTypeAndShapeInfo().GetElementType(),
                 " and output type=",
                 output.GetTensorTypeAndShapeInfo().GetElementType(), ".");
   }
+  std::cout << "E\n";
 }
 
 } // namespace ortops

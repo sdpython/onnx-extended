@@ -35,7 +35,7 @@ inline void TrySimpleParallelFor(int64_t n_threads, int64_t batch_size,
     throw std::runtime_error("TryBatchParallelFor not implemented when "
                              "n_threads != omp_get_max_threads().");
   }
-  if (total <= n_threads * batch_size) {
+  if (total <= (n_threads * batch_size) / 2) {
     for (int64_t i = 0; i < total; ++i) {
       fn(i);
     }
