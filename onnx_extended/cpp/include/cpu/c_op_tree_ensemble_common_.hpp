@@ -9,8 +9,8 @@
 #include <deque>
 #include <unordered_map>
 
-#define DEBUG_CHECK
-#define DEBUG_STEP
+// #define DEBUG_CHECK
+// #define DEBUG_STEP
 
 #if defined(DEBUG_CHECK)
 #define DEBUG_PRINT(...)

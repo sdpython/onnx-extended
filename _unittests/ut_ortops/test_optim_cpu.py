@@ -37,7 +37,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
     def test_random_forest_regressor(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 
-        X, y = make_regression(100, 2, n_classes=3, n_informative=1, random_state=32)
+        X, y = make_regression(100, 2, n_informative=1, random_state=32)
         X = X.astype(numpy.float32)
         y = y.astype(numpy.float32)
 
