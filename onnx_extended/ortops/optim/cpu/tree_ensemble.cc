@@ -6,6 +6,8 @@ namespace ortops {
 // Operators declaration
 ////////////////////////
 
+// Regressor
+
 void *TreeEnsembleRegressor::CreateKernel(const OrtApi &api,
                                           const OrtKernelInfo *info) const {
   return std::make_unique<TreeEnsembleKernel>(api, info).release();
@@ -31,6 +33,42 @@ size_t TreeEnsembleRegressor::GetOutputTypeCount() const { return 1; };
 ONNXTensorElementDataType
 TreeEnsembleRegressor::GetOutputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+};
+
+// Classifier
+
+void *TreeEnsembleClassifier::CreateKernel(const OrtApi &api,
+                                           const OrtKernelInfo *info) const {
+  return std::make_unique<TreeEnsembleKernel>(api, info).release();
+};
+
+const char *TreeEnsembleClassifier::GetName() const {
+  return "TreeEnsembleClassifier";
+};
+
+const char *TreeEnsembleClassifier::GetExecutionProviderType() const {
+  return "CPUExecutionProvider";
+};
+
+size_t TreeEnsembleClassifier::GetInputTypeCount() const { return 1; };
+
+ONNXTensorElementDataType
+TreeEnsembleClassifier::GetInputType(size_t index) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+};
+
+size_t TreeEnsembleClassifier::GetOutputTypeCount() const { return 2; };
+
+ONNXTensorElementDataType
+TreeEnsembleClassifier::GetOutputType(size_t index) const {
+  switch (index) {
+  case 0:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
+  case 1:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  default:
+    EXT_THROW("Unexpected output index: ", index, ".");
+  }
 };
 
 ////////////////////////
@@ -69,14 +107,43 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
   std::string post_transform =
       KernelInfoGetOptionalAttributeString(api, info, "post_transform", "NONE");
 
-  std::vector<int64_t> target_class_ids = KernelInfoGetOptionalAttribute(
-      api, info, "target_ids", std::vector<int64_t>());
   std::vector<int64_t> target_class_nodeids = KernelInfoGetOptionalAttribute(
       api, info, "target_nodeids", std::vector<int64_t>());
-  std::vector<int64_t> target_class_treeids = KernelInfoGetOptionalAttribute(
-      api, info, "target_treeids", std::vector<int64_t>());
-  std::vector<float> target_class_weights = KernelInfoGetOptionalAttribute(
-      api, info, "target_weights", std::vector<float>());
+  std::vector<int64_t> target_class_ids;
+  std::vector<int64_t> target_class_treeids;
+  std::vector<float> target_class_weights;
+  if (target_class_nodeids.empty()) {
+    // A classifier.
+    target_class_nodeids = KernelInfoGetOptionalAttribute(
+        api, info, "class_nodeids", std::vector<int64_t>());
+    target_class_ids = KernelInfoGetOptionalAttribute(api, info, "class_ids",
+                                                      std::vector<int64_t>());
+    target_class_treeids = KernelInfoGetOptionalAttribute(
+        api, info, "class_treeids", std::vector<int64_t>());
+    target_class_weights = KernelInfoGetOptionalAttribute(
+        api, info, "class_weights", std::vector<float>());
+    is_classifier = true;
+    std::vector<int64_t> labels_ints = KernelInfoGetOptionalAttribute(
+        api, info, "classlabels_int64s", std::vector<int64_t>());
+    EXT_ENFORCE(!labels_ints.empty(),
+                "This kernel does not support string classes.");
+    n_targets_or_classes = labels_ints.size();
+    for (size_t i = 0; i < labels_ints.size(); ++i) {
+      EXT_ENFORCE(labels_ints[i] == i,
+                  "classlabels_int64s should be an array of consecutive "
+                  "integers starting at 0, but position ",
+                  i, " fails.");
+    }
+  } else {
+    // A regressor.
+    target_class_ids = KernelInfoGetOptionalAttribute(api, info, "target_ids",
+                                                      std::vector<int64_t>());
+    target_class_treeids = KernelInfoGetOptionalAttribute(
+        api, info, "target_treeids", std::vector<int64_t>());
+    target_class_weights = KernelInfoGetOptionalAttribute(
+        api, info, "target_weights", std::vector<float>());
+    is_classifier = false;
+  }
 
   std::vector<std::string> nodes_modes = SplitString(nodes_modes_single, ',');
   EXT_ENFORCE(n_targets_or_classes > 0);
@@ -127,13 +194,19 @@ void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
       input_X.GetTensorTypeAndShapeInfo().GetShape();
   EXT_ENFORCE(dimensions_in.size() == 2, "TreeEnsemble only allows 2D inputs.");
   std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
-  Ort::UnownedValue output = ctx.GetOutput(0, dimensions_out);
+  Ort::UnownedValue output = ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
+  int64_t *p_labels = nullptr;
+  if (is_classifier) {
+    std::vector<int64_t> dimensions_label{dimensions_in[0]};
+    Ort::UnownedValue labels = ctx.GetOutput(0, dimensions_label);
+    p_labels = labels.GetTensorMutableData<int64_t>();
+  }
 
   if (reg_float_float_float.get() != nullptr) {
     const float *X = input_X.GetTensorData<float>();
     float *out = output.GetTensorMutableData<float>();
     reg_float_float_float->Compute(dimensions_in[0], dimensions_in[1], X, out,
-                                   nullptr);
+                                   p_labels);
   } else {
     EXT_ENFORCE("No implementation yet for input type=",
                 input_X.GetTensorTypeAndShapeInfo().GetElementType(),

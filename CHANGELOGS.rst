@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`51`: fix optmized TreeEnsembleRegressor and adds TreeEnsembleClassifier as custom ops
 * :pr:`50`: add command line store to store intermediate outputs
 * :pr:`49`: add option to save intermediate results in CReferenceEvaluator
 * :pr:`45`: add option cuda-link to setup.py to specify how to link with CUDA library

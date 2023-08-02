@@ -10,16 +10,29 @@
 #include <unordered_map>
 
 #define DEBUG_CHECK
+#define DEBUG_STEP
 
 #if defined(DEBUG_CHECK)
 #define DEBUG_PRINT(...)
-//#define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
-#define DEBUG_INDEX(index, total, ...) { if (index >= total) throw std::runtime_error(MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str()); }
+// #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":",
+// __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
+#define DEBUG_INDEX(index, total, ...)                                         \
+  {                                                                            \
+    if (index >= total)                                                        \
+      throw std::runtime_error(MakeString("*", __FILE__, ":", __LINE__, ":",   \
+                                          MakeString(__VA_ARGS__), "\n")       \
+                                   .c_str());                                  \
+  }
 #else
 #define DEBUG_PRINT(...)
 #define DEBUG_INDEX(index, total, ...)
 #endif
 
+#if defined(DEBUG_STEP)
+#define DEBUG_PRINT_STEP(msg) printf("%s\n", msg);
+#else
+#define DEBUG_PRINT_STEP(msg)
+#endif
 
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
 // http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
@@ -609,14 +622,14 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
 
   const InputType *x_data = X;
   int64_t *label_data = labels;
-  int64_t max_num_threads = omp_get_max_threads();
-  int64_t parallel_tree_n = (parallel_tree_N_ / 4) * max_num_threads;
+  int64_t max_n_threads = omp_get_max_threads();
+  int64_t parallel_tree_n = (parallel_tree_N_ / 4) * max_n_threads;
   if (parallel_tree_n < parallel_tree_N_)
     parallel_tree_n = parallel_tree_N_;
   if (parallel_tree_n < 0)
     parallel_tree_n = 1;
 
-  DEBUG_PRINT("max_num_threads=", max_num_threads)
+  DEBUG_PRINT("max_n_threads=", max_n_threads)
   DEBUG_PRINT("parallel_tree_N_=", parallel_tree_N_)
   DEBUG_PRINT("parallel_tree_n=", parallel_tree_n)
   DEBUG_PRINT("n_targets_or_classes_=", n_targets_or_classes_, " N=", N,
@@ -628,8 +641,9 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       DEBUG_PRINT()
       ScoreValue<ThresholdType> score = {0, 0};
       if (n_trees_ <= parallel_tree_ ||
-          max_num_threads == 1) { /* section A: 1 output, 1 row and not enough
+          max_n_threads == 1) { /* section A: 1 output, 1 row and not enough
                                      trees to parallelize */
+        DEBUG_PRINT_STEP("S:N1:TN")
         DEBUG_PRINT()
         for (int64_t j = 0; j < n_trees_; ++j) {
           agg.ProcessTreeNodePrediction1(
@@ -639,11 +653,12 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       } else { /* section B: 1 output, 1 row and enough trees to parallelize
                 */
         DEBUG_PRINT()
+        DEBUG_PRINT_STEP("S:N1:TN-P")
         std::vector<ScoreValue<ThresholdType>> scores(
             static_cast<size_t>(n_trees_), {0, 0});
         TryBatchParallelFor(
-            max_num_threads, this->batch_size_tree_, n_trees_,
-            [this, &scores, &agg, max_num_threads, x_data](int64_t j) {
+            max_n_threads, this->batch_size_tree_, n_trees_,
+            [this, &scores, &agg, max_n_threads, x_data](int64_t j) {
               agg.ProcessTreeNodePrediction1(scores[j],
                                              *ProcessTreeNodeLeave(j, x_data));
             });
@@ -656,8 +671,8 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       agg.FinalizeScores1(z_data, score, label_data);
       DEBUG_PRINT()
     } else if (N <= parallel_N_ ||
-               max_num_threads == 1) { /* section C: 1 output, 2+ rows but not
-                                          enough rows to parallelize */
+               max_n_threads == 1) { /* section C: 1 output, 2+ rows but not
+                                        enough rows to parallelize */
       // Not enough data to parallelize but the computation is split into
       // batches of 128 rows, and then loop on trees to evaluate every tree on
       // this batch. This change was introduced by PR:
@@ -671,6 +686,7 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       // That's why the first loop split into batch so that every batch holds
       // on caches, then loop on trees and finally loop on the batch rows.
       DEBUG_PRINT()
+      DEBUG_PRINT_STEP("S:NN:TN")
       std::vector<ScoreValue<ThresholdType>> scores(
           std::min(parallel_tree_n, N));
       size_t j;
@@ -695,86 +711,95 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
         }
       }
       DEBUG_PRINT()
-    } else if (n_trees_ > max_num_threads &&
+    } else if (n_trees_ > max_n_threads &&
                n_trees_ >= parallel_tree_) { /* section D: 1 output, 2+ rows and
                                                 enough trees to parallelize */
       DEBUG_PRINT()
-      auto num_threads =
-          std::min<int32_t>(max_num_threads, static_cast<int32_t>(n_trees_));
+      DEBUG_PRINT_STEP("S:NNB:TN-PG")
+      auto n_threads =
+          std::min<int32_t>(max_n_threads, static_cast<int32_t>(n_trees_));
+      int n_batches = n_trees_ / this->batch_size_tree_ + 1;
+      int max_n = std::min(N, parallel_tree_n);
       std::vector<ScoreValue<ThresholdType>> scores(
-          static_cast<size_t>(num_threads) * std::min(N, parallel_tree_n));
+          static_cast<size_t>(n_batches * max_n));
       int64_t end_n, begin_n = 0;
       while (begin_n < N) {
         end_n = std::min(N, begin_n + parallel_tree_n);
-        // TrySimpleParallelFor(n_threads, batch_size, total)
-        //    for (int64_t i = 0; i < total; ++i) fn(i);
-        // total = max_num_threads * this->batch_size_tree_ // total
-        int num_batches = n_trees_ / this->batch_size_tree_ + 1;
-        TrySimpleParallelFor(
-            // max_num_threads, this->batch_size_tree_, num_threads,
-            num_threads, this->batch_size_tree_, num_batches,
-            [this, &agg, &scores, num_batches, x_data, N, begin_n, end_n,
-             stride](int64_t batch_num) {
-              // PartitionWork(batch_idx, num_batches, total_work)
-              /*
-              work_per_batch = total_work / num_batches;
-              work_per_batch_extra = total_work % num_batches;
 
-              if (batch_idx < work_per_batch_extra) {
-                info.start = (work_per_batch + 1) * batch_idx;
-                info.end = info.start + work_per_batch + 1;
-              } else {
-                info.start = work_per_batch * batch_idx + work_per_batch_extra;
-                info.end = info.start + work_per_batch;
+        // initialization of scores to 0
+        TrySimpleParallelFor(
+            n_threads, n_threads * 2, [n_threads, &scores](int64_t batch_num) {
+              auto work =
+                  PartitionWork(batch_num, n_threads * 2, scores.size());
+              for (int64_t i = work.start; i < work.end; ++i) {
+                DEBUG_INDEX(i, scores.size(), "ERROR i=", i,
+                            " scores.size()=", scores.size(),
+                            " batch_num=", batch_num, " n_threads=", n_threads);
+                scores[i] = {0, 0};
               }
-              */
-                        
-              auto work = PartitionWork(batch_num, num_batches, this->n_trees_);
-              for (int64_t i = begin_n; i < end_n; ++i) {
-                DEBUG_INDEX(batch_num * N + i, scores.size(), "ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size());
-                scores[batch_num * N + i] = {0, 0};
-              }
+            });
+
+        // computing tree predictions
+        TrySimpleParallelFor(
+            n_threads, n_batches,
+            [this, &agg, &scores, n_batches, x_data, begin_n, end_n, stride,
+             max_n](int64_t batch_num) {
+              auto work = PartitionWork(batch_num, n_batches, this->n_trees_);
+              int score_index;
               for (auto j = work.start; j < work.end; ++j) {
-                for (int64_t i = begin_n; i < end_n; ++i) {
-                  DEBUG_INDEX(batch_num * N + i, scores.size(), "ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size());
+                score_index = batch_num * max_n;
+                for (int64_t i = begin_n; i < end_n; ++i, ++score_index) {
+                  DEBUG_INDEX(score_index, scores.size(),
+                              "ERROR score_index=", score_index,
+                              " max_n=", max_n, " i-begin_n=", i - begin_n,
+                              " scores.size()=", scores.size());
                   agg.ProcessTreeNodePrediction1(
-                      scores[batch_num * N + i],
+                      scores[score_index],
                       *ProcessTreeNodeLeave(j, x_data + i * stride));
                 }
               }
             });
+
+        // reducing the predictions
+        TrySimpleParallelFor(
+            n_threads, n_threads * 2,
+            [&agg, &scores, n_threads, begin_n, end_n, n_batches, max_n, z_data,
+             label_data](int64_t batch_num) {
+              auto work =
+                  PartitionWork(batch_num, n_threads * 2, end_n - begin_n);
+              for (auto i = work.start; i < work.end; ++i) {
+                for (int64_t j = 1; j < n_batches; ++j) {
+                  DEBUG_INDEX(i, scores.size(), "ERROR i=", i,
+                              " scores.size()=", scores.size());
+                  DEBUG_INDEX(j * static_cast<int64_t>(max_n) + i,
+                              scores.size(), "ERROR i=", i, "j=", j,
+                              " max_n=", max_n,
+                              " scores.size()=", scores.size());
+                  agg.MergePrediction1(
+                      scores[i], scores[j * static_cast<int64_t>(max_n) + i]);
+                }
+                agg.FinalizeScores1(z_data + (begin_n + i), scores[i],
+                                    label_data == nullptr
+                                        ? nullptr
+                                        : (label_data + begin_n + i));
+              }
+            });
+
         begin_n = end_n;
       }
       DEBUG_PRINT()
-      TrySimpleParallelFor(
-          num_threads, batch_size_tree_, num_threads,
-          [this, &agg, &scores, num_threads, label_data, z_data,
-           N](int64_t batch_num) {
-            auto work = PartitionWork(batch_num, num_threads, N);
-            for (auto i = work.start; i < work.end; ++i) {
-              for (int64_t j = 1; j < num_threads; ++j) {
-                DEBUG_INDEX(i, scores.size(), "ERROR i=", i, " scores.size()=", scores.size());
-                agg.MergePrediction1(scores[i],
-                                     scores[j * static_cast<int64_t>(N) + i]);
-              }
-              agg.FinalizeScores1(z_data + i, scores[i],
-                                  label_data == nullptr ? nullptr
-                                                        : (label_data + i));
-            }
-          });
-      DEBUG_PRINT()
     } else { /* section E: 1 output, 2+ rows, parallelization by rows */
       DEBUG_PRINT()
+      DEBUG_PRINT_STEP("S:NN-P:TN")
       TryBatchParallelFor(
-          max_num_threads, batch_size_rows_, N,
+          max_n_threads, batch_size_rows_, N,
           [this, &agg, x_data, z_data, stride, label_data,
-           max_num_threads](int64_t i) {
+           max_n_threads](int64_t i) {
             ScoreValue<ThresholdType> score = {0, 0};
             for (size_t j = 0; j < static_cast<size_t>(n_trees_); ++j) {
               agg.ProcessTreeNodePrediction1(
                   score, *ProcessTreeNodeLeave(j, x_data + i * stride));
             }
-
             agg.FinalizeScores1(z_data + i, score,
                                 label_data == nullptr ? nullptr
                                                       : (label_data + i));
@@ -786,8 +811,9 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
     if (N == 1) { /* section A2: 2+ outputs, 1 row, not enough trees to
                      parallelize */
       DEBUG_PRINT()
-      if (n_trees_ <= parallel_tree_ || max_num_threads == 1) { /* section A2 */
+      if (n_trees_ <= parallel_tree_ || max_n_threads == 1) { /* section A2 */
         DEBUG_PRINT()
+        DEBUG_PRINT_STEP("M:N1:TN")
         InlinedVector<ScoreValue<ThresholdType>> scores(
             static_cast<size_t>(n_targets_or_classes_), {0, 0});
         for (int64_t j = 0; j < n_trees_; ++j) {
@@ -800,17 +826,21 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       } else { /* section B2: 2+ outputs, 1 row, enough trees to parallelize
                 */
         DEBUG_PRINT()
-        auto num_threads =
-            std::min<int32_t>(max_num_threads, static_cast<int32_t>(n_trees_));
-        std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(
-            num_threads);
+        DEBUG_PRINT_STEP("M:N1:TN-P")
+        auto n_threads =
+            std::min<int32_t>(max_n_threads, static_cast<int32_t>(n_trees_));
+        std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(n_threads *
+                                                                     2);
         TrySimpleParallelFor(
-            max_num_threads, batch_size_tree_, num_threads,
-            [this, &agg, &scores, num_threads, x_data](int64_t batch_num) {
-              DEBUG_INDEX(batch_num, scores.size(), "ERROR batch_num=", batch_num, " scores.size()=", scores.size());
+            n_threads, n_threads * 2,
+            [this, &agg, &scores, n_threads, x_data](int64_t batch_num) {
+              DEBUG_INDEX(batch_num, scores.size(),
+                          "ERROR batch_num=", batch_num,
+                          " scores.size()=", scores.size());
               scores[batch_num].resize(
-                  static_cast<size_t>(n_targets_or_classes_), {0, 0});
-              auto work = PartitionWork(batch_num, num_threads, n_trees_);
+                  static_cast<size_t>(this->n_targets_or_classes_), {0, 0});
+              auto work =
+                  PartitionWork(batch_num, n_threads * 2, this->n_trees_);
               for (auto j = work.start; j < work.end; ++j) {
                 agg.ProcessTreeNodePrediction(scores[batch_num],
                                               *ProcessTreeNodeLeave(j, x_data),
@@ -824,8 +854,9 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
         DEBUG_PRINT()
       }
     } else if (N <= parallel_N_ ||
-               max_num_threads == 1) { /* section C2: 2+ outputs, 2+ rows, not
+               max_n_threads == 1) { /* section C2: 2+ outputs, 2+ rows, not
                                           enough rows to parallelize */
+      DEBUG_PRINT_STEP("M:NN:TN-P")
       DEBUG_PRINT("n_targets_or_classes_=", n_targets_or_classes_, " N=", N)
       size_t j, limit;
       int64_t i, batch, batch_end;
@@ -854,66 +885,102 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
         }
       }
       DEBUG_PRINT()
-    } else if (n_trees_ >= max_num_threads &&
+    } else if (n_trees_ >= max_n_threads &&
                n_trees_ >=
                    parallel_tree_) { /* section: D2: 2+ outputs, 2+ rows,
                                         enough trees to parallelize*/
+      DEBUG_PRINT_STEP("M:NNB:TN-PG")
       DEBUG_PRINT()
-      auto num_threads =
-          std::min<int32_t>(max_num_threads, static_cast<int32_t>(n_trees_));
+      auto n_threads =
+          std::min<int32_t>(max_n_threads, static_cast<int32_t>(n_trees_));
+      int n_batches = n_trees_ / this->batch_size_tree_ + 1;
+      int max_n = std::min(N, parallel_tree_n);
       std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(
-          static_cast<size_t>(num_threads) * N);
+          static_cast<size_t>(n_batches * max_n));
+      for (size_t ind = 0; ind < scores.size(); ++ind) {
+        scores[ind].resize(static_cast<size_t>(n_targets_or_classes_));
+      }
+
       int64_t end_n, begin_n = 0;
       while (begin_n < N) {
         end_n = std::min(N, begin_n + parallel_tree_n);
+
+        // initialization of scores to 0
         TrySimpleParallelFor(
-            max_num_threads, batch_size_tree_, num_threads,
-            [this, &agg, &scores, num_threads, x_data, N, stride, begin_n,
-             end_n](int64_t batch_num) {
-              auto work = PartitionWork(batch_num, num_threads, this->n_trees_);
-              for (int64_t i = begin_n; i < end_n; ++i) {
-                DEBUG_INDEX(batch_num * N + i, scores.size(), "ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size());
-                scores[batch_num * N + i].resize(
-                    static_cast<size_t>(n_targets_or_classes_), {0, 0});
+            n_threads, n_threads * 2, [n_threads, &scores](int64_t batch_num) {
+              auto work =
+                  PartitionWork(batch_num, n_threads * 2, scores.size());
+              for (int64_t i = work.start; i < work.end; ++i) {
+                DEBUG_INDEX(i, scores.size(), "ERROR i=", i,
+                            " scores.size()=", scores.size(),
+                            " batch_num=", batch_num, " n_threads=", n_threads);
+                std::fill(scores[i].begin(), scores[i].end(),
+                          ScoreValue<ThresholdType>({0, 0}));
               }
+            });
+
+        // computing tree predictions
+        TrySimpleParallelFor(
+            n_threads, n_batches,
+            [this, &agg, &scores, n_batches, x_data, begin_n, end_n, stride,
+             max_n](int64_t batch_num) {
+              auto work = PartitionWork(batch_num, n_batches, this->n_trees_);
+              int score_index;
               for (auto j = work.start; j < work.end; ++j) {
-                for (int64_t i = begin_n; i < end_n; ++i) {
+                score_index = batch_num * max_n;
+                for (int64_t i = begin_n; i < end_n; ++i, ++score_index) {
+                  DEBUG_INDEX(score_index, scores.size(),
+                              "ERROR score_index=", score_index,
+                              " max_n=", max_n, " i-begin_n=", i - begin_n,
+                              " scores.size()=", scores.size());
                   agg.ProcessTreeNodePrediction(
-                      scores[batch_num * static_cast<int64_t>(N) + i],
+                      scores[score_index],
                       *ProcessTreeNodeLeave(j, x_data + i * stride), weights_);
                 }
               }
             });
+
+        // reducing the predictions
+        TrySimpleParallelFor(
+            n_threads, n_threads * 2,
+            [&agg, &scores, this, n_threads, begin_n, end_n, n_batches, max_n,
+             z_data, label_data](int64_t batch_num) {
+              auto work =
+                  PartitionWork(batch_num, n_threads * 2, end_n - begin_n);
+              for (auto i = work.start; i < work.end; ++i) {
+                for (int64_t j = 1; j < n_batches; ++j) {
+                  DEBUG_INDEX(i, scores.size(), "ERROR i=", i,
+                              " scores.size()=", scores.size());
+                  DEBUG_INDEX(j * static_cast<int64_t>(max_n) + i,
+                              scores.size(), "ERROR i=", i, "j=", j,
+                              " max_n=", max_n,
+                              " scores.size()=", scores.size());
+                  agg.MergePrediction(
+                      scores[i], scores[j * static_cast<int64_t>(max_n) + i]);
+                }
+                agg.FinalizeScores(
+                    scores[i], z_data + ((begin_n + i) * n_targets_or_classes_),
+                    -1,
+                    label_data == nullptr ? nullptr
+                                          : (label_data + begin_n + i));
+              }
+            });
+
         begin_n = end_n;
       }
-      TrySimpleParallelFor(
-          max_num_threads, batch_size_tree_, num_threads,
-          [this, &agg, &scores, num_threads, label_data, z_data,
-           N](int64_t batch_num) {
-            auto work = PartitionWork(batch_num, num_threads, this->n_trees_);
-            for (int64_t i = work.start; i < work.end; ++i) {
-              for (int64_t j = 1; j < num_threads; ++j) {
-                DEBUG_INDEX(i, scores.size(), "ERROR i=", i, " scores.size()=", scores.size());
-                DEBUG_INDEX(j * static_cast<int64_t>(N) + i, scores.size(), "ERROR i=", i, " j=", j, " N=", N, " scores.size()=", scores.size());
-                agg.MergePrediction(scores[i],
-                                    scores[j * static_cast<int64_t>(N) + i]);
-              }
-              agg.FinalizeScores(
-                  scores[i], z_data + i * this->n_targets_or_classes_, -1,
-                  label_data == nullptr ? nullptr : (label_data + i));
-            }
-          });
       DEBUG_PRINT()
     } else { /* section E2: 2+ outputs, 2+ rows, parallelization by rows */
+      DEBUG_PRINT_STEP("M:NNB-P:TN")
       DEBUG_PRINT()
-      auto num_threads =
-          std::min<int32_t>(max_num_threads, static_cast<int32_t>(N));
+      auto n_threads =
+          std::min<int32_t>(max_n_threads, static_cast<int32_t>(N));
+      auto n_batches = N / n_threads + 1;
       TrySimpleParallelFor(
-          max_num_threads, batch_size_tree_, num_threads,
-          [this, &agg, num_threads, x_data, z_data, label_data, N,
-           stride](int64_t batch_num) {
-            auto work = PartitionWork(batch_num, num_threads, this->n_trees_);
-            for (int64_t i = work.start; work.end; ++i) {
+          n_threads, n_batches,
+          [this, &agg, n_threads, x_data, z_data, label_data, N, stride,
+           n_batches](int64_t batch_num) {
+            auto work = PartitionWork(batch_num, n_batches, N);
+            for (int64_t i = work.start; i < work.end; ++i) {
               size_t j, limit;
               InlinedVector<ScoreValue<ThresholdType>> scores(
                   static_cast<size_t>(n_targets_or_classes_));
@@ -1074,7 +1141,9 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
   if (!nodes3_.empty() && (roots3_[root_id] != nullptr)) {
     return ProcessTreeNodeLeave3(root_id, x_data);
   }
-  DEBUG_INDEX(root_id, roots_.size(), "ERROR ProcessTreeNodeLeave root_id=", root_id, " roots_.size()=", roots_.size(), ".");
+  DEBUG_INDEX(root_id, roots_.size(),
+              "ERROR ProcessTreeNodeLeave root_id=", root_id,
+              " roots_.size()=", roots_.size(), ".");
   const TreeNodeElement<ThresholdType> *root = roots_[root_id];
   InputType val;
   if (same_mode_) {
