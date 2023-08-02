@@ -23,6 +23,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
   // An instance remaining available until onnxruntime unload the library.
   static ortops::TreeEnsembleRegressor c_TreeEnsembleRegressor;
+  static ortops::TreeEnsembleClassifier c_TreeEnsembleClassifier;
 
   OrtStatus *result = nullptr;
 
@@ -30,6 +31,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     Ort::CustomOpDomain domain{c_OpDomain};
 
     domain.Add(&c_TreeEnsembleRegressor);
+    domain.Add(&c_TreeEnsembleClassifier);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));

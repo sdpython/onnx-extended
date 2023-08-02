@@ -14,10 +14,22 @@ struct TreeEnsembleKernel {
   int64_t n_targets_or_classes;
   std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<float, float, float>>
       reg_float_float_float;
+  bool is_classifier;
 };
 
 struct TreeEnsembleRegressor
     : Ort::CustomOpBase<TreeEnsembleRegressor, TreeEnsembleKernel> {
+  void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
+  const char *GetName() const;
+  const char *GetExecutionProviderType() const;
+  size_t GetInputTypeCount() const;
+  ONNXTensorElementDataType GetInputType(size_t index) const;
+  size_t GetOutputTypeCount() const;
+  ONNXTensorElementDataType GetOutputType(size_t index) const;
+};
+
+struct TreeEnsembleClassifier
+    : Ort::CustomOpBase<TreeEnsembleClassifier, TreeEnsembleKernel> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
