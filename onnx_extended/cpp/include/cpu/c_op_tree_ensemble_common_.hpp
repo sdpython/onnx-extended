@@ -9,8 +9,17 @@
 #include <deque>
 #include <unordered_map>
 
-#define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
-// #define DEBUG_PRINT(...)
+#define DEBUG_CHECK
+
+#if defined(DEBUG_CHECK)
+#define DEBUG_PRINT(...)
+//#define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
+#define DEBUG_INDEX(index, total, ...) { if (index >= total) throw std::runtime_error(MakeString("*", __FILE__, ":", __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str()); }
+#else
+#define DEBUG_PRINT(...)
+#define DEBUG_INDEX(index, total, ...)
+#endif
+
 
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
 // http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
@@ -704,7 +713,7 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
         TrySimpleParallelFor(
             // max_num_threads, this->batch_size_tree_, num_threads,
             num_threads, this->batch_size_tree_, num_batches,
-            [this, &agg, &scores, num_threads, x_data, N, begin_n, end_n,
+            [this, &agg, &scores, num_batches, x_data, N, begin_n, end_n,
              stride](int64_t batch_num) {
               // PartitionWork(batch_idx, num_batches, total_work)
               /*
@@ -722,13 +731,12 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
                         
               auto work = PartitionWork(batch_num, num_batches, this->n_trees_);
               for (int64_t i = begin_n; i < end_n; ++i) {
+                DEBUG_INDEX(batch_num * N + i, scores.size(), "ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size());
                 scores[batch_num * N + i] = {0, 0};
               }
               for (auto j = work.start; j < work.end; ++j) {
                 for (int64_t i = begin_n; i < end_n; ++i) {
-                  if (batch_num * N + i >= scores.size()) {
-                    throw std::runtime_error(MakeString("ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size()));
-                  }
+                  DEBUG_INDEX(batch_num * N + i, scores.size(), "ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size());
                   agg.ProcessTreeNodePrediction1(
                       scores[batch_num * N + i],
                       *ProcessTreeNodeLeave(j, x_data + i * stride));
@@ -745,9 +753,7 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
             auto work = PartitionWork(batch_num, num_threads, N);
             for (auto i = work.start; i < work.end; ++i) {
               for (int64_t j = 1; j < num_threads; ++j) {
-                if (i >= scores.size()) {
-                  throw std::runtime_error(MakeString("ERROR i=", i, " scores.size()=", scores.size()));
-                }
+                DEBUG_INDEX(i, scores.size(), "ERROR i=", i, " scores.size()=", scores.size());
                 agg.MergePrediction1(scores[i],
                                      scores[j * static_cast<int64_t>(N) + i]);
               }
@@ -801,6 +807,7 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
         TrySimpleParallelFor(
             max_num_threads, batch_size_tree_, num_threads,
             [this, &agg, &scores, num_threads, x_data](int64_t batch_num) {
+              DEBUG_INDEX(batch_num, scores.size(), "ERROR batch_num=", batch_num, " scores.size()=", scores.size());
               scores[batch_num].resize(
                   static_cast<size_t>(n_targets_or_classes_), {0, 0});
               auto work = PartitionWork(batch_num, num_threads, n_trees_);
@@ -865,6 +872,7 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
              end_n](int64_t batch_num) {
               auto work = PartitionWork(batch_num, num_threads, this->n_trees_);
               for (int64_t i = begin_n; i < end_n; ++i) {
+                DEBUG_INDEX(batch_num * N + i, scores.size(), "ERROR batch_num=", batch_num, " N=", N, " i=", i, " scores.size()=", scores.size());
                 scores[batch_num * N + i].resize(
                     static_cast<size_t>(n_targets_or_classes_), {0, 0});
               }
@@ -885,6 +893,8 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
             auto work = PartitionWork(batch_num, num_threads, this->n_trees_);
             for (int64_t i = work.start; i < work.end; ++i) {
               for (int64_t j = 1; j < num_threads; ++j) {
+                DEBUG_INDEX(i, scores.size(), "ERROR i=", i, " scores.size()=", scores.size());
+                DEBUG_INDEX(j * static_cast<int64_t>(N) + i, scores.size(), "ERROR i=", i, " j=", j, " N=", N, " scores.size()=", scores.size());
                 agg.MergePrediction(scores[i],
                                     scores[j * static_cast<int64_t>(N) + i]);
               }
@@ -1064,6 +1074,7 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
   if (!nodes3_.empty() && (roots3_[root_id] != nullptr)) {
     return ProcessTreeNodeLeave3(root_id, x_data);
   }
+  DEBUG_INDEX(root_id, roots_.size(), "ERROR ProcessTreeNodeLeave root_id=", root_id, " roots_.size()=", roots_.size(), ".");
   const TreeNodeElement<ThresholdType> *root = roots_[root_id];
   InputType val;
   if (same_mode_) {
