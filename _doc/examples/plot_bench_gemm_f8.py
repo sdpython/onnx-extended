@@ -1,16 +1,20 @@
 """
+.. _l-example-gemm-f8:
+
 Measuring Gemm performance with different input and output types
 ================================================================
 
 This benchmark looks into various combinations allowed by functions
-:epkg:`cublasLtMatmul`.
+:epkg:`cublasLtMatmul`. The tested configurations are available at
+:epkg:`cuda_gemm.cu`.
 """
 import pprint
+import warnings
 from itertools import product
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pandas import DataFrame
-from onnx_extended.ext_test_case import unit_test_going
+from onnx_extended.ext_test_case import unit_test_going, get_parsed_args
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import (
@@ -22,6 +26,43 @@ try:
 except ImportError:
     # CUDA not available.
     has_cuda = False
+
+if has_cuda:
+    prop = get_device_prop()
+    if prop["major"] <= 0:
+        # No CUDA.
+        dtests, ddims = "", ""
+    elif prop["major"] < 7:
+        # No float 8.
+        dtests, ddims = "0,1,2,3,4", "16,32,64"
+    elif prop["major"] < 9:  # T100, A100
+        # No float 8.
+        dtests, ddims = "0,1,2,3,4", "16,32,64,128,256,512,1024,2048,4096,8192"
+    else:
+        dtests, ddims = (
+            "0,1,2,3,4,5,6,7,11,14",
+            "16,32,64,128,256,512,1024,2048,4096,8192,16384",
+        )
+else:
+    dtests, ddims = "", ""
+
+
+script_args = get_parsed_args(
+    "plot_bench_gemm_f8",
+    description=__doc__,
+    dims=(
+        "16,32" if unit_test_going() else ddims,
+        "square matrix dimensions to try, comma separated values",
+    ),
+    tests=(
+        "0,1,2" if unit_test_going() else dtests,
+        "configuration to check, see cuda_gemm.cu",
+    ),
+    warmup=2 if unit_test_going() else 5,
+    repeat=2 if unit_test_going() else 10,
+    expose="repeat,warmup",
+)
+
 
 #############################################
 # Device
@@ -35,51 +76,34 @@ else:
     prop = dict(major=0)
 
 
-#############################################
-# Configurations
-# ++++++++++++++
-
-if prop["major"] <= 0:
-    # No CUDA.
-    tests = []
-    dims = []
-elif prop["major"] < 7:
-    # No float 8.
-    tests = list(range(5))
-    dims = [16, 32, 64]
-elif prop["major"] < 9:  # T100, A100
-    # No float 8.
-    tests = list(range(5))
-    dims = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-else:
-    tests = list(range(15))  # H100
-    dims = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
-
 ##############################
 # Benchmark
 # +++++++++
 
 
 def type2string(dt):
-    dtypes = {0: "F32", 2: "F16", 14: "BF16", 28: "E4M3", 29: "E5M2"}
-    return dtypes[int(dt)]
+    dtests = {0: "F32", 2: "F16", 14: "BF16", 28: "E4M3", 29: "E5M2"}
+    return dtests[int(dt)]
 
 
-pbar = tqdm(list(product(tests, dims)))
+dims = list(int(i) for i in script_args.dims.split(","))
+types = list(int(i) for i in script_args.types.split(","))
+
+pbar = tqdm(list(product(types, dims)))
 obs = []
 for test, dim in pbar:
-    pbar.set_description(f"test={test} dim={dim}")
+    pbar.set_description(f"type={test} dim={dim}")
     if test in {8, 9, 10, 12, 13}:
-        # not valid yet
+        warnings.warn(f"unsupported configuration {test}.")
         continue
     if dim < 128:
-        n, N = 20, 100
+        n, N = script_args.warmup * 8, script_args.repeat * 8
     elif dim < 512:
-        n, N = 20, 50
+        n, N = script_args.warmup * 4, script_args.repeat * 4
     elif dim < 8192:
-        n, N = 10, 25
+        n, N = script_args.warmup * 2, script_args.repeat * 2
     else:
-        n, N = 3, 5
+        n, N = script_args.warmup, script_args.repeat
 
     # warmup
     gemm_benchmark_test(test, n, dim)

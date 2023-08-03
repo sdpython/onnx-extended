@@ -1,13 +1,12 @@
 """
+.. _l-example-plot-profile-gemm:
+
 Profiles a simple onnx graph including a singleGemm
 ===================================================
 
 The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
-
-Device properties
-+++++++++++++++++
 """
 import pprint
 from itertools import product
@@ -47,7 +46,7 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.ext_test_case import unit_test_going
+from onnx_extended.ext_test_case import unit_test_going, get_parsed_args
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
@@ -62,6 +61,26 @@ except ImportError:
 
 
 properties = get_device_prop()
+
+if unit_test_going():
+    default_dims = "32,32,32;64,64,64"
+elif properties.get("major", 0) < 7:
+    default_dims = "256,256,256;512,512,512"
+else:
+    default_dims = "2048,2048,2048;4096,4096,4096"
+
+script_args = get_parsed_args(
+    "plot_profile_gemm_ort",
+    description=__doc__,
+    dims=(default_dims, "dimensions to try for dims"),
+    repeat_profile=(17, "number of time to call ORT for profiling"),
+)
+
+
+###########################
+# Device properties
+# +++++++++++++++++
+
 pprint.pprint(properties)
 
 
@@ -213,17 +232,7 @@ providers = [
 ]
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
-if properties.get("major", 0) < 7:
-    dims = [
-        (256, 256, 256),
-        (512, 512, 512),
-    ]
-else:
-    dims = [
-        (2048, 2048, 2048),
-        (4096, 4096, 4096),
-    ]
-
+dims = [tuple(int(i) for i in line.split(",")) for line in script_args.dims.split(";")]
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
@@ -333,7 +342,7 @@ for tt, engine, provider, dim, domain in pbar:
         onx,
         the_feeds,
         sess_options=opts,
-        repeat=17,
+        repeat=script_args.repeat_profile,
         as_df=True,
         providers=provider,
         first_it_out=True,

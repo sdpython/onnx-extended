@@ -27,9 +27,6 @@ To change the training parameters:
         --max_depth=10
         --n_features=50
         --batch_size=100000 
-
-Training a model
-++++++++++++++++
 """
 import os
 import timeit
@@ -55,12 +52,28 @@ from onnx_extended.ext_test_case import get_parsed_args, unit_test_going
 script_args = get_parsed_args(
     "plot_optim_tree_ensemble",
     description=__doc__,
-    scenarios={"SHORT": "short optimization", "LONG": "test more options"},
+    scenarios={
+        "SHORT": "short optimization (default)",
+        "LONG": "test more options",
+        "CUSTOM": "use values specified by the command line",
+    },
     n_features=(2 if unit_test_going() else 5, "number of features to generate"),
     n_trees=(3 if unit_test_going() else 10, "number of trees to train"),
     max_depth=(2 if unit_test_going() else 5, "max_depth"),
     batch_size=(1000 if unit_test_going() else 10000, "batch size"),
+    parallel_tree=("80,160,40", "values to try for parallel_tree"),
+    parallel_tree_N=("256,128,64", "values to try for parallel_tree_N"),
+    parallel_N=("100,50,25", "values to try for parallel_N"),
+    batch_size_tree=("2,4,8", "values to try for batch_size_tree"),
+    batch_size_rows=("2,4,8", "values to try for batch_size_rows"),
+    use_node3=("0,1", "values to try for use_node3"),
+    expose="",
 )
+
+
+################################
+# Training a model
+# ++++++++++++++++
 
 batch_size = script_args.batch_size
 n_features = script_args.n_features
@@ -210,7 +223,7 @@ elif script_args.scenario in (None, "SHORT"):
         batch_size_rows=[2],  # default is 2
         use_node3=[0],  # default is 0
     )
-elif script_args.scenario in (None, "LONG"):
+elif script_args.scenario == "LONG":
     optim_params = dict(
         parallel_tree=[80, 160, 40],
         parallel_tree_N=[256, 128, 64],
@@ -218,6 +231,15 @@ elif script_args.scenario in (None, "LONG"):
         batch_size_tree=[2, 4, 8],
         batch_size_rows=[2, 4, 8],
         use_node3=[0, 1],
+    )
+elif script_args.scenario == "CUSTOM":
+    optim_params = dict(
+        parallel_tree=list(int(i) for i in script_args.parallel_tree.split(",")),
+        parallel_tree_N=list(int(i) for i in script_args.parallel_tree_N.split(",")),
+        parallel_N=list(int(i) for i in script_args.parallel_N.split(",")),
+        batch_size_tree=list(int(i) for i in script_args.batch_size_tree.split(",")),
+        batch_size_rows=list(int(i) for i in script_args.batch_size_rows.split(",")),
+        use_node3=list(int(i) for i in script_args.use_node3.split(",")),
     )
 else:
     raise ValueError(

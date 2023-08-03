@@ -1,4 +1,7 @@
 """
+.. _l-example-gemm-ort-f8:
+
+
 Measuring performance about Gemm with onnxruntime
 =================================================
 
@@ -6,9 +9,6 @@ The benchmark measures the performance of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 This function offers many options.
-
-Device properties
-+++++++++++++++++
 """
 import pprint
 import platform
@@ -48,11 +48,13 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.ext_test_case import unit_test_going, measure_time
+from onnx_extended.ext_test_case import unit_test_going, measure_time, get_parsed_args
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
     from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+
+    has_cuda = True
 except ImportError:
 
     def get_device_prop():
@@ -61,9 +63,45 @@ except ImportError:
     def get_ort_ext_libs():
         return None
 
+    has_cuda = False
 
-properties = get_device_prop()
-pprint.pprint(properties)
+default_dims = (
+    "32,32,32;64,64,64;128,128,128;256,256,256;"
+    "400,400,400;512,512,512;1024,1024,1024"
+)
+if has_cuda:
+    prop = get_device_prop()
+    if prop.get("major", 0) >= 7:
+        default_dims += ";2048,2048,2048;4096,4096,4096"
+    if prop.get("major", 0) >= 9:
+        default_dims += ";16384,16384,16384"
+
+
+script_args = get_parsed_args(
+    "plot_bench_gemm_ort",
+    description=__doc__,
+    dims=(
+        "32,32,32;64,64,64" if unit_test_going() else default_dims,
+        "square matrix dimensions to try, comma separated values",
+    ),
+    types=(
+        "FLOAT" if unit_test_going() else "FLOAT8E4M3FN,FLOAT,FLOAT16,BFLOAT16",
+        "element type to teest",
+    ),
+    number=2 if unit_test_going() else 4,
+    repeat=2 if unit_test_going() else 10,
+    warmup=2 if unit_test_going() else 5,
+    expose="repeat,number,warmup",
+)
+
+#################################
+# Device properties
+# +++++++++++++++++
+
+
+if has_cuda:
+    properties = get_device_prop()
+    pprint.pprint(properties)
 
 
 ###################################
@@ -198,16 +236,7 @@ print(onnx_simple_text_plot(create_cast(TensorProto.FLOAT16)))
 #
 # The benchmark will run the following configurations.
 
-types = [
-    TensorProto.FLOAT8E4M3FN,
-    TensorProto.FLOAT,
-    TensorProto.FLOAT16,
-    TensorProto.BFLOAT16,
-    # TensorProto.UINT32,
-    # TensorProto.INT32,
-    # TensorProto.INT16,
-    # TensorProto.INT8,
-]
+types = list(getattr(TensorProto, a) for a in script_args.types.split(","))
 engine = [InferenceSession, CReferenceEvaluator]
 providers = [
     ["CUDAExecutionProvider", "CPUExecutionProvider"],
@@ -215,32 +244,7 @@ providers = [
 ]
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
-dims = [
-    (32, 32, 32),
-    # (56, 64, 72),
-    # (64, 64, 64),
-    # (64, 72, 80),
-    (128, 128, 128),
-    (256, 256, 256),
-    (400, 400, 400),
-    (512, 512, 512),
-    (1024, 1024, 1024),
-]
-if properties.get("major", 0) >= 7:
-    dims.extend(
-        [
-            (2048, 2048, 2048),
-            (4096, 4096, 4096),
-        ]
-    )
-
-if properties.get("major", 0) >= 9:
-    dims.extend(
-        [
-            (16384, 16384, 16384),
-        ]
-    )
-
+dims = [list(int(i) for i in line.split(",")) for line in script_args.dims.split(";")]
 domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
@@ -373,11 +377,11 @@ for tt, engine, provider, dim, domain in pbar:
         # too long
         continue
     if max(dim) <= 200:
-        repeat, number = 50, 25
+        repeat, number = script_args.repeat * 4, script_args.number * 4
     elif max(dim) <= 256:
-        repeat, number = 25, 10
+        repeat, number = script_args.repeat * 2, script_args.number * 2
     else:
-        repeat, number = 10, 4
+        repeat, number = script_args.repeat, script_args.number
 
     onx = create_model(tt, provider=provider[0], domain=domain)
     if onx is None:
@@ -438,7 +442,7 @@ for tt, engine, provider, dim, domain in pbar:
         )
 
         # warmup
-        for i in range(5):
+        for i in range(script_args.warmup):
             sess._sess.run_with_ort_values(the_feeds, out_names, None)[0]
 
         # benchamrk

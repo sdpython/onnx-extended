@@ -1,13 +1,13 @@
 """
-Measuring onnxruntime performance
-=================================
+.. _l-cython-pybind11-ort-bindings:
 
-The following code measures the performance of the python bindings.
+Measuring onnxruntime performance against a cython binding
+==========================================================
+
+The following code measures the performance of the python bindings
+against a :epkg:`cython` binding.
 The time spent in it is not significant when the computation is huge
 but it may be for small matrices.
-
-A simple onnx model
-+++++++++++++++++++
 """
 import numpy
 from pandas import DataFrame
@@ -24,7 +24,23 @@ from onnx.helper import (
 from onnx.checker import check_model
 from onnxruntime import InferenceSession
 from onnx_extended.ortcy.wrap.ortinf import OrtSession
-from onnx_extended.ext_test_case import measure_time, unit_test_going
+from onnx_extended.ext_test_case import measure_time, unit_test_going, get_parsed_args
+
+
+script_args = get_parsed_args(
+    "plot_bench_cypy_ort",
+    description=__doc__,
+    dims=(
+        "1,10" if unit_test_going() else "1,10,100,1000",
+        "square matrix dimensions to try, comma separated values",
+    ),
+    expose="repeat,number",
+)
+
+####################################
+# A simple onnx model
+# +++++++++++++++++++
+
 
 A = numpy_helper.from_array(numpy.array([1], dtype=numpy.float32), name="A")
 X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
@@ -71,13 +87,14 @@ print(f"t_ext2={t_ext2}")
 #############################################
 # Benchmark
 # +++++++++
+dims = list(int(i) for i in script_args.dims.split(","))
 
 data = []
-for dim in tqdm([1, 10, 100, 1000]):
+for dim in tqdm(dims):
     if dim < 1000:
-        number, repeat = 100, 50
+        number, repeat = script_args.number, script_args.repeat
     else:
-        number, repeat = 20, 10
+        number, repeat = script_args.number * 5, script_args.repeat * 5
     x = numpy.random.randn(dim, dim).astype(numpy.float32)
     t_ort = measure_time(
         lambda: sess_ort.run(None, {"X": x})[0], number=number, repeat=50

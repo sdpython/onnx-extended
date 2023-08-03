@@ -34,6 +34,7 @@ Source are available on `github/onnx-extended
     tutorial/index
     api/index
     tech/index
+    benchmarks
     auto_examples/index
     CHANGELOGS
     license
