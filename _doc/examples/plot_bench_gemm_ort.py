@@ -102,6 +102,8 @@ script_args = get_parsed_args(
 if has_cuda:
     properties = get_device_prop()
     pprint.pprint(properties)
+else:
+    properties = {"major": 0}
 
 
 ###################################
