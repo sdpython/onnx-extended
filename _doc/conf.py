@@ -91,6 +91,7 @@ nitpick_ignore = [
     ("py:class", "True"),
     ("py:class", "pipeline.Pipeline"),
     ("py:class", "default=sklearn.utils.metadata_routing.UNCHANGED"),
+    ("py:class", "sklearn.ensemble.RandomForestRegressor"),
     ("py:class", "unittest.case.TestCase"),
 ]
 
