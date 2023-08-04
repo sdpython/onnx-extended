@@ -1,7 +1,7 @@
 """
 .. _l-example-gemm-f8:
 
-Measuring Gemm performance with different input and output types
+Measuring Gemm performance with different input and output tests
 ================================================================
 
 This benchmark looks into various combinations allowed by functions
@@ -87,9 +87,9 @@ def type2string(dt):
 
 
 dims = list(int(i) for i in script_args.dims.split(","))
-types = list(int(i) for i in script_args.types.split(","))
+tests = list(int(i) for i in script_args.tests.split(","))
 
-pbar = tqdm(list(product(types, dims)))
+pbar = tqdm(list(product(tests, dims)))
 obs = []
 for test, dim in pbar:
     pbar.set_description(f"type={test} dim={dim}")
