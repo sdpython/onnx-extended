@@ -26,6 +26,7 @@ try:
 except ImportError:
     # CUDA not available.
     has_cuda = False
+    gemm_benchmark_test = None
 
 if has_cuda:
     prop = get_device_prop()
@@ -63,7 +64,6 @@ script_args = get_parsed_args(
     expose="repeat,warmup",
 )
 
-
 #############################################
 # Device
 # ++++++
@@ -86,8 +86,13 @@ def type2string(dt):
     return dtests[int(dt)]
 
 
-dims = list(int(i) for i in script_args.dims.split(","))
-tests = list(int(i) for i in script_args.tests.split(","))
+if gemm_benchmark_test is None:
+    # No CUDA.
+    dims = []
+    tests = []
+else:
+    dims = list(int(i) for i in script_args.dims.split(","))
+    tests = list(int(i) for i in script_args.tests.split(","))
 
 pbar = tqdm(list(product(tests, dims)))
 obs = []
