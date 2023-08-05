@@ -30,12 +30,18 @@ Source are available on `github/onnx-extended
 
 .. toctree::
     :maxdepth: 1
+    :caption: Contents
 
     tutorial/index
     api/index
     tech/index
     benchmarks
     auto_examples/index
+
+.. toctree::
+    :maxdepth: 1
+    :caption: More
+
     CHANGELOGS
     license
 
