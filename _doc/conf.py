@@ -91,6 +91,7 @@ nitpick_ignore = [
     ("py:class", "True"),
     ("py:class", "pipeline.Pipeline"),
     ("py:class", "default=sklearn.utils.metadata_routing.UNCHANGED"),
+    ("py:class", "sklearn.ensemble.RandomForestRegressor"),
     ("py:class", "unittest.case.TestCase"),
 ]
 
@@ -110,12 +111,13 @@ sphinx_gallery_conf = {
 
 epkg_dictionary = {
     "cmake": "https://cmake.org/",
-    "CUDAExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
     "CPUExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
-    "cublasLtMatmul": "https://docs.nvidia.com/cuda/cublas/index.html?"
-    "highlight=cublasltmatmul#cublasltmatmul",
+    "cublasLtMatmul": "https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatmul#cublasltmatmul",
     "CUDA": "https://developer.nvidia.com/",
+    "cuda_gemm.cu": "https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/validation/cuda/cuda_gemm.cu#L271",
     "cudnn": "https://developer.nvidia.com/cudnn",
+    "CUDAExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
+    "custom_gemm.cu": "https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/ortops/tutorial/cuda/custom_gemm.cu",
     "cython": "https://cython.org/",
     "DOT": "https://graphviz.org/doc/info/lang.html",
     "eigen": "https://eigen.tuxfamily.org/",
@@ -142,11 +144,14 @@ epkg_dictionary = {
     "pybind11": "https://github.com/pybind/pybind11",
     "pyinstrument": "https://github.com/joerick/pyinstrument",
     "python": "https://www.python.org/",
+    "Python C API": "https://docs.python.org/3/c-api/index.html",
     "pytorch": "https://pytorch.org/",
     "scikit-learn": "https://scikit-learn.org/stable/",
     "scipy": "https://scipy.org/",
     "sphinx-gallery": "https://github.com/sphinx-gallery/sphinx-gallery",
     "torch": "https://pytorch.org/docs/stable/torch.html",
     "tqdm": "https://tqdm.github.io/",
+    "TreeEnsembleClassifier": "https://onnx.ai/onnx/operators/onnx_aionnxml_TreeEnsembleClassifier.html",
+    "TreeEnsembleRegressor": "https://onnx.ai/onnx/operators/onnx_aionnxml_TreeEnsembleRegressor.html",
     "WSL": "https://docs.microsoft.com/en-us/windows/wsl/install",
 }

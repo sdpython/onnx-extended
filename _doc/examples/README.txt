@@ -1,4 +1,6 @@
-Example gallery
+.. _l-example-gallery:
+
+Example Gallery
 ===============
 
 A couple of examples to illustrate different implementation

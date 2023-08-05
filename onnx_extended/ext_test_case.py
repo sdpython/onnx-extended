@@ -255,6 +255,7 @@ def get_parsed_args(
     warmup: int = 5,
     sleep: float = 0.1,
     tries: int = 2,
+    expose: Optional[str] = None,
     **kwargs: Dict[str, Tuple[Union[int, str, float], str]],
 ) -> ArgumentParser:
     """
@@ -268,6 +269,9 @@ def get_parsed_args(
     :param repeat: default value for repeat parameter
     :param warmup: default value for warmup parameter
     :param sleep: default value for sleep parameter
+    :param expose: if empty, keeps all the parameters,
+        if None, only publish kwargs contains, otherwise the list
+        of parameters to publish separated by a comma
     :param kwargs: additional parameters,
         example: `n_trees=(10, "number of trees to train")`
     :return: parser
@@ -277,48 +281,57 @@ def get_parsed_args(
     if epilog is None:
         epilog = ""
     parser = ArgumentParser(prog=name, description=description, epilog=epilog)
-    if scenarios is not None:
-        rows = ", ".join(f"{k}: {v}" for k, v in scenarios.items())
-        parser.add_argument("-s", "--scenario", help=f"Available scenarios: {rows}.")
-    parser.add_argument(
-        "-n",
-        "--number",
-        help="number of executions to measure",
-        type=int,
-        default=number,
-    )
-    parser.add_argument(
-        "-r",
-        "--repeat",
-        help="number of times to repeat the measure",
-        type=int,
-        default=repeat,
-    )
-    parser.add_argument(
-        "-w",
-        "--warmup",
-        help="number of times to repeat the measure",
-        type=int,
-        default=warmup,
-    )
-    parser.add_argument(
-        "-S",
-        "--sleep",
-        help="sleeping time between two configurations",
-        type=float,
-        default=sleep,
-    )
-    parser.add_argument(
-        "-t",
-        "--tries",
-        help="number of tries for each configurations",
-        type=int,
-        default=tries,
-    )
+    if expose is not None:
+        to_publish = set(expose.split(",")) if len(expose) > 0 else set()
+        if scenarios is not None:
+            rows = ", ".join(f"{k}: {v}" for k, v in scenarios.items())
+            parser.add_argument(
+                "-s", "--scenario", help=f"Available scenarios: {rows}."
+            )
+        if len(to_publish) == 0 or "number" in to_publish:
+            parser.add_argument(
+                "-n",
+                "--number",
+                help=f"number of executions to measure, default is {number}",
+                type=int,
+                default=number,
+            )
+        if len(to_publish) == 0 or "repeat" in to_publish:
+            parser.add_argument(
+                "-r",
+                "--repeat",
+                help=f"number of times to repeat the measure, default is {repeat}",
+                type=int,
+                default=repeat,
+            )
+        if len(to_publish) == 0 or "warmup" in to_publish:
+            parser.add_argument(
+                "-w",
+                "--warmup",
+                help=f"number of times to repeat the measure, default is {warmup}",
+                type=int,
+                default=warmup,
+            )
+        if len(to_publish) == 0 or "sleep" in to_publish:
+            parser.add_argument(
+                "-S",
+                "--sleep",
+                help=f"sleeping time between two configurations, default is {sleep}",
+                type=float,
+                default=sleep,
+            )
+        if len(to_publish) == 0 or "tries" in to_publish:
+            parser.add_argument(
+                "-t",
+                "--tries",
+                help=f"number of tries for each configurations, default is {tries}",
+                type=int,
+                default=tries,
+            )
     for k, v in kwargs.items():
         parser.add_argument(
             f"--{k}",
-            help=v[1],
+            help=f"{v[1]}, default is {v[0]}",
             type=type(v[0]),
             default=v[0],
         )
