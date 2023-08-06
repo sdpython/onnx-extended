@@ -120,6 +120,31 @@ class TestCommandLines(ExtTestCase):
                     list(sorted(fols)), list(sorted(["test_data_set_0", "model.onnx"]))
                 )
 
+    def test_command_display(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [5, 6])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node("Add", ["X", "Y"], ["res"]),
+                make_node("Cos", ["res"], ["Z"]),
+            ],
+            "g",
+            [X, Y],
+            [Z],
+        )
+        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)])
+        st = StringIO()
+        with tempfile.NamedTemporaryFile(suffix=".onnx") as f:
+            f.write(onnx_model.SerializeToString())
+            f.seek(0)
+            with tempfile.NamedTemporaryFile(suffix=".csv") as root:
+                with redirect_stdout(st):
+                    args = ["display", "-m", f.name, "-s", root.name]
+                    main(args)
+        text = st.getvalue()
+        self.assertIn("input     tensor    X         FLOAT     ?x?", text)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

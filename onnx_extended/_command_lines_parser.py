@@ -12,7 +12,7 @@ def get_main_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "cmd",
-        choices=["store", "check"],
+        choices=["store", "check", "display"],
         help=dedent(
             """
         Select a command.
@@ -20,6 +20,7 @@ def get_main_parser() -> ArgumentParser:
         'store' executes a model with class CReferenceEvaluator and stores every
         intermediate results on disk with a short onnx to execute the node.
         'check' checks a runtime on stored intermediate results.
+        'display' displays the shapes inferences results
         """
         ),
     )
@@ -85,6 +86,33 @@ def get_parser_store() -> ArgumentParser:
     return parser
 
 
+def get_parser_display() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="display",
+        description=dedent(
+            """
+        Executes shape inference on an ONNX model and display the inferred shape.
+        """
+        ),
+        epilog="Type 'onnx-extended <cmd> --help' to get help for a specific command.",
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        required=True,
+        help="onnx model to display",
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        type=str,
+        required=True,
+        help="saved the data as a dataframe",
+    )
+    return parser
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -111,6 +139,12 @@ def main(argv: Optional[List[Any]] = None):
             out=args.out,
             providers=args.providers,
         )
+    elif cmd == "display":
+        from ._command_lines import display_intermediate_results
+
+        parser = get_parser_display()
+        args = parser.parse_args(argv[1:])
+        display_intermediate_results(model=args.model, save=args.save)
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."

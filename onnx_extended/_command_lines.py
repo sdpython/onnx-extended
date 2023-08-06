@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from onnx import ModelProto, TensorProto, ValueInfoProto
 from onnx.helper import tensor_dtype_to_np_dtype
@@ -168,3 +168,64 @@ def store_intermediate_results(
 
     got = inst.run(None, feeds)
     return got
+
+
+def display_intermediate_results(
+    model: str, save: Optional[str] = None, fprint: Callable = print
+):
+    """
+    Displays shape, type for a model.
+
+    :param model: a model
+    :param save: save the results as a dataframe
+    :param fprint: function to print
+    """
+    from .tools.onnx_tools import enumerate_onnx_node_types
+
+    if save is not None:
+        ext = os.path.splitext(save)[-1]
+        if ext not in {".csv", ".xlsx"}:
+            raise ValueError(f"Unexpected format {save!r}, extension is {ext!r}.")
+    else:
+        exts = None
+
+    def _fixed(s, length=10):
+        return (
+            (s[: length - 1] + " ")
+            if len(s) >= length - 1
+            else s + " " * (length - len(s))
+        )
+
+    tab = 10
+    n_rows = 0
+    rows = []
+    for obs in enumerate_onnx_node_types(model):
+        if "level" not in obs:
+            raise RuntimeError(f"Unexpected value obs={obs!r}.")
+        indent = " " * obs["level"] * tab
+        values = [
+            indent,
+            _fixed(obs.get("kind", ""), tab),
+            _fixed(obs.get("type", ""), tab),
+            _fixed(obs.get("name", ""), tab),
+            _fixed(obs.get("elem_type", ""), tab),
+            _fixed(obs.get("shape", ""), tab),
+        ]
+        line = "".join(values)
+        fprint(line)
+
+        n_rows += 1
+        if save is not None:
+            rows.append(obs)
+
+    if n_rows == 0:
+        if isinstance(model, str):
+            raise RuntimeError(f"Model {model!r} is empty.")
+        raise RuntimeError(f"Model type {type(model)} is empty.")
+
+    if save is not None:
+        from pandas import DataFrame
+
+        df = DataFrame(rows)
+        exts = {".csv": df.to_csv, ".xlsx": df.to_excel}
+        exts[ext](save, index=False)
