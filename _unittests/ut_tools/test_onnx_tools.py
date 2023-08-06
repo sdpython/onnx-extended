@@ -72,7 +72,10 @@ class TestOnnxTools(ExtTestCase):
         res = list(enumerate_onnx_node_types(model))
         self.assertEqual(len(expected), len(res))
         for i, (a, b) in enumerate(zip(expected, res)):
-            self.assertEqual(a, b, msg=f"Item {i} failed.")
+            self.assertEqual(len(a), len(b), msg=f"Item(1) {i} failed a={a}, b={b}.")
+            self.assertEqual(set(a), set(b), msg=f"Item(2) {i} failed a={a}, b={b}.")
+            for k in sorted(a):
+                self.assertEqual(a[k], b[k], msg=f"Item(3) {i} failed a={a}, b={b}.")
 
 
 if __name__ == "__main__":
