@@ -70,7 +70,9 @@ class TestOnnxTools(ExtTestCase):
     def test_enumerate_onnx_node_types(self):
         model, expected = self._get_model()
         res = list(enumerate_onnx_node_types(model))
-        self.assertEqual(expected, res)
+        self.assertEqual(len(expected), len(res))
+        for i, (a, b) in enumerate(zip(expected, res)):
+            self.assertEqual(a, b, msg=f"Item {i} failed.")
 
 
 if __name__ == "__main__":
