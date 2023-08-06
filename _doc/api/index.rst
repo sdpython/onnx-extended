@@ -12,4 +12,5 @@ API
     reference
     validation_cpu
     validation_cuda
+    tools
     command_lines
