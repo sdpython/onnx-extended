@@ -107,8 +107,16 @@ def get_parser_display() -> ArgumentParser:
         "-s",
         "--save",
         type=str,
-        required=True,
+        required=False,
         help="saved the data as a dataframe",
+    )
+    parser.add_argument(
+        "-t",
+        "--tab",
+        type=int,
+        required=False,
+        default=12,
+        help="column size when printed on standard output",
     )
     return parser
 
@@ -144,7 +152,7 @@ def main(argv: Optional[List[Any]] = None):
 
         parser = get_parser_display()
         args = parser.parse_args(argv[1:])
-        display_intermediate_results(model=args.model, save=args.save)
+        display_intermediate_results(model=args.model, save=args.save, tab=args.tab)
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."

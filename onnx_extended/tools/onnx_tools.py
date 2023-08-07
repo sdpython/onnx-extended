@@ -62,6 +62,9 @@ def enumerate_onnx_node_types(
         shapes = {}
         for value in values:
             shapes[value.name] = value.type
+        for o in proto.graph.output:
+            if o.name not in shapes:
+                shapes[o.name] = o.type
 
     if isinstance(proto, onnx.ModelProto):
         if shapes is None:

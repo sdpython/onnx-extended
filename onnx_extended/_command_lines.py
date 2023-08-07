@@ -171,13 +171,14 @@ def store_intermediate_results(
 
 
 def display_intermediate_results(
-    model: str, save: Optional[str] = None, fprint: Callable = print
+    model: str, save: Optional[str] = None, tab: int = 12, fprint: Callable = print
 ):
     """
     Displays shape, type for a model.
 
     :param model: a model
     :param save: save the results as a dataframe
+    :param tab: column size for the output
     :param fprint: function to print
     """
     from .tools.onnx_tools import enumerate_onnx_node_types
@@ -196,7 +197,6 @@ def display_intermediate_results(
             else s + " " * (length - len(s))
         )
 
-    tab = 10
     n_rows = 0
     rows = []
     for obs in enumerate_onnx_node_types(model):
