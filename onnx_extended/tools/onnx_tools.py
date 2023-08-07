@@ -24,9 +24,16 @@ def load(
         return onnx.load(f)
 
 
-def _info_type(typ: onnx.TypeProto) -> Dict[str, Union[str, float]]:
+def _info_type(
+    typ: Union[onnx.TensorProto, onnx.TypeProto]
+) -> Dict[str, Union[str, float]]:
     if typ is None:
         return {}
+    if isinstance(typ, onnx.TensorProto):
+        shape = [str(i) for i in typ.dims]
+        return dict(
+            type="tensor", elem_type=_rev_type[typ.data_type], shape="x".join(shape)
+        )
     if typ.tensor_type:
         ret = dict(type="tensor", elem_type=_rev_type[typ.tensor_type.elem_type])
         shape = []
@@ -98,11 +105,21 @@ def enumerate_onnx_node_types(
                 kind="Op",
                 domain=node.domain,
                 type=node.op_type,
+                inputs=",".join(node.input),
+                outputs=",".join(node.output),
+                input_types=",".join(
+                    _info_type(shapes.get(i, None)).get("elem_type", "")
+                    for i in node.input
+                ),
+                output_types=",".join(
+                    _info_type(shapes.get(i, None)).get("elem_type", "")
+                    for i in node.output
+                ),
             )
             yield obs
 
             for att in node.attribute:
-                if att.g:
+                if att.type == onnx.AttributeProto.GRAPH:
                     obs = dict(name=att.name, kind="attribute", level=level + 1)
                     yield obs
                     for item in enumerate_onnx_node_types(

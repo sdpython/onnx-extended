@@ -191,6 +191,8 @@ def display_intermediate_results(
         exts = None
 
     def _fixed(s, length=10):
+        if not isinstance(s, str):
+            raise TypeError(f"Unexpected type {type(s)}: {s!r}.")
         return (
             (s[: length - 1] + " ")
             if len(s) >= length - 1
@@ -210,6 +212,10 @@ def display_intermediate_results(
             _fixed(obs.get("name", ""), tab),
             _fixed(obs.get("elem_type", ""), tab),
             _fixed(obs.get("shape", ""), tab),
+            _fixed(obs.get("input_types", ""), tab),
+            _fixed(obs.get("output_types", ""), tab),
+            _fixed(obs.get("inputs", ""), tab),
+            _fixed(obs.get("outputs", ""), tab),
         ]
         line = "".join(values)
         fprint(line)
