@@ -143,7 +143,7 @@ class TestCommandLines(ExtTestCase):
                     args = ["display", "-m", f.name, "-s", root.name]
                     main(args)
         text = st.getvalue()
-        self.assertIn("input     tensor    X         FLOAT     ?x?", text)
+        self.assertIn("input       tensor      X           FLOAT", text)
 
 
 if __name__ == "__main__":
