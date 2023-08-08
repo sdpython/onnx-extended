@@ -16,6 +16,18 @@ and in a csv file.
 
 .. autofunction:: onnx_extended._command_lines.display_intermediate_results
 
+print
+=====
+
+Prints a model or a tensor on the standard output.
+
+.. runpython::
+
+    from onnx_extended._command_lines_parser import get_parser_print
+    get_parser_print().print_help()
+
+.. autofunction:: onnx_extended._command_lines.print_proto
+
 store
 =====
 

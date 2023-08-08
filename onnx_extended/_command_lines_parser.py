@@ -8,7 +8,8 @@ def get_main_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog="onnx-extended",
         description="onnx-extended main command line.",
-        epilog="Type 'onnx-extended <cmd> --help' to get help for a specific command.",
+        epilog="Type 'python -m onnx_extended <cmd> --help' "
+        "to get help for a specific command.",
     )
     parser.add_argument(
         "cmd",
@@ -36,7 +37,8 @@ def get_parser_store() -> ArgumentParser:
         intermediate results on disk with a short onnx to execute the node.
         """
         ),
-        epilog="Type 'onnx-extended <cmd> --help' to get help for a specific command.",
+        epilog="Type 'python -m onnx_extended store --help' "
+        "to get help for this command.",
     )
     parser.add_argument(
         "-m",
@@ -94,7 +96,8 @@ def get_parser_display() -> ArgumentParser:
         Executes shape inference on an ONNX model and display the inferred shape.
         """
         ),
-        epilog="Type 'onnx-extended <cmd> --help' to get help for a specific command.",
+        epilog="Type 'python -m onnx_extended display --help' "
+        "to get help for this command.",
     )
     parser.add_argument(
         "-m",
@@ -117,6 +120,29 @@ def get_parser_display() -> ArgumentParser:
         required=False,
         default=12,
         help="column size when printed on standard output",
+    )
+    return parser
+
+
+def get_parser_print() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="print",
+        description=dedent(
+            """
+        Shows an onnx model or a protobuf string on stdout.
+        Extension '.onnx' is considered a model,
+        extension '.proto' or '.pb' is a protobuf string.
+        """
+        ),
+        epilog="Type 'python -m onnx_extended print --help' "
+        "to get help for this command.",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=str,
+        required=True,
+        help="onnx model or protobuf file to print",
     )
     return parser
 
@@ -153,6 +179,12 @@ def main(argv: Optional[List[Any]] = None):
         parser = get_parser_display()
         args = parser.parse_args(argv[1:])
         display_intermediate_results(model=args.model, save=args.save, tab=args.tab)
+    elif cmd == "print":
+        from ._command_lines import print_proto
+
+        parser = get_parser_print()
+        args = parser.parse_args(argv[1:])
+        print_proto(proto=args.input)
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."

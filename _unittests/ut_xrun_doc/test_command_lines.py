@@ -10,11 +10,18 @@ from onnx.helper import (
     make_model,
     make_node,
     make_opsetid,
+    make_tensor,
     make_tensor_value_info,
 )
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended._command_lines import _type_shape
-from onnx_extended._command_lines_parser import get_main_parser, get_parser_store, main
+from onnx_extended._command_lines_parser import (
+    get_main_parser,
+    get_parser_store,
+    get_parser_display,
+    get_parser_print,
+    main,
+)
 
 
 class TestCommandLines(ExtTestCase):
@@ -32,6 +39,20 @@ class TestCommandLines(ExtTestCase):
         text = st.getvalue()
         self.assertIn("store", text)
         self.assertIn("verbose", text)
+
+    def test_parser_display(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_display().print_help()
+        text = st.getvalue()
+        self.assertIn("display", text)
+
+    def test_parser_print(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_print().print_help()
+        text = st.getvalue()
+        self.assertIn("print", text)
 
     def test_parse(self):
         checks_str = [
@@ -144,6 +165,56 @@ class TestCommandLines(ExtTestCase):
                     main(args)
         text = st.getvalue()
         self.assertIn("input       tensor      X           FLOAT", text)
+
+    def test_command_print_exc(self):
+        self.assertRaise(
+            lambda: main(["print", "-i", "__any__.onnx"]), FileNotFoundError
+        )
+        self.assertRaise(lambda: main(["print", "-i", __file__]), ValueError)
+        with tempfile.NamedTemporaryFile(suffix=".pb") as f:
+            f.write(b"Rrrrrrrrrrrrrr")
+            f.seek(0)
+            self.assertRaise(lambda: main(["print", "-i", f.name]), RuntimeError)
+
+    def test_command_print_model(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [5, 6])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node("Add", ["X", "Y"], ["res"]),
+                make_node("Cos", ["res"], ["Z"]),
+            ],
+            "g",
+            [X, Y],
+            [Z],
+        )
+        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)])
+        with tempfile.NamedTemporaryFile(suffix=".onnx") as f:
+            f.write(onnx_model.SerializeToString())
+            f.seek(0)
+
+            st = StringIO()
+            with redirect_stdout(st):
+                args = ["print", "-i", f.name]
+                main(args)
+            text = st.getvalue()
+            self.assertIn("Type:", text)
+            self.assertIn('op_type: "Cos"', text)
+
+    def test_command_print_tensor(self):
+        tensor = make_tensor("dummy", TensorProto.FLOAT8E4M3FN, [4], [0, 1, 2, 3])
+        with tempfile.NamedTemporaryFile(suffix=".pb") as f:
+            f.write(tensor.SerializeToString())
+            f.seek(0)
+
+            st = StringIO()
+            with redirect_stdout(st):
+                args = ["print", "-i", f.name]
+                main(args)
+            text = st.getvalue()
+            self.assertIn("Type:", text)
+            self.assertIn("17", text)
 
 
 if __name__ == "__main__":

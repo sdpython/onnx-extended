@@ -2,7 +2,15 @@ import os
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
-from onnx import ModelProto, TensorProto, ValueInfoProto
+from onnx import (
+    FunctionProto,
+    GraphProto,
+    ModelProto,
+    TensorProto,
+    SequenceProto,
+    ValueInfoProto,
+    load,
+)
 from onnx.helper import tensor_dtype_to_np_dtype
 from onnx.numpy_helper import to_array
 from onnx.reference import ReferenceEvaluator
@@ -235,3 +243,49 @@ def display_intermediate_results(
         df = DataFrame(rows)
         exts = {".csv": df.to_csv, ".xlsx": df.to_excel}
         exts[ext](save, index=False)
+
+
+def print_proto(proto: str):
+    """
+    Shows an onnx model or a protobuf string on stdout.
+    Extension '.onnx' is considered a model,
+    extension '.proto' or '.pb' is a protobuf string.
+
+    :param proto: a file
+    """
+    if isinstance(proto, str):
+        if not os.path.exists(proto):
+            raise FileNotFoundError(f"Unable to find file {proto!r}.")
+        ext = os.path.splitext(proto)[-1]
+        if ext == ".onnx":
+            with open(proto, "rb") as f:
+                proto_loaded = load(f)
+        elif ext in (".pb", ".proto"):
+            with open(proto, "rb") as f:
+                content = f.read()
+            exc = []
+            proto_loaded = None
+            for cls in [
+                TensorProto,
+                SequenceProto,
+                FunctionProto,
+                ModelProto,
+                GraphProto,
+            ]:
+                inst = cls()
+                try:
+                    inst.ParseFromString(content)
+                    proto_loaded = inst
+                    break
+                except Exception as e:
+                    exc.append((cls, e))
+            if proto_loaded is None:
+                msg = "\n".join(f"type: {c}: {e}" for c, e in exc)
+                raise RuntimeError(f"Unable to load {proto!r}, tried:\n{msg}")
+        else:
+            raise ValueError(f"Unexpected file extension {ext!r} for file {proto!r}.")
+    else:
+        proto_loaded = proto
+
+    print(f"Type: {type(proto_loaded)}")
+    print(proto_loaded)
