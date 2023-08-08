@@ -13,7 +13,7 @@ def get_main_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "cmd",
-        choices=["store", "check", "display"],
+        choices=["store", "check", "display", "print"],
         help=dedent(
             """
         Select a command.
@@ -21,7 +21,8 @@ def get_main_parser() -> ArgumentParser:
         'store' executes a model with class CReferenceEvaluator and stores every
         intermediate results on disk with a short onnx to execute the node.
         'check' checks a runtime on stored intermediate results.
-        'display' displays the shapes inferences results
+        'display' displays the shapes inferences results,
+        'print' prints out a model or a protobuf file on the standard output
         """
         ),
     )
