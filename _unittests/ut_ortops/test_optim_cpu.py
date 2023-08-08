@@ -88,7 +88,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
         self.assertEqualArray(expected, got, atol=1e-5)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
-    def test_run_optimize_model(self):
+    def test_tree_run_optimize_model(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 
         X, y = make_regression(100, 2, n_informative=1, random_state=32)

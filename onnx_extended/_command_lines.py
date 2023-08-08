@@ -1,8 +1,16 @@
 import os
 import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
-from onnx import ModelProto, TensorProto, ValueInfoProto
+from onnx import (
+    FunctionProto,
+    GraphProto,
+    ModelProto,
+    TensorProto,
+    SequenceProto,
+    ValueInfoProto,
+    load,
+)
 from onnx.helper import tensor_dtype_to_np_dtype
 from onnx.numpy_helper import to_array
 from onnx.reference import ReferenceEvaluator
@@ -168,3 +176,116 @@ def store_intermediate_results(
 
     got = inst.run(None, feeds)
     return got
+
+
+def display_intermediate_results(
+    model: str, save: Optional[str] = None, tab: int = 12, fprint: Callable = print
+):
+    """
+    Displays shape, type for a model.
+
+    :param model: a model
+    :param save: save the results as a dataframe
+    :param tab: column size for the output
+    :param fprint: function to print
+    """
+    from .tools.onnx_tools import enumerate_onnx_node_types
+
+    if save is not None:
+        ext = os.path.splitext(save)[-1]
+        if ext not in {".csv", ".xlsx"}:
+            raise ValueError(f"Unexpected format {save!r}, extension is {ext!r}.")
+    else:
+        exts = None
+
+    def _fixed(s, length=10):
+        if not isinstance(s, str):
+            raise TypeError(f"Unexpected type {type(s)}: {s!r}.")
+        return (
+            (s[: length - 1] + " ")
+            if len(s) >= length - 1
+            else s + " " * (length - len(s))
+        )
+
+    n_rows = 0
+    rows = []
+    for obs in enumerate_onnx_node_types(model):
+        if "level" not in obs:
+            raise RuntimeError(f"Unexpected value obs={obs!r}.")
+        indent = " " * obs["level"] * tab
+        values = [
+            indent,
+            _fixed(obs.get("kind", ""), tab),
+            _fixed(obs.get("type", ""), tab),
+            _fixed(obs.get("name", ""), tab),
+            _fixed(obs.get("elem_type", ""), tab),
+            _fixed(obs.get("shape", ""), tab),
+            _fixed(obs.get("input_types", ""), tab),
+            _fixed(obs.get("output_types", ""), tab),
+            _fixed(obs.get("inputs", ""), tab),
+            _fixed(obs.get("outputs", ""), tab),
+        ]
+        line = "".join(values)
+        fprint(line)
+
+        n_rows += 1
+        if save is not None:
+            rows.append(obs)
+
+    if n_rows == 0:
+        if isinstance(model, str):
+            raise RuntimeError(f"Model {model!r} is empty.")
+        raise RuntimeError(f"Model type {type(model)} is empty.")
+
+    if save is not None:
+        from pandas import DataFrame
+
+        df = DataFrame(rows)
+        exts = {".csv": df.to_csv, ".xlsx": df.to_excel}
+        exts[ext](save, index=False)
+
+
+def print_proto(proto: str):
+    """
+    Shows an onnx model or a protobuf string on stdout.
+    Extension '.onnx' is considered a model,
+    extension '.proto' or '.pb' is a protobuf string.
+
+    :param proto: a file
+    """
+    if isinstance(proto, str):
+        if not os.path.exists(proto):
+            raise FileNotFoundError(f"Unable to find file {proto!r}.")
+        ext = os.path.splitext(proto)[-1]
+        if ext == ".onnx":
+            with open(proto, "rb") as f:
+                proto_loaded = load(f)
+        elif ext in (".pb", ".proto"):
+            with open(proto, "rb") as f:
+                content = f.read()
+            exc = []
+            proto_loaded = None
+            for cls in [
+                TensorProto,
+                SequenceProto,
+                FunctionProto,
+                ModelProto,
+                GraphProto,
+            ]:
+                inst = cls()
+                try:
+                    inst.ParseFromString(content)
+                    proto_loaded = inst
+                    break
+                except Exception as e:
+                    exc.append((cls, e))
+            if proto_loaded is None:
+                msg = "\n".join(f"type: {c}: {e}" for c, e in exc)
+                raise RuntimeError(f"Unable to load {proto!r}, tried:\n{msg}")
+        else:
+            raise ValueError(f"Unexpected file extension {ext!r} for file {proto!r}.")
+    else:
+        proto_loaded = proto
+
+    print(f"Type: {type(proto_loaded)}")
+    print(proto_loaded)

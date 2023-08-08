@@ -8,11 +8,12 @@ def get_main_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog="onnx-extended",
         description="onnx-extended main command line.",
-        epilog="Type 'onnx-extended <cmd> --help' to get help for a specific command.",
+        epilog="Type 'python -m onnx_extended <cmd> --help' "
+        "to get help for a specific command.",
     )
     parser.add_argument(
         "cmd",
-        choices=["store", "check"],
+        choices=["store", "check", "display", "print"],
         help=dedent(
             """
         Select a command.
@@ -20,6 +21,8 @@ def get_main_parser() -> ArgumentParser:
         'store' executes a model with class CReferenceEvaluator and stores every
         intermediate results on disk with a short onnx to execute the node.
         'check' checks a runtime on stored intermediate results.
+        'display' displays the shapes inferences results,
+        'print' prints out a model or a protobuf file on the standard output
         """
         ),
     )
@@ -35,7 +38,8 @@ def get_parser_store() -> ArgumentParser:
         intermediate results on disk with a short onnx to execute the node.
         """
         ),
-        epilog="Type 'onnx-extended <cmd> --help' to get help for a specific command.",
+        epilog="Type 'python -m onnx_extended store --help' "
+        "to get help for this command.",
     )
     parser.add_argument(
         "-m",
@@ -85,6 +89,65 @@ def get_parser_store() -> ArgumentParser:
     return parser
 
 
+def get_parser_display() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="display",
+        description=dedent(
+            """
+        Executes shape inference on an ONNX model and display the inferred shape.
+        """
+        ),
+        epilog="Type 'python -m onnx_extended display --help' "
+        "to get help for this command.",
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        required=True,
+        help="onnx model to display",
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        type=str,
+        required=False,
+        help="saved the data as a dataframe",
+    )
+    parser.add_argument(
+        "-t",
+        "--tab",
+        type=int,
+        required=False,
+        default=12,
+        help="column size when printed on standard output",
+    )
+    return parser
+
+
+def get_parser_print() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="print",
+        description=dedent(
+            """
+        Shows an onnx model or a protobuf string on stdout.
+        Extension '.onnx' is considered a model,
+        extension '.proto' or '.pb' is a protobuf string.
+        """
+        ),
+        epilog="Type 'python -m onnx_extended print --help' "
+        "to get help for this command.",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=str,
+        required=True,
+        help="onnx model or protobuf file to print",
+    )
+    return parser
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -111,6 +174,18 @@ def main(argv: Optional[List[Any]] = None):
             out=args.out,
             providers=args.providers,
         )
+    elif cmd == "display":
+        from ._command_lines import display_intermediate_results
+
+        parser = get_parser_display()
+        args = parser.parse_args(argv[1:])
+        display_intermediate_results(model=args.model, save=args.save, tab=args.tab)
+    elif cmd == "print":
+        from ._command_lines import print_proto
+
+        parser = get_parser_print()
+        args = parser.parse_args(argv[1:])
+        print_proto(proto=args.input)
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."

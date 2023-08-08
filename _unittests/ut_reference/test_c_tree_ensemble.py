@@ -391,7 +391,7 @@ class TestCTreeEnsemble(ExtTestCase):
         if single_cls:
             y[:] = 0
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = RandomForestClassifier(n_estimators=40)
+        clr = RandomForestClassifier(n_estimators=40, max_depth=4)
         clr.fit(X_train, y_train)
 
         X_test2 = numpy.empty((X_test.shape[0] * 200, X_test.shape[1]), dtype=dtype)
