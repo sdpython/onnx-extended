@@ -23,7 +23,8 @@ from onnx_extended.validation.cpu._validation import (
 
 obs = []
 step = 2**12
-for i in tqdm(range(step, 2**20 + step, step)):
+max_power = 10 if unit_test_going() else 20
+for i in tqdm(range(step, 2**max_power + step, step)):
     res = min(
         [
             benchmark_cache(i, False),
@@ -82,7 +83,7 @@ fig.savefig("plot_benchmark_cpu_array.png")
 dfs = []
 cols = []
 drop = []
-for n in tqdm(range(10)):
+for n in tqdm(range(2 if unit_test_going() else 5)):
     res = benchmark_cache_tree(
         n_rows=2000,
         n_features=50,
@@ -97,8 +98,6 @@ for n in tqdm(range(10)):
     dfs.append(df)
     cols.append(df.columns[-1])
     drop.append(df.columns[0])
-    if unit_test_going() and len(dfs) >= 2:
-        break
 
 df = concat(dfs, axis=1).reset_index(drop=True)
 df["i"] = df["i0"]
