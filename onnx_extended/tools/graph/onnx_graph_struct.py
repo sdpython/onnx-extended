@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Iterable, List, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -22,16 +22,16 @@ class Node:
         self.proto = proto
         self.parent = parent
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>)"
 
     @property
-    def op_type(self):
+    def op_type(self) -> str:
         "Returns the node type."
         return self.proto.op_type
 
     @property
-    def is_node(self):
+    def is_node(self) -> bool:
         "True if a NodeProto."
         return isinstance(self.proto, NodeProto)
 
@@ -58,14 +58,14 @@ class Node:
         return True
 
     @property
-    def inputs(self):
+    def inputs(self) -> List[str]:
         "Input names"
         if self.is_node:
             return self.proto.input
         return []
 
     @property
-    def outputs(self):
+    def outputs(self) -> List[str]:
         "Output names"
         if self.is_node:
             return self.proto.output
@@ -97,10 +97,10 @@ class NodeSet:
     def __init__(self, nodes: List[Node]):
         self.nodes = nodes
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.nodes)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Node]:
         for n in self.nodes:
             yield n
 
@@ -152,7 +152,10 @@ class Graph:
         for i in node.outputs:
             self.index_output[i] = node
 
-    def __len__(self):
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(...)"
+
+    def __len__(self) -> int:
         "Returns the number of nodes"
         return len(self.nodes) + len(self.nodes_added) - len(self.removed)
 
@@ -172,7 +175,7 @@ class Graph:
             raise IndexError(f"This node was probably reduced {index}.")
         return node
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Node]:
         "Iterates on nodes or initializer."
         for index, node in enumerate(self.nodes):
             if node is None or node.index in self.removed:

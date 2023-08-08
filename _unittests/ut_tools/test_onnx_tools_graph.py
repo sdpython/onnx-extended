@@ -60,6 +60,10 @@ class TestOnnxToolsGraph(ExtTestCase):
         for i in range(0, 5):
             node = graph[i]
             self.assertIn(node.op_type, {"Constant", "Add", "MatMul"})
+        text = str(graph)
+        tn = str(graph[0])
+        self.assertEqual(tn, "Node(0, <parent>, <Constant>)")
+        self.assertEqual(text, "Graph(...)")
 
     def test_graph_replace(self):
         model = self._get_model()
@@ -99,5 +103,4 @@ class TestOnnxToolsGraph(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxToolsGraph().test_graph_build()
     unittest.main(verbosity=2)
