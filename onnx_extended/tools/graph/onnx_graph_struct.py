@@ -23,7 +23,7 @@ class Node:
         self.parent = parent
 
     def __str__(self):
-        return f"{self.__class__.__name__}(<{self.proto.__class__.__name__}>)"
+        return f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>)"
 
     @property
     def op_type(self):
@@ -49,10 +49,11 @@ class Node:
     def _is_constant(self) -> bool:
         "Tells if a node is a constant or operate on constants."
         for i in self.inputs:
-            if i not in self.parent.index_input:
+            if i not in self.parent.index_output:
                 # An input
                 return False
-            if not self.is_constant(self.parent.input_index[i]):
+            ni = self.parent.index_output[i]
+            if not ni.is_constant():
                 return False
         return True
 
@@ -141,10 +142,15 @@ class Graph:
         self.new_index = len(self.nodes)
 
         for node in self.nodes:
-            for i in node.inputs:
-                self.index_input[i] = node
-            for i in node.outputs:
-                self.index_output[i] = node
+            self._complete_init_node(node)
+
+    def _complete_init_node(self, node):
+        for i in node.inputs:
+            if i not in self.index_input:
+                self.index_input[i] = []
+            self.index_input[i].append(node)
+        for i in node.outputs:
+            self.index_output[i] = node
 
     def __len__(self):
         "Returns the number of nodes"
@@ -193,11 +199,13 @@ class Graph:
         if isinstance(indices, int):
             indices = [indices]
 
+        removed = []
         for index in indices:
             if index <= len(self.nodes):
                 node = self.nodes[index]
                 if node is None:
                     raise RuntimeError(f"Node index {index} was already removed.")
+                removed.append((index, self.nodes[index]))
                 self.nodes[index] = None
             elif index not in self.nodes_added:
                 raise RuntimeError(
@@ -206,13 +214,19 @@ class Graph:
             if index in self.removed:
                 raise RuntimeError(f"Node index {index} was already removed.")
 
-        for index in indices:
+        for index, node in removed:
             self.removed.add(index)
+            for i in node.inputs:
+                new_input = [n for n in self.index_input[i] if n.index != index]
+                self.index_input[i] = new_input
+            for o in node.outputs:
+                del self.index_output[o]
 
         nodes = []
         new_indices = []
         for node in new_nodes:
             n = Node(self.new_index, self, node)
+            self._complete_init_node(n)
             self.nodes_added[self.new_index] = n
             new_indices.append(self.new_index)
             self.new_index += 1

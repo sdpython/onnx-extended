@@ -46,6 +46,10 @@ class TestOnnxToolsGraph(ExtTestCase):
         model = self._get_model()
         graph = Graph(model)
         self.assertEqual(len(graph), 5)
+        cst = []
+        for node in graph:
+            cst.append(node.is_constant())
+        self.assertEqual([True, True, False, False, False], cst)
 
         ref = CReferenceEvaluator(model)
         x = np.random.random((3, 3)).astype(np.float32)
@@ -95,4 +99,5 @@ class TestOnnxToolsGraph(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxToolsGraph().test_graph_build()
     unittest.main(verbosity=2)
