@@ -14,3 +14,4 @@ Graphs
 .. toctree::
 
     tools_graph
+    tools_transformer

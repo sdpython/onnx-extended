@@ -23,7 +23,10 @@ class Node:
         self.parent = parent
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>)"
+        return (
+            f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
+            f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+        )
 
     @property
     def op_type(self) -> str:
@@ -88,6 +91,12 @@ class NodeWithSubGraph(Node):
         if len(self.subgraphs) == 0:
             raise ValueError(f"A node type {self.proto.op_type!r} has no subgraph.")
 
+    @property
+    def inputs(self) -> List[str]:
+        raise NotImplementedError(
+            f"It should return the implicit inputs for node type {self.op_type!r}."
+        )
+
 
 class NodeSet:
     """
@@ -128,6 +137,10 @@ class Graph:
                 nodes.append(Node(len(nodes), self, init))
             for init in graph.sparse_initializer:
                 nodes.append(Node(len(nodes), self, init))
+            self.final_outputs = [o.name for o in graph.output]
+        else:
+            # FunctionProto
+            self.final_outputs = list(graph.output)
         for node in graph.node:
             nodes.append(Graph.node_or_node(node)(len(nodes), self, node))
         self.nodes = nodes
@@ -238,9 +251,56 @@ class Graph:
         self.nodes_sets[indices[0]] = NodeSet(nodes)
         return new_indices
 
-    def simplify(self):
+    def simplify(self, remove_unused: bool = True):
         """
         Stores every node into nodes.
+        Removes unused nodes.
+
+        :param remove_unused: removes unused nodes as well,
+            see :meth:`remove_unused_nodes`
         """
+        if (
+            len(self.removed) == 0
+            and len(self.nodes_added) == 0
+            and len(self.nodes_sets) == 0
+        ):
+            # Nothing to do.
+            return
+
         self.nodes = list(self)
         self._complete_init()
+        for i, node in enumerate(self.nodes):
+            node.index = i
+        if remove_unused:
+            self.remove_unused_nodes()
+
+    def remove_unused_nodes(self):
+        """
+        Removes unused nodes, a node with only unused outputs.
+
+        :return: removed nodes
+        """
+        total_remove = []
+        while True:
+            to_remove = []
+            for node in self:
+                rem = 0
+                for name in node.outputs:
+                    if (
+                        name not in {"", None}
+                        and name not in self.index_input
+                        and name not in self.final_outputs
+                    ):
+                        rem += 1
+                if rem < len(node.outputs):
+                    # one outputs is used
+                    continue
+                to_remove.append(node)
+                self.removed.add(node.index)
+
+            if len(to_remove) == 0:
+                break
+
+            total_remove.extend(to_remove)
+            self.simplify(False)
+        return total_remove

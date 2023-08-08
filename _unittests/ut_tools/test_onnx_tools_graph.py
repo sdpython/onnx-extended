@@ -13,6 +13,7 @@ from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
+from onnx_extended.tools.graph.onnx_graph_transformer import quantize_float8
 
 
 class TestOnnxToolsGraph(ExtTestCase):
@@ -62,14 +63,14 @@ class TestOnnxToolsGraph(ExtTestCase):
             self.assertIn(node.op_type, {"Constant", "Add", "MatMul"})
         text = str(graph)
         tn = str(graph[0])
-        self.assertEqual(tn, "Node(0, <parent>, <Constant>)")
+        self.assertEqual(tn, "Node(0, <parent>, <Constant>) [] -> [one]")
         self.assertEqual(text, "Graph(...)")
 
     def test_graph_replace(self):
         model = self._get_model()
         graph = Graph(model)
         self.assertEqual(len(graph), 5)
-        indices = graph.replace(2, make_node("Sub", ["one", "one"], ["two"]))
+        indices = graph.replace(2, make_node("Sub", ["X", "two"], ["xp"]))
         self.assertEqual(indices, [5])
         self.assertEqual(len(graph), 5)
         self.assertEqual(len(list(graph)), 5)
@@ -87,7 +88,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         indices = [node.index for node in graph]
         self.assertEqual(indices, [0, 1, 5, 3, 4])
 
-        graph.simplify()
+        graph.simplify(False)
         self.assertEqual(len(graph), 5)
         self.assertEqual(len(list(graph)), 5)
         ops = []
@@ -99,7 +100,66 @@ class TestOnnxToolsGraph(ExtTestCase):
         op_types = [node.op_type for node in graph]
         self.assertEqual(op_types, ["Constant", "Add", "Sub", "MatMul", "MatMul"])
         indices = [node.index for node in graph]
-        self.assertEqual(indices, [0, 1, 5, 3, 4])
+        self.assertEqual([0, 1, 2, 3, 4], indices)
+
+        graph.simplify(True)
+        self.assertEqual(len(graph), 5)
+        self.assertEqual(len(list(graph)), 5)
+        ops = []
+        for i in range(0, 5):
+            node = graph[i]
+            ops.append(node.op_type)
+            self.assertIn(node.op_type, {"Constant", "Add", "MatMul", "Sub"})
+        self.assertEqual(ops, ["Constant", "Add", "Sub", "MatMul", "MatMul"])
+        op_types = [node.op_type for node in graph]
+        self.assertEqual(op_types, ["Constant", "Add", "Sub", "MatMul", "MatMul"])
+        indices = [node.index for node in graph]
+        self.assertEqual([0, 1, 2, 3, 4], indices)
+
+    def test_graph_remove(self):
+        model = self._get_model()
+        graph = Graph(model)
+        self.assertEqual(len(graph), 5)
+        graph.replace(2, make_node("Sub", ["X", "X"], ["xp"]))
+        graph.simplify(False)
+        removed = graph.remove_unused_nodes()
+        self.assertEqual(len(removed), 2)
+        self.assertEqual(str(removed[0]), "Node(1, <parent>, <Add>) [one,one] -> [two]")
+        self.assertEqual(str(removed[1]), "Node(0, <parent>, <Constant>) [] -> [one]")
+
+    def _get_model_32(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [4, 3])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node(
+                    "Constant",
+                    [],
+                    ["mat"],
+                    value=make_tensor(
+                        "one",
+                        TensorProto.FLOAT,
+                        [3, 2],
+                        list(float(i) for i in range(1, 7)),
+                    ),
+                ),
+                make_node("MatMul", ["X", "mat"], ["Z"]),
+            ],
+            "zoo",
+            [X],
+            [Z],
+        )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    def test_quantize_f8(self):
+        model = self._get_model_32()
+        graph = Graph(model)
+        new_graph = quantize_float8(graph)
+        self.assertGreater(len(new_graph), len(graph))
 
 
 if __name__ == "__main__":
