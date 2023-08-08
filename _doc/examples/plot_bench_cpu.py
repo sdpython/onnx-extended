@@ -23,8 +23,7 @@ from onnx_extended.validation.cpu._validation import (
 
 obs = []
 step = 2**12
-max_power = 10 if unit_test_going() else 20
-for i in tqdm(range(step, 2**max_power + step, step)):
+for i in tqdm(range(step, 2**20 + step, step)):
     res = min(
         [
             benchmark_cache(i, False),
