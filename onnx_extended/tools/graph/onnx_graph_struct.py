@@ -285,7 +285,7 @@ class Graph:
         Generates a name which is not used for any existing result in the graph.
 
         :param prefix: prefix to use for the new name,
-            next tries will be `<prefix>_1`, `<prefix>_2`, ...
+            next tries will be ``<prefix>_1``, ``<prefix>_2``, ...
         :return: new name
         """
         suggestion = prefix
