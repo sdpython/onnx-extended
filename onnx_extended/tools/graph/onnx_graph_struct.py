@@ -390,14 +390,21 @@ class Graph:
         indices: Union[int, List[int]],
         new_nodes: Union[NodeProto, List[NodeProto]],
         new_opsets: Optional[Dict[str, int]] = None,
-    ) -> List[int]:
+    ) -> NodeSet:
         """
         Replaces a node index
 
         :param indices: index or list of indices to replace
         :param new_nodes: node or list of nodes to add
         :param new_opsets: new opet versions
-        :return: added indices
+        :return: added nodes
+
+        By default, the nodes are inserted at position `indices[-1]`.
+        It ensures the inputs of the new nodes were already computed.
+        However, it does not ensure that every intermediate node
+        between the first and the last removed nodes can be computed.
+        Sorting the nodes is needed in that. This function does not do
+        that.
         """
         if isinstance(new_nodes, NodeProto):
             new_nodes = [new_nodes]
@@ -437,10 +444,17 @@ class Graph:
             self.new_index += 1
             nodes.append(n)
 
-        self.nodes_sets[indices[0]] = NodeSet(nodes)
+        nodes_set = NodeSet(nodes)
+        new_pos = indices[-1]
+        if new_pos in self.nodes_sets:
+            raise NotImplementedError(
+                f"Nodes were already added at position {new_pos}. "
+                f"This conflicts is not yet handled."
+            )
+        self.nodes_sets[new_pos] = nodes_set
         if new_opsets is not None:
             self.opsets.update(new_opsets)
-        return new_indices
+        return nodes_set
 
     def simplify(self, remove_unused: bool = True):
         """

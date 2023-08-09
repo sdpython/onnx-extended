@@ -128,7 +128,8 @@ class TestOnnxToolsGraph(ExtTestCase):
         model = self._get_model()
         graph = Graph(model)
         self.assertEqual(len(graph), 6)
-        indices = graph.replace_nodes(3, make_node("Sub", ["X", "two"], ["xp"]))
+        node_set = graph.replace_nodes(3, make_node("Sub", ["X", "two"], ["xp"]))
+        indices = [n.index for n in node_set]
         self.assertEqual(indices, [6])
         self.assertEqual(len(graph), 6)
         self.assertEqual(len(list(graph)), 6)

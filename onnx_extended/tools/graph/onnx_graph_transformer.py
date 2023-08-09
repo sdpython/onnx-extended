@@ -135,7 +135,7 @@ def _quantize_float8_matmul(
                 # Add DynamicQuantizeLinear
                 if index == 0:
                     # transposition is needed for the first input
-                    temp_name = node.parent.generate_name(f"{name}_f8")
+                    temp_name = node.parent.generate_name(f"{name}_tr")
                     added.append(
                         make_node("Transpose", [name], [temp_name], perm=[1, 0])
                     )
@@ -202,6 +202,7 @@ def quantize_float8(
     graph: Graph,
     elem_type: int = TensorProto.FLOAT8E4M3FN,
     output_type: int = TensorProto.FLOAT,
+    early_stop: int = -1,
 ) -> Optional[Graph]:
     """
     Transforms a graph to introduce quantized weights.
@@ -212,10 +213,12 @@ def quantize_float8(
     :param graph: Graph
     :param elem_type: quantization type
     :param output_type: output type
+    :param early_stop: -1 to go through all nodes or a value `n > 0`
+        to stop after n changes
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
-    The graph is modified inplace.
+    The graph is modified inplace. Enables the logs gives a better idea of the progress.
     """
     main_opset = graph.get_opset("")
     if main_opset < 20:
@@ -225,22 +228,31 @@ def quantize_float8(
         graph.upgrade_opsets({"": 20})
     new_opsets = {}
     to_add = []
-    for node in graph:
+    n_nodes = len(graph)
+    n_changes = 0
+    for index, node in enumerate(graph):
         if node.op_type in {"MatMul", "Gemm"}:
-            logger.info("[quantize_float8] quantize %s", node)
+            logger.info("[quantize_float8] %d/%d quantize %s", index, n_nodes, node)
             res = _quantize_float8_matmul(node, elem_type, output_type)
             if res is None:
                 continue
             rem, add = res[:2]
             to_add.append((rem, add))
             if len(res) >= 3 and res[2] is not None:
+                n_changes += 1
                 new_opsets.update(res[2])
+            if early_stop > 0 and n_changes >= early_stop:
+                break
 
     if len(to_add) == 0:
         return None
 
     for rem, add in to_add:
-        graph.replace_nodes([r.index for r in rem], add, new_opsets)
+        for r in rem:
+            logger.debug("[quantize_float8] del %s", r)
+        added = graph.replace_nodes([r.index for r in rem], add, new_opsets)
+        for a in added:
+            logger.debug("[quantize_float8] add %s", a)
 
     graph.simplify()
     return graph
