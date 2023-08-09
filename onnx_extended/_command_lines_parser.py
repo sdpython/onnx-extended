@@ -145,6 +145,13 @@ def get_parser_print() -> ArgumentParser:
         required=True,
         help="onnx model or protobuf file to print",
     )
+    parser.add_argument(
+        "-f",
+        "--format",
+        choices=["raw", "nodes"],
+        default="raw",
+        help="format ot use to display the graph",
+    )
     return parser
 
 
@@ -156,7 +163,17 @@ def main(argv: Optional[List[Any]] = None):
             parser = get_main_parser()
             parser.parse_args(argv)
         else:
-            parser = get_parser_store()
+            parsers = dict(
+                store=get_parser_store,
+                print=get_parser_print,
+                display=get_parser_display,
+            )
+            cmd = argv[0]
+            if cmd not in parsers:
+                raise ValueError(
+                    f"Unknown command {cmd!r}, it should be in {list(sorted(parsers))}."
+                )
+            parser = parsers[cmd]()
             parser.parse_args(argv[:1])
         raise RuntimeError("The programme should have exited before.")
 
@@ -185,7 +202,7 @@ def main(argv: Optional[List[Any]] = None):
 
         parser = get_parser_print()
         args = parser.parse_args(argv[1:])
-        print_proto(proto=args.input)
+        print_proto(proto=args.input, fmt=args.format)
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."

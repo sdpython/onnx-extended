@@ -245,13 +245,16 @@ def display_intermediate_results(
         exts[ext](save, index=False)
 
 
-def print_proto(proto: str):
+def print_proto(proto: str, fmt: str = "raw"):
     """
     Shows an onnx model or a protobuf string on stdout.
     Extension '.onnx' is considered a model,
     extension '.proto' or '.pb' is a protobuf string.
 
     :param proto: a file
+    :param fmt: format to use to print the model,
+        `raw` prints out the string produced by `print(model)`,
+        `nodes` only prints out the node name
     """
     if isinstance(proto, str):
         if not os.path.exists(proto):
@@ -288,4 +291,13 @@ def print_proto(proto: str):
         proto_loaded = proto
 
     print(f"Type: {type(proto_loaded)}")
-    print(proto_loaded)
+    if fmt == "raw":
+        print(proto_loaded)
+    elif fmt == "nodes":
+        from .tools.graph.onnx_graph_struct import Graph
+
+        graph = Graph(proto_loaded)
+        for node in graph:
+            print(str(node).replace("<parent>, ", ""))
+    else:
+        raise ValueError(f"Unexpected value for fmt={fmt!r}.")
