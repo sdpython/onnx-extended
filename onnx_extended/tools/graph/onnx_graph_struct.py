@@ -125,6 +125,8 @@ class Node:
 
     def _is_constant(self) -> bool:
         "Tells if a node is a constant or operate on constants."
+        # This function is recursive and its results may
+        # be cached for better performance.
         for i in self.inputs:
             if i not in self.parent.index_output:
                 raise RuntimeError(f"Unable to find output {i!r} in the graph.")
@@ -281,6 +283,7 @@ class Graph:
     def generate_name(self, prefix: str = "new") -> str:
         """
         Generates a name which is not used for any existing result in the graph.
+
         :param prefix: prefix to use for the new name,
             next tries will be `<prefix>_1`, `<prefix>_2`, ...
         :return: new name
