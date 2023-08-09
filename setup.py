@@ -639,6 +639,10 @@ def get_ext_modules():
             f"onnx_extended/validation/cython/vector_function_cy.{ext}",
         ),
         CMakeExtension(
+            "onnx_extended.validation.cython.fp8",
+            f"onnx_extended/validation/cython/fp8.{ext}",
+        ),
+        CMakeExtension(
             "onnx_extended.validation.cpu._validation",
             f"onnx_extended/validation/cpu/_validation.{ext}",
         ),
