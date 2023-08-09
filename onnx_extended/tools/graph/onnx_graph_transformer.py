@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 import numpy as np
 from onnx import TensorProto
 from onnx.helper import make_node, make_tensor
@@ -7,7 +7,7 @@ from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
 from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
 from onnx.reference.op_run import to_array_extended
 from ...reference.c_reference_evaluator import from_array_extended
-from .onnx_graph_struct import Graph, Node, NodeSet
+from .onnx_graph_struct import Graph, Node
 
 
 logger = getLogger("onnx-extended/transformer")
@@ -66,7 +66,7 @@ def estimation_quantization_scale(
     return np.array(1.0 / scale, dtype=coef.dtype), -zero
 
 
-def quantize_weights(node: Node, elem_type: int) -> Node:
+def quantize_weights(node: Node, elem_type: int) -> Tuple[Node, Node, Node]:
     """
     Quantizes a tensor into a tensor of element type *elem_type*.
 
@@ -101,23 +101,25 @@ def quantize_weights(node: Node, elem_type: int) -> Node:
 
 def _quantize_float8_matmul(
     node: Node, elem_type: int = TensorProto.FLOAT8E4M3FN
-) -> Optional[Tuple[List[Node], List[Node]]]:
+) -> Optional[Tuple[List[Node], List[Node], Optional[Dict[str, int]]]]:
     """
     Quantize matrix multiplications.
 
     :param node: matrix multiplication
     :param elem_type: float 8 type to quantize into
-    :return: nodes to remove, nodes to add
+    :return: nodes to remove, nodes to add, new opsets
     """
     if node.op_type == "MatMul":
         removed = []
         added = []
+        input_names = []
         for name in node.inputs:
             if node.parent.is_constant(name):
                 # Quantized constant weights
                 cst = node.parent.get_node_producer(name)
                 weight, scale, zero_point = quantize_weights(cst, elem_type)
-                added.extend([weight, scale, zero_point])
+                added.extend([weight.proto, scale.proto, zero_point.proto])
+                input_names.extend([weight.outname, scale.outname, zero_point.outname])
                 removed.append(cst)
             else:
                 # Add DynamicQuantizeLinear
@@ -131,21 +133,19 @@ def _quantize_float8_matmul(
                     to=elem_type,
                 )
                 dql = Node(None, node.parent, proto)
-                added.extend([dql, scale, zero_point])
+                added.extend([dql.proto])
+                input_names.extend(dql.outputs)
 
-        new_node = Node(
-            None,
-            node.parent,
+        added.append(
             make_node(
                 "GemmFloat8",
-                [a.outname for a in added],
+                input_names,
                 node.outputs,
                 domain="com.microsoft",
-            ),
+            )
         )
-        added.append(new_node)
         removed.append(node)
-        return removed, added
+        return removed, added, {"com.microsoft": 1}
 
     raise NotImplementedError(
         f"Quantization into float 8 not yet implemented for {node.op_type!r}."
@@ -165,6 +165,7 @@ def quantize_float8(
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
+    The graph is modified inplace.
     """
     main_opset = graph.get_opset("")
     if main_opset < 20:
@@ -172,6 +173,7 @@ def quantize_float8(
             "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
         )
         graph.upgrade_opsets({"": 20})
+    new_opsets = {}
     to_add = []
     for node in graph:
         if node.op_type in {"MatMul", "Gemm"}:
@@ -179,14 +181,16 @@ def quantize_float8(
             res = _quantize_float8_matmul(node, elem_type)
             if res is None:
                 continue
-            rem, add = res
+            rem, add = res[:2]
             to_add.append((rem, add))
+            if len(res) >= 3 and res[2] is not None:
+                new_opsets.update(res[2])
 
     if len(to_add) == 0:
         return None
 
     for rem, add in to_add:
-        graph.replace([r.index for r in rem], NodeSet(to_add))
+        graph.replace_nodes([r.index for r in rem], add, new_opsets)
 
     graph.simplify()
     return graph

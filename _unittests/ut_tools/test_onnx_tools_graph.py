@@ -66,6 +66,11 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(tn, "Node(1, <parent>, <Constant>) [] -> [one]")
         self.assertEqual(text, "Graph(...) [X] -> [Z]")
 
+        onx = graph.to_onnx()
+        ref2 = CReferenceEvaluator(onx)
+        got = ref2.run(None, dict(X=x))[0]
+        self.assertEqualArray(z, got)
+
     def test_graph_build_initializer(self):
         onnx_model = make_model(
             make_graph(
@@ -88,6 +93,14 @@ class TestOnnxToolsGraph(ExtTestCase):
             break
         self.assertEqual("Graph(...) [x] -> [y]", str(graph))
 
+        feeds = {"x": np.arange(4**3).reshape((-1, 4, 4)).astype(np.float32)}
+        ref1 = CReferenceEvaluator(onnx_model)
+        expected = ref1.run(None, feeds)[0]
+        onx = graph.to_onnx()
+        ref2 = CReferenceEvaluator(onx)
+        got = ref2.run(None, feeds)[0]
+        self.assertEqualArray(expected, got)
+
     def test_graph_opsets(self):
         model = self._get_model()
         graph = Graph(model)
@@ -99,7 +112,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         model = self._get_model()
         graph = Graph(model)
         self.assertEqual(len(graph), 6)
-        indices = graph.replace(3, make_node("Sub", ["X", "two"], ["xp"]))
+        indices = graph.replace_nodes(3, make_node("Sub", ["X", "two"], ["xp"]))
         self.assertEqual(indices, [6])
         self.assertEqual(len(graph), 6)
         self.assertEqual(len(list(graph)), 6)
@@ -151,11 +164,19 @@ class TestOnnxToolsGraph(ExtTestCase):
         indices = [node.index for node in graph]
         self.assertEqual([0, 1, 2, 3, 4, 5], indices)
 
+        onx = graph.to_onnx()
+        ref2 = CReferenceEvaluator(onx)
+        got = ref2.run(None, {"X": np.arange(9).reshape((-1, 3)).astype(np.float32)})[0]
+        expected = np.array(
+            [72, 126, 180, 234, 396, 558, 396, 666, 936], dtype=np.float32
+        ).reshape((-1, 3))
+        self.assertEqualArray(expected, got)
+
     def test_graph_remove(self):
         model = self._get_model()
         graph = Graph(model)
         self.assertEqual(len(graph), 6)
-        graph.replace(3, make_node("Sub", ["X", "X"], ["xp"]))
+        graph.replace_nodes(3, make_node("Sub", ["X", "X"], ["xp"]))
         graph.simplify(False)
         removed = graph.remove_unused_nodes()
         self.assertEqual(len(removed), 2)
@@ -193,9 +214,33 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_quantize_f8(self):
         model = self._get_model_32()
         graph = Graph(model)
+        n_nodes = len(graph)
         new_graph = quantize_float8(graph)
-        self.assertGreater(len(new_graph), len(graph))
+        self.assertEqual(len(new_graph), len(graph))
+        self.assertGreater(len(new_graph), n_nodes)
+
+    def test_quantize_f8_onnx(self):
+        x = np.arange(12).reshape((4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32()
+        ref = CReferenceEvaluator(model)
+        expected = ref.run(None, feeds)[0]
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = CReferenceEvaluator(onx1)
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(graph)
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        ref2 = CReferenceEvaluator(onx2)
+        got2 = ref2.run(None, feeds)[0]
+        self.assertEqualArray(expected, got2)
 
 
 if __name__ == "__main__":
+    TestOnnxToolsGraph().test_quantize_f8_onnx()
     unittest.main(verbosity=2)

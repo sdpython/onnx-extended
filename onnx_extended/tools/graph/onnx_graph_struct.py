@@ -1,14 +1,21 @@
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
     GraphProto,
     ModelProto,
     NodeProto,
+    SparseTensorProto,
     TensorProto,
     ValueInfoProto,
 )
-from onnx.helper import make_node
+from onnx.helper import (
+    make_graph,
+    make_model,
+    make_node,
+    make_opsetid,
+    set_model_props,
+)
 from onnx.version_converter import convert_version
 from ...reference import CReferenceEvaluator
 from ...reference.c_reference_evaluator import from_array_extended
@@ -24,8 +31,27 @@ class Node:
         self,
         index: int,
         parent: "Graph",
-        proto: Union[TensorProto, NodeProto, ValueInfoProto],
+        proto: Union[TensorProto, NodeProto, ValueInfoProto, str],
     ):
+        if not isinstance(proto, (TensorProto, NodeProto, ValueInfoProto, str)):
+            raise TypeError(f"Unexpected type {type(proto)} for proto.")
+        if isinstance(proto, NodeProto) and proto.op_type == "Constant":
+            missing = True
+            for att in proto.attribute:
+                if att.name in {
+                    "sparse_value",
+                    "value",
+                    "value_float",
+                    "value_floats",
+                    "value_int",
+                    "value_ints",
+                    "value_string",
+                    "value_strings",
+                }:
+                    missing = False
+                    break
+            if missing:
+                raise ValueError(f"Unexpected constant node {proto}.")
         self.index = index
         self.proto = proto
         self.parent = parent
@@ -67,6 +93,16 @@ class Node:
     def is_input(self) -> bool:
         "True if an input"
         return isinstance(self.proto, (ValueInfoProto, str))
+
+    @property
+    def is_initializer(self) -> bool:
+        "True if inititializer"
+        return isinstance(self.proto, TensorProto)
+
+    @property
+    def is_sparse_initializer(self) -> bool:
+        "True if inititializer"
+        return isinstance(self.proto, SparseTensorProto)
 
     @property
     def op_type(self) -> str:
@@ -115,7 +151,7 @@ class Node:
         "Creates an iniatializer or a node Constant based on the new value."
         if self.is_node:
             new_name = self.parent.generate_name(new_tensor.name)
-            node = make_node("Cosntant", [], [new_name])
+            node = make_node("Constant", [], [new_name], value=new_tensor)
             return Node(None, self.parent, node)
         # initializer
         new_tensor.name = self.parent.generate_name(new_tensor.name)
@@ -199,8 +235,16 @@ class Graph:
 
     def __init__(self, proto: Union[FunctionProto, GraphProto, ModelProto]):
         self.proto = proto
-        graph = proto.graph if isinstance(proto, ModelProto) else proto
+        if isinstance(proto, ModelProto):
+            graph = proto.graph
+            if len(proto.functions) > 0:
+                raise NotImplementedError(
+                    "Class Graph does not handle model included functions yet."
+                )
+        else:
+            graph = proto
         self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(graph)
+        self.opsets = {}
         self._complete_init()
 
     def _complete_init(self):
@@ -272,6 +316,7 @@ class Graph:
         res = {}
         for op in self.proto.opset_import:
             res[op.domain] = op.version
+        res.update(self.opsets)
         return res
 
     def get_opset(self, domain: str = "") -> int:
@@ -288,6 +333,8 @@ class Graph:
         for op in self.proto.opset_import:
             if op.domain == domain:
                 return op.version
+        if domain in self.opsets:
+            return self.opsets[domain]
         raise RuntimeError(f"Domain {domain!r} is not part the the model.")
 
     def is_constant(self, name: str) -> bool:
@@ -338,16 +385,18 @@ class Graph:
                 continue
             yield node
 
-    def replace(
+    def replace_nodes(
         self,
         indices: Union[int, List[int]],
         new_nodes: Union[NodeProto, List[NodeProto]],
+        new_opsets: Optional[Dict[str, int]] = None,
     ) -> List[int]:
         """
         Replaces a node index
 
         :param indices: index or list of indices to replace
         :param new_nodes: node or list of nodes to add
+        :param new_opsets: new opet versions
         :return: added indices
         """
         if isinstance(new_nodes, NodeProto):
@@ -389,6 +438,8 @@ class Graph:
             nodes.append(n)
 
         self.nodes_sets[indices[0]] = NodeSet(nodes)
+        if new_opsets is not None:
+            self.opsets.update(new_opsets)
         return new_indices
 
     def simplify(self, remove_unused: bool = True):
@@ -466,3 +517,41 @@ class Graph:
             self.proto.graph
         )
         self._complete_init()
+
+    def to_onnx(self) -> Union[ModelProto, FunctionProto, GraphProto]:
+        """
+        Converts the current graph into onnx with the same type
+        as the input type.
+        """
+        if isinstance(self.proto, ModelProto):
+            opsets = self.get_opsets()
+            initializer = [n.proto for n in self if n.is_initializer]
+            sparse_initializer = [n.proto for n in self if n.is_sparse_initializer]
+            nodes = [n.proto for n in self if n.is_node]
+            model = make_model(
+                make_graph(
+                    nodes,
+                    self.proto.graph.name,
+                    self.proto.graph.input,
+                    self.proto.graph.output,
+                    initializer=initializer,
+                    sparse_initializer=sparse_initializer,
+                ),
+                ir_version=self.proto.ir_version,
+                producer_name=self.proto.producer_name,
+                producer_version=self.proto.producer_version,
+                domain=self.proto.domain,
+                model_version=self.proto.model_version,
+                doc_string=self.proto.doc_string,
+                # training_info=self.proto.training_info,
+                opset_imports=[make_opsetid(k, v) for k, v in opsets.items()],
+            )
+            if len(self.proto.metadata_props) > 0:
+                set_model_props(
+                    model, {p.key: p.value for p in self.proto.metadata_props}
+                )
+            return model
+
+        raise NotImplementedError(
+            f"The conversion to onnx is not implemented for type {type(self.proto)}."
+        )
