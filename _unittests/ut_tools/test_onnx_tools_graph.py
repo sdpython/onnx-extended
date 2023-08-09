@@ -10,6 +10,21 @@ from onnx.helper import (
     make_opsetid,
 )
 from onnx.checker import check_model
+from onnx.defs import onnx_opset_version
+
+try:
+    from onnxruntime import InferenceSession
+except ImportError:
+    InferenceSession = None
+    ort_version = "0.0"
+if InferenceSession is not None:
+    from onnxruntime import get_available_providers
+    from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
+
+    has_cuda = "CUDAExecutionProvider" in get_available_providers()
+else:
+    has_cuda = False
+
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
@@ -212,6 +227,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         check_model(onnx_model)
         return onnx_model
 
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8(self):
         model = self._get_model_32()
         graph = Graph(model)
@@ -220,6 +236,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(len(new_graph), len(graph))
         self.assertGreater(len(new_graph), n_nodes)
 
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnx(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
@@ -238,6 +255,46 @@ class TestOnnxToolsGraph(ExtTestCase):
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
+        got2 = ref2.run(None, feeds)[0]
+        self.assertEqualArray(expected, got2, rtol=0.05)
+
+    @unittest.skipIf(
+        onnx_opset_version() < 20 and not has_cuda,
+        reason="onnx not recent enough or onnxruntime not "
+        "installed or cuda is not available",
+    )
+    def test_quantize_f8_onnx_onnxruntime(self):
+        x = np.arange(12).reshape((4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32()
+        ref = InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        expected = ref.run(None, feeds)[0]
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = InferenceSession(
+            onx1.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(graph)
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        try:
+            ref2 = InferenceSession(
+                onx2.SerializeToString(),
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
+        except InvalidArgument as e:
+            if "Current official support for domain ai.onnx is till opset 19." in str(
+                e
+            ):
+                # onnxruntime not recent enough
+                return
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 

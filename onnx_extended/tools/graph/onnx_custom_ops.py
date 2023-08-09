@@ -3,7 +3,6 @@ from onnx import TensorProto
 from onnx.defs import OpSchema
 from onnx.helper import make_attribute
 from onnx.reference.custom_element_types import (
-    bfloat16,
     float8e4m3fn,
     float8e4m3fnuz,
     float8e5m2,
