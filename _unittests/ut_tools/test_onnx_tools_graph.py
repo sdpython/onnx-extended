@@ -14,6 +14,7 @@ from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
 from onnx_extended.tools.graph.onnx_graph_transformer import quantize_float8
+from onnx_extended.tools.graph.onnx_custom_ops import GemmFloat8
 
 
 class TestOnnxToolsGraph(ExtTestCase):
@@ -196,7 +197,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(1, 7)),
+                        list(float(i) for i in range(11, 17)),
                     ),
                 ),
                 make_node("MatMul", ["X", "mat"], ["Z"]),
@@ -236,9 +237,9 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph)
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        ref2 = CReferenceEvaluator(onx2)
+        ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
         got2 = ref2.run(None, feeds)[0]
-        self.assertEqualArray(expected, got2)
+        self.assertEqualArray(expected, got2, rtol=0.05)
 
 
 if __name__ == "__main__":

@@ -66,16 +66,21 @@ def estimation_quantization_scale(
     return np.array(1.0 / scale, dtype=coef.dtype), -zero
 
 
-def quantize_weights(node: Node, elem_type: int) -> Tuple[Node, Node, Node]:
+def quantize_weights(
+    node: Node, elem_type: int, transpose: bool = False
+) -> Tuple[Node, Node, Node]:
     """
     Quantizes a tensor into a tensor of element type *elem_type*.
 
     :param node: Node to quantize
     :param elem_type: element type
+    :param transpose: transpose the weight before doing it
     :return: three new nodes, quantized weights, scale, zero point
     """
     tensor = node.get_tensor()
     values = to_array_extended(tensor)
+    if transpose:
+        values = values.T
     scale, zp = estimation_quantization_scale(values, to=elem_type)
     zpt = make_tensor("zp", elem_type, [], [zp])
     zpa = to_array_extended(zpt)
@@ -100,48 +105,89 @@ def quantize_weights(node: Node, elem_type: int) -> Tuple[Node, Node, Node]:
 
 
 def _quantize_float8_matmul(
-    node: Node, elem_type: int = TensorProto.FLOAT8E4M3FN
+    node: Node,
+    elem_type: int = TensorProto.FLOAT8E4M3FN,
+    output_type: int = TensorProto.FLOAT,
 ) -> Optional[Tuple[List[Node], List[Node], Optional[Dict[str, int]]]]:
     """
     Quantize matrix multiplications.
 
     :param node: matrix multiplication
     :param elem_type: float 8 type to quantize into
+    :param output_type: output type, result of the quantization
     :return: nodes to remove, nodes to add, new opsets
     """
     if node.op_type == "MatMul":
         removed = []
         added = []
         input_names = []
-        for name in node.inputs:
+        for index, name in enumerate(node.inputs):
             if node.parent.is_constant(name):
                 # Quantized constant weights
                 cst = node.parent.get_node_producer(name)
-                weight, scale, zero_point = quantize_weights(cst, elem_type)
+                weight, scale, zero_point = quantize_weights(
+                    cst, elem_type, transpose=index == 0
+                )
                 added.extend([weight.proto, scale.proto, zero_point.proto])
-                input_names.extend([weight.outname, scale.outname, zero_point.outname])
+                input_names.append([weight.outname, scale.outname, zero_point.outname])
                 removed.append(cst)
             else:
                 # Add DynamicQuantizeLinear
+                if index == 0:
+                    # transposition is needed for the first input
+                    temp_name = node.parent.generate_name(f"{name}_f8")
+                    added.append(
+                        make_node("Transpose", [name], [temp_name], perm=[1, 0])
+                    )
+                else:
+                    # no transposition for the other input
+                    temp_name = name
                 new_name = node.parent.generate_name(f"{name}_f8")
                 scale = node.parent.generate_name(f"{name}_scale")
                 zero_point = node.parent.generate_name(f"{name}_zp")
                 proto = make_node(
                     "DynamicQuantizeLinear",
-                    [name],
+                    [temp_name],
                     [new_name, scale, zero_point],
                     to=elem_type,
                 )
                 dql = Node(None, node.parent, proto)
                 added.extend([dql.proto])
-                input_names.extend(dql.outputs)
+                input_names.append(dql.outputs)
 
+        if output_type in {
+            TensorProto.INT8,
+            TensorProto.UINT8,
+            TensorProto.FLOAT8E4M3FN,
+            TensorProto.FLOAT8E4M3FNUZ,
+            TensorProto.FLOAT8E5M2,
+            TensorProto.FLOAT8E5M2FNUZ,
+        }:
+            # output is quantized, there is a need for a scale
+            scale_out = node.parent.generate_name(f"{name}_scaleout")
+            added.append(
+                make_node("Mul", [input_names[0][1], input_names[1][1]], [scale_out])
+            )
+        else:
+            # output is not quantized, no need for an output scale
+            scale_out = ""
+        gemm_inputs = [
+            input_names[0][0],  # A
+            input_names[1][0],  # B
+            "",  # C
+            input_names[0][1],  # scaleA
+            input_names[1][1],  # scaleB
+            scale_out,  # scaleR
+        ]
         added.append(
             make_node(
                 "GemmFloat8",
-                input_names,
+                gemm_inputs,
                 node.outputs,
                 domain="com.microsoft",
+                rowMajor=1,
+                dtype=output_type,
+                transA=1,
             )
         )
         removed.append(node)
@@ -153,7 +199,9 @@ def _quantize_float8_matmul(
 
 
 def quantize_float8(
-    graph: Graph, elem_type: int = TensorProto.FLOAT8E4M3FN
+    graph: Graph,
+    elem_type: int = TensorProto.FLOAT8E4M3FN,
+    output_type: int = TensorProto.FLOAT,
 ) -> Optional[Graph]:
     """
     Transforms a graph to introduce quantized weights.
@@ -162,6 +210,8 @@ def quantize_float8(
     it before calling this function.
 
     :param graph: Graph
+    :param elem_type: quantization type
+    :param output_type: output type
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
@@ -178,7 +228,7 @@ def quantize_float8(
     for node in graph:
         if node.op_type in {"MatMul", "Gemm"}:
             logger.info("[quantize_float8] quantize %s", node)
-            res = _quantize_float8_matmul(node, elem_type)
+            res = _quantize_float8_matmul(node, elem_type, output_type)
             if res is None:
                 continue
             rem, add = res[:2]
