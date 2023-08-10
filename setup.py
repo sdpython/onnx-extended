@@ -639,6 +639,10 @@ def get_ext_modules():
             f"onnx_extended/validation/cython/vector_function_cy.{ext}",
         ),
         CMakeExtension(
+            "onnx_extended.validation.cython.fp8",
+            f"onnx_extended/validation/cython/fp8.{ext}",
+        ),
+        CMakeExtension(
             "onnx_extended.validation.cpu._validation",
             f"onnx_extended/validation/cpu/_validation.{ext}",
         ),
@@ -689,8 +693,6 @@ def get_package_data():
         "onnx_extended.include.common": known_extensions,
         "onnx_extended.include.cpu": known_extensions,
         "onnx_extended.include.cuda": known_extensions,
-        "onnx_extended.cpu": known_extensions,
-        "onnx_extended.cuda": known_extensions,
         "onnx_extended.ortops.optim.cpu": known_extensions,
         "onnx_extended.ortops.tutorial.cpu": known_extensions,
         "onnx_extended.ortops.tutorial.cuda": known_extensions,

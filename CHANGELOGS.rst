@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`56`: add C implementation to cast a float into float 8
 * :pr:`55`: add basic functionality to transform a graph, starts with basic quantization
 * :pr:`51`: fix optmized TreeEnsembleRegressor and adds TreeEnsembleClassifier as custom ops
 * :pr:`50`: add command line store to store intermediate outputs

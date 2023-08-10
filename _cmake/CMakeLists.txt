@@ -70,6 +70,7 @@ message(STATUS "--------------------------------------------")
 include("targets/_validation.cmake")
 include("targets/cuda_example_py.cmake")
 include("targets/vector_function_cy.cmake")
+include("targets/fp8_cy.cmake")
 
 #
 # common libraries for kernel implementations
