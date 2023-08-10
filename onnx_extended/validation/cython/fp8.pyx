@@ -1,7 +1,6 @@
 import numpy
 cimport numpy
 cimport cython
-from cpython cimport array
 from libcpp cimport bool
 from cython.cimports.libc.stdint import uint8_t, int64_t
 
