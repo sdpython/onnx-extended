@@ -29,13 +29,7 @@ size_t DynamicQuantizeLinearOp::GetInputTypeCount() const noexcept {
 
 ONNXTensorElementDataType
 DynamicQuantizeLinearOp::GetInputType(size_t /* index */) const noexcept {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
-}
-
-constexpr OrtCustomOpInputOutputCharacteristic
-DynamicQuantizeLinearOp::GetInputCharacteristic(
-    size_t /* index */) const noexcept {
-  return INPUT_OUTPUT_VARIADIC;
+  return input_type_;
 }
 
 size_t DynamicQuantizeLinearOp::GetOutputTypeCount() const noexcept {
@@ -46,23 +40,11 @@ ONNXTensorElementDataType
 DynamicQuantizeLinearOp::GetOutputType(size_t index) const {
   switch (index) {
   case 0:
-  case 2:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+    return quant_type_;
   case 1:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-  default:
-    EXT_THROW("Unexpected output index=", index, ".");
-  }
-}
-
-constexpr OrtCustomOpInputOutputCharacteristic
-DynamicQuantizeLinearOp::GetOutputCharacteristic(size_t index) const {
-  switch (index) {
-  case 0:
   case 2:
-    return INPUT_OUTPUT_VARIADIC;
-  case 1:
-    return INPUT_OUTPUT_VARIADIC;
+    return quant_type_;
   default:
     EXT_THROW("Unexpected output index=", index, ".");
   }
@@ -94,14 +76,14 @@ void DynamicQuantizeLinearKernel::Compute(OrtKernelContext *context) {
   float *ptr_scale = scale.GetTensorMutableData<float>();
 
   Ort::UnownedValue zero_point = ctx.GetOutput(2, empty);
-  uint8_t *ptr_zero_point = scale.GetTensorMutableData<uint8_t>();
+  uint8_t *ptr_zero_point = zero_point.GetTensorMutableData<uint8_t>();
 
   switch (elem_type) {
   // case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
   //   const uint16_t *ptr = input_X.GetTensorData<uint16_t>();
   //   Compute(count, ptr, out, *ptr_scale, *ptr_zero_point);
   //   break;
-  case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16: {
+  case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT: {
     const float *ptr = input_X.GetTensorData<float>();
     ComputeInternal<float>(count, ptr, out, *ptr_scale, *ptr_zero_point);
   } break;
@@ -134,7 +116,7 @@ void DynamicQuantizeLinearKernel_ComputeInternal<float>(
     // https://github.com/onnx/onnx/pull/5472/files#diff-58654fc95848ff55a66c1914dab72cf40ff7c22e92ef1ae5d85908b7c82a34a6R224
     float std8 = 100.057724f;
     zero_point = 0;
-    scale = std::sqrt(x2 / std8);
+    scale = std::sqrt(x2) / std8;
 
     if (zero_point != 0) {
       EXT_THROW("zero_point must be null not ", zero_point,

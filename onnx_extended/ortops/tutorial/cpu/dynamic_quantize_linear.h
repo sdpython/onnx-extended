@@ -18,6 +18,13 @@ private:
 
 struct DynamicQuantizeLinearOp
     : Ort::CustomOpBase<DynamicQuantizeLinearOp, DynamicQuantizeLinearKernel> {
+  typedef Ort::CustomOpBase<DynamicQuantizeLinearOp,
+                            DynamicQuantizeLinearKernel>
+      parent_type;
+  DynamicQuantizeLinearOp(ONNXTensorElementDataType input_type,
+                          ONNXTensorElementDataType quant_type)
+      : parent_type(), input_type_(input_type), quant_type_(quant_type) {}
+
   void *CreateKernel(const OrtApi &api,
                      const OrtKernelInfo *info) const noexcept;
   const char *GetName() const noexcept;
@@ -25,13 +32,13 @@ struct DynamicQuantizeLinearOp
 
   size_t GetInputTypeCount() const noexcept;
   ONNXTensorElementDataType GetInputType(size_t index) const noexcept;
-  constexpr OrtCustomOpInputOutputCharacteristic
-  GetInputCharacteristic(size_t index) const noexcept;
 
   size_t GetOutputTypeCount() const noexcept;
   ONNXTensorElementDataType GetOutputType(size_t index) const;
-  constexpr OrtCustomOpInputOutputCharacteristic
-  GetOutputCharacteristic(size_t index) const;
+
+private:
+  ONNXTensorElementDataType input_type_;
+  ONNXTensorElementDataType quant_type_;
 };
 
 } // namespace ortops

@@ -26,7 +26,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::MyCustomOp c_CustomOp;
   static ortops::MyCustomOpWithAttributes c_CustomOpAttr;
-  static ortops::DynamicQuantizeLinearOp c_dql;
+  static ortops::DynamicQuantizeLinearOp
+      c_dql(
+          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};

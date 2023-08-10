@@ -10,7 +10,6 @@ from onnx.helper import (
 )
 from onnx.numpy_helper import from_array
 from onnx.checker import check_model
-from onnx.reference.custom_element_types import float8e4m3fn
 from onnx_extended.ortops.tutorial.cpu import documentation
 from onnx_extended.reference import CReferenceEvaluator
 
@@ -106,25 +105,32 @@ class TestOrtOpTutorialCpu(ExtTestCase):
 
     def _get_dql_model(self, domain, opset):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
-        Y = make_tensor_value_info("Y", TensorProto.FLOAT8E4M3FN, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         scale = make_tensor_value_info("scale", TensorProto.FLOAT, [])
-        zp = make_tensor_value_info("zp", TensorProto.FLOAT8E4M3FN, [])
         onnx_model = make_model(
             make_graph(
                 [
                     make_node(
                         "DynamicQuantizeLinear",
                         ["X"],
-                        ["Y", "scale", "zp"],
+                        ["yu", "scale", "zp"],
                         domain=domain,
                         to=TensorProto.FLOAT8E4M3FN,
-                    )
+                    ),
+                    make_node(
+                        "Cast",
+                        ["yu"],
+                        ["Y"],
+                        to=TensorProto.FLOAT,
+                    ),
                 ],
                 "test",
                 [X],
-                [Y, scale, zp],
+                [Y, scale],
             ),
-            opset_imports=[make_opsetid(domain, opset)],
+            opset_imports=[make_opsetid(domain, opset)]
+            if domain == ""
+            else [make_opsetid(domain, opset), make_opsetid("", 19)],
             ir_version=9,
         )
         check_model(onnx_model)
@@ -134,18 +140,21 @@ class TestOrtOpTutorialCpu(ExtTestCase):
     def test_dynamic_quantize_linear(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
-        a = numpy.array(
+        x = numpy.array(
             [
                 [-1.9386303424835205, -0.927788257598877, -0.4964291751384735],
                 [-0.7981147170066833, 0.5894935131072998, -0.5586161017417908],
             ],
             dtype=numpy.float32,
         )
-        expected = numpy.array([[244, 235, 228], [234, 103, 230]], dtype=float8e4m3fn)
-        feeds = {"X": a}
+        # expected = numpy.array([[244, 235, 228], [234, 103, 230]], dtype=float8e4m3fn)
+        expected = numpy.array([[-192, -88, -48], [-80, 60, -56]], dtype=numpy.float32)
+        expected_scale = numpy.array(0.010128305, dtype=numpy.float32)
+        feeds = {"X": x}
 
         ref = CReferenceEvaluator(self._get_dql_model("", 20))
-        got = ref.run(None, feeds)[0]
+        got, scale = ref.run(None, feeds)
+        self.assertEqualArray(expected_scale, scale)
         self.assertEqualArray(expected, got)
 
         r = get_ort_ext_libs()
@@ -158,10 +167,11 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             opts,
             providers=["CPUExecutionProvider"],
         )
-        got = sess.run(None, feeds)[0]
-
+        got, scale = sess.run(None, feeds)
+        self.assertEqualArray(expected_scale, scale)
         self.assertEqualArray(expected, got)
 
 
 if __name__ == "__main__":
+    TestOrtOpTutorialCpu().test_dynamic_quantize_linear()
     unittest.main(verbosity=2)
