@@ -247,7 +247,7 @@ def quantize_float8(
     The graph is modified inplace. Enables the logs gives a better idea of the progress.
     """
     main_opset = graph.get_opset("")
-    if main_opset < 20:
+    if main_opset < 20 and version == "onnxruntime":
         logger.info(
             "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
         )

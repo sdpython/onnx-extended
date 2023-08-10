@@ -27,7 +27,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::MyCustomOp c_CustomOp;
   static ortops::MyCustomOpWithAttributes c_CustomOpAttr;
 
-#ifdef ORT_API_VERSION >= 16
+#if ORT_API_VERSION >= 16
   static ortops::DynamicQuantizeLinearOp
       c_dql(
           ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
@@ -38,7 +38,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_CustomOp);
     domain.Add(&c_CustomOpAttr);
-#ifdef ORT_API_VERSION >= 16
+#if ORT_API_VERSION >= 16
     domain.Add(&c_dql);
 #endif
 
