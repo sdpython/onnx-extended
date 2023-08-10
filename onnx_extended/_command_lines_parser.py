@@ -39,8 +39,8 @@ def get_parser_store() -> ArgumentParser:
         intermediate results on disk with a short onnx to execute the node.
         """
         ),
-        epilog="Type 'python -m onnx_extended store --help' "
-        "to get help for this command.",
+        epilog="This is inspired from PR https://github.com/onnx/onnx/pull/5413. "
+        "This command may disappear if this functionnality is not used.",
     )
     parser.add_argument(
         "-m",
@@ -98,8 +98,7 @@ def get_parser_display() -> ArgumentParser:
         Executes shape inference on an ONNX model and display the inferred shape.
         """
         ),
-        epilog="Type 'python -m onnx_extended display --help' "
-        "to get help for this command.",
+        epilog="This helps looking at a model from a terminal.",
     )
     parser.add_argument(
         "-m",
@@ -136,8 +135,9 @@ def get_parser_print() -> ArgumentParser:
         extension '.proto' or '.pb' is a protobuf string.
         """
         ),
-        epilog="Type 'python -m onnx_extended print --help' "
-        "to get help for this command.",
+        epilog="The command can be used on short models, mostly coming "
+        "from unittests. Big models are far too large to make this command "
+        "useful. Use command display instead.",
     )
     parser.add_argument(
         "-i",
@@ -164,8 +164,8 @@ def get_parser_quantize() -> ArgumentParser:
         Qauntizes a model in simple ways.
         """
         ),
-        epilog="Type 'python -m onnx_extended quantize --help' "
-        "to get help for this command.",
+        epilog="The implementation quantization are mostly experimental. "
+        "Once finalized, the functionality might move to another package.",
     )
     parser.add_argument(
         "-i",
@@ -242,7 +242,7 @@ def main(argv: Optional[List[Any]] = None):
                     f"Unknown command {cmd!r}, it should be in {list(sorted(parsers))}."
                 )
             parser = parsers[cmd]()
-            parser.parse_args(argv[:1])
+            parser.parse_args(argv[1:])
         raise RuntimeError("The programme should have exited before.")
 
     cmd = argv[0]

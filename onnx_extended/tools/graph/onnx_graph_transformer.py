@@ -241,6 +241,7 @@ def quantize_float8(
         to stop after n changes
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
+    :param quiet: catch exception and silently skip failing nodes
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
