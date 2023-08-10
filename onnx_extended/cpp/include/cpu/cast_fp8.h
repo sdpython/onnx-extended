@@ -66,13 +66,21 @@ inline uint8_t float_to_e4m3fn(float v, bool saturate = true) {
   return val;
 }
 
-inline void float_to_e4m3fn(int64_t n, const float* src, uint8_t* dst, bool saturate = true) {
+inline void float_to_e4m3fn(int64_t n, const float *src, uint8_t *dst,
+                            bool saturate = true) {
 #pragma omp parallel for
   for (int64_t i = 0; i < n; ++i) {
     dst[i] = float_to_e4m3fn(src[i], saturate);
   }
 }
 
+inline void float_to_e4m3fn(int64_t n, const float *src, uint8_t *dst,
+                            float scale, bool saturate = true) {
+#pragma omp parallel for
+  for (int64_t i = 0; i < n; ++i) {
+    dst[i] = float_to_e4m3fn(src[i] / scale, saturate);
+  }
+}
 
 inline float e4m3fn_to_float(uint8_t val) {
   uint32_t res;
@@ -113,11 +121,9 @@ inline float e4m3fn_to_float(uint8_t val) {
   return float_res;
 }
 
-inline void e4m3fn_to_float(int64_t n, const uint8_t* src, float* dst) {
+inline void e4m3fn_to_float(int64_t n, const uint8_t *src, float *dst) {
 #pragma omp parallel for
   for (int64_t i = 0; i < n; ++i) {
     dst[i] = e4m3fn_to_float(src[i]);
   }
 }
-
-

@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include "dynamic_quantize_linear.h"
 #include "my_kernel.h"
 #include "my_kernel_attr.h"
 #include "ort_tutorial_cpu_lib.h"
@@ -25,21 +26,21 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::MyCustomOp c_CustomOp;
   static ortops::MyCustomOpWithAttributes c_CustomOpAttr;
-
-  OrtStatus *result = nullptr;
+  static ortops::DynamicQuantizeLinearOp c_dql;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
     domain.Add(&c_CustomOp);
     domain.Add(&c_CustomOpAttr);
+    domain.Add(&c_dql);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));
   } catch (const std::exception &e) {
     Ort::Status status{e};
-    result = status.release();
+    return status.release();
   }
 
-  return result;
+  return nullptr;
 }

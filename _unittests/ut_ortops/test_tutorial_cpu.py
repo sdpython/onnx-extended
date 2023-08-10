@@ -10,7 +10,9 @@ from onnx.helper import (
 )
 from onnx.numpy_helper import from_array
 from onnx.checker import check_model
+from onnx.reference.custom_element_types import float8e4m3fn
 from onnx_extended.ortops.tutorial.cpu import documentation
+from onnx_extended.reference import CReferenceEvaluator
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -29,7 +31,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
-        self.assertEqual(len(doc), 2)
+        self.assertEqual(len(doc), 3)
         for d in doc:
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
@@ -101,6 +103,64 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         cst = 5.1 + 4.5 + 5 + ord("s")
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(a + b + cst, got)
+
+    def _get_dql_model(self, domain, opset):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT8E4M3FN, [None, None])
+        scale = make_tensor_value_info("scale", TensorProto.FLOAT, [])
+        zp = make_tensor_value_info("zp", TensorProto.FLOAT8E4M3FN, [])
+        onnx_model = make_model(
+            make_graph(
+                [
+                    make_node(
+                        "DynamicQuantizeLinear",
+                        ["X"],
+                        ["Y", "scale", "zp"],
+                        domain=domain,
+                        to=TensorProto.FLOAT8E4M3FN,
+                    )
+                ],
+                "test",
+                [X],
+                [Y, scale, zp],
+            ),
+            opset_imports=[make_opsetid(domain, opset)],
+            ir_version=9,
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    def test_dynamic_quantize_linear(self):
+        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+        a = numpy.array(
+            [
+                [-1.9386303424835205, -0.927788257598877, -0.4964291751384735],
+                [-0.7981147170066833, 0.5894935131072998, -0.5586161017417908],
+            ],
+            dtype=numpy.float32,
+        )
+        expected = numpy.array([[244, 235, 228], [234, 103, 230]], dtype=float8e4m3fn)
+        feeds = {"X": a}
+
+        ref = CReferenceEvaluator(self._get_dql_model("", 20))
+        got = ref.run(None, feeds)[0]
+        self.assertEqualArray(expected, got)
+
+        r = get_ort_ext_libs()
+        opts = SessionOptions()
+        opts.register_custom_ops_library(r[0])
+        sess = InferenceSession(
+            self._get_dql_model(
+                "onnx_extented.ortops.tutorial.cpu", 1
+            ).SerializeToString(),
+            opts,
+            providers=["CPUExecutionProvider"],
+        )
+        got = sess.run(None, feeds)[0]
+
+        self.assertEqualArray(expected, got)
 
 
 if __name__ == "__main__":

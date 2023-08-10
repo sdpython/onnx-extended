@@ -28,8 +28,6 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::CustomGemmOpFloat8E4M3FN c_CustomGemmFloat8E4M3FN;
 #endif
 
-  OrtStatus *result = nullptr;
-
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
@@ -43,8 +41,8 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     AddOrtCustomOpDomainToContainer(std::move(domain));
   } catch (const std::exception &e) {
     Ort::Status status{e};
-    result = status.release();
+    return status.release();
   }
 
-  return result;
+  return nullptr;
 }

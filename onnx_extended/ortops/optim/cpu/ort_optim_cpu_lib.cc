@@ -25,8 +25,6 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::TreeEnsembleRegressor c_TreeEnsembleRegressor;
   static ortops::TreeEnsembleClassifier c_TreeEnsembleClassifier;
 
-  OrtStatus *result = nullptr;
-
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
@@ -37,8 +35,8 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     AddOrtCustomOpDomainToContainer(std::move(domain));
   } catch (const std::exception &e) {
     Ort::Status status{e};
-    result = status.release();
+    return status.release();
   }
 
-  return result;
+  return nullptr;
 }

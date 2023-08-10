@@ -29,24 +29,24 @@ void MyCustomKernel::Compute(OrtKernelContext *context) {
 void *MyCustomOp::CreateKernel(const OrtApi &api,
                                const OrtKernelInfo *info) const {
   return std::make_unique<MyCustomKernel>(api, info).release();
-};
+}
 
 const char *MyCustomOp::GetName() const { return "MyCustomOp"; };
 
 const char *MyCustomOp::GetExecutionProviderType() const {
   return "CPUExecutionProvider";
-};
+}
 
 size_t MyCustomOp::GetInputTypeCount() const { return 2; };
 
 ONNXTensorElementDataType MyCustomOp::GetInputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-};
+}
 
 size_t MyCustomOp::GetOutputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType MyCustomOp::GetOutputType(size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-};
+}
 
 } // namespace ortops

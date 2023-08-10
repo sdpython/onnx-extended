@@ -23,6 +23,36 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
+    onnx_extented.ortops.tutorial.cpu.DynamicQuantizeLinear
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Implements DynamicQuantizeLinear opset 20.
+
+    **Provider**
+    
+    CPUExecutionProvider
+    
+    **Attributes**
+
+    * to: quantized type
+
+    **Inputs**
+    
+    * X (T1): tensor of type T
+
+    **Outputs**
+
+    * Y (T2): quantized X
+    * scale (TS): scale
+    * Y (T2): zero point
+
+    **Constraints**
+
+    * T1: float, float 16
+    * TS: float
+    * T2: int8, uint8, float8e4m3fn, float8e4m3fnuz, float8e5m2, float8e5m2fnuz
+    """,
+                """
     onnx_extented.ortops.tutorial.cpu.MyCustomOp
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
