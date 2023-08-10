@@ -7,6 +7,7 @@ from io import StringIO
 import numpy as np
 from onnx import TensorProto, load
 from onnx.checker import check_model
+from onnx.defs import onnx_opset_version
 from onnx.helper import (
     make_graph,
     make_model,
@@ -260,6 +261,7 @@ class TestCommandLines(ExtTestCase):
         check_model(onnx_model)
         return onnx_model
 
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_command_quantize_model(self):
         onnx_model = self._get_model_32()
         with tempfile.TemporaryDirectory() as fold:
