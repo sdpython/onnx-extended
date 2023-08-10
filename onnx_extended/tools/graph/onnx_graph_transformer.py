@@ -5,8 +5,10 @@ from onnx import TensorProto
 from onnx.helper import make_node, make_tensor
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
 from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
+from onnx.reference.custom_element_types import float8e4m3fn
 from onnx.reference.op_run import to_array_extended
 from ...reference.c_reference_evaluator import from_array_extended
+from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .onnx_graph_struct import Graph, Node
 
 
@@ -84,7 +86,11 @@ def quantize_weights(
     scale, zp = estimation_quantization_scale(values, to=elem_type)
     zpt = make_tensor("zp", elem_type, [], [zp])
     zpa = to_array_extended(zpt)
-    new_values = QuantizeLinear.eval(values, scale, zpa)
+
+    if elem_type == TensorProto.FLOAT8E4M3FN:
+        new_values = cast_float32_to_e4m3fn(values / scale).astype(float8e4m3fn)
+    else:
+        new_values = QuantizeLinear.eval(values, scale, zpa)
 
     new_tensor = from_array_extended(
         new_values, name=node.parent.generate_name(node.outname)
@@ -106,8 +112,9 @@ def quantize_weights(
 
 def _quantize_float8_matmul(
     node: Node,
-    elem_type: int = TensorProto.FLOAT8E4M3FN,
-    output_type: int = TensorProto.FLOAT,
+    elem_type: int,
+    output_type: int,
+    version: str,
 ) -> Optional[Tuple[List[Node], List[Node], Optional[Dict[str, int]]]]:
     """
     Quantize matrix multiplications.
@@ -115,8 +122,18 @@ def _quantize_float8_matmul(
     :param node: matrix multiplication
     :param elem_type: float 8 type to quantize into
     :param output_type: output type, result of the quantization
+    :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
+        `'onnx-extended'` to use experimental operators
     :return: nodes to remove, nodes to add, new opsets
     """
+    if version == "onnxruntime":
+        domain_dq = ""
+        domain_gemm = "com.microsoft"
+    elif version == "onnx-extended":
+        domain_dq = "onnx_extented.ortops.tutorial.cpu"
+        domain_gemm = "onnx_extented.ortops.tutorial.cuda"
+    else:
+        raise ValueError(f"Unexpected value {version!r} for version.")
     if node.op_type == "MatMul":
         removed = []
         added = []
@@ -150,6 +167,7 @@ def _quantize_float8_matmul(
                     [temp_name],
                     [new_name, scale, zero_point],
                     to=elem_type,
+                    domain=domain_dq,
                 )
                 dql = Node(None, node.parent, proto)
                 added.extend([dql.proto])
@@ -184,14 +202,17 @@ def _quantize_float8_matmul(
                 "GemmFloat8",
                 gemm_inputs,
                 node.outputs,
-                domain="com.microsoft",
                 rowMajor=1,
                 dtype=output_type,
                 transA=1,
+                domain=domain_gemm,
             )
         )
         removed.append(node)
-        return removed, added, {"com.microsoft": 1}
+        opsets = {domain_gemm: 1}
+        if domain_dq != "":
+            opsets.update({domain_dq: 1})
+        return removed, added, opsets
 
     raise NotImplementedError(
         f"Quantization into float 8 not yet implemented for {node.op_type!r}."
@@ -203,6 +224,7 @@ def quantize_float8(
     elem_type: int = TensorProto.FLOAT8E4M3FN,
     output_type: int = TensorProto.FLOAT,
     early_stop: int = -1,
+    version: str = "onnxruntime",
 ) -> Optional[Graph]:
     """
     Transforms a graph to introduce quantized weights.
@@ -215,6 +237,8 @@ def quantize_float8(
     :param output_type: output type
     :param early_stop: -1 to go through all nodes or a value `n > 0`
         to stop after n changes
+    :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
+        `'onnx-extended'` to use experimental operators
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
@@ -233,7 +257,7 @@ def quantize_float8(
     for index, node in enumerate(graph):
         if node.op_type in {"MatMul", "Gemm"}:
             logger.info("[quantize_float8] %d/%d quantize %s", index, n_nodes, node)
-            res = _quantize_float8_matmul(node, elem_type, output_type)
+            res = _quantize_float8_matmul(node, elem_type, output_type, version=version)
             if res is None:
                 continue
             rem, add = res[:2]
