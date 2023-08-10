@@ -5,7 +5,9 @@ import sys
 from contextlib import redirect_stdout
 from io import StringIO
 import numpy as np
-from onnx import TensorProto
+from onnx import TensorProto, load
+from onnx.checker import check_model
+from onnx.defs import onnx_opset_version
 from onnx.helper import (
     make_graph,
     make_model,
@@ -21,6 +23,7 @@ from onnx_extended._command_lines_parser import (
     get_parser_store,
     get_parser_display,
     get_parser_print,
+    get_parser_quantize,
     main,
 )
 
@@ -54,6 +57,13 @@ class TestCommandLines(ExtTestCase):
             get_parser_print().print_help()
         text = st.getvalue()
         self.assertIn("print", text)
+
+    def test_parser_quantize(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_quantize().print_help()
+        text = st.getvalue()
+        self.assertIn("quantize", text)
 
     def test_parse(self):
         checks_str = [
@@ -223,6 +233,65 @@ class TestCommandLines(ExtTestCase):
             self.assertIn("Type:", text)
             self.assertIn("17", text)
 
+    def _get_model_32(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [4, 3])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node(
+                    "Constant",
+                    [],
+                    ["mat"],
+                    value=make_tensor(
+                        "one",
+                        TensorProto.FLOAT,
+                        [3, 2],
+                        list(float(i) for i in range(11, 17)),
+                    ),
+                ),
+                make_node("MatMul", ["X", "mat"], ["Z"]),
+            ],
+            "zoo",
+            [X],
+            [Z],
+        )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    def test_command_quantize_model(self):
+        onnx_model = self._get_model_32()
+        with tempfile.TemporaryDirectory() as fold:
+            model_file = os.path.join(fold, "model.onnx")
+            with open(model_file, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            model_out = os.path.join(fold, "out.onnx")
+
+            st = StringIO()
+            with redirect_stdout(st):
+                args = ["quantize", "-i", model_file, "-o", model_out, "-k", "fp8"]
+                main(args)
+            text = st.getvalue()
+            self.assertEqual(text, "")
+            self.assertExists(model_out)
+            with open(model_out, "rb") as f:
+                content = load(f)
+            types = [n.op_type for n in content.graph.node]
+            self.assertEqual(
+                types,
+                [
+                    "Transpose",
+                    "DynamicQuantizeLinear",
+                    "Constant",
+                    "Constant",
+                    "GemmFloat8",
+                ],
+            )
+
 
 if __name__ == "__main__":
+    TestCommandLines().test_command_quantize_model()
     unittest.main(verbosity=2)

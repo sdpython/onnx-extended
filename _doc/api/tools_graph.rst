@@ -24,5 +24,5 @@ NodeSet
 Graph
 =====
 
-.. autoclass:: onnx_extended.tools.graph.onnx_graph_struct.Graph
+.. autoclass:: onnx_extended.tools.graph.Graph
     :members:

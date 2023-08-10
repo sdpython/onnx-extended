@@ -13,7 +13,7 @@ def get_main_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "cmd",
-        choices=["store", "check", "display", "print"],
+        choices=["store", "check", "display", "print", "quantize"],
         help=dedent(
             """
         Select a command.
@@ -22,7 +22,8 @@ def get_main_parser() -> ArgumentParser:
         intermediate results on disk with a short onnx to execute the node.
         'check' checks a runtime on stored intermediate results.
         'display' displays the shapes inferences results,
-        'print' prints out a model or a protobuf file on the standard output
+        'print' prints out a model or a protobuf file on the standard output,
+        'quantize' quantizes an onnx model in simple ways
         """
         ),
     )
@@ -38,8 +39,8 @@ def get_parser_store() -> ArgumentParser:
         intermediate results on disk with a short onnx to execute the node.
         """
         ),
-        epilog="Type 'python -m onnx_extended store --help' "
-        "to get help for this command.",
+        epilog="This is inspired from PR https://github.com/onnx/onnx/pull/5413. "
+        "This command may disappear if this functionnality is not used.",
     )
     parser.add_argument(
         "-m",
@@ -97,8 +98,7 @@ def get_parser_display() -> ArgumentParser:
         Executes shape inference on an ONNX model and display the inferred shape.
         """
         ),
-        epilog="Type 'python -m onnx_extended display --help' "
-        "to get help for this command.",
+        epilog="This helps looking at a model from a terminal.",
     )
     parser.add_argument(
         "-m",
@@ -135,8 +135,9 @@ def get_parser_print() -> ArgumentParser:
         extension '.proto' or '.pb' is a protobuf string.
         """
         ),
-        epilog="Type 'python -m onnx_extended print --help' "
-        "to get help for this command.",
+        epilog="The command can be used on short models, mostly coming "
+        "from unittests. Big models are far too large to make this command "
+        "useful. Use command display instead.",
     )
     parser.add_argument(
         "-i",
@@ -155,6 +156,72 @@ def get_parser_print() -> ArgumentParser:
     return parser
 
 
+def get_parser_quantize() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="quantize",
+        description=dedent(
+            """
+        Qauntizes a model in simple ways.
+        """
+        ),
+        epilog="The implementation quantization are mostly experimental. "
+        "Once finalized, the functionality might move to another package.",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=str,
+        required=True,
+        help="onnx model or protobuf file to print",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        required=True,
+        help="output model to write",
+    )
+    parser.add_argument(
+        "-k",
+        "--kind",
+        choices=["fp8"],
+        required=True,
+        help="Kind of quantization to do. 'fp8' "
+        "quantizes weights to float 8 e4m3fn whenever possible. "
+        "It replaces MatMul by Transpose + DynamicQuantizeLinear + GemmFloat8.",
+    )
+    parser.add_argument(
+        "-s",
+        "--scenario",
+        choices=["onnxruntime", "onnx-extended"],
+        required=False,
+        default="onnxruntime",
+        help="Possible versions for fp8 quantization. "
+        "'onnxruntime' uses operators implemented by onnxruntime, "
+        "'onnx-extended' uses experimental operators from this package.",
+    )
+    parser.add_argument(
+        "-e",
+        "--early-stop",
+        required=False,
+        help="stops after N modifications",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="do not stop if an exception is raised",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="enable logging, can be repeated",
+    )
+    return parser
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -167,6 +234,7 @@ def main(argv: Optional[List[Any]] = None):
                 store=get_parser_store,
                 print=get_parser_print,
                 display=get_parser_display,
+                quantize=get_parser_quantize,
             )
             cmd = argv[0]
             if cmd not in parsers:
@@ -174,7 +242,7 @@ def main(argv: Optional[List[Any]] = None):
                     f"Unknown command {cmd!r}, it should be in {list(sorted(parsers))}."
                 )
             parser = parsers[cmd]()
-            parser.parse_args(argv[:1])
+            parser.parse_args(argv[1:])
         raise RuntimeError("The programme should have exited before.")
 
     cmd = argv[0]
@@ -203,6 +271,20 @@ def main(argv: Optional[List[Any]] = None):
         parser = get_parser_print()
         args = parser.parse_args(argv[1:])
         print_proto(proto=args.input, fmt=args.format)
+    elif cmd == "quantize":
+        from ._command_lines import cmd_quantize
+
+        parser = get_parser_quantize()
+        args = parser.parse_args(argv[1:])
+        cmd_quantize(
+            model=args.input,
+            output=args.output,
+            verbose=args.verbose,
+            scenario=args.scenario,
+            kind=args.kind,
+            early_stop=args.early_stop,
+            quiet=args.quiet,
+        )
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."

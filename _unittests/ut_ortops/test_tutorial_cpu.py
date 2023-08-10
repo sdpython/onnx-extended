@@ -1,6 +1,7 @@
 import unittest
 import numpy
 from onnx import TensorProto
+from onnx.defs import onnx_opset_version
 from onnx.helper import (
     make_model,
     make_node,
@@ -136,7 +137,8 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         check_model(onnx_model)
         return onnx_model
 
-    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @unittest.skipIf(InferenceSession is None, reason="onnxruntime not installed")
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_dynamic_quantize_linear(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
