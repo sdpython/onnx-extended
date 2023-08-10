@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from onnx import (
@@ -115,7 +116,7 @@ def store_intermediate_results(
     See :class:`CReferenceEvaluator <onnx_extended.reference.CReferenceEvaluator>`
     for further details.
 
-    :param model: path to a model of ModelProto
+    :param model: path to a model or ModelProto
     :param inputs: list of inputs for the model
     :param out: output path
     :param runtime: runtime class to use
@@ -301,3 +302,61 @@ def print_proto(proto: str, fmt: str = "raw"):
             print(str(node).replace("<parent>, ", ""))
     else:
         raise ValueError(f"Unexpected value for fmt={fmt!r}.")
+
+
+def cmd_quantize(
+    model: Union[ModelProto, str],
+    output: Optional[str] = None,
+    kind: str = "fp8",
+    scenario: str = "onnxruntime",
+    early_stop: Optional[int] = None,
+    quiet: bool = False,
+    verbose: int = 0,
+):
+    """
+    Quantizes a model
+
+    :param model: path to a model or ModelProto
+    :param output: output file
+    :param kind: kind of quantization
+    :param scenario: depends on the quantization
+    :param early_stop: stops early to see the preliminary results
+    :param quiet: do not stop an exception
+    :param verbose: verbosity level
+    """
+    from .tools.graph import Graph
+
+    if isinstance(model, str):
+        if not os.path.exists(model):
+            raise FileNotFoundError(f"Unable to find file {model!r}.")
+        ext = os.path.splitext(model)[-1]
+        if ext == ".onnx":
+            with open(model, "rb") as f:
+                proto_loaded = load(f)
+    else:
+        proto_loaded = model
+    graph = Graph(proto_loaded)
+
+    if verbose:
+        logging.basicConfig(
+            level=logging.WARN
+            if verbose > 2
+            else (logging.DEBUG if verbose > 1 else logging.INFO)
+        )
+
+    if kind == "fp8":
+        from .tools.graph import quantize_float8
+
+        logger = logging.getLogger("onnx-extended")
+        logger.info("Model initial size: %d", len(proto_loaded.SerializeToString()))
+        new_graph = quantize_float8(
+            graph, early_stop=early_stop or -1, quiet=quiet, version=scenario
+        )
+        onx2 = new_graph.to_onnx()
+        seq = onx2.SerializeToString()
+        logger.info("Model quantized size: %d", len(seq))
+        with open(output, "wb") as f:
+            f.write(seq)
+        return
+
+    raise ValueError(f"Unexpected value {kind!r} for kind.")

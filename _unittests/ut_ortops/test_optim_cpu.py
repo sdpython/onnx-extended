@@ -28,7 +28,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
-        self.assertEqual(len(doc), 2)
+        self.assertEqual(len(doc), 3)
         for d in doc:
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)

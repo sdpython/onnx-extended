@@ -124,6 +124,7 @@ def _quantize_float8_matmul(
     :param output_type: output type, result of the quantization
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
+    :param quiet: True to silently skip failing nodes
     :return: nodes to remove, nodes to add, new opsets
     """
     if version == "onnxruntime":
@@ -225,6 +226,7 @@ def quantize_float8(
     output_type: int = TensorProto.FLOAT,
     early_stop: int = -1,
     version: str = "onnxruntime",
+    quiet: bool = False,
 ) -> Optional[Graph]:
     """
     Transforms a graph to introduce quantized weights.
@@ -257,7 +259,21 @@ def quantize_float8(
     for index, node in enumerate(graph):
         if node.op_type in {"MatMul", "Gemm"}:
             logger.info("[quantize_float8] %d/%d quantize %s", index, n_nodes, node)
-            res = _quantize_float8_matmul(node, elem_type, output_type, version=version)
+            try:
+                res = _quantize_float8_matmul(
+                    node, elem_type, output_type, version=version
+                )
+            except Exception as e:
+                if quiet:
+                    logger.warn(
+                        "[quantize_float8] %d/%d failed to quantize due to %s",
+                        index,
+                        n_nodes,
+                        e,
+                    )
+                    continue
+                raise e
+
             if res is None:
                 continue
             rem, add = res[:2]

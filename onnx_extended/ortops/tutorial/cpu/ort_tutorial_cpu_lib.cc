@@ -26,16 +26,21 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::MyCustomOp c_CustomOp;
   static ortops::MyCustomOpWithAttributes c_CustomOpAttr;
+
+#ifdef ORT_API_VERSION >= 16
   static ortops::DynamicQuantizeLinearOp
       c_dql(
           ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
+#endif
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
     domain.Add(&c_CustomOp);
     domain.Add(&c_CustomOpAttr);
+#ifdef ORT_API_VERSION >= 16
     domain.Add(&c_dql);
+#endif
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));
