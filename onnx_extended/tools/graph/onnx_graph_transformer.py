@@ -1,7 +1,7 @@
 from logging import getLogger
 from typing import Dict, List, Optional, Tuple
 import numpy as np
-from onnx import TensorProto
+from onnx import FunctionProto, NodeProto, TensorProto
 from onnx.helper import make_node, make_tensor
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
 from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
@@ -110,12 +110,36 @@ def quantize_weights(
     return node_weight, node_scale, node_zp
 
 
+class TransformUpdateResults:
+    """
+    Output of a function transforming a graph.
+
+    :param removed_nodes: node to remove from the graph
+    :param added_nodes: node to add to the graph
+    :param new_opsets: opsets to update
+    :param local_functions: necessary functions to add to the graph
+    """
+
+    def __init__(
+        self,
+        removed_nodes: List[Node],
+        added_nodes: List[NodeProto],
+        new_opsets: Optional[Dict[str, int]] = None,
+        local_functions: Optional[List[FunctionProto]] = None,
+    ):
+        self.removed_nodes = removed_nodes
+        self.added_nodes = added_nodes
+        self.new_opsets = new_opsets or {}
+        self.local_functions = local_functions or []
+
+
 def _quantize_float8_matmul(
     node: Node,
     elem_type: int,
     output_type: int,
     version: str,
-) -> Optional[Tuple[List[Node], List[Node], Optional[Dict[str, int]]]]:
+    local_functions: Optional[Dict[str, FunctionProto]] = None,
+) -> Optional[TransformUpdateResults]:
     """
     Quantize matrix multiplications.
 
@@ -124,6 +148,9 @@ def _quantize_float8_matmul(
     :param output_type: output type, result of the quantization
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
+    :param local_functions: None to avoid using local functions,
+        otherwise a dictionary with the existing local functions to
+        add to the model
     :param quiet: True to silently skip failing nodes
     :return: nodes to remove, nodes to add, new opsets
     """
@@ -213,7 +240,9 @@ def _quantize_float8_matmul(
         opsets = {domain_gemm: 1}
         if domain_dq != "":
             opsets.update({domain_dq: 1})
-        return removed, added, opsets
+        return TransformUpdateResults(
+            removed_nodes=removed, added_nodes=added, new_opsets=opsets
+        )
 
     raise NotImplementedError(
         f"Quantization into float 8 not yet implemented for {node.op_type!r}."
@@ -226,6 +255,7 @@ def quantize_float8(
     output_type: int = TensorProto.FLOAT,
     early_stop: int = -1,
     version: str = "onnxruntime",
+    local_function: bool = False,
     quiet: bool = False,
 ) -> Optional[Graph]:
     """
@@ -241,11 +271,13 @@ def quantize_float8(
         to stop after n changes
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
+    :param local_function: use local function to inline DynamicQuantizeLinear
     :param quiet: catch exception and silently skip failing nodes
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
-    The graph is modified inplace. Enables the logs gives a better idea of the progress.
+    The graph is modified inplace.
+    Enables the logs gives a better idea of the progress.
     """
     main_opset = graph.get_opset("")
     if main_opset < 20 and version == "onnxruntime":
@@ -253,6 +285,7 @@ def quantize_float8(
             "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
         )
         graph.upgrade_opsets({"": 20})
+    local_functions = graph.functions if local_function else None
     new_opsets = {}
     to_add = []
     n_nodes = len(graph)
@@ -261,8 +294,12 @@ def quantize_float8(
         if node.op_type in {"MatMul", "Gemm"}:
             logger.info("[quantize_float8] %d/%d quantize %s", index, n_nodes, node)
             try:
-                res = _quantize_float8_matmul(
-                    node, elem_type, output_type, version=version
+                results = _quantize_float8_matmul(
+                    node,
+                    elem_type,
+                    output_type,
+                    version=version,
+                    local_functions=local_functions,
                 )
             except Exception as e:
                 if quiet:
@@ -275,13 +312,13 @@ def quantize_float8(
                     continue
                 raise e
 
-            if res is None:
+            if results is None:
                 continue
-            rem, add = res[:2]
+            rem, add = results.removed_nodes, results.added_nodes
             to_add.append((rem, add))
-            if len(res) >= 3 and res[2] is not None:
+            if len(results.new_opsets) > 0:
                 n_changes += 1
-                new_opsets.update(res[2])
+                new_opsets.update(results.new_opsets)
             if early_stop > 0 and n_changes >= early_stop:
                 break
 

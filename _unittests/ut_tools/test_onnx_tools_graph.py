@@ -342,5 +342,9 @@ class TestOnnxToolsGraph(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxToolsGraph().test_quantize_f8_onnx()
+    import logging
+    # logging.basicConfig(level=logging.ERROR)
+    log = logging.getLogger("onnx-extended")
+    log.setLevel(logging.ERROR)
+    TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
     unittest.main(verbosity=2)

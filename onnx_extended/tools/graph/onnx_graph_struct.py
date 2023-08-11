@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -237,12 +237,14 @@ class Graph:
 
     def __init__(self, proto: Union[FunctionProto, GraphProto, ModelProto]):
         self.proto = proto
+        self.functions: Optional[Dict[self, FunctionProto]] = None
         if isinstance(proto, ModelProto):
             graph = proto.graph
             if len(proto.functions) > 0:
                 raise NotImplementedError(
                     "Class Graph does not handle model included functions yet."
                 )
+            self.functions = {f.name: f for f in proto.functions}
         else:
             graph = proto
         self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(graph)
@@ -250,13 +252,13 @@ class Graph:
         self._complete_init()
 
     def _complete_init(self):
-        self.removed = set()
-        self.index_input = {}
-        self.index_output = {}
-        self.nodes_added = {}
-        self.nodes_sets = {}
-        self.generated_names = set()
-        self.new_index = len(self.nodes)
+        self.removed: Set[str] = set()
+        self.index_input: Dict[str, List[Node]] = {}
+        self.index_output: Dict[str, Node] = {}
+        self.nodes_added: Dict[int, Node] = {}
+        self.nodes_sets: Dict[int:NodeSet] = {}
+        self.generated_names: Set[str] = set()
+        self.new_index: int = len(self.nodes)
 
         for node in self.nodes:
             self._complete_init_node(node)
