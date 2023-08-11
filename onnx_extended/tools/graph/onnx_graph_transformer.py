@@ -15,6 +15,29 @@ from .onnx_graph_struct import Graph, Node
 logger = getLogger("onnx-extended/transformer")
 
 
+class TransformResults:
+    """
+    Output of a function transforming a graph.
+
+    :param removed_nodes: node to remove from the graph
+    :param added_nodes: node to add to the graph
+    :param new_opsets: opsets to update
+    :param local_functions: necessary functions to add to the graph
+    """
+
+    def __init__(
+        self,
+        removed_nodes: List[Node],
+        added_nodes: List[NodeProto],
+        new_opsets: Optional[Dict[str, int]] = None,
+        local_functions: Optional[List[FunctionProto]] = None,
+    ):
+        self.removed_nodes = removed_nodes
+        self.added_nodes = added_nodes
+        self.new_opsets = new_opsets or {}
+        self.local_functions = local_functions or []
+
+
 def estimation_quantization_scale(
     coef: np.array,
     to: int = TensorProto.FLOAT8E4M3FN,
@@ -110,36 +133,13 @@ def quantize_weights(
     return node_weight, node_scale, node_zp
 
 
-class TransformUpdateResults:
-    """
-    Output of a function transforming a graph.
-
-    :param removed_nodes: node to remove from the graph
-    :param added_nodes: node to add to the graph
-    :param new_opsets: opsets to update
-    :param local_functions: necessary functions to add to the graph
-    """
-
-    def __init__(
-        self,
-        removed_nodes: List[Node],
-        added_nodes: List[NodeProto],
-        new_opsets: Optional[Dict[str, int]] = None,
-        local_functions: Optional[List[FunctionProto]] = None,
-    ):
-        self.removed_nodes = removed_nodes
-        self.added_nodes = added_nodes
-        self.new_opsets = new_opsets or {}
-        self.local_functions = local_functions or []
-
-
 def _quantize_float8_matmul(
     node: Node,
     elem_type: int,
     output_type: int,
     version: str,
     local_functions: Optional[Dict[str, FunctionProto]] = None,
-) -> Optional[TransformUpdateResults]:
+) -> Optional[TransformResults]:
     """
     Quantize matrix multiplications.
 
@@ -240,7 +240,7 @@ def _quantize_float8_matmul(
         opsets = {domain_gemm: 1}
         if domain_dq != "":
             opsets.update({domain_dq: 1})
-        return TransformUpdateResults(
+        return TransformResults(
             removed_nodes=removed, added_nodes=added, new_opsets=opsets
         )
 

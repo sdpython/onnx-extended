@@ -343,6 +343,7 @@ class TestOnnxToolsGraph(ExtTestCase):
 
 if __name__ == "__main__":
     import logging
+
     # logging.basicConfig(level=logging.ERROR)
     log = logging.getLogger("onnx-extended")
     log.setLevel(logging.ERROR)
