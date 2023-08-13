@@ -34,6 +34,21 @@ inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
 #define ThrowOnError(api, ort_status)                                          \
   _ThrowOnError_(ort_status, __FILE__, __LINE__, api)
 
+////////
+// types
+////////
+
+inline bool is_float8(ONNXTensorElementDataType type) {
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 11080 && ORT_VERSION >= 1160
+  return (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN) ||
+         (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FNUZ) ||
+         (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2) ||
+         (type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E5M2FNUZ);
+#else
+  return type >= 17;
+#endif
+}
+
 ////////////////////
 // kernel attributes
 ////////////////////

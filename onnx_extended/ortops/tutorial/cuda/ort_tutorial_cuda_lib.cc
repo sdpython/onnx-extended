@@ -22,10 +22,17 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
-  static ortops::CustomGemmOpFloat c_CustomGemmFloat;
-  static ortops::CustomGemmOpFloat16 c_CustomGemmFloat16;
+  static ortops::CustomGemmOp c_CustomGemmFloat(
+      "CustomGemmFloat", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
+  static ortops::CustomGemmOp c_CustomGemmFloat16(
+      "CustomGemmFloat16", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16);
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
-  static ortops::CustomGemmOpFloat8E4M3FN c_CustomGemmFloat8E4M3FN;
+  static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FN(
+      "CustomGemmFloat8E4M3FN", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
 #endif
 
   try {

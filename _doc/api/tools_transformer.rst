@@ -11,3 +11,4 @@ TransformResults
 ================
 
 .. autoclass:: onnx_extended.tools.graph.onnx_graph_transformer.TransformResults
+    :members:

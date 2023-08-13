@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+from packaging.version import Version
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -13,23 +14,30 @@ from onnx.checker import check_model
 from onnx.defs import onnx_opset_version
 
 try:
-    from onnxruntime import InferenceSession
+    from onnxruntime import InferenceSession, SessionOptions
 except ImportError:
-    InferenceSession = None
+    InferenceSession, SessionOptions = None, None
     ort_version = "0.0"
 if InferenceSession is not None:
     from onnxruntime import get_available_providers
     from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
 
-    has_cuda = "CUDAExecutionProvider" in get_available_providers()
+    ort_has_cuda = "CUDAExecutionProvider" in get_available_providers()
 else:
-    has_cuda = False
+    ort_has_cuda = False
 
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
 from onnx_extended.tools.graph.onnx_graph_transformer import quantize_float8
 from onnx_extended.tools.graph.onnx_custom_ops import GemmFloat8
+from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs as get_ort_ext_libs_cpu
+from onnx_extended import has_cuda
+
+if has_cuda():
+    from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
+else:
+    get_device_prop = None
 
 
 class TestOnnxToolsGraph(ExtTestCase):
@@ -260,7 +268,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqualArray(expected, got2, rtol=0.05)
 
     @unittest.skipIf(
-        onnx_opset_version() < 20 and not has_cuda,
+        onnx_opset_version() < 20 and (not has_cuda() or not ort_has_cuda),
         reason="onnx not recent enough or onnxruntime not "
         "installed or cuda is not available",
     )
@@ -300,10 +308,10 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqualArray(expected, got2, rtol=0.05)
 
     @unittest.skipIf(
-        not has_cuda,
+        not has_cuda() or not ort_has_cuda,
         reason="onnxruntime not installed or cuda is not available",
     )
-    def test_quantize_f8_onnx_extended(self):
+    def test_quantize_f8_onnx_extended_code(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
         model = self._get_model_32()
@@ -312,11 +320,54 @@ class TestOnnxToolsGraph(ExtTestCase):
         )
         expected = ref.run(None, feeds)[0]
 
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
         graph = Graph(model)
         onx1 = graph.to_onnx()
         check_model(onx1)
         ref1 = InferenceSession(
-            onx1.SerializeToString(), providers=["CPUExecutionProvider"]
+            onx1.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+    @unittest.skipIf(
+        not has_cuda() or not ort_has_cuda,
+        reason="onnxruntime not installed or cuda is not available",
+    )
+    # @unittest.skipIf(
+    #    Version(ort_version) < Version("1.16"), reason="float8 types not released"
+    # )
+    # @unittest.skipIf(
+    #    get_device_prop is None or get_device_prop().get("major") < 9,
+    #    reason="Float 8 not supported on this machine",
+    # )
+    def test_quantize_f8_onnx_extended(self):
+        from onnx_extended.ortops.tutorial.cuda import (
+            get_ort_ext_libs as get_ort_ext_libs_cuda,
+        )
+
+        x = np.arange(12).reshape((4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32()
+        ref = InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        expected = ref.run(None, feeds)[0]
+
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = InferenceSession(
+            onx1.SerializeToString(), opts, providers=["CPUExecutionProvider"]
         )
         got1 = ref1.run(None, feeds)[0]
         self.assertEqualArray(expected, got1)
@@ -326,9 +377,19 @@ class TestOnnxToolsGraph(ExtTestCase):
         check_model(onx2)
         self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
         self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+        r = get_ort_ext_libs_cuda()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
         try:
             ref2 = InferenceSession(
                 onx2.SerializeToString(),
+                opts,
                 providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
             )
         except InvalidArgument as e:

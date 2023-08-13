@@ -54,47 +54,36 @@ private:
   EpiloqueGemmKernel epilogue_;
 };
 
-struct CustomGemmOpFloat
-    : Ort::CustomOpBase<CustomGemmOpFloat, CustomGemmKernel> {
+struct CustomGemmOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {
+  typedef Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> parent_type;
+  CustomGemmOp(const char *op_name, ONNXTensorElementDataType ab_type,
+               ONNXTensorElementDataType c_type,
+               ONNXTensorElementDataType d_type)
+      : parent_type() {
+    op_name_ = op_name;
+    ab_type_ = ab_type;
+    c_type_ = c_type;
+    d_type_ = d_type;
+  }
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
+
   size_t GetInputTypeCount() const;
   ONNXTensorElementDataType GetInputType(size_t index) const;
   OrtCustomOpInputOutputCharacteristic
   GetInputCharacteristic(size_t index) const;
+
   size_t GetOutputTypeCount() const;
   ONNXTensorElementDataType GetOutputType(size_t index) const;
-};
-
-struct CustomGemmOpFloat16
-    : Ort::CustomOpBase<CustomGemmOpFloat16, CustomGemmKernel> {
-  void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
-  const char *GetName() const;
-  const char *GetExecutionProviderType() const;
-  size_t GetInputTypeCount() const;
-  ONNXTensorElementDataType GetInputType(size_t index) const;
   OrtCustomOpInputOutputCharacteristic
-  GetInputCharacteristic(size_t index) const;
-  size_t GetOutputTypeCount() const;
-  ONNXTensorElementDataType GetOutputType(size_t index) const;
+  GetOutputCharacteristic(size_t index) const;
+
+private:
+  const char *op_name_;
+  ONNXTensorElementDataType ab_type_;
+  ONNXTensorElementDataType c_type_;
+  ONNXTensorElementDataType d_type_;
 };
-
-#if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
-
-struct CustomGemmOpFloat8E4M3FN
-    : Ort::CustomOpBase<CustomGemmOpFloat8E4M3FN, CustomGemmKernel> {
-  void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
-  const char *GetName() const;
-  const char *GetExecutionProviderType() const;
-  size_t GetInputTypeCount() const;
-  ONNXTensorElementDataType GetInputType(size_t index) const;
-  OrtCustomOpInputOutputCharacteristic
-  GetInputCharacteristic(size_t index) const;
-  size_t GetOutputTypeCount() const;
-  ONNXTensorElementDataType GetOutputType(size_t index) const;
-};
-
-#endif
 
 } // namespace ortops

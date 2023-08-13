@@ -157,9 +157,11 @@ def _quantize_float8_matmul(
     if version == "onnxruntime":
         domain_dq = ""
         domain_gemm = "com.microsoft"
+        op_gemm = "GemmFloat8"
     elif version == "onnx-extended":
         domain_dq = "onnx_extented.ortops.tutorial.cpu"
         domain_gemm = "onnx_extented.ortops.tutorial.cuda"
+        op_gemm = "CustomGemmFloat8E4M3FN"
     else:
         raise ValueError(f"Unexpected value {version!r} for version.")
     if node.op_type == "MatMul":
@@ -227,7 +229,7 @@ def _quantize_float8_matmul(
         ]
         added.append(
             make_node(
-                "GemmFloat8",
+                op_gemm,
                 gemm_inputs,
                 node.outputs,
                 rowMajor=1,
