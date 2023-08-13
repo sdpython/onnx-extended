@@ -217,7 +217,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   bool has_bias;
   if (n_inputs > 2) {
     input_C = ctx.GetInput(2);
-    has_bias = input_C.HasValue() && input_C.IsTensor();
+    has_bias = beta_ != 0 && input_C.HasValue() && input_C.IsTensor();
   } else {
     has_bias = false;
   }
@@ -228,27 +228,30 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     check_device(input_C, "C");
 
   bool has_scales = n_inputs > 3;
+  bool has_scales_Y = n_inputs > 5;
   if (has_scales) {
-    EXT_ENFORCE(n_inputs == 6, "Number of inputs must be 6 but is ", n_inputs,
-                ".");
+    EXT_ENFORCE(n_inputs == 5 || n_inputs == 6,
+                "Number of inputs must be 5 or 6 but is ", n_inputs, ".");
     scale_A = ctx.GetInput(3);
     scale_B = ctx.GetInput(4);
-    scale_Y = ctx.GetInput(5);
     check_device(scale_A, "scale_A");
     check_device(scale_B, "scale_B");
-    check_device(scale_Y, "scale_Y");
+    if (has_scales_Y) {
+      scale_Y = ctx.GetInput(5);
+      check_device(scale_Y, "scale_Y");
+    }
   } else if (n_inputs != 2 && n_inputs != 3) {
     EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", n_inputs, ".");
   }
 
   switch (rowMajor_) {
   case 0:
-    ComputeColMajor(ctx, n_inputs, has_bias, has_scales, input_A, input_B,
-                    input_C, scale_A, scale_B, scale_Y);
+    ComputeColMajor(ctx, n_inputs, has_bias, has_scales, has_scales_Y, input_A,
+                    input_B, input_C, scale_A, scale_B, scale_Y);
     break;
   case 1:
-    ComputeRowMajor(ctx, n_inputs, has_bias, has_scales, input_A, input_B,
-                    input_C, scale_A, scale_B, scale_Y);
+    ComputeRowMajor(ctx, n_inputs, has_bias, has_scales, has_scales_Y, input_A,
+                    input_B, input_C, scale_A, scale_B, scale_Y);
     break;
   default:
     EXT_THROW("Unexpected value for rowMajor_=", rowMajor_, ".");
@@ -257,7 +260,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
 
 void CustomGemmKernel::ComputeRowMajor(
     Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
-    Ort::ConstValue &input_A, Ort::ConstValue &input_B,
+    bool has_scales_Y, Ort::ConstValue &input_A, Ort::ConstValue &input_B,
     Ort::ConstValue &input_C, Ort::ConstValue &scale_A,
     Ort::ConstValue &scale_B, Ort::ConstValue &scale_Y) {
   std::vector<int64_t> shape_A, shape_B, shape_C, shape_Y;
@@ -274,19 +277,20 @@ void CustomGemmKernel::ComputeRowMajor(
   dtype_Y = GetTypeAndShape(Y, shape_Y);
   dtype_C = has_bias ? GetTypeAndShape(input_C, shape_C)
                      : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-  ComputeGemm(ctx, n_inputs, has_bias, has_scales, dtype_A, dtype_B, dtype_C,
-              dtype_Y, shape_A, shape_B, shape_C, shape_Y, transA_, transB_,
-              input_A.GetTensorRawData(), input_B.GetTensorRawData(),
+  ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, dtype_A,
+              dtype_B, dtype_C, dtype_Y, shape_A, shape_B, shape_C, shape_Y,
+              transA_, transB_, input_A.GetTensorRawData(),
+              input_B.GetTensorRawData(),
               has_bias ? input_C.GetTensorRawData() : nullptr,
               has_scales ? scale_A.GetTensorRawData() : nullptr,
               has_scales ? scale_B.GetTensorRawData() : nullptr,
-              has_scales ? scale_Y.GetTensorRawData() : nullptr,
+              has_scales_Y ? scale_Y.GetTensorRawData() : nullptr,
               Y.GetTensorMutableRawData(), M, N, K, lda, ldb, ldd);
 }
 
 void CustomGemmKernel::ComputeColMajor(
     Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
-    Ort::ConstValue &input_A, Ort::ConstValue &input_B,
+    bool has_scales_Y, Ort::ConstValue &input_A, Ort::ConstValue &input_B,
     Ort::ConstValue &input_C, Ort::ConstValue &scale_A,
     Ort::ConstValue &scale_B, Ort::ConstValue &scale_Y) {
   std::vector<int64_t> shape_A, shape_B, shape_C, shape_Y;
@@ -307,26 +311,27 @@ void CustomGemmKernel::ComputeColMajor(
   dtype_C = has_bias ? GetTypeAndShape(input_C, shape_C, true)
                      : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 
-  ComputeGemm(ctx, n_inputs, has_bias, has_scales, dtype_B, dtype_A, dtype_C,
-              dtype_Y, shape_B, shape_A, shape_C, shape_Y, transB_, transA_,
-              input_B.GetTensorRawData(), input_A.GetTensorRawData(),
+  ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, dtype_B,
+              dtype_A, dtype_C, dtype_Y, shape_B, shape_A, shape_C, shape_Y,
+              transB_, transA_, input_B.GetTensorRawData(),
+              input_A.GetTensorRawData(),
               has_bias ? input_C.GetTensorRawData() : nullptr,
               has_scales ? scale_B.GetTensorRawData() : nullptr,
               has_scales ? scale_A.GetTensorRawData() : nullptr,
-              has_scales ? scale_Y.GetTensorRawData() : nullptr,
+              has_scales_Y ? scale_Y.GetTensorRawData() : nullptr,
               Y.GetTensorMutableRawData(), N, M, K, ldb, lda, ldd);
 }
 
 void CustomGemmKernel::ComputeGemm(
     Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
-    ONNXTensorElementDataType dtype_A, ONNXTensorElementDataType dtype_B,
-    ONNXTensorElementDataType dtype_C, ONNXTensorElementDataType dtype_Y,
-    const std::vector<int64_t> &shape_A, const std::vector<int64_t> &shape_B,
-    const std::vector<int64_t> &shape_C, const std::vector<int64_t> &shape_Y,
-    bool trans_A, bool trans_B, const void *p_input_a, const void *p_input_b,
-    const void *p_input_c, const void *p_scale_a, const void *p_scale_b,
-    const void *p_scale_y, void *p_output_y, int M, int N, int K, int lda,
-    int ldb, int ldd) {
+    bool has_scales_Y, ONNXTensorElementDataType dtype_A,
+    ONNXTensorElementDataType dtype_B, ONNXTensorElementDataType dtype_C,
+    ONNXTensorElementDataType dtype_Y, const std::vector<int64_t> &shape_A,
+    const std::vector<int64_t> &shape_B, const std::vector<int64_t> &shape_C,
+    const std::vector<int64_t> &shape_Y, bool trans_A, bool trans_B,
+    const void *p_input_a, const void *p_input_b, const void *p_input_c,
+    const void *p_scale_a, const void *p_scale_b, const void *p_scale_y,
+    void *p_output_y, int M, int N, int K, int lda, int ldb, int ldd) {
   cudaStream_t stream = (cudaStream_t)ctx.GetGPUComputeStream();
   CUDA_THROW_IF_ERROR(cudaStreamSynchronize(stream));
   auto time0 = std::chrono::high_resolution_clock::now();
@@ -392,9 +397,11 @@ void CustomGemmKernel::ComputeGemm(
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER, &p_scale_b,
         sizeof(p_scale_b)));
-    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_y,
-        sizeof(p_scale_b)));
+    if (has_scales_Y) {
+      CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+          operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_y,
+          sizeof(p_scale_b)));
+    }
 
     // float 8
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080

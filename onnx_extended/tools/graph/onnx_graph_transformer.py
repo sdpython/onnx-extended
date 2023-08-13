@@ -227,6 +227,8 @@ def _quantize_float8_matmul(
             input_names[1][1],  # scaleB
             scale_out,  # scaleR
         ]
+        while gemm_inputs[-1] == "":
+            del gemm_inputs[-1]
         added.append(
             make_node(
                 op_gemm,

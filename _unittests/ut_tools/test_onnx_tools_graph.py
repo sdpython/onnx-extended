@@ -15,6 +15,7 @@ from onnx.defs import onnx_opset_version
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
+    from onnxruntime import __version__ as ort_version
 except ImportError:
     InferenceSession, SessionOptions = None, None
     ort_version = "0.0"
@@ -338,13 +339,13 @@ class TestOnnxToolsGraph(ExtTestCase):
         not has_cuda() or not ort_has_cuda,
         reason="onnxruntime not installed or cuda is not available",
     )
-    # @unittest.skipIf(
-    #    Version(ort_version) < Version("1.16"), reason="float8 types not released"
-    # )
-    # @unittest.skipIf(
-    #    get_device_prop is None or get_device_prop().get("major") < 9,
-    #    reason="Float 8 not supported on this machine",
-    # )
+    @unittest.skipIf(
+        Version(ort_version) < Version("1.16"), reason="float8 types not released"
+    )
+    @unittest.skipIf(
+        get_device_prop is None or get_device_prop().get("major") < 9,
+        reason="Float 8 not supported on this machine",
+    )
     def test_quantize_f8_onnx_extended(self):
         from onnx_extended.ortops.tutorial.cuda import (
             get_ort_ext_libs as get_ort_ext_libs_cuda,
@@ -403,10 +404,9 @@ class TestOnnxToolsGraph(ExtTestCase):
 
 
 if __name__ == "__main__":
-    import logging
-
+    # import logging
     # logging.basicConfig(level=logging.ERROR)
-    log = logging.getLogger("onnx-extended")
-    log.setLevel(logging.ERROR)
-    TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
+    # log = logging.getLogger("onnx-extended")
+    # log.setLevel(logging.ERROR)
+    # TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
     unittest.main(verbosity=2)
