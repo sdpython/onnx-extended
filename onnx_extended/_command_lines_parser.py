@@ -191,6 +191,13 @@ def get_parser_quantize() -> ArgumentParser:
         "It replaces MatMul by Transpose + DynamicQuantizeLinear + GemmFloat8.",
     )
     parser.add_argument(
+        "-l",
+        "--use-local-functions",
+        action="store_true",
+        help="use local functions wherever possible "
+        "instead of using experimental operators",
+    )
+    parser.add_argument(
         "-s",
         "--scenario",
         choices=["onnxruntime", "onnx-extended"],
@@ -281,6 +288,7 @@ def main(argv: Optional[List[Any]] = None):
             output=args.output,
             verbose=args.verbose,
             scenario=args.scenario,
+            use_local_functions=args.use_local_functions,
             kind=args.kind,
             early_stop=args.early_stop,
             quiet=args.quiet,

@@ -14,172 +14,81 @@
 
 namespace ortops {
 
-////////////////////
-// CustomGemmOpFloat
-////////////////////
+//////////////////
+// CustomGemmOp...
+//////////////////
 
-void *CustomGemmOpFloat::CreateKernel(const OrtApi &api,
-                                      const OrtKernelInfo *info) const {
+void *CustomGemmOp::CreateKernel(const OrtApi &api,
+                                 const OrtKernelInfo *info) const {
   return std::make_unique<CustomGemmKernel>(api, info).release();
 }
 
-const char *CustomGemmOpFloat::GetName() const { return "CustomGemmFloat"; }
+const char *CustomGemmOp::GetName() const { return op_name_; }
 
-const char *CustomGemmOpFloat::GetExecutionProviderType() const {
+const char *CustomGemmOp::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
 }
 
-size_t CustomGemmOpFloat::GetInputTypeCount() const { return 3; }
+size_t CustomGemmOp::GetInputTypeCount() const { return 6; };
 
-OrtCustomOpInputOutputCharacteristic
-CustomGemmOpFloat::GetInputCharacteristic(size_t index) const {
-  switch (index) {
-  case 0:
-  case 1:
-    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
-  case 2:
-    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
-  default:
-    EXT_THROW("index=", index, " is out of boundary.");
-  }
-}
-
-ONNXTensorElementDataType CustomGemmOpFloat::GetInputType(size_t index) const {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-}
-
-size_t CustomGemmOpFloat::GetOutputTypeCount() const { return 2; }
-
-ONNXTensorElementDataType CustomGemmOpFloat::GetOutputType(size_t index) const {
-  switch (index) {
-  case 0:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-  case 1:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
-  default:
-    EXT_THROW("index=", index, " is out of boundary.");
-  }
-}
-
-//////////////////////
-// CustomGemmOpFloat16
-//////////////////////
-
-void *CustomGemmOpFloat16::CreateKernel(const OrtApi &api,
-                                        const OrtKernelInfo *info) const {
-  return std::make_unique<CustomGemmKernel>(api, info).release();
-}
-
-const char *CustomGemmOpFloat16::GetName() const { return "CustomGemmFloat16"; }
-
-const char *CustomGemmOpFloat16::GetExecutionProviderType() const {
-  return "CUDAExecutionProvider";
-}
-
-size_t CustomGemmOpFloat16::GetInputTypeCount() const { return 2; }
-
-ONNXTensorElementDataType
-CustomGemmOpFloat16::GetInputType(size_t index) const {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
-}
-
-OrtCustomOpInputOutputCharacteristic
-CustomGemmOpFloat16::GetInputCharacteristic(size_t index) const {
-  switch (index) {
-  case 0:
-  case 1:
-    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
-  case 2:
-    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
-  default:
-    EXT_THROW("index=", index, " is out of boundary.");
-  }
-}
-
-size_t CustomGemmOpFloat16::GetOutputTypeCount() const { return 2; }
-
-ONNXTensorElementDataType
-CustomGemmOpFloat16::GetOutputType(size_t index) const {
-  switch (index) {
-  case 0:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
-  case 1:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
-  default:
-    EXT_THROW("index=", index, " is out of boundary.");
-  }
-}
-
-///////////////////////////
-// CustomGemmOpFloat8E4M3FN
-///////////////////////////
-
-#if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
-
-void *CustomGemmOpFloat8E4M3FN::CreateKernel(const OrtApi &api,
-                                             const OrtKernelInfo *info) const {
-  return std::make_unique<CustomGemmKernel>(api, info).release();
-}
-
-const char *CustomGemmOpFloat8E4M3FN::GetName() const {
-  return "CustomGemmFloat8E4M3FN";
-}
-
-const char *CustomGemmOpFloat8E4M3FN::GetExecutionProviderType() const {
-  return "CUDAExecutionProvider";
-}
-
-size_t CustomGemmOpFloat8E4M3FN::GetInputTypeCount() const { return 6; };
-
-ONNXTensorElementDataType
-CustomGemmOpFloat8E4M3FN::GetInputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
   switch (index) {
   case 0: // A
   case 1: // B
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN;
-  case 2: // B
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+    return ab_type_;
+  case 2: // C
+    return c_type_;
   case 3: // scale A
   case 4: // scale B
   case 5: // scale Y
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
-    EXT_THROW("index=", index, " is out of boundary.");
+    EXT_THROW("Input index=", index, " is out of boundary.");
   }
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOpFloat8E4M3FN::GetInputCharacteristic(size_t index) const {
+CustomGemmOp::GetInputCharacteristic(size_t index) const {
   switch (index) {
   case 0:
   case 1:
-  case 3:
-  case 4:
-  case 5:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
   case 2:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
+  case 3:
+  case 4:
+  case 5:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
   default:
-    EXT_THROW("index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", index, " is out of boundary.");
   }
 }
 
-size_t CustomGemmOpFloat8E4M3FN::GetOutputTypeCount() const { return 2; }
+size_t CustomGemmOp::GetOutputTypeCount() const { return 2; }
 
-ONNXTensorElementDataType
-CustomGemmOpFloat8E4M3FN::GetOutputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
   // D, scale D
   switch (index) {
   case 0:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+    return d_type_;
   case 1:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
   default:
-    EXT_THROW("index=", index, " is out of boundary.");
+    EXT_THROW("Input index=", index, " is out of boundary.");
   }
 }
 
-#endif
+OrtCustomOpInputOutputCharacteristic
+CustomGemmOp::GetOutputCharacteristic(size_t index) const {
+  switch (index) {
+  case 0:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
+  case 1:
+    return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
+  default:
+    EXT_THROW("Output index=", index, " is out of boundary.");
+  }
+}
 
 ///////////////////
 // CustomGemmKernel
@@ -270,6 +179,7 @@ void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
 }
 
 void check_device(const Ort::ConstValue &input, const char *name) {
+  EXT_ENFORCE(input.HasValue(), "Input '", name, "' is not empty.");
   auto mem = input.GetTensorMemoryInfo();
   EXT_ENFORCE(mem.GetDeviceType() ==
                   OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
@@ -305,9 +215,9 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   Ort::ConstValue input_B = ctx.GetInput(1);
   Ort::ConstValue input_C;
   bool has_bias;
-  if (n_inputs > 2 && ctx.GetInput(2).IsTensor()) {
+  if (n_inputs > 2) {
     input_C = ctx.GetInput(2);
-    has_bias = input_C.IsTensor();
+    has_bias = beta_ != 0 && input_C.HasValue() && input_C.IsTensor();
   } else {
     has_bias = false;
   }
@@ -318,27 +228,30 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     check_device(input_C, "C");
 
   bool has_scales = n_inputs > 3;
+  bool has_scales_Y = n_inputs > 5;
   if (has_scales) {
-    EXT_ENFORCE(n_inputs == 6, "Number of inputs must be 6 but is ", n_inputs,
-                ".");
+    EXT_ENFORCE(n_inputs == 5 || n_inputs == 6,
+                "Number of inputs must be 5 or 6 but is ", n_inputs, ".");
     scale_A = ctx.GetInput(3);
     scale_B = ctx.GetInput(4);
-    scale_Y = ctx.GetInput(5);
     check_device(scale_A, "scale_A");
     check_device(scale_B, "scale_B");
-    check_device(scale_Y, "scale_Y");
+    if (has_scales_Y) {
+      scale_Y = ctx.GetInput(5);
+      check_device(scale_Y, "scale_Y");
+    }
   } else if (n_inputs != 2 && n_inputs != 3) {
     EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", n_inputs, ".");
   }
 
   switch (rowMajor_) {
   case 0:
-    ComputeColMajor(ctx, n_inputs, has_bias, has_scales, input_A, input_B,
-                    input_C, scale_A, scale_B, scale_Y);
+    ComputeColMajor(ctx, n_inputs, has_bias, has_scales, has_scales_Y, input_A,
+                    input_B, input_C, scale_A, scale_B, scale_Y);
     break;
   case 1:
-    ComputeRowMajor(ctx, n_inputs, has_bias, has_scales, input_A, input_B,
-                    input_C, scale_A, scale_B, scale_Y);
+    ComputeRowMajor(ctx, n_inputs, has_bias, has_scales, has_scales_Y, input_A,
+                    input_B, input_C, scale_A, scale_B, scale_Y);
     break;
   default:
     EXT_THROW("Unexpected value for rowMajor_=", rowMajor_, ".");
@@ -347,7 +260,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
 
 void CustomGemmKernel::ComputeRowMajor(
     Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
-    Ort::ConstValue &input_A, Ort::ConstValue &input_B,
+    bool has_scales_Y, Ort::ConstValue &input_A, Ort::ConstValue &input_B,
     Ort::ConstValue &input_C, Ort::ConstValue &scale_A,
     Ort::ConstValue &scale_B, Ort::ConstValue &scale_Y) {
   std::vector<int64_t> shape_A, shape_B, shape_C, shape_Y;
@@ -364,19 +277,20 @@ void CustomGemmKernel::ComputeRowMajor(
   dtype_Y = GetTypeAndShape(Y, shape_Y);
   dtype_C = has_bias ? GetTypeAndShape(input_C, shape_C)
                      : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-  ComputeGemm(ctx, n_inputs, has_bias, has_scales, dtype_A, dtype_B, dtype_C,
-              dtype_Y, shape_A, shape_B, shape_C, shape_Y, transA_, transB_,
-              input_A.GetTensorRawData(), input_B.GetTensorRawData(),
+  ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, dtype_A,
+              dtype_B, dtype_C, dtype_Y, shape_A, shape_B, shape_C, shape_Y,
+              transA_, transB_, input_A.GetTensorRawData(),
+              input_B.GetTensorRawData(),
               has_bias ? input_C.GetTensorRawData() : nullptr,
               has_scales ? scale_A.GetTensorRawData() : nullptr,
               has_scales ? scale_B.GetTensorRawData() : nullptr,
-              has_scales ? scale_Y.GetTensorRawData() : nullptr,
+              has_scales_Y ? scale_Y.GetTensorRawData() : nullptr,
               Y.GetTensorMutableRawData(), M, N, K, lda, ldb, ldd);
 }
 
 void CustomGemmKernel::ComputeColMajor(
     Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
-    Ort::ConstValue &input_A, Ort::ConstValue &input_B,
+    bool has_scales_Y, Ort::ConstValue &input_A, Ort::ConstValue &input_B,
     Ort::ConstValue &input_C, Ort::ConstValue &scale_A,
     Ort::ConstValue &scale_B, Ort::ConstValue &scale_Y) {
   std::vector<int64_t> shape_A, shape_B, shape_C, shape_Y;
@@ -397,26 +311,27 @@ void CustomGemmKernel::ComputeColMajor(
   dtype_C = has_bias ? GetTypeAndShape(input_C, shape_C, true)
                      : ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 
-  ComputeGemm(ctx, n_inputs, has_bias, has_scales, dtype_B, dtype_A, dtype_C,
-              dtype_Y, shape_B, shape_A, shape_C, shape_Y, transB_, transA_,
-              input_B.GetTensorRawData(), input_A.GetTensorRawData(),
+  ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, dtype_B,
+              dtype_A, dtype_C, dtype_Y, shape_B, shape_A, shape_C, shape_Y,
+              transB_, transA_, input_B.GetTensorRawData(),
+              input_A.GetTensorRawData(),
               has_bias ? input_C.GetTensorRawData() : nullptr,
               has_scales ? scale_B.GetTensorRawData() : nullptr,
               has_scales ? scale_A.GetTensorRawData() : nullptr,
-              has_scales ? scale_Y.GetTensorRawData() : nullptr,
+              has_scales_Y ? scale_Y.GetTensorRawData() : nullptr,
               Y.GetTensorMutableRawData(), N, M, K, ldb, lda, ldd);
 }
 
 void CustomGemmKernel::ComputeGemm(
     Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
-    ONNXTensorElementDataType dtype_A, ONNXTensorElementDataType dtype_B,
-    ONNXTensorElementDataType dtype_C, ONNXTensorElementDataType dtype_Y,
-    const std::vector<int64_t> &shape_A, const std::vector<int64_t> &shape_B,
-    const std::vector<int64_t> &shape_C, const std::vector<int64_t> &shape_Y,
-    bool trans_A, bool trans_B, const void *p_input_a, const void *p_input_b,
-    const void *p_input_c, const void *p_scale_a, const void *p_scale_b,
-    const void *p_scale_y, void *p_output_y, int M, int N, int K, int lda,
-    int ldb, int ldd) {
+    bool has_scales_Y, ONNXTensorElementDataType dtype_A,
+    ONNXTensorElementDataType dtype_B, ONNXTensorElementDataType dtype_C,
+    ONNXTensorElementDataType dtype_Y, const std::vector<int64_t> &shape_A,
+    const std::vector<int64_t> &shape_B, const std::vector<int64_t> &shape_C,
+    const std::vector<int64_t> &shape_Y, bool trans_A, bool trans_B,
+    const void *p_input_a, const void *p_input_b, const void *p_input_c,
+    const void *p_scale_a, const void *p_scale_b, const void *p_scale_y,
+    void *p_output_y, int M, int N, int K, int lda, int ldb, int ldd) {
   cudaStream_t stream = (cudaStream_t)ctx.GetGPUComputeStream();
   CUDA_THROW_IF_ERROR(cudaStreamSynchronize(stream));
   auto time0 = std::chrono::high_resolution_clock::now();
@@ -482,9 +397,11 @@ void CustomGemmKernel::ComputeGemm(
     CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER, &p_scale_b,
         sizeof(p_scale_b)));
-    CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_y,
-        sizeof(p_scale_b)));
+    if (has_scales_Y) {
+      CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescSetAttribute(
+          operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &p_scale_y,
+          sizeof(p_scale_b)));
+    }
 
     // float 8
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080

@@ -1,8 +1,8 @@
 from logging import getLogger
 from typing import Dict, List, Optional, Tuple
 import numpy as np
-from onnx import TensorProto
-from onnx.helper import make_node, make_tensor
+from onnx import AttributeProto, FunctionProto, NodeProto, TensorProto
+from onnx.helper import make_function, make_node, make_opsetid, make_tensor
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
 from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
 from onnx.reference.custom_element_types import float8e4m3fn
@@ -13,6 +13,29 @@ from .onnx_graph_struct import Graph, Node
 
 
 logger = getLogger("onnx-extended/transformer")
+
+
+class TransformResults:
+    """
+    Output of a function transforming a graph.
+
+    :param removed_nodes: node to remove from the graph
+    :param added_nodes: node to add to the graph
+    :param new_opsets: opsets to update
+    :param local_functions: necessary functions to add to the graph
+    """
+
+    def __init__(
+        self,
+        removed_nodes: List[Node],
+        added_nodes: List[NodeProto],
+        new_opsets: Optional[Dict[str, int]] = None,
+        local_functions: Optional[List[FunctionProto]] = None,
+    ):
+        self.removed_nodes = removed_nodes
+        self.added_nodes = added_nodes
+        self.new_opsets = new_opsets or {}
+        self.local_functions = local_functions or []
 
 
 def estimation_quantization_scale(
@@ -110,12 +133,91 @@ def quantize_weights(
     return node_weight, node_scale, node_zp
 
 
+def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionProto:
+    """
+    Creates the FunctionProto for a function doing a quantization to float 8.
+
+    :param domain: local domain name
+    :param opset: opset to use to define the function
+    :return: FunctionProto
+
+    The function takes 1 input and returns 3 outputs.
+    It has one attribute *to* which specified the quantized type.
+    """
+    normalization_values = list(
+        {
+            TensorProto.FLOAT8E4M3FN: 100.057724,
+            TensorProto.FLOAT8E4M3FNUZ: 54.26635,
+            TensorProto.FLOAT8E5M2: 9535.286,
+            TensorProto.FLOAT8E5M2FNUZ: 9403.499,
+        }.items()
+    )
+
+    cast = make_node("Cast", ["zeroi"], ["Zeropoint"])
+    att = AttributeProto()
+    att.name = "to"
+    att.ref_attr_name = "to"
+    att.type = AttributeProto.INT
+    cast.attribute.append(att)
+
+    cst = make_node("Constant", [], ["vto"])
+    att = AttributeProto()
+    att.name = "value_int"
+    att.ref_attr_name = "to"
+    att.type = AttributeProto.INT
+    cst.attribute.append(att)
+
+    nodes = [
+        make_node(
+            "Constant",
+            [],
+            ["zeroi"],
+            value=make_tensor("zeroi", TensorProto.INT64, [], [0]),
+        ),
+        make_node(
+            "Constant",
+            [],
+            ["newshape"],
+            value=make_tensor("newshape", TensorProto.INT64, [1], [-1]),
+        ),
+        cast,
+        make_node("Mul", ["x", "x"], ["xsquare"]),
+        make_node("ReduceMean", ["xsquare"], ["Dev"], keepdims=0),
+        make_node("Sqrt", ["Dev"], ["Scale"]),
+        cst,
+        make_node("Reshape", ["vto", "newshape"], ["vtotensor"]),
+        make_node(
+            "LabelEncoder",
+            ["vtotensor"],
+            ["stdftensor"],
+            keys_int64s=[v[0] for v in normalization_values],
+            values_floats=[v[1] for v in normalization_values],
+            domain="ai.onnx.ml",
+        ),
+        make_node("ReduceSum", ["stdftensor"], ["stdf"], keepdims=0),
+        make_node("CastLike", ["stdf", "Scale"], ["std"]),
+        make_node("Div", ["Scale", "std"], ["ScaleScaled"]),
+        make_node("QuantizeLinear", ["x", "ScaleScaled", "Zeropoint"], ["y"]),
+    ]
+    return make_function(
+        domain,
+        "DynamicQuantizeLinear",
+        ["x"],
+        ["y", "ScaleScaled", "Zeropoint"],
+        nodes,
+        opset_imports=[make_opsetid("", opset), make_opsetid("ai.onnx.ml", 2)],
+        attributes=["to"],
+    )
+
+
 def _quantize_float8_matmul(
     node: Node,
     elem_type: int,
     output_type: int,
     version: str,
-) -> Optional[Tuple[List[Node], List[Node], Optional[Dict[str, int]]]]:
+    opset: int,
+    local_functions: Optional[Dict[str, FunctionProto]] = None,
+) -> Optional[TransformResults]:
     """
     Quantize matrix multiplications.
 
@@ -124,17 +226,25 @@ def _quantize_float8_matmul(
     :param output_type: output type, result of the quantization
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
+    :param opset: main opset (used to specify local functions)
+    :param local_functions: None to avoid using local functions,
+        otherwise a dictionary with the existing local functions to
+        add to the model
     :param quiet: True to silently skip failing nodes
     :return: nodes to remove, nodes to add, new opsets
     """
     if version == "onnxruntime":
         domain_dq = ""
         domain_gemm = "com.microsoft"
+        op_gemm = "GemmFloat8"
     elif version == "onnx-extended":
         domain_dq = "onnx_extented.ortops.tutorial.cpu"
         domain_gemm = "onnx_extented.ortops.tutorial.cuda"
+        op_gemm = "CustomGemmFloat8E4M3FN"
     else:
         raise ValueError(f"Unexpected value {version!r} for version.")
+    if local_functions is not None:
+        domain_dq = "local.quant.domain"
     if node.op_type == "MatMul":
         removed = []
         added = []
@@ -173,6 +283,16 @@ def _quantize_float8_matmul(
                 dql = Node(None, node.parent, proto)
                 added.extend([dql.proto])
                 input_names.append(dql.outputs)
+                if (
+                    domain_dq == "local.quant.domain"
+                    and (domain_dq, "DynamicQuantizeLinear") not in local_functions
+                ):
+                    # use local functions
+                    local_functions[
+                        domain_dq, "DynamicQuantizeLinear"
+                    ] = make_dynamic_quantize_linear_function(
+                        domain=domain_dq, opset=opset
+                    )
 
         if output_type in {
             TensorProto.INT8,
@@ -198,9 +318,11 @@ def _quantize_float8_matmul(
             input_names[1][1],  # scaleB
             scale_out,  # scaleR
         ]
+        while gemm_inputs[-1] == "":
+            del gemm_inputs[-1]
         added.append(
             make_node(
-                "GemmFloat8",
+                op_gemm,
                 gemm_inputs,
                 node.outputs,
                 rowMajor=1,
@@ -213,7 +335,9 @@ def _quantize_float8_matmul(
         opsets = {domain_gemm: 1}
         if domain_dq != "":
             opsets.update({domain_dq: 1})
-        return removed, added, opsets
+        return TransformResults(
+            removed_nodes=removed, added_nodes=added, new_opsets=opsets
+        )
 
     raise NotImplementedError(
         f"Quantization into float 8 not yet implemented for {node.op_type!r}."
@@ -226,6 +350,7 @@ def quantize_float8(
     output_type: int = TensorProto.FLOAT,
     early_stop: int = -1,
     version: str = "onnxruntime",
+    local_function: bool = False,
     quiet: bool = False,
 ) -> Optional[Graph]:
     """
@@ -241,18 +366,29 @@ def quantize_float8(
         to stop after n changes
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
+    :param local_function: use local function to inline DynamicQuantizeLinear
     :param quiet: catch exception and silently skip failing nodes
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
-    The graph is modified inplace. Enables the logs gives a better idea of the progress.
+    The graph is modified inplace.
+    Enables the logs gives a better idea of the progress.
     """
     main_opset = graph.get_opset("")
-    if main_opset < 20 and version == "onnxruntime":
+    if not local_function and main_opset < 20 and version == "onnxruntime":
         logger.info(
             "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
         )
         graph.upgrade_opsets({"": 20})
+        main_opset = 20
+    elif local_function and main_opset < 19:
+        logger.info(
+            "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
+        )
+        graph.upgrade_opsets({"": 19})
+        main_opset = 19
+    local_functions = graph.functions.copy() if local_function else None
+    n_local_functions = 0 if local_functions is None else len(local_functions)
     new_opsets = {}
     to_add = []
     n_nodes = len(graph)
@@ -261,8 +397,13 @@ def quantize_float8(
         if node.op_type in {"MatMul", "Gemm"}:
             logger.info("[quantize_float8] %d/%d quantize %s", index, n_nodes, node)
             try:
-                res = _quantize_float8_matmul(
-                    node, elem_type, output_type, version=version
+                results = _quantize_float8_matmul(
+                    node,
+                    elem_type,
+                    output_type,
+                    version=version,
+                    opset=main_opset,
+                    local_functions=local_functions,
                 )
             except Exception as e:
                 if quiet:
@@ -275,13 +416,13 @@ def quantize_float8(
                     continue
                 raise e
 
-            if res is None:
+            if results is None:
                 continue
-            rem, add = res[:2]
+            rem, add = results.removed_nodes, results.added_nodes
             to_add.append((rem, add))
-            if len(res) >= 3 and res[2] is not None:
+            if len(results.new_opsets) > 0:
                 n_changes += 1
-                new_opsets.update(res[2])
+                new_opsets.update(results.new_opsets)
             if early_stop > 0 and n_changes >= early_stop:
                 break
 
@@ -296,4 +437,6 @@ def quantize_float8(
             logger.debug("[quantize_float8] add %s", a)
 
     graph.simplify()
+    if local_functions is not None and len(local_functions) > n_local_functions:
+        graph.add_functions(local_functions.values())
     return graph
