@@ -381,6 +381,12 @@ def quantize_float8(
         )
         graph.upgrade_opsets({"": 20})
         main_opset = 20
+    elif local_function and main_opset < 19:
+        logger.info(
+            "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
+        )
+        graph.upgrade_opsets({"": 19})
+        main_opset = 19
     local_functions = graph.functions.copy() if local_function else None
     n_local_functions = 0 if local_functions is None else len(local_functions)
     new_opsets = {}
