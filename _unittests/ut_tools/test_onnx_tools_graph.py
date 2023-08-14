@@ -437,6 +437,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
         self.assertIn("local.quant.domain", str(onx2))
 
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnxruntime_code_local(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
