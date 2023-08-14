@@ -100,17 +100,29 @@ Build with CUDA, openmp, eigen, onnxruntime
 
 The package also contains some dummy examples on how to
 build with C++ functions (`pybind11 <https://github.com/pybind/pybind11>`_,
-`cython <https://cython.org/>`_), with `openmp
-<https://www.openmp.org/>`_, `eigen <https://eigen.tuxfamily.org/index.php>`_
+`cython <https://cython.org/>`_),
+with `openmp <https://www.openmp.org/>`_,
+`eigen <https://eigen.tuxfamily.org/index.php>`_
 with or without CUDA. It also shows how to create a custom operator
 for `onnxruntime <https://onnxruntime.ai/>`_ in C++.
-The build will automatically link with CUDA if it is found.
+
+The version released on `pypi/onnx-extended <https://pypi.org/project/onnx-extended/>`_
+only works on CPU. It needs to be manually built to enable
+the code using CUDA. The build will automatically link with CUDA if it is found.
 If not, some extensions might not be available.
 
 ::
 
     python setup.py build_ext --inplace
     # pip install -e .
+
+It is possible to use a specific version of CUDA:
+
+::
+
+    python setup.py build_ext --inplace --cuda-version=11.8
+    # or (not working yet)
+    # pip install -e . --config-settings="--cuda-version=11.8"
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_
 can be enabled with the following command:
