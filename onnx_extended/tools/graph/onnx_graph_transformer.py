@@ -270,7 +270,7 @@ def _quantize_float8_matmul(
                             [name],
                             [temp_name],
                             perm=[1, 0],
-                            name=f"tr_{name}",
+                            name=node.parent.generate_node_name(f"tra8_{name}"),
                         )
                     )
                 else:
@@ -285,7 +285,7 @@ def _quantize_float8_matmul(
                     [new_name, scale, zero_point],
                     to=elem_type,
                     domain=domain_dq,
-                    name="dql_{name}",
+                    name=node.parent.generate_node_name(f"dql8_{name}"),
                 )
                 dql = Node(None, node.parent, proto)
                 added.extend([dql.proto])
@@ -316,7 +316,7 @@ def _quantize_float8_matmul(
                     "Mul",
                     [input_names[0][1], input_names[1][1]],
                     [scale_out],
-                    name="mul_{name}",
+                    name=node.parent.generate_node_name(f"mul8_{name}"),
                 )
             )
         else:
