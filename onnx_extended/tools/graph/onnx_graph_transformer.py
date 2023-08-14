@@ -1,8 +1,8 @@
 from logging import getLogger
 from typing import Dict, List, Optional, Tuple
 import numpy as np
-from onnx import FunctionProto, NodeProto, TensorProto
-from onnx.helper import make_node, make_tensor
+from onnx import AttributeProto, FunctionProto, NodeProto, TensorProto
+from onnx.helper import make_function, make_node, make_opsetid, make_tensor
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
 from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
 from onnx.reference.custom_element_types import float8e4m3fn
@@ -133,11 +133,89 @@ def quantize_weights(
     return node_weight, node_scale, node_zp
 
 
+def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionProto:
+    """
+    Creates the FunctionProto for a function doing a quantization to float 8.
+
+    :param domain: local domain name
+    :param opset: opset to use to define the function
+    :return: FunctionProto
+
+    The function takes 1 input and returns 3 outputs.
+    It has one attribute *to* which specified the quantized type.
+    """
+    normalization_values = list(
+        {
+            TensorProto.FLOAT8E4M3FN: 100.057724,
+            TensorProto.FLOAT8E4M3FNUZ: 54.26635,
+            TensorProto.FLOAT8E5M2: 9535.286,
+            TensorProto.FLOAT8E5M2FNUZ: 9403.499,
+        }.items()
+    )
+
+    cast = make_node("Cast", ["zeroi"], ["Zeropoint"])
+    att = AttributeProto()
+    att.name = "to"
+    att.ref_attr_name = "to"
+    att.type = AttributeProto.INT
+    cast.attribute.append(att)
+
+    cst = make_node("Constant", [], ["vto"])
+    att = AttributeProto()
+    att.name = "value_int"
+    att.ref_attr_name = "to"
+    att.type = AttributeProto.INT
+    cst.attribute.append(att)
+
+    nodes = [
+        make_node(
+            "Constant",
+            [],
+            ["zeroi"],
+            value=make_tensor("zeroi", TensorProto.INT64, [], [0]),
+        ),
+        make_node(
+            "Constant",
+            [],
+            ["newshape"],
+            value=make_tensor("newshape", TensorProto.INT64, [1], [-1]),
+        ),
+        cast,
+        make_node("Mul", ["x", "x"], ["xsquare"]),
+        make_node("ReduceMean", ["xsquare"], ["Dev"], keepdims=0),
+        make_node("Sqrt", ["Dev"], ["Scale"]),
+        cst,
+        make_node("Reshape", ["vto", "newshape"], ["vtotensor"]),
+        make_node(
+            "LabelEncoder",
+            ["vtotensor"],
+            ["stdftensor"],
+            keys_int64s=[v[0] for v in normalization_values],
+            values_floats=[v[1] for v in normalization_values],
+            domain="ai.onnx.ml",
+        ),
+        make_node("ReduceSum", ["stdftensor"], ["stdf"], keepdims=0),
+        make_node("CastLike", ["stdf", "Scale"], ["std"]),
+        make_node("Div", ["Scale", "std"], ["ScaleScaled"]),
+        make_node("QuantizeLinear", ["x", "ScaleScaled", "Zeropoint"], ["y"]),
+    ]
+    return make_function(
+        domain,
+        "DynamicQuantizeLinear",
+        ["x"],
+        ["y", "ScaleScaled", "Zeropoint"],
+        nodes,
+        opset_imports=[make_opsetid("", opset), make_opsetid("ai.onnx.ml", 2)],
+        attributes=["to"],
+    )
+
+
 def _quantize_float8_matmul(
     node: Node,
     elem_type: int,
     output_type: int,
     version: str,
+    opset: int,
     local_functions: Optional[Dict[str, FunctionProto]] = None,
 ) -> Optional[TransformResults]:
     """
@@ -148,6 +226,7 @@ def _quantize_float8_matmul(
     :param output_type: output type, result of the quantization
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
+    :param opset: main opset (used to specify local functions)
     :param local_functions: None to avoid using local functions,
         otherwise a dictionary with the existing local functions to
         add to the model
@@ -164,6 +243,8 @@ def _quantize_float8_matmul(
         op_gemm = "CustomGemmFloat8E4M3FN"
     else:
         raise ValueError(f"Unexpected value {version!r} for version.")
+    if local_functions is not None:
+        domain_dq = "local.quant.domain"
     if node.op_type == "MatMul":
         removed = []
         added = []
@@ -202,6 +283,16 @@ def _quantize_float8_matmul(
                 dql = Node(None, node.parent, proto)
                 added.extend([dql.proto])
                 input_names.append(dql.outputs)
+                if (
+                    domain_dq == "local.quant.domain"
+                    and (domain_dq, "DynamicQuantizeLinear") not in local_functions
+                ):
+                    # use local functions
+                    local_functions[
+                        domain_dq, "DynamicQuantizeLinear"
+                    ] = make_dynamic_quantize_linear_function(
+                        domain=domain_dq, opset=opset
+                    )
 
         if output_type in {
             TensorProto.INT8,
@@ -289,7 +380,9 @@ def quantize_float8(
             "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
         )
         graph.upgrade_opsets({"": 20})
-    local_functions = graph.functions if local_function else None
+        main_opset = 20
+    local_functions = graph.functions.copy() if local_function else None
+    n_local_functions = 0 if local_functions is None else len(local_functions)
     new_opsets = {}
     to_add = []
     n_nodes = len(graph)
@@ -303,6 +396,7 @@ def quantize_float8(
                     elem_type,
                     output_type,
                     version=version,
+                    opset=main_opset,
                     local_functions=local_functions,
                 )
             except Exception as e:
@@ -337,4 +431,6 @@ def quantize_float8(
             logger.debug("[quantize_float8] add %s", a)
 
     graph.simplify()
+    if local_functions is not None and len(local_functions) > n_local_functions:
+        graph.add_functions(local_functions.values())
     return graph

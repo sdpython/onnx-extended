@@ -21,3 +21,9 @@ target_include_directories(
   "${ORTOPS_INCLUDE_DIR}")
 
 eigen_add_dependency(ortops_tutorial_cpu)
+
+target_link_libraries(
+  ortops_tutorial_cpu
+  PRIVATE
+  OpenMP::OpenMP_CXX
+  common_kernels)

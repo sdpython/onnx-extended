@@ -216,6 +216,9 @@ class Graph:
     def _get_nodes(
         self, graph: Union[GraphProto, FunctionProto]
     ) -> Tuple[List[Node], List[str]]:
+        """
+        Returns the ordered list of nodes.
+        """
         nodes = []
         if isinstance(graph, GraphProto):
             for inp in graph.input:
@@ -248,7 +251,8 @@ class Graph:
         else:
             graph = proto
         self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(graph)
-        self.opsets = {}
+        self.opsets: Dict[str, int] = {}
+        self.functions: Dict[Tuple[str, str], FunctionProto] = {}
         self._complete_init()
 
     def _complete_init(self):
@@ -537,6 +541,23 @@ class Graph:
         )
         self._complete_init()
 
+    def add_functions(self, protos: Iterable[FunctionProto]):
+        """
+        Adds functions to the graph when it is exported to ONNX.
+
+        :param protos: enumerate of FunctionProto
+        """
+        for proto in protos:
+            if not isinstance(proto, FunctionProto):
+                raise TypeError(f"Unexpected type {type(proto)} for a function.")
+            key = proto.domain, proto.name
+            if key in self.functions:
+                raise ValueError(
+                    f"Function {proto.name!r} from domain "
+                    f"{proto.domain!r} as already added."
+                )
+            self.functions[key] = proto
+
     def to_onnx(self) -> Union[ModelProto, FunctionProto, GraphProto]:
         """
         Converts the current graph into onnx with the same type
@@ -564,6 +585,9 @@ class Graph:
                 doc_string=self.proto.doc_string,
                 # training_info=self.proto.training_info,
                 opset_imports=[make_opsetid(k, v) for k, v in opsets.items()],
+                functions=None
+                if len(self.functions) == 0
+                else list(self.functions.values()),
             )
             if len(self.proto.metadata_props) > 0:
                 set_model_props(

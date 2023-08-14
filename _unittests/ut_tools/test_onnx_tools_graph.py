@@ -335,6 +335,12 @@ class TestOnnxToolsGraph(ExtTestCase):
         got1 = ref1.run(None, feeds)[0]
         self.assertEqualArray(expected, got1)
 
+        new_graph = quantize_float8(graph, version="onnx-extended")
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
+        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+
     @unittest.skipIf(
         not has_cuda() or not ort_has_cuda,
         reason="onnxruntime not installed or cuda is not available",
@@ -402,6 +408,67 @@ class TestOnnxToolsGraph(ExtTestCase):
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
+    def test_quantize_f8_onnx_extended_code_local(self):
+        x = np.arange(12).reshape((4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32()
+        ref = InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        expected = ref.run(None, feeds)[0]
+
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = InferenceSession(
+            onx1.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(graph, version="onnx-extended", local_function=True)
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("local.quant.domain", str(onx2))
+
+    def test_quantize_f8_onnxruntime_code_local(self):
+        x = np.arange(12).reshape((4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32()
+        ref = InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        expected = ref.run(None, feeds)[0]
+
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = InferenceSession(
+            onx1.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(graph, version="onnxruntime", local_function=True)
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("local.quant.domain", str(onx2))
+
+        ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
+        got2 = ref2.run(None, feeds)[0]
+        self.assertEqualArray(expected, got2, rtol=0.05)
+
 
 if __name__ == "__main__":
     # import logging
@@ -409,4 +476,5 @@ if __name__ == "__main__":
     # log = logging.getLogger("onnx-extended")
     # log.setLevel(logging.ERROR)
     # TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
+    TestOnnxToolsGraph().test_quantize_f8_onnxruntime_code_local()
     unittest.main(verbosity=2)
