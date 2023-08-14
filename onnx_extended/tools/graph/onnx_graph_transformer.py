@@ -329,7 +329,7 @@ def _quantize_float8_matmul(
                 dtype=output_type,
                 transA=1,
                 domain=domain_gemm,
-                compute_type="CUBLAS_COMPUTE_32F_FAST_TF32",
+                computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             )
         )
         removed.append(node)
