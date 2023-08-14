@@ -265,7 +265,13 @@ def _quantize_float8_matmul(
                     # transposition is needed for the first input
                     temp_name = node.parent.generate_name(f"{name}_tr")
                     added.append(
-                        make_node("Transpose", [name], [temp_name], perm=[1, 0])
+                        make_node(
+                            "Transpose",
+                            [name],
+                            [temp_name],
+                            perm=[1, 0],
+                            name=f"tr_{name}",
+                        )
                     )
                 else:
                     # no transposition for the other input
@@ -279,6 +285,7 @@ def _quantize_float8_matmul(
                     [new_name, scale, zero_point],
                     to=elem_type,
                     domain=domain_dq,
+                    name="dql_{name}",
                 )
                 dql = Node(None, node.parent, proto)
                 added.extend([dql.proto])
@@ -305,7 +312,12 @@ def _quantize_float8_matmul(
             # output is quantized, there is a need for a scale
             scale_out = node.parent.generate_name(f"{name}_scaleout")
             added.append(
-                make_node("Mul", [input_names[0][1], input_names[1][1]], [scale_out])
+                make_node(
+                    "Mul",
+                    [input_names[0][1], input_names[1][1]],
+                    [scale_out],
+                    name="mul_{name}",
+                )
             )
         else:
             # output is not quantized, no need for an output scale
