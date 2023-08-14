@@ -329,6 +329,7 @@ def _quantize_float8_matmul(
                 dtype=output_type,
                 transA=1,
                 domain=domain_gemm,
+                compute_type="CUBLAS_COMPUTE_32F_FAST_TF32",
             )
         )
         removed.append(node)
@@ -383,10 +384,11 @@ def quantize_float8(
         main_opset = 20
     elif local_function and main_opset < 19:
         logger.info(
-            "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
+            "[quantize_float8] upgrade model from opset %d to %s", main_opset, 19
         )
         graph.upgrade_opsets({"": 19})
         main_opset = 19
+
     local_functions = graph.functions.copy() if local_function else None
     n_local_functions = 0 if local_functions is None else len(local_functions)
     new_opsets = {}
