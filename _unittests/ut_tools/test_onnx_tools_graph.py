@@ -498,6 +498,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         check_model(onnx_model)
         return onnx_model
 
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnxruntime_code_local_x3(self):
         x = np.arange(24).reshape((2, 4, 3)).astype(np.float32)
         feeds = {"X": x}
@@ -549,6 +550,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         check_model(onnx_model)
         return onnx_model
 
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnxruntime_code_local_x4(self):
         x = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
         feeds = {"X": x}

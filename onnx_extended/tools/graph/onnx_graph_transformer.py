@@ -251,6 +251,7 @@ def _quantize_float8_matmul(
         added = []
         input_names = []
         was_reshaped = [None, None]
+        m1 = None
         for index, name in enumerate(node.inputs):
             if node.parent.is_constant(name):
                 # Quantized constant weights
@@ -276,23 +277,28 @@ def _quantize_float8_matmul(
                     if len(shape) == 2:
                         # no need
                         reshaped_name = name
-                    elif len(shape) > 2 and isinstance(shape[-1], int):
+                    else:
                         # The input needs to be reshaped.
                         reshaped_name = node.parent.generate_name(f"{name}_sh")
+                        shape_name = node.parent.generate_name(f"{name}_sh")
                         new_shape = node.parent.generate_name(f"{name}_nsh")
-                        was_reshaped[index] = shape
+                        last_dim = node.parent.generate_name(f"{name}_ldim")
+                        m1 = node.parent.generate_name(f"{name}_m1")
+                        was_reshaped[index] = shape_name
                         added.extend(
                             [
+                                make_node("Shape", [name], [shape_name]),
                                 make_node(
                                     "Constant",
                                     [],
-                                    [new_shape],
+                                    [m1],
                                     value=make_tensor(
-                                        new_shape,
-                                        TensorProto.INT64,
-                                        [2],
-                                        [-1, shape[-1]],
+                                        new_shape, TensorProto.INT64, [1], [-1]
                                     ),
+                                ),
+                                make_node("Gather", [shape_name, m1], [last_dim]),
+                                make_node(
+                                    "Concat", [m1, last_dim], [new_shape], axis=0
                                 ),
                                 make_node(
                                     "Reshape",
@@ -303,12 +309,6 @@ def _quantize_float8_matmul(
                                     ),
                                 ),
                             ]
-                        )
-                    else:
-                        raise QuantizationError(
-                            f"Shape {shape!r} is not specified enough "
-                            f"for result {name!r} in node {node}. "
-                            f"This input cannot be transposed with certainty."
                         )
 
                     tr_name = node.parent.generate_name(f"{name}_tr")
@@ -406,22 +406,31 @@ def _quantize_float8_matmul(
         )
         if do_reshape:
             # One of the inputs had 3 dimensions.
-            if shape[0] is not None:
-                new_shape = node.parent.generate_name(f"{name}_sh2")
+            if was_reshaped[0] is not None:
+                assert m1 is not None
+                sliced = node.parent.generate_name(f"{name}_sli")
+                new_shape = node.parent.generate_name(f"{name}_sh1")
+                zero = node.parent.generate_name("zero")
+                m2 = node.parent.generate_name(f"{name}_shm2")
+                shm2 = node.parent.generate_name("m2")
                 sh1 = was_reshaped[0]
                 added.extend(
                     [
                         make_node(
                             "Constant",
                             [],
-                            [new_shape],
-                            value=make_tensor(
-                                new_shape,
-                                TensorProto.INT64,
-                                [len(sh1)],
-                                [*sh1[:-2], sh1[-2], -1],
-                            ),
+                            [zero],
+                            value=make_tensor(new_shape, TensorProto.INT64, [1], [0]),
                         ),
+                        make_node(
+                            "Constant",
+                            [],
+                            [m2],
+                            value=make_tensor(new_shape, TensorProto.INT64, [1], [-2]),
+                        ),
+                        make_node("Slice", [sh1, zero, m2, zero], [sliced]),
+                        make_node("Gather", [sh1, m2], [shm2]),
+                        make_node("Concat", [sliced, shm2, m1], [new_shape], axis=0),
                         make_node(
                             "Reshape",
                             [gemm_outputs[0], new_shape],
@@ -430,7 +439,6 @@ def _quantize_float8_matmul(
                         ),
                     ]
                 )
-
             else:
                 raise NotImplementedError(
                     f"MatMul cannot be replaced by operator Gemm, "
@@ -511,7 +519,7 @@ def quantize_float8(
                     opset=main_opset,
                     local_functions=local_functions,
                 )
-            except QuantizationError as e:
+            except (QuantizationError, NotImplementedError) as e:
                 if quiet:
                     logger.warn(
                         "[quantize_float8] %d/%d failed to quantize due to %s",

@@ -95,7 +95,7 @@ def get_parser_display() -> ArgumentParser:
         prog="display",
         description=dedent(
             """
-        Executes shape inference on an ONNX model and display the inferred shape.
+        Executes shape inference on an ONNX model and displays the inferred shapes.
         """
         ),
         epilog="This helps looking at a model from a terminal.",
