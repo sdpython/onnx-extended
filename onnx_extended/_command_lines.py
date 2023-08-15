@@ -359,6 +359,9 @@ def cmd_quantize(
             version=scenario,
             local_function=use_local_functions,
         )
+        if new_graph is None:
+            logger.warning("No node was quantized.")
+            return
         onx2 = new_graph.to_onnx()
         seq = onx2.SerializeToString()
         logger.info("Model quantized size: %d", len(seq))

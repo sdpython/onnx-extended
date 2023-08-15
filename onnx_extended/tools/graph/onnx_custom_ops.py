@@ -114,6 +114,10 @@ class GemmFloat8(OpRun):
         rowMajor: int = None,
         activation: str = None,
     ):
+        if len(A.shape) != 2:
+            raise ValueError(f"A is not a matrix, its shape is {A.shape}.")
+        if len(B.shape) != 2:
+            raise ValueError(f"B is not a matrix, its shape is {B.shape}.")
         C = args[0] if len(args) > 0 else None
         scaleA = args[1] if len(args) > 1 else None
         scaleB = args[2] if len(args) > 2 else None
@@ -170,7 +174,12 @@ class GemmFloat8(OpRun):
                 raise ValueError(f"scaleB must be a float not {scaleB.dtype}.")
             cb = DequantizeLinear.eval(cb, scaleB.astype(compute_dtype))
 
-        res = ca @ cb * alpha
+        try:
+            res = ca @ cb * alpha
+        except ValueError as e:
+            raise ValueError(
+                f"Unable to multiply shapes {ca.shape!r} and {cb.shape!r}."
+            ) from e
         if C is not None:
             res += cc * beta
 

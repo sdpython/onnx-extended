@@ -7,6 +7,7 @@ from onnx import (
     NodeProto,
     SparseTensorProto,
     TensorProto,
+    TypeProto,
     ValueInfoProto,
 )
 from onnx.helper import (
@@ -16,6 +17,7 @@ from onnx.helper import (
     make_opsetid,
     set_model_props,
 )
+from onnx.shape_inference import infer_shapes
 from onnx.version_converter import convert_version
 from ...reference import CReferenceEvaluator
 from ...reference.c_reference_evaluator import from_array_extended
@@ -55,6 +57,13 @@ class Node:
         self.index = index
         self.proto = proto
         self.parent = parent
+
+    @property
+    def name(self):
+        "Returns the name if node is a NodeProto, None otherwise."
+        if isinstance(self.proto, NodeProto):
+            return self.proto.name
+        return None
 
     def get_tensor(self) -> TensorProto:
         "Returns the value of the"
@@ -248,8 +257,25 @@ class Graph:
                     "Class Graph does not handle model included functions yet."
                 )
             self.functions = {f.name: f for f in proto.functions}
+
+            # retrieve all shapes
+            p2 = infer_shapes(proto)
+            values = p2.graph.value_info
+            shapes = {}
+            for o in proto.graph.input:
+                if o.name not in shapes:
+                    shapes[o.name] = o.type
+            for o in proto.graph.output:
+                if o.name not in shapes:
+                    shapes[o.name] = o.type
+            for value in values:
+                shapes[value.name] = value.type
+            self.shapes: Dict[str, TypeProto] = shapes
+
         else:
             graph = proto
+            self.shapes: Dict[str, TypeProto] = None
+
         self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(graph)
         self.opsets: Dict[str, int] = {}
         self.functions: Dict[Tuple[str, str], FunctionProto] = {}
@@ -262,18 +288,41 @@ class Graph:
         self.nodes_added: Dict[int, Node] = {}
         self.nodes_sets: Dict[int:NodeSet] = {}
         self.generated_names: Set[str] = set()
+        self.generated_node_names: Set[str] = set()
         self.new_index: int = len(self.nodes)
 
         for node in self.nodes:
             self._complete_init_node(node)
 
     def _complete_init_node(self, node):
+        if node.name not in ("", None):
+            self.generated_node_names.add(node.name)
         for i in node.inputs:
             if i not in self.index_input:
                 self.index_input[i] = []
             self.index_input[i].append(node)
+            if i != "":
+                self.generated_names.add(i)
         for i in node.outputs:
             self.index_output[i] = node
+            if i != "":
+                self.generated_names.add(i)
+
+    def get_shape(self, name: str) -> Optional[Tuple[Union[None, str, int], ...]]:
+        """
+        Returns the shape of a result.
+
+        :param name: name of the result
+        :return: None if unknown or a tuple
+        """
+        if name not in self.shapes:
+            return None
+        ttype = self.shapes[name]
+        if not ttype.tensor_type:
+            return None
+        shape = ttype.tensor_type.shape
+        res = [(d.dim_value if d.dim_value else d.dim_param) for d in shape.dim]
+        return tuple(res)
 
     def _exists_name(self, name):
         if name in self.index_input:
@@ -283,6 +332,11 @@ class Graph:
         if name in self.graph_inputs:
             return True
         if name in self.generated_names:
+            return True
+        return False
+
+    def _exists_node_name(self, name):
+        if name in self.generated_node_names:
             return True
         return False
 
@@ -300,6 +354,23 @@ class Graph:
             i += 1
             suggestion = f"{prefix}_{i}"
         self.generated_names.add(suggestion)
+        return suggestion
+
+    def generate_node_name(self, prefix: str = "new") -> str:
+        """
+        Generates a node name which is not used for
+        any existing node in the graph.
+
+        :param prefix: prefix to use for the new name,
+            next tries will be ``<prefix>_1``, ``<prefix>_2``, ...
+        :return: new name
+        """
+        suggestion = prefix
+        i = 0
+        while self._exists_node_name(suggestion):
+            i += 1
+            suggestion = f"{prefix}_{i}"
+        self.generated_node_names.add(suggestion)
         return suggestion
 
     def get_node_producer(self, name: str) -> Node:
