@@ -7,6 +7,11 @@ from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
 from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
 from onnx.reference.custom_element_types import float8e4m3fn
 from onnx.reference.op_run import to_array_extended
+
+try:
+    from onnx.reference.ops.op_cast import Cast_19 as Cast
+except ImportError:
+    from onnx.reference.ops.op_cast import Cast
 from ...reference.c_reference_evaluator import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .errors import QuantizationError
@@ -501,6 +506,8 @@ def quantize_float8(
         graph.upgrade_opsets({"": 19})
         main_opset = 19
 
+    if len(graph.functions) > 0:
+        raise NotImplementedError("Quantization of local functions is not implemented.")
     local_functions = graph.functions.copy() if local_function else None
     n_local_functions = 0 if local_functions is None else len(local_functions)
     new_opsets = {}
@@ -553,4 +560,85 @@ def quantize_float8(
     graph.simplify()
     if local_functions is not None and len(local_functions) > n_local_functions:
         graph.add_functions(local_functions.values())
+    return graph
+
+
+def _cast_constant(
+    node: Node,
+    from_type: int,
+    to_type: int,
+) -> Optional[TransformResults]:
+    """
+    Converts a node if it is a tensor of element type *from_type*
+    and cast it into *to_type*.
+
+    :param node: node
+    :param from_type: element type to replace
+    :param to_type: type to cast into
+    :return: TransformResults
+    """
+    cst = node.get_tensor()
+    if cst.data_type != from_type:
+        return None
+
+    arr = to_array_extended(cst)
+    cast = Cast.eval(arr, to=to_type)
+    new_tensor = from_array_extended(cast, name=node.name)
+    removed = [node]
+    added = []
+    if node.op_type == "initializer":
+        added.append(new_tensor)
+    elif node.op_type == "Constant":
+        added.append(make_node("Constant", [], node.outputs, value=new_tensor))
+    else:
+        raise RuntimeError(f"Unexpected node type {node.op_type!r}.")
+
+    return TransformResults(removed_nodes=removed, added_nodes=added)
+
+
+def cast_constant(
+    graph: Graph,
+    from_type: int = TensorProto.FLOAT,
+    to_type: int = TensorProto.FLOAT16,
+    quiet: bool = False,
+) -> Optional[Graph]:
+    """
+    Converts all constants and initializers to the same type.
+    It also modifies the input.
+
+    :param graph: Graph
+    :param from_type: type of the constants to convert
+    :param to_type: new type for the constants
+    :param quiet: catch exception and silently skip failing nodes
+    :return: Graph or None if not modified
+
+    Transformation are logged with logger `onnx-extended/transformer`.
+    The graph is modified inplace.
+    Enables the logs gives a better idea of the progress.
+    """
+    if len(graph.functions) > 0:
+        raise NotImplementedError("Conversion of local functions is not implemented.")
+
+    to_add = []
+    n_nodes = len(graph)
+    for index, node in enumerate(graph):
+        if node.op_type in {"Constant", "initializer"}:
+            logger.info("[cast_constant] %d/%d convert %s", index, n_nodes, node)
+            results = _cast_constant(node, from_type, to_type)
+            if results is None:
+                continue
+            rem, add = results.removed_nodes, results.added_nodes
+            to_add.append((rem, add))
+
+    if len(to_add) == 0:
+        return None
+
+    for rem, add in to_add:
+        for r in rem:
+            logger.debug("[cast_constant] del %s", r)
+        added = graph.replace_nodes([r.index for r in rem], add)
+        for a in added:
+            logger.debug("[cast_constant] add %s", a)
+
+    graph.simplify()
     return graph
