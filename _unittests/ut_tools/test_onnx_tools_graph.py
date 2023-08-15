@@ -470,6 +470,71 @@ class TestOnnxToolsGraph(ExtTestCase):
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
+    def _get_model_32_x3(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [2, 4, 3])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None, None])
+        graph = make_graph(
+            [
+                make_node(
+                    "Constant",
+                    [],
+                    ["mat"],
+                    value=make_tensor(
+                        "one",
+                        TensorProto.FLOAT,
+                        [3, 2],
+                        list(float(i) for i in range(11, 17)),
+                    ),
+                ),
+                make_node("MatMul", ["X", "mat"], ["Z"]),
+            ],
+            "zoo",
+            [X],
+            [Z],
+        )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    def test_quantize_f8_onnxruntime_code_local_x3(self):
+        x = np.arange(24).reshape((2, 4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32_x3()
+        ref = InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        expected = ref.run(None, feeds)[0]
+
+        refonnx = CReferenceEvaluator(model)
+        expectedonnx = refonnx.run(None, feeds)[0]
+        self.assertEqualArray(expected, expectedonnx)
+
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = InferenceSession(
+            onx1.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(graph, version="onnxruntime", local_function=True)
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("local.quant.domain", str(onx2))
+
+        ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8], verbose=10)
+        got2 = ref2.run(None, feeds)[0]
+        self.assertEqualArray(expected, got2, rtol=0.05)
+
 
 if __name__ == "__main__":
     # import logging
@@ -477,5 +542,5 @@ if __name__ == "__main__":
     # log = logging.getLogger("onnx-extended")
     # log.setLevel(logging.ERROR)
     # TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
-    TestOnnxToolsGraph().test_quantize_f8_onnxruntime_code_local()
+    TestOnnxToolsGraph().test_quantize_f8_onnxruntime_code_local_x3()
     unittest.main(verbosity=2)

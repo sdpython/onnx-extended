@@ -263,13 +263,25 @@ def _quantize_float8_matmul(
                 # Add DynamicQuantizeLinear
                 if index == 0:
                     # transposition is needed for the first input
+                    shape = node.parent.get_shape(name)
+                    if shape is None:
+                        logger.warn(
+                            "[quantize_float8] shape unknown for result, %r in node %s",
+                            name,
+                            node,
+                        )
+                        perm = [1, 0]
+                    else:
+                        perm = list(range(len(shape)))
+                        perm[-2], perm[-1] = perm[-1], perm[-2]
+
                     temp_name = node.parent.generate_name(f"{name}_tr")
                     added.append(
                         make_node(
                             "Transpose",
                             [name],
                             [temp_name],
-                            perm=[1, 0],
+                            perm=perm,
                             name=node.parent.generate_node_name(f"tra8_{name}"),
                         )
                     )
