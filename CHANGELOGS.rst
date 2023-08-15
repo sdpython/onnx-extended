@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`61`: add function to cast every weight into float 16
 * :pr:`59`: add local functions to quantize
 * :pr:`57`: add C implementation for DynamicQuantizeLinear (for experimentation)
 * :pr:`56`: add C implementation to cast a float into float 8

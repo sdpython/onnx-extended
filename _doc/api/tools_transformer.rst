@@ -2,6 +2,11 @@
 tools.graph.onnx_graph_transformer
 ==================================
 
+cast_constant
+=============
+
+.. autofunction:: onnx_extended.tools.graph.cast_constant
+
 quantize_float8
 ===============
 
