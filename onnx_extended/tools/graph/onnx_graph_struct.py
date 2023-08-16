@@ -620,6 +620,22 @@ class Graph:
                 self.index_input[i] = new_input
             for o in node.outputs:
                 del self.index_output[o]
+            if node.is_input:
+                ni = node.outputs[0]
+                if ni not in self.graph_inputs:
+                    raise RuntimeError(
+                        f"Removing node {node} but it was not "
+                        f"found in self.graph_inputs."
+                    )
+                del self.graph_inputs[self.graph_inputs.index(ni)]
+            elif node.is_output:
+                ni = node.outputs[0]
+                if ni not in self.graph_outputs:
+                    raise RuntimeError(
+                        f"Removing node {node} but it was not "
+                        f"found in self.graph_outputs."
+                    )
+                del self.graph_outputs[self.graph_outputs.index(ni)]
 
         nodes = []
         new_indices = []
