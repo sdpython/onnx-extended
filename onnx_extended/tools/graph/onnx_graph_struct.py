@@ -277,9 +277,7 @@ class Graph:
                 return NodeWithSubGraph
         return Node
 
-    def _get_nodes(
-        self, graph: Union[GraphProto, FunctionProto]
-    ) -> Tuple[List[Node], List[str]]:
+    def _get_nodes(self, graph: Union[GraphProto, FunctionProto]) -> List[Node]:
         """
         Returns the ordered list of nodes.
         """
@@ -291,11 +289,9 @@ class Graph:
                 nodes.append(Node(len(nodes), self, init, NodeKind.INITIALIZER))
             for init in graph.sparse_initializer:
                 nodes.append(Node(len(nodes), self, init, NodeKind.SPARSE_INITIALIZER))
-            graph_inputs = [o.name for o in graph.input]
         else:
             for inp in graph.input:
                 nodes.append(Node(len(nodes), self, inp, NodeKind.INPUT))
-            graph_inputs = [o.name for o in graph.input]
         for node in graph.node:
             nodes.append(
                 Graph.node_or_node(node)(len(nodes), self, node, NodeKind.NODE)
@@ -303,29 +299,28 @@ class Graph:
         if isinstance(graph, GraphProto):
             for inp in graph.output:
                 nodes.append(Node(len(nodes), self, inp, NodeKind.OUTPUT))
-            graph_outputs = [o.name for o in graph.output]
         else:
             for inp in graph.output:
                 nodes.append(Node(len(nodes), self, inp, NodeKind.OUTPUT))
-            graph_outputs = [o.name for o in graph.output]
 
-        return nodes, graph_inputs, graph_outputs
+        return nodes
 
     def __init__(self, proto: Union[FunctionProto, GraphProto, ModelProto]):
         self.proto = proto
-        self.functions: Optional[Dict[self, FunctionProto]] = None
         if isinstance(proto, ModelProto):
             graph = proto.graph
             if len(proto.functions) > 0:
                 raise NotImplementedError(
                     "Class Graph does not handle model included functions yet."
                 )
-            self.functions = {f.name: f for f in proto.functions}
+            self.functions: Dict[Tuple[str, str], FunctionProto] = {
+                (f.domain, f.name): f for f in proto.functions
+            }
 
             # retrieve all shapes
             p2 = infer_shapes(proto)
             values = p2.graph.value_info
-            shapes = {}
+            shapes: Dict[str, TypeProto] = {}
             for o in proto.graph.input:
                 if o.name not in shapes:
                     shapes[o.name] = o.type
@@ -339,13 +334,15 @@ class Graph:
         else:
             graph = proto
             self.shapes: Dict[str, TypeProto] = None
+            self.functions: Dict[Tuple[str, str], FunctionProto] = {}
 
-        self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(graph)
+        self.nodes = self._get_nodes(graph)
         self.opsets: Dict[str, int] = {}
-        self.functions: Dict[Tuple[str, str], FunctionProto] = {}
         self._complete_init()
 
     def _complete_init(self):
+        self.graph_inputs: List[str] = []
+        self.graph_outputs: List[str] = []
         self.removed: Set[str] = set()
         self.index_input: Dict[str, List[Node]] = {}
         self.index_output: Dict[str, Node] = {}
@@ -359,6 +356,10 @@ class Graph:
             self._complete_init_node(node)
 
     def _complete_init_node(self, node):
+        if node.is_input:
+            self.graph_inputs.append(node.outputs[0])
+        elif node.is_output:
+            self.graph_outputs.append(node.outputs[0])
         if node.name not in ("", None):
             self.generated_node_names.add(node.name)
         for i in node.inputs:
@@ -671,9 +672,7 @@ class Graph:
             )
         new_proto = convert_version(self.proto, new_opsets[""])
         self.proto = new_proto
-        self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(
-            self.proto.graph
-        )
+        self.nodes = self._get_nodes(self.proto.graph)
         self._complete_init()
 
     def add_functions(self, protos: Iterable[FunctionProto]):
