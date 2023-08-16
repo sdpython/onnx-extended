@@ -190,7 +190,8 @@ def get_parser_quantize() -> ArgumentParser:
         "quantizes weights to float 8 e4m3fn whenever possible. "
         "It replaces MatMul by Transpose + DynamicQuantizeLinear + GemmFloat8. "
         "'fp16' casts all float weights to float 16, it does the same for "
-        "inputs and outputs.",
+        "inputs and outputs. It changes all operators Cast when they "
+        "cast into float 32.",
     )
     parser.add_argument(
         "-l",

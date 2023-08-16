@@ -678,6 +678,87 @@ class TestOnnxToolsGraph(ExtTestCase):
         got3 = sess.run(None, feeds16)[0]
         self.assertEqualArray(expected.astype(np.float16), got3, rtol=0.05)
 
+    def _get_model_32_x4_cast(self, use_init=False):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [5, 2, 4, 3])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None, None, None])
+        if use_init:
+            graph = make_graph(
+                [
+                    make_node("Cast", ["X"], ["Xc"], to=TensorProto.FLOAT),
+                    make_node("MatMul", ["Xc", "mat"], ["Z"]),
+                ],
+                "zoo",
+                [X],
+                [Z],
+                [
+                    make_tensor(
+                        "mat",
+                        TensorProto.FLOAT,
+                        [3, 2],
+                        list(float(i) for i in range(11, 17)),
+                    )
+                ],
+            )
+        else:
+            graph = make_graph(
+                [
+                    make_node("Cast", ["X"], ["Xc"], to=TensorProto.FLOAT),
+                    make_node(
+                        "Constant",
+                        [],
+                        ["mat"],
+                        value=make_tensor(
+                            "one",
+                            TensorProto.FLOAT,
+                            [3, 2],
+                            list(float(i) for i in range(11, 17)),
+                        ),
+                    ),
+                    make_node("MatMul", ["Xc", "mat"], ["Z"]),
+                ],
+                "zoo",
+                [X],
+                [Z],
+            )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    def test_cast_constant_initializer_cast(self):
+        x32 = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
+        x16 = x32.astype(np.float16)
+        feeds32 = {"X": x32}
+        feeds16 = {"X": x16}
+        model = self._get_model_32_x4_cast(use_init=True)
+        refonnx = CReferenceEvaluator(model)
+        expected = refonnx.run(None, feeds32)[0]
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = CReferenceEvaluator(onx1)
+        got1 = ref1.run(None, feeds32)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = cast_constant(
+            graph, from_type=TensorProto.FLOAT, to_type=TensorProto.FLOAT16
+        )
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("data_type: 10", str(onx2))
+
+        ref2 = CReferenceEvaluator(onx2)
+        got2 = ref2.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got2, rtol=0.05)
+
+        sess = InferenceSession(
+            onx2.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        got3 = sess.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got3, rtol=0.05)
+
 
 if __name__ == "__main__":
     # import logging
