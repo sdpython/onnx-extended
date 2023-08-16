@@ -8,10 +8,12 @@ from onnx.helper import (
     make_opsetid,
     make_tensor,
     make_tensor_value_info,
+    tensor_dtype_to_np_dtype,
 )
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
 from onnx.reference.custom_element_types import float8e4m3fn
 from onnx.reference.op_run import to_array_extended
+from onnx.onnx_cpp2py_export.defs import SchemaError
 
 try:
     from onnx.reference.ops.op_cast import Cast_19 as Cast
@@ -594,7 +596,12 @@ def _cast_constant(
             return None
 
         arr = to_array_extended(cst)
-        cast = Cast.eval(arr, to=to_type)
+        try:
+            cast = Cast.eval(arr, to=to_type)
+        except SchemaError:
+            # cast does not work
+            np_type = tensor_dtype_to_np_dtype(to_type)
+            cast = arr.astype(np_type)
         if op_type == "initializer":
             return TransformResults(
                 removed_nodes=[node],

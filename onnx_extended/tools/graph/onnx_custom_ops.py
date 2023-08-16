@@ -9,8 +9,15 @@ from onnx.reference.custom_element_types import (
     float8e5m2fnuz,
 )
 from onnx.reference.op_run import OpRun
-from onnx.reference.ops.op_cast import Cast_19 as Cast
-from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
+
+try:
+    from onnx.reference.ops.op_cast import Cast_19 as Cast
+    from onnx.reference.ops.op_quantize_linear import (
+        QuantizeLinear_19 as QuantizeLinear,
+    )
+except ImportError:
+    from onnx.reference.ops.op_cast import Cast
+    from onnx.reference.ops.op_quantize_linear import QuantizeLinear
 from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 
 
