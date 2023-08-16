@@ -3,6 +3,11 @@
 tools.graph
 ===========
 
+NodeKind
+========
+
+.. autoclass:: onnx_extended.tools.graph.onnx_graph_struct.NodeKind
+
 Node
 ====
 
