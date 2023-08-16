@@ -613,51 +613,52 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqualArray(expected, got2, rtol=0.05)
 
     def test_cast_constant_constant(self):
-        x = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
-        feeds = {"X": x}
+        x32 = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
+        x16 = x32.astype(np.float16)
+        feeds32 = {"X": x32}
+        feeds16 = {"X": x16}
         model = self._get_model_32_x4()
         refonnx = CReferenceEvaluator(model)
-        expected = refonnx.run(None, feeds)[0]
+        expected = refonnx.run(None, feeds32)[0]
 
         graph = Graph(model)
         onx1 = graph.to_onnx()
         check_model(onx1)
         ref1 = CReferenceEvaluator(onx1)
-        got1 = ref1.run(None, feeds)[0]
+        got1 = ref1.run(None, feeds32)[0]
         self.assertEqualArray(expected, got1)
 
         new_graph = cast_constant(
             graph, from_type=TensorProto.FLOAT, to_type=TensorProto.FLOAT16
         )
-        print("-------------")
-        for node in new_graph:
-            print(node)
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         self.assertIn("data_type: 10", str(onx2))
 
-        ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
-        got2 = ref2.run(None, feeds)[0]
-        self.assertEqualArray(expected, got2, rtol=0.05)
+        ref2 = CReferenceEvaluator(onx2, verbose=10)
+        got2 = ref2.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got2, rtol=0.05)
 
         sess = InferenceSession(
             onx2.SerializeToString(), providers=["CPUExecutionProvider"]
         )
-        got3 = sess.run(None, feeds)[0]
-        self.assertEqualArray(expected, got3, rtol=0.05)
+        got3 = sess.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got3, rtol=0.05)
 
     def test_cast_constant_initializer(self):
-        x = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
-        feeds = {"X": x}
+        x32 = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
+        x16 = x32.astype(np.float16)
+        feeds32 = {"X": x32}
+        feeds16 = {"X": x16}
         model = self._get_model_32_x4(use_init=True)
         refonnx = CReferenceEvaluator(model)
-        expected = refonnx.run(None, feeds)[0]
+        expected = refonnx.run(None, feeds32)[0]
 
         graph = Graph(model)
         onx1 = graph.to_onnx()
         check_model(onx1)
         ref1 = CReferenceEvaluator(onx1)
-        got1 = ref1.run(None, feeds)[0]
+        got1 = ref1.run(None, feeds32)[0]
         self.assertEqualArray(expected, got1)
 
         new_graph = cast_constant(
@@ -667,15 +668,15 @@ class TestOnnxToolsGraph(ExtTestCase):
         check_model(onx2)
         self.assertIn("data_type: 10", str(onx2))
 
-        ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
-        got2 = ref2.run(None, feeds)[0]
-        self.assertEqualArray(expected, got2, rtol=0.05)
+        ref2 = CReferenceEvaluator(onx2)
+        got2 = ref2.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got2, rtol=0.05)
 
         sess = InferenceSession(
             onx2.SerializeToString(), providers=["CPUExecutionProvider"]
         )
-        got3 = sess.run(None, feeds)[0]
-        self.assertEqualArray(expected, got3, rtol=0.05)
+        got3 = sess.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got3, rtol=0.05)
 
 
 if __name__ == "__main__":

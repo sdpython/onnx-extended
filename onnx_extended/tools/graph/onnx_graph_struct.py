@@ -743,15 +743,17 @@ class Graph:
         """
         if isinstance(self.proto, ModelProto):
             opsets = self.get_opsets()
+            inputs = [n.proto for n in self if n.is_input]
             initializer = [n.proto for n in self if n.is_initializer]
             sparse_initializer = [n.proto for n in self if n.is_sparse_initializer]
             nodes = [n.proto for n in self if n.is_node]
+            outputs = [n.proto for n in self if n.is_output]
             model = make_model(
                 make_graph(
                     nodes,
                     self.proto.graph.name,
-                    self.proto.graph.input,
-                    self.proto.graph.output,
+                    inputs,
+                    outputs,
                     initializer=initializer,
                     sparse_initializer=sparse_initializer,
                 ),
