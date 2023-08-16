@@ -184,11 +184,13 @@ def get_parser_quantize() -> ArgumentParser:
     parser.add_argument(
         "-k",
         "--kind",
-        choices=["fp8"],
+        choices=["fp8", "fp16"],
         required=True,
         help="Kind of quantization to do. 'fp8' "
         "quantizes weights to float 8 e4m3fn whenever possible. "
-        "It replaces MatMul by Transpose + DynamicQuantizeLinear + GemmFloat8.",
+        "It replaces MatMul by Transpose + DynamicQuantizeLinear + GemmFloat8. "
+        "'fp16' casts all float weights to float 16, it does the same for "
+        "inputs and outputs.",
     )
     parser.add_argument(
         "-l",

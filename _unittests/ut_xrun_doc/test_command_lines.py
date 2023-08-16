@@ -334,7 +334,38 @@ class TestCommandLines(ExtTestCase):
                 {"", "com.microsoft", "local.quant.domain"},
             )
 
+    def test_command_quantize_cast_convert(self):
+        onnx_model = self._get_model_32()
+        with tempfile.TemporaryDirectory() as fold:
+            model_file = os.path.join(fold, "model.onnx")
+            with open(model_file, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            model_out = os.path.join(fold, "out.onnx")
+
+            st = StringIO()
+            with redirect_stdout(st):
+                args = [
+                    "quantize",
+                    "-i",
+                    model_file,
+                    "-o",
+                    model_out,
+                    "-k",
+                    "fp16",
+                ]
+                main(args)
+            text = st.getvalue()
+            self.assertEqual(text, "")
+            self.assertExists(model_out)
+            with open(model_out, "rb") as f:
+                content = load(f)
+            types = [n.op_type for n in content.graph.node]
+            self.assertEqual(types, ["Constant", "MatMul"])
+            types = set(n.domain for n in content.graph.node)
+            self.assertEqual(types, {""})
+            self.assertIn("data_type: 10", str(content))
+
 
 if __name__ == "__main__":
-    TestCommandLines().test_command_quantize_model()
+    TestCommandLines().test_command_quantize_cast_convert()
     unittest.main(verbosity=2)
