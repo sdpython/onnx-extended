@@ -93,7 +93,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             )
         text = str(graph)
         tn = str(graph[1])
-        self.assertEqual(tn, "Node(1, <parent>, <Constant>) [] -> [one]")
+        self.assertEqual(tn, "Node(1, <parent>, <Constant>) [1:(1,)] -> [one]")
         self.assertEqual(text, "Graph(...) [X] -> [Z]")
 
         onx = graph.to_onnx()
@@ -119,7 +119,10 @@ class TestOnnxToolsGraph(ExtTestCase):
         graph = Graph(onnx_model)
         self.assertEqual(len(graph), 6)
         for node in graph:
-            self.assertEqual("Node(0, <parent>, <input>) [] -> [x]", str(node))
+            self.assertEqual(
+                "Node(0, <parent>, kind=NodeKind.INPUT) [1:('', '', '')] -> [x]",
+                str(node),
+            )
             break
         self.assertEqual("Graph(...) [x] -> [y]", str(graph))
 
@@ -224,7 +227,9 @@ class TestOnnxToolsGraph(ExtTestCase):
         removed = graph.remove_unused_nodes()
         self.assertEqual(len(removed), 2)
         self.assertEqual(str(removed[0]), "Node(2, <parent>, <Add>) [one,one] -> [two]")
-        self.assertEqual(str(removed[1]), "Node(1, <parent>, <Constant>) [] -> [one]")
+        self.assertEqual(
+            str(removed[1]), "Node(1, <parent>, <Constant>) [1:(1,)] -> [one]"
+        )
 
     def _get_model_32(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [4, 3])
@@ -624,6 +629,9 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = cast_constant(
             graph, from_type=TensorProto.FLOAT, to_type=TensorProto.FLOAT16
         )
+        print("-------------")
+        for node in new_graph:
+            print(node)
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         self.assertIn("data_type: 10", str(onx2))

@@ -2,20 +2,29 @@ from logging import getLogger
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 from onnx import AttributeProto, FunctionProto, NodeProto, TensorProto
-from onnx.helper import make_function, make_node, make_opsetid, make_tensor
+from onnx.helper import (
+    make_function,
+    make_node,
+    make_opsetid,
+    make_tensor,
+    make_tensor_value_info,
+)
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
-from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
 from onnx.reference.custom_element_types import float8e4m3fn
 from onnx.reference.op_run import to_array_extended
 
 try:
     from onnx.reference.ops.op_cast import Cast_19 as Cast
+    from onnx.reference.ops.op_quantize_linear import (
+        QuantizeLinear_19 as QuantizeLinear,
+    )
 except ImportError:
     from onnx.reference.ops.op_cast import Cast
+    from onnx.reference.ops.op_quantize_linear import QuantizeLinear
 from ...reference.c_reference_evaluator import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .errors import QuantizationError
-from .onnx_graph_struct import Graph, Node, NodeKind
+from .onnx_graph_struct import _get_shape, Graph, Node, NodeKind
 
 
 logger = getLogger("onnx-extended/transformer")
@@ -577,24 +586,53 @@ def _cast_constant(
     :param to_type: type to cast into
     :return: TransformResults
     """
-    cst = node.get_tensor()
-    if cst.data_type != from_type:
-        return None
+    op_type = node.op_type
 
-    arr = to_array_extended(cst)
-    cast = Cast.eval(arr, to=to_type)
-    removed = [node]
-    added = []
-    if node.op_type == "initializer":
-        new_tensor = from_array_extended(cast, name=node.proto.name)
-        added.append(new_tensor)
-    elif node.op_type == "Constant":
-        new_tensor = from_array_extended(cast, name=node.outputs[0])
-        added.append(make_node("Constant", [], node.outputs, value=new_tensor))
-    else:
-        raise RuntimeError(f"Unexpected node type {node.op_type!r}.")
+    if op_type in {"Constant", "initializer"}:
+        cst = node.get_tensor()
+        if cst.data_type != from_type:
+            return None
 
-    return TransformResults(removed_nodes=removed, added_nodes=added)
+        arr = to_array_extended(cst)
+        cast = Cast.eval(arr, to=to_type)
+        if op_type == "initializer":
+            return TransformResults(
+                removed_nodes=[node],
+                added_nodes=[from_array_extended(cast, name=node.proto.name)],
+            )
+        if op_type == "Constant":
+            return TransformResults(
+                removed_nodes=[node],
+                added_nodes=[
+                    make_node(
+                        "Constant",
+                        [],
+                        node.outputs,
+                        value=from_array_extended(cast, name=node.outputs[0]),
+                    )
+                ],
+            )
+    if op_type in {"input", "output"}:
+        if isinstance(node.proto, str):
+            # A FunctionProto input, nothing to do.
+            return None
+        ttype = node.proto.type
+        if not ttype.tensor_type or ttype.tensor_type.elem_type != from_type:
+            return None
+        return TransformResults(
+            removed_nodes=[node],
+            added_nodes=[
+                make_tensor_value_info(
+                    node.proto.name,
+                    to_type,
+                    shape=_get_shape(ttype),
+                    doc_string=node.proto.doc_string,
+                    shape_denotation=ttype.denotation,
+                )
+            ],
+        )
+
+    raise RuntimeError(f"Unexpected node type {op_type!r}.")
 
 
 def cast_constant(
@@ -623,7 +661,7 @@ def cast_constant(
     to_add = []
     n_nodes = len(graph)
     for index, node in enumerate(graph):
-        if node.op_type in {"Constant", "initializer"}:
+        if node.op_type in {"Constant", "initializer", "input", "output"}:
             logger.info("[cast_constant] %d/%d convert %s", index, n_nodes, node)
             results = _cast_constant(node, from_type, to_type)
             if results is None:
@@ -641,5 +679,4 @@ def cast_constant(
         for a in added:
             logger.debug("[cast_constant] add %s", a)
 
-    graph.simplify()
-    return graph
+    return graph.simplify()

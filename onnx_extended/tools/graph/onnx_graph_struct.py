@@ -24,11 +24,26 @@ from ...reference import CReferenceEvaluator
 from ...reference.c_reference_evaluator import from_array_extended
 
 
+def _get_shape(ttype: TypeProto) -> Optional[Tuple[Union[None, str, int], ...]]:
+    """
+    Returns the shape of a TypeProto.
+
+    :param name: instance of TypeProto
+    :return: None if unknown or a tuple
+    """
+    if not ttype.tensor_type:
+        return None
+    shape = ttype.tensor_type.shape
+    res = [(d.dim_value if d.dim_value else d.dim_param) for d in shape.dim]
+    return tuple(res)
+
+
 class NodeKind(Enum):
     """
     Node kind.
     """
 
+    UNDEFINED = 0
     INITIALIZER = 1
     SPARSE_INITIALIZER = 3
     INPUT = 4
@@ -125,9 +140,34 @@ class Node:
         return self.outputs[0]
 
     def __str__(self) -> str:
+        if self.is_node:
+            if self.op_type == "Constant":
+                t = self.get_tensor()
+                shape = tuple(t.dims)
+                stype = f"{t.data_type}:{shape}"
+                return (
+                    f"{self.__class__.__name__}({self.index}, "
+                    f"<parent>, <{self.op_type}>) "
+                    f"[{stype}] -> [{','.join(self.outputs)}]"
+                )
+            return (
+                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
+                f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+            )
+        if isinstance(self.proto, TensorProto):
+            shape = tuple(self.proto.dims)
+            stype = f"{self.proto.data_type}:{shape}"
+            return (
+                f"{self.__class__.__name__}({self.index}, <parent>, "
+                f"kind={self.kind}) "
+                f"[{stype}] -> [{','.join(self.outputs)}]"
+            )
+        shape = _get_shape(self.proto.type)
+        stype = f"{self.proto.type.tensor_type.elem_type}:{shape}"
         return (
-            f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
-            f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+            f"{self.__class__.__name__}({self.index}, <parent>, "
+            f"kind={self.kind}) "
+            f"[{stype}] -> [{','.join(self.outputs)}]"
         )
 
     @property
@@ -383,11 +423,7 @@ class Graph:
         if name not in self.shapes:
             return None
         ttype = self.shapes[name]
-        if not ttype.tensor_type:
-            return None
-        shape = ttype.tensor_type.shape
-        res = [(d.dim_value if d.dim_value else d.dim_param) for d in shape.dim]
-        return tuple(res)
+        return _get_shape(ttype)
 
     def _exists_name(self, name):
         if name in self.index_input:
@@ -571,7 +607,13 @@ class Graph:
             if index in self.removed:
                 raise RuntimeError(f"Node index {index} was already removed.")
 
+        kind = None
         for index, node in removed:
+            if kind is None:
+                kind = node.kind
+            elif node.kind is not None:
+                if node.kind != kind:
+                    kind = NodeKind.UNDEFINED
             self.removed.add(index)
             for i in node.inputs:
                 new_input = [n for n in self.index_input[i] if n.index != index]
@@ -582,7 +624,7 @@ class Graph:
         nodes = []
         new_indices = []
         for node in new_nodes:
-            n = Node(self.new_index, self, node)
+            n = Node(self.new_index, self, node, kind=kind)
             self._complete_init_node(n)
             self.nodes_added[self.new_index] = n
             new_indices.append(self.new_index)
@@ -601,13 +643,14 @@ class Graph:
             self.opsets.update(new_opsets)
         return nodes_set
 
-    def simplify(self, remove_unused: bool = True):
+    def simplify(self, remove_unused: bool = True) -> "Graph":
         """
         Stores every node into nodes.
         Removes unused nodes.
 
         :param remove_unused: removes unused nodes as well,
             see :meth:`remove_unused_nodes`
+        :return: self
         """
         if (
             len(self.removed) == 0
@@ -623,6 +666,7 @@ class Graph:
             node.index = i
         if remove_unused:
             self.remove_unused_nodes()
+        return self
 
     def remove_unused_nodes(self):
         """
