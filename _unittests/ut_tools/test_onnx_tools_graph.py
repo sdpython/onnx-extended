@@ -74,21 +74,23 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_graph_build(self):
         model = self._get_model()
         graph = Graph(model)
-        self.assertEqual(len(graph), 6)
+        self.assertEqual(len(graph), 7)
         cst = []
         for node in graph:
             cst.append(node.is_constant())
-        self.assertEqual([False, True, True, False, False, False], cst)
+        self.assertEqual([False, True, True, False, False, False, False], cst)
 
         ref = CReferenceEvaluator(model)
         x = np.random.random((3, 3)).astype(np.float32)
         z = ref.run(None, dict(X=x))[0]
         self.assertEqual(z.shape, (3, 3))
         self.assertEqualArray(x @ x @ (x + 2), z, atol=1e-5)
-        self.assertEqual(len(list(graph)), 6)
-        for i in range(0, 6):
+        self.assertEqual(len(list(graph)), 7)
+        for i in range(0, 7):
             node = graph[i]
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul"})
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul"}
+            )
         text = str(graph)
         tn = str(graph[1])
         self.assertEqual(tn, "Node(1, <parent>, <Constant>) [] -> [one]")
@@ -115,7 +117,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         )
         check_model(onnx_model)
         graph = Graph(onnx_model)
-        self.assertEqual(len(graph), 5)
+        self.assertEqual(len(graph), 6)
         for node in graph:
             self.assertEqual("Node(0, <parent>, <input>) [] -> [x]", str(node))
             break
@@ -139,59 +141,71 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_graph_replace(self):
         model = self._get_model()
         graph = Graph(model)
-        self.assertEqual(len(graph), 6)
+        self.assertEqual(len(graph), 7)
         node_set = graph.replace_nodes(3, make_node("Sub", ["X", "two"], ["xp"]))
         indices = [n.index for n in node_set]
-        self.assertEqual(indices, [6])
-        self.assertEqual(len(graph), 6)
-        self.assertEqual(len(list(graph)), 6)
+        self.assertEqual(indices, [7])
+        self.assertEqual(len(graph), 7)
+        self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 6):
+        for i in range(0, 7):
             if i == 3:
                 self.assertRaise(lambda: graph[i], IndexError)
                 continue
             node = graph[i]
             ops.append(node.op_type)
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul", "Sub"})
-        self.assertEqual(ops, ["input", "Constant", "Add", "MatMul", "MatMul"])
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul", "Sub"}
+            )
+        self.assertEqual(
+            ops, ["input", "Constant", "Add", "MatMul", "MatMul", "output"]
+        )
         op_types = [node.op_type for node in graph]
         self.assertEqual(
-            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"]
+            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
         )
         indices = [node.index for node in graph]
-        self.assertEqual(indices, [0, 1, 2, 6, 4, 5])
+        self.assertEqual(indices, [0, 1, 2, 7, 4, 5, 6])
 
         graph.simplify(False)
-        self.assertEqual(len(graph), 6)
-        self.assertEqual(len(list(graph)), 6)
+        self.assertEqual(len(graph), 7)
+        self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 6):
+        for i in range(0, len(graph)):
             node = graph[i]
             ops.append(node.op_type)
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul", "Sub"})
-        self.assertEqual(ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"])
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul", "Sub"}
+            )
+        self.assertEqual(
+            ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
+        )
         op_types = [node.op_type for node in graph]
         self.assertEqual(
-            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"]
+            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
         )
         indices = [node.index for node in graph]
-        self.assertEqual([0, 1, 2, 3, 4, 5], indices)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6], indices)
 
         graph.simplify(True)
-        self.assertEqual(len(graph), 6)
-        self.assertEqual(len(list(graph)), 6)
+        self.assertEqual(len(graph), 7)
+        self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 6):
+        for i in range(0, len(graph)):
             node = graph[i]
             ops.append(node.op_type)
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul", "Sub"})
-        self.assertEqual(ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"])
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul", "Sub"}
+            )
+        self.assertEqual(
+            ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
+        )
         op_types = [node.op_type for node in graph]
         self.assertEqual(
-            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"]
+            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
         )
         indices = [node.index for node in graph]
-        self.assertEqual([0, 1, 2, 3, 4, 5], indices)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6], indices)
 
         onx = graph.to_onnx()
         ref2 = CReferenceEvaluator(onx)
@@ -204,7 +218,7 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_graph_remove(self):
         model = self._get_model()
         graph = Graph(model)
-        self.assertEqual(len(graph), 6)
+        self.assertEqual(len(graph), 7)
         graph.replace_nodes(3, make_node("Sub", ["X", "X"], ["xp"]))
         graph.simplify(False)
         removed = graph.remove_unused_nodes()
@@ -662,5 +676,5 @@ if __name__ == "__main__":
     # log = logging.getLogger("onnx-extended")
     # log.setLevel(logging.ERROR)
     # TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
-    TestOnnxToolsGraph().test_cast_constant_constant()
+    # TestOnnxToolsGraph().test_cast_constant_constant()
     unittest.main(verbosity=2)

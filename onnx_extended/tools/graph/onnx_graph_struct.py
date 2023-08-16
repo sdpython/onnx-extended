@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
@@ -23,6 +24,18 @@ from ...reference import CReferenceEvaluator
 from ...reference.c_reference_evaluator import from_array_extended
 
 
+class NodeKind(Enum):
+    """
+    Node kind.
+    """
+
+    INITIALIZER = 1
+    SPARSE_INITIALIZER = 3
+    INPUT = 4
+    OUTPUT = 8
+    NODE = 16
+
+
 class Node:
     """
     Defines a node in the graph.
@@ -34,10 +47,15 @@ class Node:
         index: int,
         parent: "Graph",
         proto: Union[TensorProto, NodeProto, ValueInfoProto, str],
+        kind: Optional[NodeKind] = None,
     ):
         if not isinstance(proto, (TensorProto, NodeProto, ValueInfoProto, str)):
             raise TypeError(f"Unexpected type {type(proto)} for proto.")
         if isinstance(proto, NodeProto) and proto.op_type == "Constant":
+            if kind is None:
+                kind = NodeKind.NODE
+            elif kind != NodeKind.NODE:
+                raise ValueError(f"Unexpected kind {kind!r} for a constant.")
             missing = True
             for att in proto.attribute:
                 if att.name in {
@@ -54,9 +72,26 @@ class Node:
                     break
             if missing:
                 raise ValueError(f"Unexpected constant node {proto}.")
+        if isinstance(proto, NodeProto):
+            if kind is None:
+                kind = NodeKind.NODE
+            elif kind != NodeKind.NODE:
+                raise ValueError(f"Unexpected kind {kind!r} for a node.")
+        if isinstance(proto, TensorProto):
+            if kind is None:
+                kind = NodeKind.INITIALIZER
+            elif kind != NodeKind.INITIALIZER:
+                raise ValueError(f"Unexpected kind {kind!r} for an initializer.")
+            if not hasattr(proto, "name") or not proto.name:
+                raise AttributeError("Attribute 'name' is missing for an initializer.")
+        if kind is None:
+            raise ValueError(
+                f"kind is None and cannot specified for type(proto)={type(proto)}."
+            )
         self.index = index
         self.proto = proto
         self.parent = parent
+        self.kind = kind
 
     @property
     def name(self):
@@ -78,6 +113,8 @@ class Node:
             )
         if self.is_input:
             raise RuntimeError(f"{self.outname!r} is an input not a tensor.")
+        if self.is_output:
+            raise RuntimeError(f"{self.outname!r} is an output not a tensor.")
         return self.proto
 
     @property
@@ -101,7 +138,22 @@ class Node:
     @property
     def is_input(self) -> bool:
         "True if an input"
-        return isinstance(self.proto, (ValueInfoProto, str))
+        if (
+            isinstance(self.proto, (str, ValueInfoProto))
+            and self.kind == NodeKind.INPUT
+        ):
+            return True
+        return False
+
+    @property
+    def is_output(self) -> bool:
+        "True if an output"
+        if (
+            isinstance(self.proto, (str, ValueInfoProto))
+            and self.kind == NodeKind.OUTPUT
+        ):
+            return True
+        return False
 
     @property
     def is_initializer(self) -> bool:
@@ -119,6 +171,9 @@ class Node:
         if self.is_input:
             # It is an input.
             return "input"
+        if self.is_output:
+            # It is an output.
+            return "output"
         return self.proto.op_type if self.is_node else "initializer"
 
     def is_constant(self) -> bool:
@@ -130,7 +185,7 @@ class Node:
             if self.proto.op_type == "Constant":
                 return True
             return self._is_constant()
-        return not self.is_input
+        return not (self.is_input or self.is_output)
 
     def _is_constant(self) -> bool:
         "Tells if a node is a constant or operate on constants."
@@ -163,10 +218,10 @@ class Node:
         if self.is_node:
             new_name = self.parent.generate_name(new_tensor.name)
             node = make_node("Constant", [], [new_name], value=new_tensor)
-            return Node(None, self.parent, node)
+            return Node(None, self.parent, node, NodeKind.NODE)
         # initializer
         new_tensor.name = self.parent.generate_name(new_tensor.name)
-        return Node(None, self.parent, new_tensor)
+        return Node(None, self.parent, new_tensor, NodeKind.INITIALIZER)
 
 
 class NodeWithSubGraph(Node):
@@ -231,20 +286,29 @@ class Graph:
         nodes = []
         if isinstance(graph, GraphProto):
             for inp in graph.input:
-                nodes.append(Node(len(nodes), self, inp))
+                nodes.append(Node(len(nodes), self, inp, NodeKind.INPUT))
             for init in graph.initializer:
-                nodes.append(Node(len(nodes), self, init))
+                nodes.append(Node(len(nodes), self, init, NodeKind.INITIALIZER))
             for init in graph.sparse_initializer:
-                nodes.append(Node(len(nodes), self, init))
+                nodes.append(Node(len(nodes), self, init, NodeKind.SPARSE_INITIALIZER))
             graph_inputs = [o.name for o in graph.input]
-            graph_outputs = [o.name for o in graph.output]
         else:
             for inp in graph.input:
-                nodes.append(Node(len(nodes), self, inp))
+                nodes.append(Node(len(nodes), self, inp, NodeKind.INPUT))
             graph_inputs = [o.name for o in graph.input]
-            graph_outputs = [o.name for o in graph.output]
         for node in graph.node:
-            nodes.append(Graph.node_or_node(node)(len(nodes), self, node))
+            nodes.append(
+                Graph.node_or_node(node)(len(nodes), self, node, NodeKind.NODE)
+            )
+        if isinstance(graph, GraphProto):
+            for inp in graph.output:
+                nodes.append(Node(len(nodes), self, inp, NodeKind.OUTPUT))
+            graph_outputs = [o.name for o in graph.output]
+        else:
+            for inp in graph.output:
+                nodes.append(Node(len(nodes), self, inp, NodeKind.OUTPUT))
+            graph_outputs = [o.name for o in graph.output]
+
         return nodes, graph_inputs, graph_outputs
 
     def __init__(self, proto: Union[FunctionProto, GraphProto, ModelProto]):

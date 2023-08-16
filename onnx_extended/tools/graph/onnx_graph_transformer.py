@@ -15,7 +15,7 @@ except ImportError:
 from ...reference.c_reference_evaluator import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .errors import QuantizationError
-from .onnx_graph_struct import Graph, Node
+from .onnx_graph_struct import Graph, Node, NodeKind
 
 
 logger = getLogger("onnx-extended/transformer")
@@ -341,7 +341,7 @@ def _quantize_float8_matmul(
                     domain=domain_dq,
                     name=node.parent.generate_node_name(f"dql8_{name}"),
                 )
-                dql = Node(None, node.parent, proto)
+                dql = Node(None, node.parent, proto, NodeKind.NODE)
                 added.extend([dql.proto])
                 input_names.append(dql.outputs)
                 if (
@@ -583,12 +583,13 @@ def _cast_constant(
 
     arr = to_array_extended(cst)
     cast = Cast.eval(arr, to=to_type)
-    new_tensor = from_array_extended(cast, name=node.name)
     removed = [node]
     added = []
     if node.op_type == "initializer":
+        new_tensor = from_array_extended(cast, name=node.proto.name)
         added.append(new_tensor)
     elif node.op_type == "Constant":
+        new_tensor = from_array_extended(cast, name=node.outputs[0])
         added.append(make_node("Constant", [], node.outputs, value=new_tensor))
     else:
         raise RuntimeError(f"Unexpected node type {node.op_type!r}.")
