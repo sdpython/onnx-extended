@@ -369,4 +369,25 @@ def cmd_quantize(
             f.write(seq)
         return
 
+    if kind == "fp16":
+        from .tools.graph import cast_constant
+
+        logger = logging.getLogger("onnx-extended")
+        logger.info("Model initial size: %d", len(proto_loaded.SerializeToString()))
+        new_graph = cast_constant(
+            graph,
+            quiet=quiet,
+            from_type=TensorProto.FLOAT,
+            to_type=TensorProto.FLOAT16,
+        )
+        if new_graph is None:
+            logger.warning("No node was modified.")
+            return
+        onx2 = new_graph.to_onnx()
+        seq = onx2.SerializeToString()
+        logger.info("Model reduced size: %d", len(seq))
+        with open(output, "wb") as f:
+            f.write(seq)
+        return
+
     raise ValueError(f"Unexpected value {kind!r} for kind.")

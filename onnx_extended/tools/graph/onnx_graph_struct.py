@@ -1,4 +1,5 @@
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from enum import Enum
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -23,6 +24,33 @@ from ...reference import CReferenceEvaluator
 from ...reference.c_reference_evaluator import from_array_extended
 
 
+def _get_shape(ttype: TypeProto) -> Optional[Tuple[Union[None, str, int], ...]]:
+    """
+    Returns the shape of a TypeProto.
+
+    :param name: instance of TypeProto
+    :return: None if unknown or a tuple
+    """
+    if not ttype.tensor_type:
+        return None
+    shape = ttype.tensor_type.shape
+    res = [(d.dim_value if d.dim_value else d.dim_param) for d in shape.dim]
+    return tuple(res)
+
+
+class NodeKind(Enum):
+    """
+    Node kind.
+    """
+
+    UNDEFINED = 0
+    INITIALIZER = 1
+    SPARSE_INITIALIZER = 3
+    INPUT = 4
+    OUTPUT = 8
+    NODE = 16
+
+
 class Node:
     """
     Defines a node in the graph.
@@ -34,10 +62,15 @@ class Node:
         index: int,
         parent: "Graph",
         proto: Union[TensorProto, NodeProto, ValueInfoProto, str],
+        kind: Optional[NodeKind] = None,
     ):
         if not isinstance(proto, (TensorProto, NodeProto, ValueInfoProto, str)):
             raise TypeError(f"Unexpected type {type(proto)} for proto.")
         if isinstance(proto, NodeProto) and proto.op_type == "Constant":
+            if kind is None:
+                kind = NodeKind.NODE
+            elif kind != NodeKind.NODE:
+                raise ValueError(f"Unexpected kind {kind!r} for a constant.")
             missing = True
             for att in proto.attribute:
                 if att.name in {
@@ -54,9 +87,26 @@ class Node:
                     break
             if missing:
                 raise ValueError(f"Unexpected constant node {proto}.")
+        if isinstance(proto, NodeProto):
+            if kind is None:
+                kind = NodeKind.NODE
+            elif kind != NodeKind.NODE:
+                raise ValueError(f"Unexpected kind {kind!r} for a node.")
+        if isinstance(proto, TensorProto):
+            if kind is None:
+                kind = NodeKind.INITIALIZER
+            elif kind != NodeKind.INITIALIZER:
+                raise ValueError(f"Unexpected kind {kind!r} for an initializer.")
+            if not hasattr(proto, "name") or not proto.name:
+                raise AttributeError("Attribute 'name' is missing for an initializer.")
+        if kind is None:
+            raise ValueError(
+                f"kind is None and cannot specified for type(proto)={type(proto)}."
+            )
         self.index = index
         self.proto = proto
         self.parent = parent
+        self.kind = kind
 
     @property
     def name(self):
@@ -78,6 +128,8 @@ class Node:
             )
         if self.is_input:
             raise RuntimeError(f"{self.outname!r} is an input not a tensor.")
+        if self.is_output:
+            raise RuntimeError(f"{self.outname!r} is an output not a tensor.")
         return self.proto
 
     @property
@@ -88,9 +140,34 @@ class Node:
         return self.outputs[0]
 
     def __str__(self) -> str:
+        if self.is_node:
+            if self.op_type == "Constant":
+                t = self.get_tensor()
+                shape = tuple(t.dims)
+                stype = f"{t.data_type}:{shape}"
+                return (
+                    f"{self.__class__.__name__}({self.index}, "
+                    f"<parent>, <{self.op_type}>) "
+                    f"[{stype}] -> [{','.join(self.outputs)}]"
+                )
+            return (
+                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
+                f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+            )
+        if isinstance(self.proto, TensorProto):
+            shape = tuple(self.proto.dims)
+            stype = f"{self.proto.data_type}:{shape}"
+            return (
+                f"{self.__class__.__name__}({self.index}, <parent>, "
+                f"kind={self.kind}) "
+                f"[{stype}] -> [{','.join(self.outputs)}]"
+            )
+        shape = _get_shape(self.proto.type)
+        stype = f"{self.proto.type.tensor_type.elem_type}:{shape}"
         return (
-            f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
-            f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+            f"{self.__class__.__name__}({self.index}, <parent>, "
+            f"kind={self.kind}) "
+            f"[{stype}] -> [{','.join(self.outputs)}]"
         )
 
     @property
@@ -101,7 +178,22 @@ class Node:
     @property
     def is_input(self) -> bool:
         "True if an input"
-        return isinstance(self.proto, (ValueInfoProto, str))
+        if (
+            isinstance(self.proto, (str, ValueInfoProto))
+            and self.kind == NodeKind.INPUT
+        ):
+            return True
+        return False
+
+    @property
+    def is_output(self) -> bool:
+        "True if an output"
+        if (
+            isinstance(self.proto, (str, ValueInfoProto))
+            and self.kind == NodeKind.OUTPUT
+        ):
+            return True
+        return False
 
     @property
     def is_initializer(self) -> bool:
@@ -119,6 +211,9 @@ class Node:
         if self.is_input:
             # It is an input.
             return "input"
+        if self.is_output:
+            # It is an output.
+            return "output"
         return self.proto.op_type if self.is_node else "initializer"
 
     def is_constant(self) -> bool:
@@ -130,7 +225,7 @@ class Node:
             if self.proto.op_type == "Constant":
                 return True
             return self._is_constant()
-        return not self.is_input
+        return not (self.is_input or self.is_output)
 
     def _is_constant(self) -> bool:
         "Tells if a node is a constant or operate on constants."
@@ -163,10 +258,48 @@ class Node:
         if self.is_node:
             new_name = self.parent.generate_name(new_tensor.name)
             node = make_node("Constant", [], [new_name], value=new_tensor)
-            return Node(None, self.parent, node)
+            return Node(None, self.parent, node, NodeKind.NODE)
         # initializer
         new_tensor.name = self.parent.generate_name(new_tensor.name)
-        return Node(None, self.parent, new_tensor)
+        return Node(None, self.parent, new_tensor, NodeKind.INITIALIZER)
+
+    def getattr(
+        self, name: str, astype: Optional[type] = None, has_default: bool = False
+    ) -> Any:
+        """
+        Retrieves a specific attribute and extracts its value if
+        *astype* is not None.
+
+        :param name: attribute name
+        :param astype: cast the attribute into this type
+        :param has_default: if the parameter has a default value,
+            the method returns None if the attribute is not found
+        :return: the value of the attribute or an AttributeProto
+            if *astype* is None
+        """
+        if not self.is_node:
+            raise AttributeError(
+                f"This node does not store an ONNX node but {self.op_type!r}."
+            )
+        proto = None
+        for att in self.proto.attribute:
+            if att.name == name:
+                proto = att
+                break
+        if proto is None:
+            if has_default:
+                return None
+            raise AttributeError(
+                f"Unable to find attribute {name!r} in node type {self.op_type!r}."
+            )
+        if astype is None:
+            return proto
+        if astype is int:
+            return proto.i
+        raise NotImplementedError(
+            f"Attribute name {name!r} for node {self.op_type!r} "
+            f"cannot be cast into {astype!r}. Attribute is {proto}."
+        )
 
 
 class NodeWithSubGraph(Node):
@@ -222,46 +355,50 @@ class Graph:
                 return NodeWithSubGraph
         return Node
 
-    def _get_nodes(
-        self, graph: Union[GraphProto, FunctionProto]
-    ) -> Tuple[List[Node], List[str]]:
+    def _get_nodes(self, graph: Union[GraphProto, FunctionProto]) -> List[Node]:
         """
         Returns the ordered list of nodes.
         """
         nodes = []
         if isinstance(graph, GraphProto):
             for inp in graph.input:
-                nodes.append(Node(len(nodes), self, inp))
+                nodes.append(Node(len(nodes), self, inp, NodeKind.INPUT))
             for init in graph.initializer:
-                nodes.append(Node(len(nodes), self, init))
+                nodes.append(Node(len(nodes), self, init, NodeKind.INITIALIZER))
             for init in graph.sparse_initializer:
-                nodes.append(Node(len(nodes), self, init))
-            graph_inputs = [o.name for o in graph.input]
-            graph_outputs = [o.name for o in graph.output]
+                nodes.append(Node(len(nodes), self, init, NodeKind.SPARSE_INITIALIZER))
         else:
             for inp in graph.input:
-                nodes.append(Node(len(nodes), self, inp))
-            graph_inputs = [o.name for o in graph.input]
-            graph_outputs = [o.name for o in graph.output]
+                nodes.append(Node(len(nodes), self, inp, NodeKind.INPUT))
         for node in graph.node:
-            nodes.append(Graph.node_or_node(node)(len(nodes), self, node))
-        return nodes, graph_inputs, graph_outputs
+            nodes.append(
+                Graph.node_or_node(node)(len(nodes), self, node, NodeKind.NODE)
+            )
+        if isinstance(graph, GraphProto):
+            for inp in graph.output:
+                nodes.append(Node(len(nodes), self, inp, NodeKind.OUTPUT))
+        else:
+            for inp in graph.output:
+                nodes.append(Node(len(nodes), self, inp, NodeKind.OUTPUT))
+
+        return nodes
 
     def __init__(self, proto: Union[FunctionProto, GraphProto, ModelProto]):
         self.proto = proto
-        self.functions: Optional[Dict[self, FunctionProto]] = None
         if isinstance(proto, ModelProto):
             graph = proto.graph
             if len(proto.functions) > 0:
                 raise NotImplementedError(
                     "Class Graph does not handle model included functions yet."
                 )
-            self.functions = {f.name: f for f in proto.functions}
+            self.functions: Dict[Tuple[str, str], FunctionProto] = {
+                (f.domain, f.name): f for f in proto.functions
+            }
 
             # retrieve all shapes
             p2 = infer_shapes(proto)
             values = p2.graph.value_info
-            shapes = {}
+            shapes: Dict[str, TypeProto] = {}
             for o in proto.graph.input:
                 if o.name not in shapes:
                     shapes[o.name] = o.type
@@ -275,13 +412,15 @@ class Graph:
         else:
             graph = proto
             self.shapes: Dict[str, TypeProto] = None
+            self.functions: Dict[Tuple[str, str], FunctionProto] = {}
 
-        self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(graph)
+        self.nodes = self._get_nodes(graph)
         self.opsets: Dict[str, int] = {}
-        self.functions: Dict[Tuple[str, str], FunctionProto] = {}
         self._complete_init()
 
     def _complete_init(self):
+        self.graph_inputs: List[str] = []
+        self.graph_outputs: List[str] = []
         self.removed: Set[str] = set()
         self.index_input: Dict[str, List[Node]] = {}
         self.index_output: Dict[str, Node] = {}
@@ -295,6 +434,10 @@ class Graph:
             self._complete_init_node(node)
 
     def _complete_init_node(self, node):
+        if node.is_input:
+            self.graph_inputs.append(node.outputs[0])
+        elif node.is_output:
+            self.graph_outputs.append(node.outputs[0])
         if node.name not in ("", None):
             self.generated_node_names.add(node.name)
         for i in node.inputs:
@@ -318,11 +461,7 @@ class Graph:
         if name not in self.shapes:
             return None
         ttype = self.shapes[name]
-        if not ttype.tensor_type:
-            return None
-        shape = ttype.tensor_type.shape
-        res = [(d.dim_value if d.dim_value else d.dim_param) for d in shape.dim]
-        return tuple(res)
+        return _get_shape(ttype)
 
     def _exists_name(self, name):
         if name in self.index_input:
@@ -506,18 +645,40 @@ class Graph:
             if index in self.removed:
                 raise RuntimeError(f"Node index {index} was already removed.")
 
+        kind = None
         for index, node in removed:
+            if kind is None:
+                kind = node.kind
+            elif node.kind is not None:
+                if node.kind != kind:
+                    kind = NodeKind.UNDEFINED
             self.removed.add(index)
             for i in node.inputs:
                 new_input = [n for n in self.index_input[i] if n.index != index]
                 self.index_input[i] = new_input
             for o in node.outputs:
                 del self.index_output[o]
+            if node.is_input:
+                ni = node.outputs[0]
+                if ni not in self.graph_inputs:
+                    raise RuntimeError(
+                        f"Removing node {node} but it was not "
+                        f"found in self.graph_inputs."
+                    )
+                del self.graph_inputs[self.graph_inputs.index(ni)]
+            elif node.is_output:
+                ni = node.outputs[0]
+                if ni not in self.graph_outputs:
+                    raise RuntimeError(
+                        f"Removing node {node} but it was not "
+                        f"found in self.graph_outputs."
+                    )
+                del self.graph_outputs[self.graph_outputs.index(ni)]
 
         nodes = []
         new_indices = []
         for node in new_nodes:
-            n = Node(self.new_index, self, node)
+            n = Node(self.new_index, self, node, kind=kind)
             self._complete_init_node(n)
             self.nodes_added[self.new_index] = n
             new_indices.append(self.new_index)
@@ -536,13 +697,14 @@ class Graph:
             self.opsets.update(new_opsets)
         return nodes_set
 
-    def simplify(self, remove_unused: bool = True):
+    def simplify(self, remove_unused: bool = True) -> "Graph":
         """
         Stores every node into nodes.
         Removes unused nodes.
 
         :param remove_unused: removes unused nodes as well,
             see :meth:`remove_unused_nodes`
+        :return: self
         """
         if (
             len(self.removed) == 0
@@ -558,6 +720,7 @@ class Graph:
             node.index = i
         if remove_unused:
             self.remove_unused_nodes()
+        return self
 
     def remove_unused_nodes(self):
         """
@@ -607,9 +770,7 @@ class Graph:
             )
         new_proto = convert_version(self.proto, new_opsets[""])
         self.proto = new_proto
-        self.nodes, self.graph_inputs, self.graph_outputs = self._get_nodes(
-            self.proto.graph
-        )
+        self.nodes = self._get_nodes(self.proto.graph)
         self._complete_init()
 
     def add_functions(self, protos: Iterable[FunctionProto]):
@@ -636,15 +797,17 @@ class Graph:
         """
         if isinstance(self.proto, ModelProto):
             opsets = self.get_opsets()
+            inputs = [n.proto for n in self if n.is_input]
             initializer = [n.proto for n in self if n.is_initializer]
             sparse_initializer = [n.proto for n in self if n.is_sparse_initializer]
             nodes = [n.proto for n in self if n.is_node]
+            outputs = [n.proto for n in self if n.is_output]
             model = make_model(
                 make_graph(
                     nodes,
                     self.proto.graph.name,
-                    self.proto.graph.input,
-                    self.proto.graph.output,
+                    inputs,
+                    outputs,
                     initializer=initializer,
                     sparse_initializer=sparse_initializer,
                 ),

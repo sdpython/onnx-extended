@@ -30,7 +30,10 @@ else:
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
-from onnx_extended.tools.graph.onnx_graph_transformer import quantize_float8
+from onnx_extended.tools.graph.onnx_graph_transformer import (
+    cast_constant,
+    quantize_float8,
+)
 from onnx_extended.tools.graph.onnx_custom_ops import GemmFloat8
 from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs as get_ort_ext_libs_cpu
 from onnx_extended import has_cuda
@@ -71,24 +74,26 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_graph_build(self):
         model = self._get_model()
         graph = Graph(model)
-        self.assertEqual(len(graph), 6)
+        self.assertEqual(len(graph), 7)
         cst = []
         for node in graph:
             cst.append(node.is_constant())
-        self.assertEqual([False, True, True, False, False, False], cst)
+        self.assertEqual([False, True, True, False, False, False, False], cst)
 
         ref = CReferenceEvaluator(model)
         x = np.random.random((3, 3)).astype(np.float32)
         z = ref.run(None, dict(X=x))[0]
         self.assertEqual(z.shape, (3, 3))
         self.assertEqualArray(x @ x @ (x + 2), z, atol=1e-5)
-        self.assertEqual(len(list(graph)), 6)
-        for i in range(0, 6):
+        self.assertEqual(len(list(graph)), 7)
+        for i in range(0, 7):
             node = graph[i]
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul"})
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul"}
+            )
         text = str(graph)
         tn = str(graph[1])
-        self.assertEqual(tn, "Node(1, <parent>, <Constant>) [] -> [one]")
+        self.assertEqual(tn, "Node(1, <parent>, <Constant>) [1:(1,)] -> [one]")
         self.assertEqual(text, "Graph(...) [X] -> [Z]")
 
         onx = graph.to_onnx()
@@ -112,9 +117,12 @@ class TestOnnxToolsGraph(ExtTestCase):
         )
         check_model(onnx_model)
         graph = Graph(onnx_model)
-        self.assertEqual(len(graph), 5)
+        self.assertEqual(len(graph), 6)
         for node in graph:
-            self.assertEqual("Node(0, <parent>, <input>) [] -> [x]", str(node))
+            self.assertEqual(
+                "Node(0, <parent>, kind=NodeKind.INPUT) [1:('', '', '')] -> [x]",
+                str(node),
+            )
             break
         self.assertEqual("Graph(...) [x] -> [y]", str(graph))
 
@@ -136,59 +144,71 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_graph_replace(self):
         model = self._get_model()
         graph = Graph(model)
-        self.assertEqual(len(graph), 6)
+        self.assertEqual(len(graph), 7)
         node_set = graph.replace_nodes(3, make_node("Sub", ["X", "two"], ["xp"]))
         indices = [n.index for n in node_set]
-        self.assertEqual(indices, [6])
-        self.assertEqual(len(graph), 6)
-        self.assertEqual(len(list(graph)), 6)
+        self.assertEqual(indices, [7])
+        self.assertEqual(len(graph), 7)
+        self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 6):
+        for i in range(0, 7):
             if i == 3:
                 self.assertRaise(lambda: graph[i], IndexError)
                 continue
             node = graph[i]
             ops.append(node.op_type)
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul", "Sub"})
-        self.assertEqual(ops, ["input", "Constant", "Add", "MatMul", "MatMul"])
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul", "Sub"}
+            )
+        self.assertEqual(
+            ops, ["input", "Constant", "Add", "MatMul", "MatMul", "output"]
+        )
         op_types = [node.op_type for node in graph]
         self.assertEqual(
-            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"]
+            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
         )
         indices = [node.index for node in graph]
-        self.assertEqual(indices, [0, 1, 2, 6, 4, 5])
+        self.assertEqual(indices, [0, 1, 2, 7, 4, 5, 6])
 
         graph.simplify(False)
-        self.assertEqual(len(graph), 6)
-        self.assertEqual(len(list(graph)), 6)
+        self.assertEqual(len(graph), 7)
+        self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 6):
+        for i in range(0, len(graph)):
             node = graph[i]
             ops.append(node.op_type)
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul", "Sub"})
-        self.assertEqual(ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"])
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul", "Sub"}
+            )
+        self.assertEqual(
+            ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
+        )
         op_types = [node.op_type for node in graph]
         self.assertEqual(
-            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"]
+            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
         )
         indices = [node.index for node in graph]
-        self.assertEqual([0, 1, 2, 3, 4, 5], indices)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6], indices)
 
         graph.simplify(True)
-        self.assertEqual(len(graph), 6)
-        self.assertEqual(len(list(graph)), 6)
+        self.assertEqual(len(graph), 7)
+        self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 6):
+        for i in range(0, len(graph)):
             node = graph[i]
             ops.append(node.op_type)
-            self.assertIn(node.op_type, {"input", "Constant", "Add", "MatMul", "Sub"})
-        self.assertEqual(ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"])
+            self.assertIn(
+                node.op_type, {"input", "output", "Constant", "Add", "MatMul", "Sub"}
+            )
+        self.assertEqual(
+            ops, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
+        )
         op_types = [node.op_type for node in graph]
         self.assertEqual(
-            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul"]
+            op_types, ["input", "Constant", "Add", "Sub", "MatMul", "MatMul", "output"]
         )
         indices = [node.index for node in graph]
-        self.assertEqual([0, 1, 2, 3, 4, 5], indices)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6], indices)
 
         onx = graph.to_onnx()
         ref2 = CReferenceEvaluator(onx)
@@ -201,13 +221,15 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_graph_remove(self):
         model = self._get_model()
         graph = Graph(model)
-        self.assertEqual(len(graph), 6)
+        self.assertEqual(len(graph), 7)
         graph.replace_nodes(3, make_node("Sub", ["X", "X"], ["xp"]))
         graph.simplify(False)
         removed = graph.remove_unused_nodes()
         self.assertEqual(len(removed), 2)
         self.assertEqual(str(removed[0]), "Node(2, <parent>, <Add>) [one,one] -> [two]")
-        self.assertEqual(str(removed[1]), "Node(1, <parent>, <Constant>) [] -> [one]")
+        self.assertEqual(
+            str(removed[1]), "Node(1, <parent>, <Constant>) [1:(1,)] -> [one]"
+        )
 
     def _get_model_32(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [4, 3])
@@ -522,28 +544,44 @@ class TestOnnxToolsGraph(ExtTestCase):
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
-    def _get_model_32_x4(self):
+    def _get_model_32_x4(self, use_init=False):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [5, 2, 4, 3])
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None, None, None])
-        graph = make_graph(
-            [
-                make_node(
-                    "Constant",
-                    [],
-                    ["mat"],
-                    value=make_tensor(
-                        "one",
+        if use_init:
+            graph = make_graph(
+                [make_node("MatMul", ["X", "mat"], ["Z"])],
+                "zoo",
+                [X],
+                [Z],
+                [
+                    make_tensor(
+                        "mat",
                         TensorProto.FLOAT,
                         [3, 2],
                         list(float(i) for i in range(11, 17)),
+                    )
+                ],
+            )
+        else:
+            graph = make_graph(
+                [
+                    make_node(
+                        "Constant",
+                        [],
+                        ["mat"],
+                        value=make_tensor(
+                            "one",
+                            TensorProto.FLOAT,
+                            [3, 2],
+                            list(float(i) for i in range(11, 17)),
+                        ),
                     ),
-                ),
-                make_node("MatMul", ["X", "mat"], ["Z"]),
-            ],
-            "zoo",
-            [X],
-            [Z],
-        )
+                    make_node("MatMul", ["X", "mat"], ["Z"]),
+                ],
+                "zoo",
+                [X],
+                [Z],
+            )
         onnx_model = make_model(
             graph, opset_imports=[make_opsetid("", 18)], ir_version=8
         )
@@ -574,6 +612,153 @@ class TestOnnxToolsGraph(ExtTestCase):
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
+    def test_cast_constant_constant(self):
+        x32 = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
+        x16 = x32.astype(np.float16)
+        feeds32 = {"X": x32}
+        feeds16 = {"X": x16}
+        model = self._get_model_32_x4()
+        refonnx = CReferenceEvaluator(model)
+        expected = refonnx.run(None, feeds32)[0]
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = CReferenceEvaluator(onx1)
+        got1 = ref1.run(None, feeds32)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = cast_constant(
+            graph, from_type=TensorProto.FLOAT, to_type=TensorProto.FLOAT16
+        )
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("data_type: 10", str(onx2))
+
+        ref2 = CReferenceEvaluator(onx2, verbose=10)
+        got2 = ref2.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got2, rtol=0.05)
+
+        sess = InferenceSession(
+            onx2.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        got3 = sess.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got3, rtol=0.05)
+
+    def test_cast_constant_initializer(self):
+        x32 = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
+        x16 = x32.astype(np.float16)
+        feeds32 = {"X": x32}
+        feeds16 = {"X": x16}
+        model = self._get_model_32_x4(use_init=True)
+        refonnx = CReferenceEvaluator(model)
+        expected = refonnx.run(None, feeds32)[0]
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = CReferenceEvaluator(onx1)
+        got1 = ref1.run(None, feeds32)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = cast_constant(
+            graph, from_type=TensorProto.FLOAT, to_type=TensorProto.FLOAT16
+        )
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("data_type: 10", str(onx2))
+
+        ref2 = CReferenceEvaluator(onx2)
+        got2 = ref2.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got2, rtol=0.05)
+
+        sess = InferenceSession(
+            onx2.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        got3 = sess.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got3, rtol=0.05)
+
+    def _get_model_32_x4_cast(self, use_init=False):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [5, 2, 4, 3])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None, None, None])
+        if use_init:
+            graph = make_graph(
+                [
+                    make_node("Cast", ["X"], ["Xc"], to=TensorProto.FLOAT),
+                    make_node("MatMul", ["Xc", "mat"], ["Z"]),
+                ],
+                "zoo",
+                [X],
+                [Z],
+                [
+                    make_tensor(
+                        "mat",
+                        TensorProto.FLOAT,
+                        [3, 2],
+                        list(float(i) for i in range(11, 17)),
+                    )
+                ],
+            )
+        else:
+            graph = make_graph(
+                [
+                    make_node("Cast", ["X"], ["Xc"], to=TensorProto.FLOAT),
+                    make_node(
+                        "Constant",
+                        [],
+                        ["mat"],
+                        value=make_tensor(
+                            "one",
+                            TensorProto.FLOAT,
+                            [3, 2],
+                            list(float(i) for i in range(11, 17)),
+                        ),
+                    ),
+                    make_node("MatMul", ["Xc", "mat"], ["Z"]),
+                ],
+                "zoo",
+                [X],
+                [Z],
+            )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    def test_cast_constant_initializer_cast(self):
+        x32 = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
+        x16 = x32.astype(np.float16)
+        feeds32 = {"X": x32}
+        feeds16 = {"X": x16}
+        model = self._get_model_32_x4_cast(use_init=True)
+        refonnx = CReferenceEvaluator(model)
+        expected = refonnx.run(None, feeds32)[0]
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = CReferenceEvaluator(onx1)
+        got1 = ref1.run(None, feeds32)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = cast_constant(
+            graph, from_type=TensorProto.FLOAT, to_type=TensorProto.FLOAT16
+        )
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("data_type: 10", str(onx2))
+
+        ref2 = CReferenceEvaluator(onx2)
+        got2 = ref2.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got2, rtol=0.05)
+
+        sess = InferenceSession(
+            onx2.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        got3 = sess.run(None, feeds16)[0]
+        self.assertEqualArray(expected.astype(np.float16), got3, rtol=0.05)
+
 
 if __name__ == "__main__":
     # import logging
@@ -581,5 +766,5 @@ if __name__ == "__main__":
     # log = logging.getLogger("onnx-extended")
     # log.setLevel(logging.ERROR)
     # TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
-    TestOnnxToolsGraph().test_quantize_f8_onnxruntime_code_local_x4()
+    # TestOnnxToolsGraph().test_cast_constant_constant()
     unittest.main(verbosity=2)

@@ -2,15 +2,31 @@ from logging import getLogger
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 from onnx import AttributeProto, FunctionProto, NodeProto, TensorProto
-from onnx.helper import make_function, make_node, make_opsetid, make_tensor
+from onnx.helper import (
+    make_function,
+    make_node,
+    make_opsetid,
+    make_tensor,
+    make_tensor_value_info,
+    tensor_dtype_to_np_dtype,
+)
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
-from onnx.reference.ops.op_quantize_linear import QuantizeLinear_19 as QuantizeLinear
 from onnx.reference.custom_element_types import float8e4m3fn
 from onnx.reference.op_run import to_array_extended
+from onnx.onnx_cpp2py_export.defs import SchemaError
+
+try:
+    from onnx.reference.ops.op_cast import Cast_19 as Cast
+    from onnx.reference.ops.op_quantize_linear import (
+        QuantizeLinear_19 as QuantizeLinear,
+    )
+except ImportError:
+    from onnx.reference.ops.op_cast import Cast
+    from onnx.reference.ops.op_quantize_linear import QuantizeLinear
 from ...reference.c_reference_evaluator import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .errors import QuantizationError
-from .onnx_graph_struct import Graph, Node
+from .onnx_graph_struct import _get_shape, Graph, Node, NodeKind
 
 
 logger = getLogger("onnx-extended/transformer")
@@ -336,7 +352,7 @@ def _quantize_float8_matmul(
                     domain=domain_dq,
                     name=node.parent.generate_node_name(f"dql8_{name}"),
                 )
-                dql = Node(None, node.parent, proto)
+                dql = Node(None, node.parent, proto, NodeKind.NODE)
                 added.extend([dql.proto])
                 input_names.append(dql.outputs)
                 if (
@@ -501,6 +517,8 @@ def quantize_float8(
         graph.upgrade_opsets({"": 19})
         main_opset = 19
 
+    if len(graph.functions) > 0:
+        raise NotImplementedError("Quantization of local functions is not implemented.")
     local_functions = graph.functions.copy() if local_function else None
     n_local_functions = 0 if local_functions is None else len(local_functions)
     new_opsets = {}
@@ -554,3 +572,126 @@ def quantize_float8(
     if local_functions is not None and len(local_functions) > n_local_functions:
         graph.add_functions(local_functions.values())
     return graph
+
+
+def _cast_constant(
+    node: Node,
+    from_type: int,
+    to_type: int,
+) -> Optional[TransformResults]:
+    """
+    Converts a node if it is a tensor of element type *from_type*
+    and cast it into *to_type*.
+
+    :param node: node
+    :param from_type: element type to replace
+    :param to_type: type to cast into
+    :return: TransformResults
+    """
+    op_type = node.op_type
+
+    if op_type in {"Constant", "initializer"}:
+        cst = node.get_tensor()
+        if cst.data_type != from_type:
+            return None
+
+        arr = to_array_extended(cst)
+        try:
+            cast = Cast.eval(arr, to=to_type)
+        except SchemaError:
+            # cast does not work
+            np_type = tensor_dtype_to_np_dtype(to_type)
+            cast = arr.astype(np_type)
+        if op_type == "initializer":
+            return TransformResults(
+                removed_nodes=[node],
+                added_nodes=[from_array_extended(cast, name=node.proto.name)],
+            )
+        if op_type == "Constant":
+            return TransformResults(
+                removed_nodes=[node],
+                added_nodes=[
+                    make_node(
+                        "Constant",
+                        [],
+                        node.outputs,
+                        value=from_array_extended(cast, name=node.outputs[0]),
+                    )
+                ],
+            )
+    if op_type in {"input", "output"}:
+        if isinstance(node.proto, str):
+            # A FunctionProto input, nothing to do.
+            return None
+        ttype = node.proto.type
+        if not ttype.tensor_type or ttype.tensor_type.elem_type != from_type:
+            return None
+        return TransformResults(
+            removed_nodes=[node],
+            added_nodes=[
+                make_tensor_value_info(
+                    node.proto.name,
+                    to_type,
+                    shape=_get_shape(ttype),
+                    doc_string=node.proto.doc_string,
+                    shape_denotation=ttype.denotation,
+                )
+            ],
+        )
+    if op_type in {"Cast"}:
+        to = node.getattr("to", int)
+        if to != from_type:
+            return None
+        return TransformResults(
+            removed_nodes=[node],
+            added_nodes=[make_node("Cast", node.inputs, node.outputs, to=to_type)],
+        )
+
+    raise RuntimeError(f"Unexpected node type {op_type!r}.")
+
+
+def cast_constant(
+    graph: Graph,
+    from_type: int = TensorProto.FLOAT,
+    to_type: int = TensorProto.FLOAT16,
+    quiet: bool = False,
+) -> Optional[Graph]:
+    """
+    Converts all constants and initializers to the same type.
+    It also modifies the input.
+
+    :param graph: Graph
+    :param from_type: type of the constants to convert
+    :param to_type: new type for the constants
+    :param quiet: catch exception and silently skip failing nodes
+    :return: Graph or None if not modified
+
+    Transformation are logged with logger `onnx-extended/transformer`.
+    The graph is modified inplace.
+    Enables the logs gives a better idea of the progress.
+    """
+    if len(graph.functions) > 0:
+        raise NotImplementedError("Conversion of local functions is not implemented.")
+
+    to_add = []
+    n_nodes = len(graph)
+    for index, node in enumerate(graph):
+        if node.op_type in {"Constant", "initializer", "input", "output", "Cast"}:
+            logger.info("[cast_constant] %d/%d convert %s", index, n_nodes, node)
+            results = _cast_constant(node, from_type, to_type)
+            if results is None:
+                continue
+            rem, add = results.removed_nodes, results.added_nodes
+            to_add.append((rem, add))
+
+    if len(to_add) == 0:
+        return None
+
+    for rem, add in to_add:
+        for r in rem:
+            logger.debug("[cast_constant] del %s", r)
+        added = graph.replace_nodes([r.index for r in rem], add)
+        for a in added:
+            logger.debug("[cast_constant] add %s", a)
+
+    return graph.simplify()

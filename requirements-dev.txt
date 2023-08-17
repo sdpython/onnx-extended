@@ -25,7 +25,7 @@ rstcheck[sphinx,toml]
 ruff
 scikit-learn
 skl2onnx>=1.14.1
-sphinx
+sphinx<7.2  # furo still fails with sphinx==7.2.0 (issue unused furo.css)
 sphinx-gallery
 sphinx-issues
 git+https://github.com/sdpython/sphinx-runpython.git
