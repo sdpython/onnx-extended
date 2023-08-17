@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -262,6 +262,44 @@ class Node:
         # initializer
         new_tensor.name = self.parent.generate_name(new_tensor.name)
         return Node(None, self.parent, new_tensor, NodeKind.INITIALIZER)
+
+    def getattr(
+        self, name: str, astype: Optional[type] = None, has_default: bool = False
+    ) -> Any:
+        """
+        Retrieves a specific attribute and extracts its value if
+        *astype* is not None.
+
+        :param name: attribute name
+        :param astype: cast the attribute into this type
+        :param has_default: if the parameter has a default value,
+            the method returns None if the attribute is not found
+        :return: the value of the attribute or an AttributeProto
+            if *astype* is None
+        """
+        if not self.is_node:
+            raise AttributeError(
+                f"This node does not store an ONNX node but {self.op_type!r}."
+            )
+        proto = None
+        for att in self.proto.attribute:
+            if att.name == name:
+                proto = att
+                break
+        if proto is None:
+            if has_default:
+                return None
+            raise AttributeError(
+                f"Unable to find attribute {name!r} in node type {self.op_type!r}."
+            )
+        if astype is None:
+            return proto
+        if astype is int:
+            return proto.i
+        raise NotImplementedError(
+            f"Attribute name {name!r} for node {self.op_type!r} "
+            f"cannot be cast into {astype!r}. Attribute is {proto}."
+        )
 
 
 class NodeWithSubGraph(Node):

@@ -638,6 +638,14 @@ def _cast_constant(
                 )
             ],
         )
+    if op_type in {"Cast"}:
+        to = node.getattr("to", int)
+        if to != from_type:
+            return None
+        return TransformResults(
+            removed_nodes=[node],
+            added_nodes=[make_node("Cast", node.inputs, node.outputs, to=to_type)],
+        )
 
     raise RuntimeError(f"Unexpected node type {op_type!r}.")
 
@@ -668,7 +676,7 @@ def cast_constant(
     to_add = []
     n_nodes = len(graph)
     for index, node in enumerate(graph):
-        if node.op_type in {"Constant", "initializer", "input", "output"}:
+        if node.op_type in {"Constant", "initializer", "input", "output", "Cast"}:
             logger.info("[cast_constant] %d/%d convert %s", index, n_nodes, node)
             results = _cast_constant(node, from_type, to_type)
             if results is None:
