@@ -91,7 +91,9 @@ class Node:
             if kind is None:
                 kind = NodeKind.NODE
             elif kind != NodeKind.NODE:
-                raise ValueError(f"Unexpected kind {kind!r} for a node.")
+                raise ValueError(
+                    f"Unexpected kind {kind!r} for a node type " f"{proto.op_type!r}."
+                )
         if isinstance(proto, TensorProto):
             if kind is None:
                 kind = NodeKind.INITIALIZER
@@ -675,6 +677,8 @@ class Graph:
                     )
                 del self.graph_outputs[self.graph_outputs.index(ni)]
 
+        if kind == NodeKind.UNDEFINED:
+            kind = None
         nodes = []
         new_indices = []
         for node in new_nodes:
