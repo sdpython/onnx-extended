@@ -1,3 +1,4 @@
+import struct
 import unittest
 import numpy
 from onnx_extended.ext_test_case import ExtTestCase
@@ -40,6 +41,37 @@ class TestFloat8(ExtTestCase):
         f8 = cast_float32_to_e4m3fn(x)
         self.assertEqualArray(expected, f8)
 
+    def test_inf(self):
+        from onnx_extended.validation.cython.fp8 import cast_float32_to_e4m3fn
+
+        for x, e in [(numpy.float32(numpy.inf), 126), (numpy.float32(-numpy.inf), 254)]:
+            f8 = cast_float32_to_e4m3fn(x)
+            self.assertEqual(e, f8)
+
+    def test_nan(self):
+        from onnx_extended.validation.cython.fp8 import cast_float32_to_e4m3fn
+
+        expected = 127
+        values = [
+            (
+                None,
+                int.from_bytes(struct.pack("<f", numpy.float32(numpy.nan)), "little"),
+                numpy.float32(numpy.nan),
+                expected,
+            )
+        ]
+        for i in range(0, 23):
+            v = 0x7F800000 | (1 << i)
+            f = numpy.uint32(v).view(numpy.float32)
+            values.append((i, v, f, expected))
+            values.append((i, v, -f, expected | 128))
+
+        for i, v, x, e in values:
+            with self.subTest(x=x, e=e, h=hex(v), i=i):
+                f8 = cast_float32_to_e4m3fn(x)
+                self.assertEqual(e, f8)
+
 
 if __name__ == "__main__":
+    TestFloat8().test_nan()
     unittest.main(verbosity=2)
