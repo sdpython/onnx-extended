@@ -60,11 +60,11 @@ class TestFloat8(ExtTestCase):
                 expected,
             )
         ]
-        for i in range(0, 22):
+        for i in range(0, 23):
             v = 0x7F800000 | (1 << i)
             f = numpy.uint32(v).view(numpy.float32)
             values.append((i, v, f, expected))
-            values.append((i, v, -f, expected & 128))
+            values.append((i, v, -f, expected | 128))
 
         for i, v, x, e in values:
             with self.subTest(x=x, e=e, h=hex(v), i=i):
@@ -73,4 +73,5 @@ class TestFloat8(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestFloat8().test_nan()
     unittest.main(verbosity=2)
