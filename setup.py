@@ -683,6 +683,7 @@ def get_package_data():
         "*.h",
         "*.hpp",
         "*.pyd",
+        "*.pyx",
         "*.so*",
         "*.dll",
     ]
