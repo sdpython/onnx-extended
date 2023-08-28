@@ -57,9 +57,13 @@ if(APPLE)
   set(ENV(CPPFLAGS) "-I/usr/local/opt/llvm/include")
 endif()
 
-message(STATUS "--------------------------------------------")
+message(STATUS "**********************************")
 message(STATUS "CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 message(STATUS "LDFLAGS=${LDFLAGS}")
 message(STATUS "CPPFLAGS=${CPPFLAGS}")
-message(STATUS "--------------------------------------------")
+message(STATUS "DLL_EXT=${DLL_EXT}")
+message(STATUS "TEST_FOLDER=${TEST_FOLDER}")
+message(STATUS "CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "**********************************")
+
 

@@ -50,6 +50,10 @@ list(APPEND CMAKE_MODULE_PATH
 include("constants.cmake")
 include("load_externals.cmake")
 
+message(STATUS "--------------------------------------------")
+message(STATUS "CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+message(STATUS "DLL_EXT=${DLL_EXT}")
+
 #
 # modules
 #
