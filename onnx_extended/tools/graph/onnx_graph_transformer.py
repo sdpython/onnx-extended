@@ -170,7 +170,7 @@ def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionPr
         }.items()
     )
 
-    cast = make_node("Cast", ["zeroi"], ["Zeropoint"])
+    cast = make_node("Cast", ["zerof"], ["Zeropoint"])
     att = AttributeProto()
     att.name = "to"
     att.ref_attr_name = "to"
@@ -190,6 +190,12 @@ def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionPr
             [],
             ["zeroi"],
             value=make_tensor("zeroi", TensorProto.INT64, [], [0]),
+        ),
+        make_node(
+            "Constant",
+            [],
+            ["zerof"],
+            value=make_tensor("zerof", TensorProto.FLOAT, [], [0]),
         ),
         make_node(
             "Constant",
