@@ -170,7 +170,7 @@ def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionPr
         }.items()
     )
 
-    cast = make_node("Cast", ["zeroi"], ["Zeropoint"])
+    cast = make_node("Cast", ["zerof"], ["Zeropoint"])
     att = AttributeProto()
     att.name = "to"
     att.ref_attr_name = "to"
@@ -190,6 +190,12 @@ def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionPr
             [],
             ["zeroi"],
             value=make_tensor("zeroi", TensorProto.INT64, [], [0]),
+        ),
+        make_node(
+            "Constant",
+            [],
+            ["zerof"],
+            value=make_tensor("zerof", TensorProto.FLOAT, [], [0]),
         ),
         make_node(
             "Constant",
@@ -400,8 +406,6 @@ def _quantize_float8_matmul(
             input_names[1][1],  # scaleB
             scale_out,  # scaleR
         ]
-        while gemm_inputs[-1] == "":
-            del gemm_inputs[-1]
         if was_reshaped[0] is not None or was_reshaped[1] is not None:
             gemm_outputs = [node.parent.generate_name(f"{name}_gemm")]
             do_reshape = True
