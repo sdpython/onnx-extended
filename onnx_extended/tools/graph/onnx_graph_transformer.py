@@ -406,8 +406,6 @@ def _quantize_float8_matmul(
             input_names[1][1],  # scaleB
             scale_out,  # scaleR
         ]
-        while gemm_inputs[-1] == "":
-            del gemm_inputs[-1]
         if was_reshaped[0] is not None or was_reshaped[1] is not None:
             gemm_outputs = [node.parent.generate_name(f"{name}_gemm")]
             do_reshape = True
