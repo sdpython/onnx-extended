@@ -188,12 +188,6 @@ def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionPr
         make_node(
             "Constant",
             [],
-            ["zeroi"],
-            value=make_tensor("zeroi", TensorProto.INT64, [], [0]),
-        ),
-        make_node(
-            "Constant",
-            [],
             ["zerof"],
             value=make_tensor("zerof", TensorProto.FLOAT, [], [0]),
         ),
