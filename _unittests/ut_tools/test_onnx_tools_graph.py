@@ -10,7 +10,7 @@ from onnx.helper import (
     make_tensor_value_info,
     make_opsetid,
 )
-from onnx.checker import check_model
+from onnx.checker import check_model, ValidationError
 from onnx.defs import onnx_opset_version
 
 try:
@@ -285,7 +285,17 @@ class TestOnnxToolsGraph(ExtTestCase):
 
         new_graph = quantize_float8(graph)
         onx2 = new_graph.to_onnx()
-        check_model(onx2)
+        try:
+            check_model(onx2)
+        except ValidationError as e:
+            if (
+                "Bad node spec for node. Name: dql8_X OpType: DynamicQuantizeLinear"
+                in str(e)
+            ):
+                # onnx not recent enough
+                return
+            raise e
+
         ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
@@ -315,7 +325,16 @@ class TestOnnxToolsGraph(ExtTestCase):
 
         new_graph = quantize_float8(graph)
         onx2 = new_graph.to_onnx()
-        check_model(onx2)
+        try:
+            check_model(onx2)
+        except ValidationError as e:
+            if (
+                "Bad node spec for node. Name: dql8_X OpType: DynamicQuantizeLinear"
+                in str(e)
+            ):
+                # onnx not recent enough
+                return
+            raise e
         try:
             ref2 = InferenceSession(
                 onx2.SerializeToString(),

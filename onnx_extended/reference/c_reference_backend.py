@@ -23,6 +23,7 @@ class Runner:
     :param backend: a subclass of :class:`onnx.backend.base.Backend`
     :param path_to_test: folder to look at
     :param kind: subfolder to test
+    :param test_kwargs: additional test parameters
     """
 
     _add_model_test = BackendTest._add_model_test
@@ -35,11 +36,13 @@ class Runner:
         backend: type[Backend],
         path_to_test: Optional[str] = None,
         kind: Optional[str] = None,
+        test_kwargs: Optional[dict[str, Any]] = None,
     ) -> None:
         self.backend = backend
         self._include_patterns: Set[Pattern[str]] = set()
         self._exclude_patterns: Set[Pattern[str]] = set()
         self._xfail_patterns: Set[Pattern[str]] = set()
+        self._test_kwargs: dict = test_kwargs or {}
 
         if not os.path.exists(path_to_test):
             raise FileNotFoundError(f"Unable to find path {path_to_test!r}.")
