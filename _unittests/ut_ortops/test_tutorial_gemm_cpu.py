@@ -1,6 +1,5 @@
 import unittest
 import numpy
-from packaging.version import Version
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -22,11 +21,7 @@ except ImportError:
     InferenceSession = None
     ort_version = "0.0"
 if InferenceSession is not None:
-    from onnxruntime import (
-        SessionOptions,
-        get_available_providers,
-        __version__ as ort_version,
-    )
+    from onnxruntime import SessionOptions
     from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
 
 

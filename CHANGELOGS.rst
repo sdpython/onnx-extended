@@ -4,8 +4,10 @@ Change Logs
 0.2.0
 +++++
 
-* :pr:`61`: add function to cast every weight into float 16
-* :pr:`59`: add local functions to quantize
+* :pr:`68`: add CPU implementation for CustomGemmFloat8
+* :pr:`67`: add a function to extract a subgraph of a model
+* :pr:`59`, :pr:`60`, :pr:`61`, :pr:`62`, :pr:`63`, :pr:`65`, :pr:`66`:
+  add local functions to quantize into float 8, float 16
 * :pr:`57`: add C implementation for DynamicQuantizeLinear (for experimentation)
 * :pr:`56`: add C implementation to cast a float into float 8
 * :pr:`55`, :pr:`58`: add basic functionality to transform a graph, starts with basic quantization
