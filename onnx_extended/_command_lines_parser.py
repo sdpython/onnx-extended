@@ -13,7 +13,7 @@ def get_main_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "cmd",
-        choices=["store", "check", "display", "print", "quantize"],
+        choices=["store", "check", "display", "print", "quantize", "select"],
         help=dedent(
             """
         Select a command.
@@ -23,7 +23,8 @@ def get_main_parser() -> ArgumentParser:
         'check' checks a runtime on stored intermediate results.
         'display' displays the shapes inferences results,
         'print' prints out a model or a protobuf file on the standard output,
-        'quantize' quantizes an onnx model in simple ways
+        'quantize' quantizes an onnx model in simple ways,
+        'select' selects a subgraph inside a bigger models
         """
         ),
     )
@@ -161,7 +162,7 @@ def get_parser_quantize() -> ArgumentParser:
         prog="quantize",
         description=dedent(
             """
-        Qauntizes a model in simple ways.
+        Quantizes a model in simple ways.
         """
         ),
         epilog="The implementation quantization are mostly experimental. "
@@ -232,6 +233,55 @@ def get_parser_quantize() -> ArgumentParser:
     return parser
 
 
+def get_parser_select() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="select",
+        description=dedent(
+            """
+        Selects a subpart of an onnx model.
+        """
+        ),
+        epilog="The function removed the unused nodes.",
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        required=True,
+        help="onnx model",
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        type=str,
+        required=True,
+        help="saves into that file",
+    )
+    parser.add_argument(
+        "-i",
+        "--inputs",
+        type=str,
+        required=False,
+        help="list of inputs to keep, comma separated values, "
+        "leave empty to keep the model inputs",
+    )
+    parser.add_argument(
+        "-o",
+        "--outputs",
+        type=str,
+        required=False,
+        help="list of outputs to keep, comma separated values, "
+        "leave empty to keep the model outputs",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
+    )
+    return parser
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -245,6 +295,7 @@ def main(argv: Optional[List[Any]] = None):
                 print=get_parser_print,
                 display=get_parser_display,
                 quantize=get_parser_quantize,
+                select=get_parser_select,
             )
             cmd = argv[0]
             if cmd not in parsers:
@@ -281,6 +332,7 @@ def main(argv: Optional[List[Any]] = None):
         parser = get_parser_print()
         args = parser.parse_args(argv[1:])
         print_proto(proto=args.input, fmt=args.format)
+
     elif cmd == "quantize":
         from ._command_lines import cmd_quantize
 
@@ -296,6 +348,20 @@ def main(argv: Optional[List[Any]] = None):
             early_stop=args.early_stop,
             quiet=args.quiet,
         )
+
+    elif cmd == "select":
+        from ._command_lines import cmd_select
+
+        parser = get_parser_select()
+        args = parser.parse_args(argv[1:])
+        cmd_select(
+            model=args.model,
+            save=args.save,
+            inputs=args.inputs,
+            outputs=args.outputs,
+            verbose=args.verbose,
+        )
+
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."

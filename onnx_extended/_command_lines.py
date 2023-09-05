@@ -391,3 +391,57 @@ def cmd_quantize(
         return
 
     raise ValueError(f"Unexpected value {kind!r} for kind.")
+
+
+def cmd_select(
+    model: Union[ModelProto, str],
+    save: Optional[str] = None,
+    inputs: Optional[Union[str, List[str]]] = None,
+    outputs: Optional[Union[str, List[str]]] = None,
+    verbose: int = 0,
+):
+    """
+    Selects a subgraph in a model.
+
+    :param model: path to a model or ModelProto
+    :param save: model ot save in this file
+    :param inputs: list of inputs or empty to keep the original inputs
+    :param outputs: list of outputs or empty to keep the original outputs
+    :param verbose: verbosity level
+    """
+    from .tools.onnx_manipulations import select_model_inputs_outputs
+
+    if isinstance(model, str):
+        if not os.path.exists(model):
+            raise FileNotFoundError(f"Unable to find file {model!r}.")
+        ext = os.path.splitext(model)[-1]
+        if ext == ".onnx":
+            with open(model, "rb") as f:
+                proto_loaded = load(f)
+    else:
+        proto_loaded = model
+
+    if verbose:
+        logging.basicConfig(
+            level=logging.WARN
+            if verbose > 2
+            else (logging.DEBUG if verbose > 1 else logging.INFO)
+        )
+
+    if isinstance(inputs, str):
+        inputs = inputs.strip().split(",")
+    if isinstance(outputs, str):
+        outputs = outputs.strip().split(",")
+
+    logger = logging.getLogger("onnx-extended")
+    logger.info("Initial model size: %d", len(proto_loaded.SerializeToString()))
+    onx2 = select_model_inputs_outputs(
+        proto_loaded,
+        inputs=inputs,
+        outputs=outputs,
+        verbose=verbose,
+    )
+    seq = onx2.SerializeToString()
+    logger.info("Selected model size: %d", len(seq))
+    with open(save, "wb") as f:
+        f.write(seq)

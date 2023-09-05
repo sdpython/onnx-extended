@@ -24,6 +24,7 @@ from onnx_extended._command_lines_parser import (
     get_parser_display,
     get_parser_print,
     get_parser_quantize,
+    get_parser_select,
     main,
 )
 
@@ -42,6 +43,14 @@ class TestCommandLines(ExtTestCase):
             get_parser_store().print_help()
         text = st.getvalue()
         self.assertIn("store", text)
+        self.assertIn("verbose", text)
+
+    def test_parser_select(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_select().print_help()
+        text = st.getvalue()
+        self.assertIn("select", text)
         self.assertIn("verbose", text)
 
     def test_parser_display(self):
@@ -365,7 +374,41 @@ class TestCommandLines(ExtTestCase):
             self.assertEqual(types, {""})
             self.assertIn("data_type: 10", str(content))
 
+    def test_command_select(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [5, 6])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node("Add", ["X", "Y"], ["res"]),
+                make_node("Cos", ["res"], ["Z"]),
+            ],
+            "g",
+            [X, Y],
+            [Z],
+        )
+        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)])
+
+        with tempfile.TemporaryDirectory() as root:
+            model_file = os.path.join(root, "model.onnx")
+            model_out = os.path.join(root, "model.out.onnx")
+            with open(model_file, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            args = [
+                "select",
+                "-m",
+                model_file,
+                "-o",
+                "res",
+                "-s",
+                model_out,
+            ]
+            main(args)
+            with open(model_out, "rb") as f:
+                model = load(f)
+            self.assertEqual(len(model.graph.node), 1)
+
 
 if __name__ == "__main__":
-    TestCommandLines().test_command_quantize_cast_convert()
+    TestCommandLines().test_command_select()
     unittest.main(verbosity=2)
