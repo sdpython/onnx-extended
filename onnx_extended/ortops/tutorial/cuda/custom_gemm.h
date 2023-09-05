@@ -58,12 +58,13 @@ struct CustomGemmOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {
   typedef Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> parent_type;
   CustomGemmOp(const char *op_name, ONNXTensorElementDataType ab_type,
                ONNXTensorElementDataType c_type,
-               ONNXTensorElementDataType d_type)
+               ONNXTensorElementDataType d_type, bool compute_time_as_output)
       : parent_type() {
     op_name_ = op_name;
     ab_type_ = ab_type;
     c_type_ = c_type;
     d_type_ = d_type;
+    compute_time_as_output_ = compute_time_as_output;
   }
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
@@ -84,6 +85,7 @@ private:
   ONNXTensorElementDataType ab_type_;
   ONNXTensorElementDataType c_type_;
   ONNXTensorElementDataType d_type_;
+  bool compute_time_as_output_;
 };
 
 } // namespace ortops

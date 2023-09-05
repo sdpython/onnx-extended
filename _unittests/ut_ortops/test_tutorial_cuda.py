@@ -74,6 +74,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
     ):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
+        add_time = op_name.endswith("Time")
         if TensorProto.FLOAT8E4M3FN in tos or TensorProto.FLOAT8E5M2 in tos:
             gemm8 = True
             ir_version = 9
@@ -90,7 +91,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             make_node("Cast", [c], [c + "c"], to=to) for c, to in zip(input_names, tos)
         ]
         node_inputs = [c + "c" for c in input_names]
-        node_outputs = ["Yc", "time"]
+        node_outputs = ["Yc", "time"] if add_time else ["Yc"]
         if gemm8:
             if len(tos) == 2:
                 node_inputs.append("")
@@ -110,10 +111,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             make_tensor_value_info(c, TensorProto.FLOAT, [None, None])
             for c in input_names
         ]
-        outputs = [
-            make_tensor_value_info("Y", TensorProto.FLOAT, [None, None]),
-            make_tensor_value_info("time", TensorProto.DOUBLE, [None]),
-        ]
+        outputs = [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])]
+        if add_time:
+            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
         if gemm8:
             inputs.extend(
                 [

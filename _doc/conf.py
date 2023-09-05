@@ -140,6 +140,7 @@ epkg_dictionary = {
         "model-optimizations/graph-optimizations.html"
     ),
     "openmp": "https://www.openmp.org/",
+    "pandas": "https://pandas.pydata.org/",
     "protobuf": "https://github.com/protocolbuffers/protobuf",
     "pybind11": "https://github.com/pybind/pybind11",
     "pyinstrument": "https://github.com/joerick/pyinstrument",

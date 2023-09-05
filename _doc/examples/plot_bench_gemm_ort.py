@@ -134,21 +134,18 @@ def create_model(
         elif mat_type == TensorProto.FLOAT:
             op_name = "CustomGemmFloat"
             computeType = "CUBLAS_COMPUTE_32F_FAST_TF32"
-            node_output = ["C", "time"]
-            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
+            node_output = ["C"]
         elif mat_type == TensorProto.FLOAT16:
             op_name = "CustomGemmFloat16"
             computeType = "CUBLAS_COMPUTE_16F"
-            node_output = ["C", "time"]
-            outputs.append(make_tensor_value_info("time", TensorProto.DOUBLE, [None]))
+            node_output = ["C"]
         elif mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
             f8 = True
             op_name = "CustomGemmFloat8E4M3FN"
             computeType = "CUBLAS_COMPUTE_32F"
-            node_output = ["C", "time"]
+            node_output = ["C"]
             outputs = [
                 make_tensor_value_info("C", TensorProto.FLOAT16, [None, None]),
-                make_tensor_value_info("time", TensorProto.DOUBLE, [None]),
             ]
             inits.append(from_array(numpy.array([1], dtype=numpy.float32), name="I"))
         else:
@@ -439,9 +436,7 @@ for tt, engine, provider, dim, domain in pbar:
             if provider == ["CPUExecutionProvider"]
             else {"A": matrices_cuda[k1], "B": matrices_cuda[k2]}
         )
-        out_names = (
-            ["C", "time"] if domain == "onnx_extented.ortops.tutorial.cuda" else ["C"]
-        )
+        out_names = ["C"]
 
         # warmup
         for i in range(script_args.warmup):
