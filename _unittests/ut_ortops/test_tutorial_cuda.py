@@ -8,6 +8,7 @@ from onnx.helper import (
     make_graph,
     make_tensor_value_info,
     make_opsetid,
+    make_tensor,
 )
 from onnx.checker import check_model
 
@@ -30,6 +31,9 @@ if InferenceSession is not None:
 
 
 from onnx_extended.ortops.tutorial.cuda import documentation
+from onnx_extended.tools.graph.onnx_graph_transformer import (
+    make_dynamic_quantize_linear_function,
+)
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended import has_cuda
 
@@ -510,7 +514,237 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
+    def common_test_custom_gemm_cast(self, op_name, tos, return_sess=False, **kwargs):
+        from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+
+        gemm8 = False
+        ir_version = 8
+        opset = 18
+
+        bias = kwargs.get("beta", 0) != 0
+        input_names = "ABC" if bias else "AB"
+        self.assertEqual(len(input_names), len(tos))
+        casts = [
+            make_node("Cast", [c], [c + "c"], to=to) for c, to in zip(input_names, tos)
+        ]
+        node_inputs = [c + "c" for c in input_names]
+        node_outputs = ["Yc"]
+        if gemm8:
+            if len(tos) == 2:
+                node_inputs.append("")
+            node_inputs.extend(["scaleA", "scaleB", "scaleY"])
+        nodes = [
+            *casts,
+            make_node(
+                "Constant",
+                [],
+                ["new_shape"],
+                value=make_tensor("new_shape", TensorProto.INT64, [1], [-1]),
+            ),
+            make_node(
+                op_name,
+                node_inputs,
+                node_outputs,
+                domain="onnx_extented.ortops.tutorial.cuda",
+                **kwargs,
+            ),
+            make_node("Reshape", ["Yc", "new_shape"], ["Yr"]),
+            make_node("Cast", ["Yr"], ["Y"], to=TensorProto.INT64),
+        ]
+        inputs = [
+            make_tensor_value_info(c, TensorProto.FLOAT, [None, None])
+            for c in input_names
+        ]
+        outputs = [make_tensor_value_info("Y", TensorProto.INT64, [None])]
+        if gemm8:
+            inputs.extend(
+                [
+                    make_tensor_value_info("scaleA", TensorProto.FLOAT, [1]),
+                    make_tensor_value_info("scaleB", TensorProto.FLOAT, [1]),
+                    make_tensor_value_info("scaleY", TensorProto.FLOAT, [1]),
+                ]
+            )
+        graph = make_graph(nodes, "lr", inputs, outputs)
+        onnx_model = make_model(
+            graph,
+            opset_imports=[
+                make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                make_opsetid("", opset),
+            ],
+            ir_version=ir_version,
+        )
+        check_model(onnx_model)
+
+        r = get_ort_ext_libs()
+        opts = SessionOptions()
+        opts.register_custom_ops_library(r[0])
+        try:
+            sess = InferenceSession(
+                onnx_model.SerializeToString(),
+                opts,
+                providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            )
+        except Exception as e:
+            raise AssertionError(
+                f"Unable to create InferenceSession with "
+                f"onx={onnx_simple_text_plot(onnx_model)}"
+            ) from e
+        if return_sess:
+            return onnx_model, sess
+
+        inputs = [
+            (numpy.arange(256) / 256).astype(numpy.float32).reshape((32, -1)),
+            (numpy.arange(512) / 512).astype(numpy.float32).reshape((32, -1)),
+        ]
+        if len(tos) == 3:
+            inputs.append(
+                (numpy.arange(128) / 128).astype(numpy.float32).reshape((8, 16))
+            )
+
+        a, b = inputs[:2]
+        expected = (a.T if kwargs.get("transA", 0) else a) @ (
+            b.T if kwargs.get("transB", 0) else b
+        )
+        expected *= kwargs.get("alpha", 1.0)
+        if bias:
+            expected += inputs[2] * kwargs.get("beta", 0)
+        expected = expected.reshape((-1,)).astype(numpy.int64)
+
+        feeds = dict(zip(input_names, inputs))
+        if gemm8:
+            feeds["scaleA"] = numpy.array([1], dtype=numpy.float32)
+            feeds["scaleB"] = numpy.array([1], dtype=numpy.float32)
+            feeds["scaleY"] = numpy.array([1], dtype=numpy.float32)
+        try:
+            got = sess.run(None, feeds)
+        except OrtFail as e:
+            dtypes = {k: v.dtype for k, v in feeds.items()}
+            shapes = {k: v.shape for k, v in feeds.items()}
+            raise AssertionError(
+                f"Unable to run a model with dtypes={dtypes!r} "
+                f"and shapes={shapes!r} "
+                f"and model=\n{onnx_simple_text_plot(onnx_model)}."
+            ) from e
+
+        try:
+            self.assertEqualArray(expected, got[0])
+        except Exception as e:
+
+            def check(f):
+                try:
+                    return f()[:2, :2]
+                except Exception as e:
+                    return str(e)
+
+            raise AssertionError(
+                f"ERROR len(inputs)={len(inputs)}"
+                f"\na@b=\n{check(lambda:a@b)}"
+                f"\na.T@b=\n{check(lambda:a.T@b)}"
+                f"\na@b.T=\n{check(lambda:a@b.T)}"
+                f"\na.T@b.T=\n{check(lambda:a.T@b.T)}"
+                f"\n----\nb@a=\n{check(lambda:b@a)}"
+                f"\nb.T@a=\n{check(lambda:b.T@a)}"
+                f"\nb@a.T=\n{check(lambda:b@a.T)}"
+                f"\nb.T@a.T=\n{check(lambda:b.T@a.T)}"
+                f"\n----\nexpected=\n{expected[:2,:2]}"
+                f"\n----\ngot=\n{got[0][:2,:2]}"
+            ) from e
+
+    @unittest.skipIf(
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    def test_custom_gemm_float32_default_cast(self):
+        self.common_test_custom_gemm_cast(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            fastAccumulationMode=1,
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+        )
+
+    def _get_model_dql(self, use_local):
+        nodes = [
+            make_node("Identity", ["X"], ["x"]),
+            make_node(
+                "DynamicQuantizeLinear",
+                ["x"],
+                ["y", "ScaleScaled", "Zeropoint"],
+                to=TensorProto.FLOAT8E4M3FN,
+                domain="local",
+            ),
+            make_node(
+                "CustomGemmFloat8E4M3FN",
+                # "GemmFloat8",
+                ["y", "y", "", "ScaleScaled", "ScaleScaled", ""],
+                ["Yf"],
+                domain="onnx_extented.ortops.tutorial.cuda",
+                # domain="com.microsoft",
+                dtype=1,
+                transB=1,
+                fastAccumulationMode=1,
+                rowMajor=1,
+                computeType="CUBLAS_COMPUTE_32F",
+            ),
+            make_node("Cast", ["Yf"], ["Y"], to=TensorProto.FLOAT),
+        ]
+
+        if use_local:
+            functions = [make_dynamic_quantize_linear_function("local", 19)]
+        else:
+            dql = make_dynamic_quantize_linear_function(
+                "local", 19, to=TensorProto.FLOAT8E4M3FN
+            )
+            functions = []
+            nodes = nodes[:1] + list(dql.node) + nodes[2:]
+
+        onnx_model = make_model(
+            make_graph(
+                nodes,
+                "test",
+                [make_tensor_value_info("X", TensorProto.FLOAT, [None, None])],
+                [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])],
+            ),
+            opset_imports=[
+                make_opsetid("", 19),
+                make_opsetid("local", 1),
+                make_opsetid("ai.onnx.ml", 2),
+                make_opsetid("com.microsoft", 1),
+                make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+            ],
+            ir_version=9,
+            functions=functions,
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    @unittest.skipIf(
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    def test_custom_gemm_local_function(self):
+        from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+
+        for local in [False, True]:
+            with self.subTest(use_local=local):
+                onnx_model = self._get_model_dql(local)
+                opts = SessionOptions()
+                opts.register_custom_ops_library(get_ort_ext_libs()[0])
+                try:
+                    sess = InferenceSession(
+                        onnx_model.SerializeToString(),
+                        opts,
+                        providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                    )
+                except Exception as e:
+                    raise AssertionError(
+                        f"Unable to create InferenceSession with "
+                        f"onx={onnx_simple_text_plot(onnx_model)}"
+                    ) from e
+                self.assertNotEmpty(sess)
+
 
 if __name__ == "__main__":
-    # TestOrtOpTutorialCuda().test_custom_gemm_float32_col_major_not_square()
+    TestOrtOpTutorialCuda().test_custom_gemm_local_function()
     unittest.main(verbosity=2)

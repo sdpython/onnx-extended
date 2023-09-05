@@ -150,12 +150,16 @@ def quantize_weights(
     return node_weight, node_scale, node_zp
 
 
-def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionProto:
+def make_dynamic_quantize_linear_function(
+    domain: str, opset: int, to: Optional[int] = None
+) -> FunctionProto:
     """
     Creates the FunctionProto for a function doing a quantization to float 8.
 
     :param domain: local domain name
     :param opset: opset to use to define the function
+    :param to: if None, the function has an attribute,
+        otherwise, it is replaced by the given value
     :return: FunctionProto
 
     The function takes 1 input and returns 3 outputs.
@@ -170,19 +174,23 @@ def make_dynamic_quantize_linear_function(domain: str, opset: int) -> FunctionPr
         }.items()
     )
 
-    cast = make_node("Cast", ["zerof"], ["Zeropoint"])
-    att = AttributeProto()
-    att.name = "to"
-    att.ref_attr_name = "to"
-    att.type = AttributeProto.INT
-    cast.attribute.append(att)
+    if to is None:
+        cast = make_node("Cast", ["zerof"], ["Zeropoint"])
+        att = AttributeProto()
+        att.name = "to"
+        att.ref_attr_name = "to"
+        att.type = AttributeProto.INT
+        cast.attribute.append(att)
 
-    cst = make_node("Constant", [], ["vto"])
-    att = AttributeProto()
-    att.name = "value_int"
-    att.ref_attr_name = "to"
-    att.type = AttributeProto.INT
-    cst.attribute.append(att)
+        cst = make_node("Constant", [], ["vto"])
+        att = AttributeProto()
+        att.name = "value_int"
+        att.ref_attr_name = "to"
+        att.type = AttributeProto.INT
+        cst.attribute.append(att)
+    else:
+        cast = make_node("Cast", ["zerof"], ["Zeropoint"], to=to)
+        cst = make_node("Constant", [], ["vto"], value_int=to)
 
     nodes = [
         make_node(
