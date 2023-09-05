@@ -3,7 +3,7 @@ black
 clang-format
 cmakelang
 coverage
-cython
+cython>=3.0
 cython-lint
 flake8
 furo

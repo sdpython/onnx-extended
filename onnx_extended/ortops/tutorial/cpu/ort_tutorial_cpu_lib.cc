@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include "custom_gemm.h"
 #include "dynamic_quantize_linear.h"
 #include "my_kernel.h"
 #include "my_kernel_attr.h"
@@ -31,6 +32,19 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::DynamicQuantizeLinearOp
       c_dql(
           ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
+
+  static ortops::CustomGemmOp c_CustomGemmFloat(
+      "CustomGemmFloat", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      false);
+  static ortops::CustomGemmOp c_CustomGemmFloat16(
+      "CustomGemmFloat16", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, false);
+  static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FN(
+      "CustomGemmFloat8E4M3FN", (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      false);
 #endif
 
   try {
@@ -40,6 +54,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     domain.Add(&c_CustomOpAttr);
 #if ORT_API_VERSION >= 16
     domain.Add(&c_dql);
+    domain.Add(&c_CustomGemmFloat);
+    domain.Add(&c_CustomGemmFloat16);
+    domain.Add(&c_CustomGemmFloat8E4M3FN);
 #endif
 
     session_options.Add(domain);
