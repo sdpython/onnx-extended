@@ -15,3 +15,4 @@ Graphs
 
     tools_graph
     tools_transformer
+    tools_manipulations
