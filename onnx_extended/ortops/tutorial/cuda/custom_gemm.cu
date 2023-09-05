@@ -64,7 +64,9 @@ CustomGemmOp::GetInputCharacteristic(size_t index) const {
   }
 }
 
-size_t CustomGemmOp::GetOutputTypeCount() const { return 2; }
+size_t CustomGemmOp::GetOutputTypeCount() const {
+  return compute_time_as_output_ ? 2 : 1;
+}
 
 ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
   // D, scale D
@@ -72,9 +74,13 @@ ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
   case 0:
     return d_type_;
   case 1:
+    if (!compute_time_as_output_) {
+      EXT_THROW("Output index=", index,
+                " is out of boundary, compute_time_as_output_ is False.");
+    }
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
   default:
-    EXT_THROW("Input index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", index, " is out of boundary.");
   }
 }
 
@@ -84,6 +90,10 @@ CustomGemmOp::GetOutputCharacteristic(size_t index) const {
   case 0:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
   case 1:
+    if (!compute_time_as_output_) {
+      EXT_THROW("Output index=", index,
+                " is out of boundary, compute_time_as_output_ is False.");
+    }
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
   default:
     EXT_THROW("Output index=", index, " is out of boundary.");
@@ -537,15 +547,18 @@ void CustomGemmKernel::ComputeGemm(
   CUBLAS_THROW_IF_ERROR(cublasLtMatmulDescDestroy(operationDesc));
   CUBLAS_THROW_IF_ERROR(cublasLtDestroy(cublasLt));
 
-  CUDA_THROW_IF_ERROR(cudaStreamSynchronize(stream));
-  std::vector<int64_t> tdims{1};
-  Ort::UnownedValue ttime = ctx.GetOutput(1, tdims);
-  void *ptr_time = ttime.GetTensorMutableRawData();
-  double performance = std::chrono::duration<double>(
-                           std::chrono::high_resolution_clock::now() - time0)
-                           .count();
-  CUDA_THROW_IF_ERROR(cudaMemcpy(ptr_time, &performance, sizeof(double),
-                                 cudaMemcpyHostToDevice));
+  int n_outputs = ctx.GetOutputCount();
+  if (n_outputs >= 2) {
+    CUDA_THROW_IF_ERROR(cudaStreamSynchronize(stream));
+    std::vector<int64_t> tdims{1};
+    Ort::UnownedValue ttime = ctx.GetOutput(1, tdims);
+    void *ptr_time = ttime.GetTensorMutableRawData();
+    double performance = std::chrono::duration<double>(
+                             std::chrono::high_resolution_clock::now() - time0)
+                             .count();
+    CUDA_THROW_IF_ERROR(cudaMemcpy(ptr_time, &performance, sizeof(double),
+                                   cudaMemcpyHostToDevice));
+  }
 }
 
 } // namespace ortops

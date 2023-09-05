@@ -24,15 +24,21 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::CustomGemmOp c_CustomGemmFloat(
       "CustomGemmFloat", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      false);
   static ortops::CustomGemmOp c_CustomGemmFloat16(
       "CustomGemmFloat16", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16);
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, false);
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
   static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FN(
       "CustomGemmFloat8E4M3FN", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      false);
+  static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FNTime(
+      "CustomGemmFloat8E4M3FNTime", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN,
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      false);
 #endif
 
   try {
@@ -42,6 +48,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     domain.Add(&c_CustomGemmFloat16);
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
     domain.Add(&c_CustomGemmFloat8E4M3FN);
+    domain.Add(&c_CustomGemmFloat8E4M3FNTime);
 #endif
 
     session_options.Add(domain);

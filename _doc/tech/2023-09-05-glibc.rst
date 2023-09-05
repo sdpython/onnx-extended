@@ -1,0 +1,30 @@
+2023-09-05 - version `GLIBCXX_3.4.30' not found
+===============================================
+
+Some weird issue occured when importing :epkg:`onnxruntime` after importing :epkg:`pandas`.
+
+::
+
+    Python 3.11.4 (main, Jul  5 2023, 13:45:01) [GCC 11.2.0] on linux
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> import pandas
+    >>> import onnxruntime
+    Traceback (most recent call last):
+    File "<stdin>", line 1, in <module>
+    File ".../github/onnxruntime/build/linux_cuda/Release/onnxruntime/__init__.py", line 56, in <module>
+        raise import_capi_exception
+    File ".../github/onnxruntime/build/linux_cuda/Release/onnxruntime/__init__.py", line 23, in <module>
+        from onnxruntime.capi._pybind_state import ExecutionMode  # noqa: F401
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File ".../github/onnxruntime/build/linux_cuda/Release/onnxruntime/capi/_pybind_state.py", line 32, in <module>
+        from .onnxruntime_pybind11_state import *  # noqa
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ImportError: .../miniconda3/lib/python3.11/site-packages/numexpr/../../../libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by /home/xadupre/github/onnxruntime/build/linux_cuda/Release/onnxruntime/capi/onnxruntime_pybind11_state.so)
+    >>> 
+
+But the reverse works:
+
+::
+
+    import onnxruntime
+    import pandas

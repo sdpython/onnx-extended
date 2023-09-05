@@ -134,11 +134,18 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             else [make_opsetid(domain, opset), make_opsetid("", 19)],
             ir_version=9,
         )
-        check_model(onnx_model)
+        try:
+            check_model(onnx_model)
+        except Exception as e:
+            raise AssertionError(
+                f"model is wrong with domain={domain!r}, opset={opset!r}"
+            ) from e
         return onnx_model
 
     @unittest.skipIf(InferenceSession is None, reason="onnxruntime not installed")
-    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    @unittest.skipIf(
+        onnx_opset_version() < 21, reason="DynamicQuantizeLinear not updated for float8"
+    )
     def test_dynamic_quantize_linear(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
@@ -175,5 +182,5 @@ class TestOrtOpTutorialCpu(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOrtOpTutorialCpu().test_dynamic_quantize_linear()
+    # TestOrtOpTutorialCpu().test_dynamic_quantize_linear()
     unittest.main(verbosity=2)
