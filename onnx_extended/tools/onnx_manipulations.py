@@ -157,7 +157,7 @@ def _process_node(
     edges: Dict,
     paths: Dict,
     prefix: str = "",
-    sep: str = "::",
+    sep: str = ":X:",
     path: Optional[List[str]] = None,
 ):
     node_name = prefix + node.name
@@ -170,12 +170,15 @@ def _process_node(
         data[inp, 0] = node
         edges[(inp, 0), (node_name, 1)] = node
         paths[inp, 0] = path
-        if "::" in node_name:
+        if sep in node_name:
             # We need to link an input to the parent node
             # if the node is part of subgraph.
             # path_r = paths[inp, 0]
             if len(path) <= 1:
-                raise RuntimeError(f"Unexpected path {path!r}.")
+                raise RuntimeError(
+                    f"Unexpected path {path!r}, this may happen "
+                    f"if sep={sep!r} is already used in the original model."
+                )
             edges[(inp, 0), (path[-2], 1)] = node
 
     for out in node.output:
