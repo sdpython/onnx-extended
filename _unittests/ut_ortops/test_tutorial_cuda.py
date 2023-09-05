@@ -31,6 +31,9 @@ if InferenceSession is not None:
 
 
 from onnx_extended.ortops.tutorial.cuda import documentation
+from onnx_extended.tools.graph.onnx_graph_transformer import (
+    make_dynamic_quantize_linear_function,
+)
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended import has_cuda
 
@@ -661,7 +664,87 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
 
+    def _get_model_dql(self, use_local):
+        nodes = [
+            make_node("Identity", ["X"], ["x"]),
+            make_node(
+                "DynamicQuantizeLinear",
+                ["x"],
+                ["y", "ScaleScaled", "Zeropoint"],
+                to=TensorProto.FLOAT8E4M3FN,
+                domain="local",
+            ),
+            make_node(
+                "CustomGemmFloat8E4M3FN",
+                # "GemmFloat8",
+                ["y", "y", "", "ScaleScaled", "ScaleScaled", ""],
+                ["Yf"],
+                domain="onnx_extented.ortops.tutorial.cuda",
+                # domain="com.microsoft",
+                dtype=1,
+                transB=1,
+                fastAccumulationMode=1,
+                rowMajor=1,
+                computeType="CUBLAS_COMPUTE_32F",
+            ),
+            make_node("Cast", ["Yf"], ["Y"], to=TensorProto.FLOAT),
+        ]
+
+        if use_local:
+            functions = [make_dynamic_quantize_linear_function("local", 19)]
+        else:
+            dql = make_dynamic_quantize_linear_function(
+                "local", 19, to=TensorProto.FLOAT8E4M3FN
+            )
+            functions = []
+            nodes = nodes[:1] + list(dql.node) + nodes[2:]
+
+        onnx_model = make_model(
+            make_graph(
+                nodes,
+                "test",
+                [make_tensor_value_info("X", TensorProto.FLOAT, [None, None])],
+                [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])],
+            ),
+            opset_imports=[
+                make_opsetid("", 19),
+                make_opsetid("local", 1),
+                make_opsetid("ai.onnx.ml", 2),
+                make_opsetid("com.microsoft", 1),
+                make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+            ],
+            ir_version=9,
+            functions=functions,
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    @unittest.skipIf(
+        not has_cuda_ort(),
+        reason="onnxruntime not installed or CUDA provider not available",
+    )
+    def test_custom_gemm_local_function(self):
+        from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+
+        for local in [False, True]:
+            with self.subTest(use_local=local):
+                onnx_model = self._get_model_dql(local)
+                opts = SessionOptions()
+                opts.register_custom_ops_library(get_ort_ext_libs()[0])
+                try:
+                    sess = InferenceSession(
+                        onnx_model.SerializeToString(),
+                        opts,
+                        providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                    )
+                except Exception as e:
+                    raise AssertionError(
+                        f"Unable to create InferenceSession with "
+                        f"onx={onnx_simple_text_plot(onnx_model)}"
+                    ) from e
+                self.assertNotEmpty(sess)
+
 
 if __name__ == "__main__":
-    # TestOrtOpTutorialCuda().test_custom_gemm_float32_col_major_not_square()
+    TestOrtOpTutorialCuda().test_custom_gemm_local_function()
     unittest.main(verbosity=2)
