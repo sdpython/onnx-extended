@@ -1,5 +1,5 @@
-2023-09-05 - version `GLIBCXX_3.4.30' not found
-===============================================
+2023-09-05 - version GLIBCXX_3.4.30 not found
+=============================================
 
 Some weird issue occured when importing :epkg:`onnxruntime` after importing :epkg:`pandas`.
 
