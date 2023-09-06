@@ -27,12 +27,6 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::MyCustomOp c_CustomOp;
   static ortops::MyCustomOpWithAttributes c_CustomOpAttr;
-
-#if ORT_API_VERSION >= 16
-  static ortops::DynamicQuantizeLinearOp
-      c_dql(
-          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
-
   static ortops::CustomGemmOp c_CustomGemmFloat(
       "CustomGemmFloat", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
@@ -41,8 +35,16 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
       "CustomGemmFloat16", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, false);
+
+#if ORT_API_VERSION >= 16
+  static ortops::DynamicQuantizeLinearOp
+      c_dql(
+          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
+
   static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FN(
-      "CustomGemmFloat8E4M3FN", (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */,
+      "CustomGemmFloat8E4M3FN", (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN
+                                                               */
+      ,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
       false);
 #endif
@@ -52,10 +54,10 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_CustomOp);
     domain.Add(&c_CustomOpAttr);
-#if ORT_API_VERSION >= 16
-    domain.Add(&c_dql);
     domain.Add(&c_CustomGemmFloat);
     domain.Add(&c_CustomGemmFloat16);
+#if ORT_API_VERSION >= 16
+    domain.Add(&c_dql);
     domain.Add(&c_CustomGemmFloat8E4M3FN);
 #endif
 
