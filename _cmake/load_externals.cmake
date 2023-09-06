@@ -162,5 +162,5 @@ if(CUDA_AVAILABLE)
     "\nCUDA_VERSION_INT = ${CUDA_VERSION_INT}"
     "\nCXX_FLAGS = '${CMAKE_CXX_FLAGS}'\n")
 else()
-  set(config_content "HAS_CUDA = 0\nCXX_FLAGS='${CMAKE_CXX_FLAGS}\n")
+  set(config_content "HAS_CUDA = 0\nCXX_FLAGS='${CMAKE_CXX_FLAGS}'\n")
 endif()
