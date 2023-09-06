@@ -252,7 +252,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             rowMajor=0,
         )
 
-    def test_custom_gemm_base2_with_transab_col_major(self):
+    def test_custom_gemm_base2_with_transb_col_major(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
