@@ -40,6 +40,15 @@ private:
       const void *p_scale_a, const void *p_scale_b, const void *p_scale_y,
       void *p_output_y, int M, int N, int K, int lda, int ldb, int ldd);
 
+  void ComputeGemm(
+      Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
+      bool has_scales_Y, const std::vector<int64_t> &shape_A,
+      const std::vector<int64_t> &shape_B, const std::vector<int64_t> &shape_C,
+      const std::vector<int64_t> &shape_Y, bool transa, bool transb,
+      const float *p_input_a, const float *p_input_b, const float *p_input_c,
+      const float *p_scale_a, const float *p_scale_b, const float *p_scale_y,
+      float *p_output_y, int M, int N, int K, int lda, int ldb, int ldd);
+
   float alpha_;
   float beta_;
   // float beta_;

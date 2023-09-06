@@ -30,6 +30,7 @@ from onnx_extended.tools.graph.onnx_graph_transformer import (
     make_dynamic_quantize_linear_function,
 )
 from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended import get_stdcpp
 
 
 class TestOrtOpTutorialCpu(ExtTestCase):
@@ -43,7 +44,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
-        self.assertEqual(len(doc), 1)
+        self.assertEqual(len(doc), 3)
         for d in doc:
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
@@ -196,12 +197,106 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 f"\n----\ngot=\n{got[0][:2,:2]}"
             ) from e
 
-    def test_custom_gemm_float32_default(self):
+    def test_custom_gemm_base0_no_trans(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+        )
+
+    def test_custom_gemm_base0_no_trans_bias(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            beta=1.0,
+        )
+
+    def test_custom_gemm_base2_no_trans_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+        )
+
+    def test_custom_gemm_base2_no_trans_col_major_bias(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            beta=1.0,
+        )
+
+    def test_custom_gemm_base0_with_transa(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+        )
+
+    def test_custom_gemm_base2_with_transa_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+            rowMajor=0,
+        )
+
+    def test_custom_gemm_base2_with_transab_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transB=1,
+            rowMajor=0,
+        )
+
+    def test_custom_gemm_base2_with_transab_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+            transB=1,
+            rowMajor=0,
+        )
+
+    def test_custom_gemm_base0_with_transb(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transB=1,
+        )
+
+    def test_custom_gemm_base0_with_transab(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+            transB=1,
+        )
+
+    def test_custom_gemm_basic_float32_default(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
@@ -211,7 +306,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             activation="RELU",
@@ -222,7 +316,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             activation="GELU",
@@ -233,7 +326,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             activation="RELU",
@@ -245,7 +337,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             activation="GELU",
@@ -257,7 +348,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             square=False,
@@ -268,7 +358,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             rowMajor=0,
@@ -279,19 +368,17 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             rowMajor=0,
             square=False,
         )
 
-    def test_custom_gemm_float32_bias(self):
+    def test_custom_gemm_basic_float32_bias(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             beta=1.0,
@@ -302,7 +389,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
-            fastAccumulationMode=1,
             transB=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             beta=1.0,
@@ -313,7 +399,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             beta=1.0,
@@ -325,7 +410,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             beta=1.0,
@@ -337,7 +421,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             beta=1.0,
@@ -345,12 +428,12 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             rowMajor=0,
         )
 
+    @unittest.skipIf(get_stdcpp() < 23, "Gemm for float16 not implemented for CPU.")
     def test_custom_gemm_float16_default(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat16",
             [TensorProto.FLOAT16 for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F",
         )
@@ -360,7 +443,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             transA=1,
             rowMajor=1,
@@ -372,7 +454,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
             transB=1,
-            fastAccumulationMode=1,
             rowMajor=0,
         )
 
@@ -382,7 +463,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
             transB=1,
-            fastAccumulationMode=1,
             rowMajor=0,
             square=False,
         )
@@ -528,7 +608,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
-            fastAccumulationMode=1,
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
         )
@@ -552,7 +631,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 # domain="com.microsoft",
                 dtype=1,
                 transB=1,
-                fastAccumulationMode=1,
                 rowMajor=1,
                 computeType="CUBLAS_COMPUTE_32F",
             ),
@@ -611,5 +689,5 @@ class TestOrtOpTutorialCpu(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOrtOpTutorialCpu().test_custom_gemm_local_function()
+    # TestOrtOpTutorialCpu().test_custom_gemm_local_function()
     unittest.main(verbosity=2)

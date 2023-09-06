@@ -1,4 +1,5 @@
 #include "custom_gemm.h"
+#include <omp.h>
 
 namespace ortops {
 
@@ -52,9 +53,7 @@ CustomGemmOp::GetInputCharacteristic(size_t index) const {
   }
 }
 
-size_t CustomGemmOp::GetOutputTypeCount() const {
-  return 1;
-}
+size_t CustomGemmOp::GetOutputTypeCount() const { return 1; }
 
 ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
   // D, scale D
@@ -293,7 +292,7 @@ void CustomGemmKernel::ComputeColMajor(
 
   ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, dtype_B,
               dtype_A, dtype_C, dtype_Y, shape_B, shape_A, shape_C, shape_Y,
-              transB_, transA_, input_B.GetTensorRawData(),
+              transA_, transB_, input_B.GetTensorRawData(),
               input_A.GetTensorRawData(),
               has_bias ? input_C.GetTensorRawData() : nullptr,
               has_scales ? scale_B.GetTensorRawData() : nullptr,
@@ -313,10 +312,110 @@ void CustomGemmKernel::ComputeGemm(
     const void *p_scale_a, const void *p_scale_b, const void *p_scale_y,
     void *p_output_y, int M, int N, int K, int lda, int ldb, int ldd) {
 
-  if (rowMajor_) {
-      
+  if (dtype_A == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
+      dtype_B == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
+      dtype_C == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
+      dtype_Y == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
+      computeType_ == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
+    ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, shape_A,
+                shape_B, shape_C, shape_Y, trans_A, trans_B,
+                static_cast<const float *>(p_input_a),
+                static_cast<const float *>(p_input_b),
+                static_cast<const float *>(p_input_c),
+                static_cast<const float *>(p_scale_a),
+                static_cast<const float *>(p_scale_b),
+                static_cast<const float *>(p_scale_y),
+                static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
+  } else {
+    EXT_THROW("Not implemented for dtype_A=", dtype_A, " dtype_B=", dtype_B,
+              " dtype_C=", dtype_C, " dtype_Y=", dtype_Y, ".");
   }
-  EXT_THROW("Not implemented yet.");
+}
+
+void CustomGemmKernel::ComputeGemm(
+    Ort::KernelContext &ctx, int n_inputs, bool has_bias, bool has_scales,
+    bool has_scales_Y, const std::vector<int64_t> &shape_A,
+    const std::vector<int64_t> &shape_B, const std::vector<int64_t> &shape_C,
+    const std::vector<int64_t> &shape_Y, bool transa, bool transb,
+    const float *p_input_a, const float *p_input_b, const float *p_input_c,
+    const float *p_scale_a, const float *p_scale_b, const float *p_scale_y,
+    float *p_output_y, int M, int N, int K, int lda, int ldb, int ldd) {
+
+  EXT_ENFORCE(p_scale_a == nullptr || *p_scale_a == 1,
+              "scale_A must be empty or one for float.");
+  EXT_ENFORCE(p_scale_b == nullptr || *p_scale_b == 1,
+              "scale_B must be empty or one for float.");
+  EXT_ENFORCE(p_scale_y == nullptr || *p_scale_y == 1,
+              "scale_Y must be empty or one for float.");
+
+  /*
+  std::cout << "ComputeGemm("
+            << "transa=" << transa << " transb=" << transb
+            << " rowMajor_=" << rowMajor_ << " lda=" << lda << " ldb=" << ldb
+            << " ldd=" << ldd << " M=" << M << " N=" << N << " K=" << K
+            << ")\n";
+  */
+
+  int i, j, k;
+  if (p_input_c == nullptr) {
+#pragma omp parallel for
+    for (i = 0; i < M * N; ++i) {
+      p_output_y[i] = 0;
+    }
+  } else {
+#pragma omp parallel for
+    for (i = 0; i < M * N; ++i) {
+      p_output_y[i] = beta_ * p_input_c[i];
+    }
+  }
+
+  if (transa) {
+    if (transb) {
+#pragma omp parallel for
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[k * lda + i];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    } else {
+#pragma omp parallel for
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[k * lda + i];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+          }
+        }
+      }
+    }
+  } else if (transb) {
+#pragma omp parallel for
+    for (i = 0; i < M; ++i) {
+      float A_PART;
+      for (k = 0; k < K; ++k) {
+        A_PART = alpha_ * p_input_a[i * lda + k];
+        for (j = 0; j < N; ++j) {
+          p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+        }
+      }
+    }
+  } else {
+#pragma omp parallel for
+    for (i = 0; i < M; ++i) {
+      float A_PART;
+      for (k = 0; k < K; ++k) {
+        A_PART = alpha_ * p_input_a[i * lda + k];
+        for (j = 0; j < N; ++j) {
+          p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+        }
+      }
+    }
+  }
 }
 
 } // namespace ortops

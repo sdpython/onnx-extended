@@ -419,7 +419,7 @@ def _quantize_float8_matmul(
                 op_gemm,
                 gemm_inputs,
                 gemm_outputs,
-                rowMajor=1,
+                rowMajor=0,
                 dtype=output_type,
                 transA=1,
                 domain=domain_gemm,

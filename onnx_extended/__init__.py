@@ -28,7 +28,7 @@ def cuda_version() -> str:
     return CUDA_VERSION
 
 
-def compiled_with_cuda():
+def compiled_with_cuda() -> bool:
     """
     Checks it was compiled with CUDA.
     """
@@ -38,3 +38,25 @@ def compiled_with_cuda():
         return cuda_example_py is not None
     except ImportError:
         return False
+
+
+def get_cxx_flags() -> str:
+    """
+    Returns `CXX_FLAGS`.
+    """
+    from ._config import CXX_FLAGS
+
+    return CXX_FLAGS
+
+
+def get_stdcpp() -> int:
+    """
+    Returns `CXX_FLAGS`.
+    """
+    import re
+
+    reg = re.compile("-std=c[+][+]([0-9]+)")
+    f = reg.findall(get_cxx_flags())
+    if len(f) == 0:
+        raise ValueError(f"Unable to extract c++ version from {get_cxx_flags()!r}.")
+    return int(f[0])
