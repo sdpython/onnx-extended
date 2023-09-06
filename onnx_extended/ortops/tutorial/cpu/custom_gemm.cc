@@ -369,13 +369,37 @@ void CustomGemmKernel::ComputeGemm(
     }
   }
 
-  if (transa) {
-    if (transb) {
+  if (rowMajor_ == 1) {
+    if (transa) {
+      if (transb) {
+#pragma omp parallel for
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+            }
+          }
+        }
+      } else {
+#pragma omp parallel for
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
+        }
+      }
+    } else if (transb) {
 #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
-          A_PART = alpha_ * p_input_a[k * lda + i];
+          A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
             p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
           }
@@ -386,32 +410,58 @@ void CustomGemmKernel::ComputeGemm(
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
-          A_PART = alpha_ * p_input_a[k * lda + i];
+          A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
             p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
           }
         }
       }
     }
-  } else if (transb) {
+  } else {
+    if (transa) {
+      if (transb) {
 #pragma omp parallel for
-    for (i = 0; i < M; ++i) {
-      float A_PART;
-      for (k = 0; k < K; ++k) {
-        A_PART = alpha_ * p_input_a[i * lda + k];
-        for (j = 0; j < N; ++j) {
-          p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+            }
+          }
+        }
+      } else {
+#pragma omp parallel for
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
         }
       }
-    }
-  } else {
+    } else if (transb) {
 #pragma omp parallel for
-    for (i = 0; i < M; ++i) {
-      float A_PART;
-      for (k = 0; k < K; ++k) {
-        A_PART = alpha_ * p_input_a[i * lda + k];
-        for (j = 0; j < N; ++j) {
-          p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    } else {
+#pragma omp parallel for
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+          }
         }
       }
     }

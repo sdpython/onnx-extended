@@ -279,6 +279,15 @@ def get_parser_select() -> ArgumentParser:
         action="store_true",
         help="verbose, default is False",
     )
+    parser.add_argument(
+        "-t",
+        "--transpose",
+        type=int,
+        required=False,
+        default=1,
+        help="which input to transpose before calling gemm "
+        "(-1 (none), 0 (first), or 1 (seconc))",
+    )
     return parser
 
 
@@ -347,6 +356,7 @@ def main(argv: Optional[List[Any]] = None):
             kind=args.kind,
             early_stop=args.early_stop,
             quiet=args.quiet,
+            index_transposed=args.transposed,
         )
 
     elif cmd == "select":

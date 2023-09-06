@@ -242,6 +242,7 @@ def _quantize_float8_matmul(
     version: str,
     opset: int,
     local_functions: Optional[Dict[str, FunctionProto]] = None,
+    index_transposed: int = 0,
 ) -> Optional[TransformResults]:
     """
     Quantize matrix multiplications.
@@ -256,6 +257,7 @@ def _quantize_float8_matmul(
         otherwise a dictionary with the existing local functions to
         add to the model
     :param quiet: True to silently skip failing nodes
+    :param index_transposed: which input to transpose
     :return: nodes to remove, nodes to add, new opsets
     """
     if version == "onnxruntime":
@@ -276,19 +278,20 @@ def _quantize_float8_matmul(
         input_names = []
         was_reshaped = [None, None]
         m1 = None
+        index_transposed = 1
         for index, name in enumerate(node.inputs):
             if node.parent.is_constant(name):
                 # Quantized constant weights
                 cst = node.parent.get_node_producer(name)
                 weight, scale, zero_point = quantize_weights(
-                    cst, elem_type, transpose=index == 0
+                    cst, elem_type, transpose=index == index_transposed
                 )
                 added.extend([weight.proto, scale.proto, zero_point.proto])
                 input_names.append([weight.outname, scale.outname, zero_point.outname])
                 removed.append(cst)
             else:
                 # Add DynamicQuantizeLinear
-                if index == 0:
+                if index == index_transposed:
                     # transposition is needed for the first input
                     shape = node.parent.get_shape(name)
                     if shape is None:
@@ -421,7 +424,8 @@ def _quantize_float8_matmul(
                 gemm_outputs,
                 rowMajor=0,
                 dtype=output_type,
-                transA=1,
+                transA=1 if index_transposed == 0 else 0,
+                transB=1 if index_transposed == 1 else 0,
                 domain=domain_gemm,
                 computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             )
@@ -487,6 +491,7 @@ def quantize_float8(
     version: str = "onnxruntime",
     local_function: bool = False,
     quiet: bool = False,
+    index_transposed: int = 0,
 ) -> Optional[Graph]:
     """
     Transforms a graph to introduce quantized weights.
@@ -503,6 +508,7 @@ def quantize_float8(
         `'onnx-extended'` to use experimental operators
     :param local_function: use local function to inline DynamicQuantizeLinear
     :param quiet: catch exception and silently skip failing nodes
+    :param index_transposed: which input to transpose
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
@@ -542,6 +548,7 @@ def quantize_float8(
                     version=version,
                     opset=main_opset,
                     local_functions=local_functions,
+                    index_transposed=index_transposed,
                 )
             except (QuantizationError, NotImplementedError) as e:
                 if quiet:
