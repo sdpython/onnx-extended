@@ -8,7 +8,7 @@ from onnx.helper import (
 )
 
 
-def make_dynamic_quantize_linear_function_proto(
+def make_reshape_transpose_function_proto(
     domain: str, opset: int, to: Optional[int] = None
 ) -> FunctionProto:
     """
