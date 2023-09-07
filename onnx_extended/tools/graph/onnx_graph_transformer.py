@@ -242,7 +242,7 @@ def _quantize_float8_matmul(
     version: str,
     opset: int,
     local_functions: Optional[Dict[str, FunctionProto]] = None,
-    index_transpose: int = 0,
+    index_transpose: int = 2,
     domain_ops: Optional[Dict[str, str]] = None,
 ) -> Optional[TransformResults]:
     """
@@ -258,7 +258,8 @@ def _quantize_float8_matmul(
         otherwise a dictionary with the existing local functions to
         add to the model
     :param quiet: True to silently skip failing nodes
-    :param index_transpose: which input to transpose
+    :param index_transpose: which input to transpose before calling gemm:
+        0 (none), 1 (first), 2 (second), 3 for both
     :param domain_ops: domain to use for operators used as keys in the dictionary
     :return: nodes to remove, nodes to add, new opsets
     """
@@ -284,9 +285,8 @@ def _quantize_float8_matmul(
         input_names = []
         was_reshaped = [None, None]
         m1 = None
-        index_transpose = 1
         for index, name in enumerate(node.inputs):
-            do_transpose = (1 << index) & index_transpose
+            do_transpose = bool((1 << index) & index_transpose)
             if node.parent.is_constant(name):
                 # Quantized constant weights
                 cst = node.parent.get_node_producer(name)
@@ -431,8 +431,8 @@ def _quantize_float8_matmul(
                 gemm_outputs,
                 rowMajor=0,
                 dtype=output_type,
-                transA=1 if index_transpose == 0 else 0,
-                transB=1 if index_transpose == 1 else 0,
+                transA=1 if (index_transpose & 1) else 0,
+                transB=1 if (index_transpose & 2) else 0,
                 domain=domain_gemm,
                 computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             )
@@ -498,7 +498,7 @@ def quantize_float8(
     version: str = "onnxruntime",
     local_function: bool = False,
     quiet: bool = False,
-    index_transpose: int = 0,
+    index_transpose: int = 2,
     domain_ops: Optional[Dict[str, str]] = None,
 ) -> Optional[Graph]:
     """
@@ -516,7 +516,8 @@ def quantize_float8(
         `'onnx-extended'` to use experimental operators
     :param local_function: use local function to inline DynamicQuantizeLinear
     :param quiet: catch exception and silently skip failing nodes
-    :param index_transpose: which input to transpose
+    :param index_transpose: which input to transpose before calling gemm:
+        0 (none), 1 (first), 2 (second), 3 for both
     :param domain_ops: domain to use for operators used as keys in the dictionary
     :return: Graph or None if not modified
 

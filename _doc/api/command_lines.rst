@@ -44,6 +44,18 @@ Example::
 
 .. autofunction:: onnx_extended._command_lines.cmd_quantize
 
+select
+======
+
+Extracts a subpart of an existing model.
+
+.. runpython::
+
+    from onnx_extended._command_lines_parser import get_parser_select
+    get_parser_select().print_help()
+
+.. autofunction:: onnx_extended._command_lines.cmd_select
+
 store
 =====
 

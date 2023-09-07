@@ -292,8 +292,8 @@ def get_parser_select() -> ArgumentParser:
         type=int,
         required=False,
         default=1,
-        help="which input to transpose before calling gemm "
-        "(-1 (none), 0 (first), or 1 (seconc))",
+        help="which input to transpose before calling gemm: "
+        "0 (none), 1 (first), 2 (second), 3 for both",
     )
     return parser
 

@@ -31,9 +31,10 @@ def cuda_version() -> str:
 def cuda_version_int() -> tuple:
     """
     Tells which version of CUDA was used to build the CUDA extensions.
+    It returns `(0, 0)` if CUDA is not present.
     """
     if not has_cuda():
-        raise RuntimeError("CUDA extensions are not available.")
+        return (0, 0)
     from ._config import CUDA_VERSION
 
     if not isinstance(CUDA_VERSION, str):

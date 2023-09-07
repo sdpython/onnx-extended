@@ -313,7 +313,7 @@ def cmd_quantize(
     early_stop: Optional[int] = None,
     quiet: bool = False,
     verbose: int = 0,
-    index_transpose: int = 0,
+    index_transpose: int = 2,
 ):
     """
     Quantizes a model
@@ -327,7 +327,8 @@ def cmd_quantize(
     :param early_stop: stops early to see the preliminary results
     :param quiet: do not stop an exception
     :param verbose: verbosity level
-    :param index_transpose: which input to transpose
+    :param index_transpose: which input to transpose before calling gemm:
+        0 (none), 1 (first), 2 (second), 3 for both
     """
     from .tools.graph import Graph
 
