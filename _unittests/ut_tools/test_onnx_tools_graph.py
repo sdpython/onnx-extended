@@ -21,7 +21,10 @@ except ImportError:
     ort_version = "0.0"
 if InferenceSession is not None:
     from onnxruntime import get_available_providers
-    from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
+    from onnxruntime.capi.onnxruntime_pybind11_state import (
+        InvalidArgument,
+        Fail as OrtFail,
+    )
 
     ort_has_cuda = "CUDAExecutionProvider" in get_available_providers()
 else:
@@ -345,6 +348,10 @@ class TestOnnxToolsGraph(ExtTestCase):
                 onx2.SerializeToString(),
                 providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
             )
+        except OrtFail as e:
+            raise AssertionError(
+                f"Unable to load model\n----\n{onnx_simple_text_plot(onx2)}"
+            ) from e
         except InvalidArgument as e:
             if "Current official support for domain ai.onnx is till opset 19." in str(
                 e
@@ -384,7 +391,6 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph, version="onnx-extended")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
         self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
 
     @unittest.skipIf(
@@ -398,7 +404,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         get_device_prop is None or get_device_prop().get("major") < 9,
         reason="Float 8 not supported on this machine",
     )
-    def test_quantize_f8_onnx_extended(self):
+    def test_quantize_f8_onnx_extended_cuda(self):
         from onnx_extended.ortops.tutorial.cuda import (
             get_ort_ext_libs as get_ort_ext_libs_cuda,
         )
@@ -511,7 +517,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
-    def test_quantize_f8_onnx_extended_code_local(self):
+    def test_quantize_f8_onnx_extended_cpu_cuda(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
         model = self._get_model_32()
@@ -534,14 +540,14 @@ class TestOnnxToolsGraph(ExtTestCase):
         got1 = ref1.run(None, feeds)[0]
         self.assertEqualArray(expected, got1)
 
-        new_graph = quantize_float8(graph, version="onnx-extended", local_function=True)
+        new_graph = quantize_float8(graph, version="onnx-extended")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
         self.assertIn("local.quant.domain", str(onx2))
+        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
 
     @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
-    def test_quantize_f8_onnxruntime_code_local(self):
+    def test_quantize_f8_onnxruntime(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
         model = self._get_model_32()
@@ -564,7 +570,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         got1 = ref1.run(None, feeds)[0]
         self.assertEqualArray(expected, got1)
 
-        new_graph = quantize_float8(graph, version="onnxruntime", local_function=True)
+        new_graph = quantize_float8(graph, version="onnxruntime")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         self.assertIn("local.quant.domain", str(onx2))
@@ -578,7 +584,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             ) from e
         self.assertEqualArray(expected, got2, rtol=0.05)
 
-    def _get_model_32_x3(self):
+    def _get_model_32_x3(self, transpose=False):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [2, 4, 3])
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None, None])
         graph = make_graph(
@@ -590,11 +596,11 @@ class TestOnnxToolsGraph(ExtTestCase):
                     value=make_tensor(
                         "one",
                         TensorProto.FLOAT,
-                        [3, 2],
+                        [2, 3] if transpose else [3, 2],
                         list(float(i) for i in range(11, 17)),
                     ),
                 ),
-                make_node("MatMul", ["X", "mat"], ["Z"]),
+                make_node("MatMul", ["mat", "X"] if transpose else ["X", "mat"], ["Z"]),
             ],
             "zoo",
             [X],
@@ -607,7 +613,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         return onnx_model
 
     @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
-    def _test_quantize_f8_onnxruntime_code_local_x3(self):
+    def test_quantize_f8_onnxruntime_x3(self):
         x = np.arange(24).reshape((2, 4, 3)).astype(np.float32)
         feeds = {"X": x}
         model = self._get_model_32_x3()
@@ -626,7 +632,41 @@ class TestOnnxToolsGraph(ExtTestCase):
         got1 = ref1.run(None, feeds)[0]
         self.assertEqualArray(expected, got1)
 
-        new_graph = quantize_float8(graph, version="onnxruntime", local_function=True)
+        new_graph = quantize_float8(graph, version="onnxruntime")
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("local.quant.domain", str(onx2))
+
+        ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
+        try:
+            got2 = ref2.run(None, feeds)[0]
+        except ValueError as e:
+            raise AssertionError(
+                f"Unable to run model\n---\n{onnx_simple_text_plot(onx2)}"
+            ) from e
+        self.assertEqualArray(expected, got2, rtol=0.05)
+
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    def test_quantize_f8_onnxruntime_x3_transpose(self):
+        x = np.arange(24).reshape((2, 3, 4)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32_x3(transpose=True)
+        refonnx = CReferenceEvaluator(model)
+        try:
+            expected = refonnx.run(None, feeds)[0]
+        except (ValueError, TypeError) as e:
+            raise AssertionError(
+                f"Unable to run model\n---\n{onnx_simple_text_plot(model)}"
+            ) from e
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = CReferenceEvaluator(onx1)
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(graph, version="onnxruntime")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         self.assertIn("local.quant.domain", str(onx2))
@@ -685,7 +725,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         return onnx_model
 
     @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
-    def _test_quantize_f8_onnxruntime_code_local_x4(self):
+    def test_quantize_f8_onnxruntime_x4(self):
         x = np.arange(24 * 5).reshape((5, 2, 4, 3)).astype(np.float32)
         feeds = {"X": x}
         model = self._get_model_32_x4()
@@ -699,7 +739,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         got1 = ref1.run(None, feeds)[0]
         self.assertEqualArray(expected, got1)
 
-        new_graph = quantize_float8(graph, version="onnxruntime", local_function=True)
+        new_graph = quantize_float8(graph, version="onnxruntime")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         self.assertIn("local.quant.domain", str(onx2))
@@ -863,5 +903,5 @@ if __name__ == "__main__":
     for name in ["onnx-extended", "skl2onnx"]:
         log = logging.getLogger(name)
         log.setLevel(logging.ERROR)
-    # TestOnnxToolsGraph().test_quantize_f8_onnxruntime_code_local_x3()
+    # TestOnnxToolsGraph().test_quantize_f8_onnxruntime_x3()
     unittest.main(verbosity=2)

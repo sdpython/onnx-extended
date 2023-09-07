@@ -360,7 +360,6 @@ def cmd_quantize(
             early_stop=early_stop or -1,
             quiet=quiet,
             version=scenario,
-            local_function=use_local_functions,
             index_transpose=index_transpose,
         )
         if new_graph is None:

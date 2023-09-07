@@ -8,6 +8,7 @@ API
 
     check
     ext_test_case
+    helper
     ortcy
     ortops
     reference

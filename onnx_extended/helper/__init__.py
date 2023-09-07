@@ -1,0 +1,1 @@
+from .dynamic_quantize_linear import make_dynamic_quantize_linear_function_proto
