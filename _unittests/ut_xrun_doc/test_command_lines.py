@@ -292,7 +292,6 @@ class TestCommandLines(ExtTestCase):
             self.assertEqual(
                 types,
                 [
-                    "Transpose",
                     "DynamicQuantizeLinear",
                     "Constant",
                     "Constant",
@@ -330,7 +329,6 @@ class TestCommandLines(ExtTestCase):
             self.assertEqual(
                 types,
                 [
-                    "Transpose",
                     "DynamicQuantizeLinear",
                     "Constant",
                     "Constant",

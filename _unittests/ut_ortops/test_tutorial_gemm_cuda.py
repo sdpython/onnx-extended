@@ -35,7 +35,7 @@ from onnx_extended.tools.graph.onnx_graph_transformer import (
     make_dynamic_quantize_linear_function,
 )
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended import has_cuda
+from onnx_extended import has_cuda, cuda_version_int
 
 if has_cuda():
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
@@ -161,13 +161,17 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             ]
         else:
             inputs = [
-                (numpy.arange(256) / 256).astype(numpy.float32).reshape((32, -1)),
+                (numpy.arange(256) / 256).astype(numpy.float32).reshape((-1, 32)),
                 (numpy.arange(512) / 512).astype(numpy.float32).reshape((32, -1)),
             ]
             if len(tos) == 3:
                 inputs.append(
                     (numpy.arange(128) / 128).astype(numpy.float32).reshape((8, 16))
                 )
+            if kwargs.get("transA", 0):
+                inputs[0] = inputs[0].T
+            if kwargs.get("transB", 0):
+                inputs[1] = inputs[1].T
 
         a, b = inputs[:2]
         expected = (a.T if kwargs.get("transA", 0) else a) @ (
@@ -723,6 +727,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         not has_cuda_ort(),
         reason="onnxruntime not installed or CUDA provider not available",
     )
+    @unittest.skipIf(
+        Version(ort_version) < Version("1.16.1"), reason="type inference fails"
+    )
     def test_custom_gemm_local_function(self):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
@@ -744,7 +751,172 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                     ) from e
                 self.assertNotEmpty(sess)
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_no_trans(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+        )
+
+    @unittest.skipIf(cuda_version_int() < (12, 0), reason="beta_ == 0 not supported")
+    def test_custom_gemm_base0_no_trans_bias(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            beta=1.0,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base2_no_trans_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    @unittest.skipIf(cuda_version_int() < (12, 0), reason="beta_ == 0 not supported")
+    def test_custom_gemm_base2_no_trans_col_major_bias(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(3)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            beta=1.0,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_with_transa(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base2_with_transa_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base2_with_transb_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transB=1,
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base2_with_transab_col_major(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+            transB=1,
+            rowMajor=0,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_with_transb(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transB=1,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_with_transab(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            transA=1,
+            transB=1,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_cnot_square(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=1,
+            square=False,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_col_major_not_square(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_col_major_not_square_with_transa(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_col_major_not_square_with_transb(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            transB=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_custom_gemm_base0_col_major_not_square_with_transab(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            transA=1,
+            transB=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
 
 if __name__ == "__main__":
-    TestOrtOpTutorialCuda().test_custom_gemm_local_function()
+    # TestOrtOpTutorialCuda().test_custom_gemm_local_function()
     unittest.main(verbosity=2)

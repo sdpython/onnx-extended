@@ -182,9 +182,9 @@ void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
     M = shape_A[ic];
     N = shape_B[ir];
     K = shape_A[ir];
-    lda = shape_A[row_major ? ir : ic];
-    ldb = shape_B[row_major ? ir : ic];
-    ldd = shape_B[row_major ? ic : ir];
+    lda = shape_A[row_major ? ic : ir];
+    ldb = shape_B[row_major ? ic : ir];
+    ldd = shape_B[row_major ? ir : ic];
   }
 }
 

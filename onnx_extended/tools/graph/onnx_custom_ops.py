@@ -143,8 +143,8 @@ class GemmFloat8(OpRun):
         else:
             raise ValueError(f"Unexpected value {computeType!r} for computeType.")
 
-        if rowMajor == 0:
-            raise NotImplementedError("Computation rowMajor == 0 is not implemented.")
+        # if rowMajor == 0:
+        #     The parameter does not any impact on the result, only on the computation.
 
         alpha = compute_dtype(alpha)
         beta = compute_dtype(beta)
@@ -157,10 +157,12 @@ class GemmFloat8(OpRun):
                     f"Both types must be float 8, not one of them only, "
                     f"{A.dtype} @ {B.dtype}."
                 )
-            if not transA or transB:
+            if rowMajor == 1:
+                raise RuntimeError("Only rowMajor == 0 is supported on GPU.")
+            if transA or not transB:
                 raise RuntimeError(
-                    f"If both types are float 8, then transA=1 and "
-                    f"transB=0 but transA={transA} and transB={transB}."
+                    f"If both types are float 8, then transA=0 and "
+                    f"transB=1 but transA={transA} and transB={transB}."
                 )
 
         ca = Cast.eval(A, to=compute_xtype)
