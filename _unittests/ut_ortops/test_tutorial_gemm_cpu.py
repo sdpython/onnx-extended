@@ -1,5 +1,6 @@
 import unittest
 import numpy
+from packaging.version import Version
 from onnx import TensorProto
 from onnx.helper import (
     make_model,
@@ -16,7 +17,7 @@ try:
 except ImportError:
     onnx_simple_text_plot = str
 try:
-    from onnxruntime import InferenceSession
+    from onnxruntime import InferenceSession, __version__ as ort_version
 except ImportError:
     InferenceSession = None
     ort_version = "0.0"
@@ -499,6 +500,9 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             rowMajor=1,
         )
 
+    @unittest.skipIf(
+        Version(ort_version) < Version("1.16.1"), reason="type inference failed"
+    )
     def test_custom_gemm_float8(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat8E4M3FN",
@@ -508,6 +512,9 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             rowMajor=0,
         )
 
+    @unittest.skipIf(
+        Version(ort_version) < Version("1.16.1"), reason="type inference failed"
+    )
     def test_custom_gemm_float8_not_square(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat8E4M3FN",
@@ -717,6 +724,9 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         check_model(onnx_model)
         return onnx_model
 
+    @unittest.skipIf(
+        Version(ort_version) < Version("1.16.1"), reason="type inference failed"
+    )
     def test_custom_gemm_local_function(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 

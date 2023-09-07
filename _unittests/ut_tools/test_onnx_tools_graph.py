@@ -449,6 +449,66 @@ class TestOnnxToolsGraph(ExtTestCase):
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
+    def test_quantize_f8_onnx_extended_cpu(self):
+        from onnx_extended.ortops.tutorial.cpu import (
+            get_ort_ext_libs as get_ort_ext_libs_cpu,
+        )
+
+        x = np.arange(12).reshape((4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32()
+        ref = InferenceSession(
+            model.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        expected = ref.run(None, feeds)[0]
+
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = InferenceSession(
+            onx1.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(
+            graph,
+            version="onnx-extended",
+            domain_ops={"CustomGemmFloat8E4M3FN": "onnx_extented.ortops.tutorial.cpu"},
+        )
+        onx2 = new_graph.to_onnx()
+        check_model(onx2)
+        self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
+        self.assertNotIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+
+        opts = SessionOptions()
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+        r = get_ort_ext_libs_cpu()
+        self.assertNotEmpty(r)
+        opts.register_custom_ops_library(r[0])
+
+        try:
+            ref2 = InferenceSession(
+                onx2.SerializeToString(),
+                opts,
+                providers=["CPUExecutionProvider"],
+            )
+        except InvalidArgument as e:
+            if "Current official support for domain ai.onnx is till opset 19." in str(
+                e
+            ):
+                # onnxruntime not recent enough
+                return
+        got2 = ref2.run(None, feeds)[0]
+        self.assertEqualArray(expected, got2, rtol=0.05)
+
     def test_quantize_f8_onnx_extended_code_local(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
@@ -780,10 +840,10 @@ class TestOnnxToolsGraph(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # import logging
+    import logging
+
     # logging.basicConfig(level=logging.ERROR)
-    # log = logging.getLogger("onnx-extended")
-    # log.setLevel(logging.ERROR)
-    # TestOnnxToolsGraph().test_quantize_f8_onnx_extended()
-    # TestOnnxToolsGraph().test_cast_constant_constant()
+    for name in ["onnx-extended", "skl2onnx"]:
+        log = logging.getLogger(name)
+        log.setLevel(logging.ERROR)
     unittest.main(verbosity=2)

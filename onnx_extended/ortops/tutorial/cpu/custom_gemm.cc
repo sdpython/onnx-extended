@@ -1,4 +1,5 @@
 #include "custom_gemm.h"
+#include "cpu/cast_fp8.h"
 #include <omp.h>
 
 namespace ortops {
@@ -322,6 +323,24 @@ void CustomGemmKernel::ComputeGemm(
                 static_cast<const float *>(p_input_a),
                 static_cast<const float *>(p_input_b),
                 static_cast<const float *>(p_input_c),
+                static_cast<const float *>(p_scale_a),
+                static_cast<const float *>(p_scale_b),
+                static_cast<const float *>(p_scale_y),
+                static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
+  } else if (dtype_A == 17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN */ &&
+             dtype_B == 17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN */ &&
+             dtype_C == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
+             dtype_Y == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
+             computeType_ == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
+    std::vector<float> c_input_a(M * K);
+    std::vector<float> c_input_b(N * K);
+    e4m3fn_to_float(c_input_a.size(), static_cast<const uint8_t *>(p_input_a),
+                    c_input_a.data());
+    e4m3fn_to_float(c_input_b.size(), static_cast<const uint8_t *>(p_input_b),
+                    c_input_b.data());
+    ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, shape_A,
+                shape_B, shape_C, shape_Y, trans_A, trans_B, c_input_a.data(),
+                c_input_b.data(), static_cast<const float *>(p_input_c),
                 static_cast<const float *>(p_scale_a),
                 static_cast<const float *>(p_scale_b),
                 static_cast<const float *>(p_scale_y),

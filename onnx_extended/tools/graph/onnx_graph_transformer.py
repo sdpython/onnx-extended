@@ -243,6 +243,7 @@ def _quantize_float8_matmul(
     opset: int,
     local_functions: Optional[Dict[str, FunctionProto]] = None,
     index_transpose: int = 0,
+    domain_ops: Optional[Dict[str, str]] = None,
 ) -> Optional[TransformResults]:
     """
     Quantize matrix multiplications.
@@ -258,16 +259,21 @@ def _quantize_float8_matmul(
         add to the model
     :param quiet: True to silently skip failing nodes
     :param index_transpose: which input to transpose
+    :param domain_ops: domain to use for operators used as keys in the dictionary
     :return: nodes to remove, nodes to add, new opsets
     """
+    if domain_ops is None:
+        domain_ops = {}
     if version == "onnxruntime":
         domain_dq = ""
-        domain_gemm = "com.microsoft"
         op_gemm = "GemmFloat8"
+        domain_gemm = domain_ops.get("GemmFloat8", "com.microsoft")
     elif version == "onnx-extended":
         domain_dq = "onnx_extented.ortops.tutorial.cpu"
-        domain_gemm = "onnx_extented.ortops.tutorial.cuda"
         op_gemm = "CustomGemmFloat8E4M3FN"
+        domain_gemm = domain_ops.get(
+            "CustomGemmFloat8E4M3FN", "onnx_extented.ortops.tutorial.cuda"
+        )
     else:
         raise ValueError(f"Unexpected value {version!r} for version.")
     if local_functions is not None:
@@ -493,6 +499,7 @@ def quantize_float8(
     local_function: bool = False,
     quiet: bool = False,
     index_transpose: int = 0,
+    domain_ops: Optional[Dict[str, str]] = None,
 ) -> Optional[Graph]:
     """
     Transforms a graph to introduce quantized weights.
@@ -510,6 +517,7 @@ def quantize_float8(
     :param local_function: use local function to inline DynamicQuantizeLinear
     :param quiet: catch exception and silently skip failing nodes
     :param index_transpose: which input to transpose
+    :param domain_ops: domain to use for operators used as keys in the dictionary
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
@@ -550,6 +558,7 @@ def quantize_float8(
                     opset=main_opset,
                     local_functions=local_functions,
                     index_transpose=index_transpose,
+                    domain_ops=domain_ops,
                 )
             except (QuantizationError, NotImplementedError) as e:
                 if quiet:

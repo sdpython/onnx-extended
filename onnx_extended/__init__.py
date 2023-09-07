@@ -28,6 +28,21 @@ def cuda_version() -> str:
     return CUDA_VERSION
 
 
+def cuda_version_int() -> tuple:
+    """
+    Tells which version of CUDA was used to build the CUDA extensions.
+    """
+    if not has_cuda():
+        raise RuntimeError("CUDA extensions are not available.")
+    from ._config import CUDA_VERSION
+
+    if not isinstance(CUDA_VERSION, str):
+        return tuple()
+
+    spl = CUDA_VERSION.split(".")
+    return tuple(map(int, spl))
+
+
 def compiled_with_cuda() -> bool:
     """
     Checks it was compiled with CUDA.
