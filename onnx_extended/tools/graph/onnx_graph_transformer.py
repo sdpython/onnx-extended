@@ -21,7 +21,11 @@ try:
 except ImportError:
     from onnx.reference.ops.op_cast import Cast
     from onnx.reference.ops.op_quantize_linear import QuantizeLinear
-from ...helper import make_dynamic_quantize_linear_function_proto
+from ...helper import (
+    make_dynamic_quantize_linear_function_proto,
+    make_reshape_transpose_back_function_proto,
+    make_reshape_transpose_function_proto,
+)
 from ...reference.c_reference_evaluator import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .errors import QuantizationError
@@ -197,8 +201,7 @@ def _quantize_float8_matmul(
         removed = []
         added = []
         input_names = []
-        was_reshaped = [None, None]
-        m1 = None
+        was_reshaped = [False, False]
         for index, name in enumerate(node.inputs):
             do_transpose = bool((1 << index) & index_transpose)
             if node.parent.is_constant(name):
@@ -211,6 +214,7 @@ def _quantize_float8_matmul(
                 input_names.append([weight.outname, scale.outname, zero_point.outname])
                 removed.append(cst)
             else:
+                # Not a constant
                 shape = node.parent.get_shape(name)
 
                 # Add DynamicQuantizeLinear
@@ -225,61 +229,49 @@ def _quantize_float8_matmul(
                     # Let's reshape if the dimension is != 2
                     if len(shape) == 2:
                         # no need
-                        reshaped_name = name
+                        temp_name = node.parent.generate_name(f"{name}_tr")
+                        added.append(
+                            make_node(
+                                "Transpose",
+                                [name],
+                                [temp_name],
+                                perm=[1, 0],
+                                name=node.parent.generate_node_name(f"tra8_{name}"),
+                            )
+                        )
                     else:
-                        # The input needs to be reshaped.
-                        reshaped_name = node.parent.generate_name(f"{name}_sh")
-                        shape_name = node.parent.generate_name(f"{name}_sh")
-                        new_shape = node.parent.generate_name(f"{name}_nsh")
-                        last_dim = node.parent.generate_name(f"{name}_ldim")
-                        m1 = node.parent.generate_name(f"{name}_m1")
-                        was_reshaped[index] = shape_name
-                        added.extend(
-                            [
-                                make_node("Shape", [name], [shape_name]),
-                                make_node(
-                                    "Constant",
-                                    [],
-                                    [m1],
-                                    value=make_tensor(
-                                        new_shape, TensorProto.INT64, [1], [-1]
-                                    ),
-                                ),
-                                make_node("Gather", [shape_name, m1], [last_dim]),
-                                make_node(
-                                    "Concat", [m1, last_dim], [new_shape], axis=0
-                                ),
-                                make_node(
-                                    "Reshape",
-                                    [name, new_shape],
-                                    [reshaped_name],
-                                    name=node.parent.generate_node_name(
-                                        f"resh8_{name}"
-                                    ),
-                                ),
-                            ]
+                        temp_name = node.parent.generate_name(f"{name}_tr")
+                        added.append(
+                            make_node(
+                                f"ReshapeTranspose{index}",
+                                [name],
+                                [temp_name],
+                                perm=[1, 0],
+                            )
                         )
-
-                    tr_name = node.parent.generate_name(f"{name}_tr")
-                    added.append(
-                        make_node(
-                            "Transpose",
-                            [reshaped_name],
-                            [tr_name],
-                            perm=[1, 0],
-                            name=node.parent.generate_node_name(f"tra8_{name}"),
-                        )
-                    )
-                    temp_name = tr_name
-                elif shape is None:
-                    # shape unknown, let's hope it has two dimensions.
-                    temp_name = name
-                elif len(shape) == 2:
-                    temp_name = name
+                        was_reshaped[index] = True
+                        if (
+                            domain_dq,
+                            f"ReshapeTranspose{index}",
+                        ) not in local_functions:
+                            # use local functions
+                            local_functions[
+                                domain_dq, f"ReshapeTranspose{index}"
+                            ] = make_reshape_transpose_function_proto(
+                                domain=domain_dq, opset=opset, index=index
+                            )
                 else:
-                    raise NotImplementedError(
-                        f"Shape is {shape}. This case is not implemented yet."
-                    )
+                    # no transposition but still a reshape
+                    if shape is None or len(shape) == 2:
+                        # shape unknown, let's hope it has two dimensions.
+                        temp_name = name
+                    elif len(shape) == 2:
+                        temp_name = name
+                    else:
+                        was_reshaped[index] = True
+                        raise NotImplementedError(
+                            f"Shape is {shape}. This case is not implemented yet."
+                        )
 
                 new_name = node.parent.generate_name(f"{name}_f8")
                 scale = node.parent.generate_name(f"{name}_scale")
@@ -290,7 +282,6 @@ def _quantize_float8_matmul(
                     [new_name, scale, zero_point],
                     to=elem_type,
                     domain=domain_dq,
-                    name=node.parent.generate_node_name(f"dql8_{name}"),
                 )
                 dql = Node(None, node.parent, proto, NodeKind.NODE)
                 added.extend([dql.proto])
@@ -306,11 +297,12 @@ def _quantize_float8_matmul(
                         domain=domain_dq, opset=opset
                     )
 
-        if was_reshaped[0] is not None and was_reshaped[1] is not None:
+        if was_reshaped[0] and was_reshaped[1]:
             raise QuantizationError(
                 f"MatMul cannot be replaced by operator Gemm as both inputs "
                 f"are not matrices of shapes {was_reshaped}."
             )
+
         if output_type in {
             TensorProto.INT8,
             TensorProto.UINT8,
@@ -340,7 +332,7 @@ def _quantize_float8_matmul(
             input_names[1][1],  # scaleB
             scale_out,  # scaleR
         ]
-        if was_reshaped[0] is not None or was_reshaped[1] is not None:
+        if was_reshaped[0] or was_reshaped[1]:
             gemm_outputs = [node.parent.generate_name(f"{name}_gemm")]
             do_reshape = True
         else:
@@ -361,44 +353,31 @@ def _quantize_float8_matmul(
         )
         if do_reshape:
             # One of the inputs had 3 dimensions.
-            if was_reshaped[0] is not None:
-                assert m1 is not None
-                sliced = node.parent.generate_name(f"{name}_sli")
-                new_shape = node.parent.generate_name(f"{name}_sh1")
-                zero = node.parent.generate_name("zero")
-                m2 = node.parent.generate_name(f"{name}_shm2")
-                shm2 = node.parent.generate_name("m2")
-                sh1 = was_reshaped[0]
-                added.extend(
-                    [
-                        make_node(
-                            "Constant",
-                            [],
-                            [zero],
-                            value=make_tensor(new_shape, TensorProto.INT64, [1], [0]),
-                        ),
-                        make_node(
-                            "Constant",
-                            [],
-                            [m2],
-                            value=make_tensor(new_shape, TensorProto.INT64, [1], [-2]),
-                        ),
-                        make_node("Slice", [sh1, zero, m2, zero], [sliced]),
-                        make_node("Gather", [sh1, m2], [shm2]),
-                        make_node("Concat", [sliced, shm2, m1], [new_shape], axis=0),
-                        make_node(
-                            "Reshape",
-                            [gemm_outputs[0], new_shape],
-                            node.outputs,
-                            name=node.parent.generate_node_name(f"resh82_{name}"),
-                        ),
-                    ]
+            index = 0 if was_reshaped[0] else 1
+            added.append(
+                make_node(
+                    f"ReshapeTransposeBack{index}",
+                    gemm_outputs,
+                    [temp_name],
+                    perm=[1, 0],
                 )
-            else:
+            )
+            if (
+                domain_dq,
+                f"ReshapeTransposeBack{index}",
+            ) not in local_functions:
+                # use local functions
+                local_functions[
+                    domain_dq, f"ReshapeTransposeBack{index}"
+                ] = make_reshape_transpose_back_function_proto(
+                    domain=domain_dq, opset=opset, index=index
+                )
+
+            elif was_reshaped[1]:
                 raise NotImplementedError(
-                    f"MatMul cannot be replaced by operator Gemm, "
-                    f"shapes are {was_reshaped}."
+                    f"Shape is {shape}. This case is not implemented yet."
                 )
+
         removed.append(node)
         opsets = {domain_gemm: 1}
         if domain_dq != "":

@@ -61,6 +61,40 @@ class TestMakeHelper(ExtTestCase):
         )
         self.assertEqualArray(np.array(0.073612, dtype=np.float32), got[1], atol=1e-5)
 
+    def test_reshape_transpose(self):
+        onx = make_model(
+            make_graph(
+                [
+                    make_node(
+                        "ReshapeTranspose0",
+                        ["X"],
+                        ["Y"],
+                        to=TensorProto.FLOAT8E4M3FN,
+                        domain="qtest",
+                    ),
+                ],
+                "name",
+                [make_tensor_value_info("X", TensorProto.FLOAT, [None])],
+                [
+                    make_tensor_value_info("Y", TensorProto.FLOAT, [None]),
+                ],
+            ),
+            functions=[
+                make_reshape_transpose_function_proto(domain="qtest", opset=18, index=0)
+            ],
+            opset_imports=[
+                make_opsetid("", 18),
+                make_opsetid("qtest", 1),
+            ],
+        )
+        ref = CReferenceEvaluator(onx)
+        feeds = {"X": np.arange(24).reshape((2, 3, 4)).astype(np.float32)}
+        got = ref.run(None, feeds)
+        self.assertEqualArray(
+            np.arange(24).reshape((2, 3, 4)).reshape((-1, 4)).T.astype(np.float32),
+            got[0],
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

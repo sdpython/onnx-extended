@@ -12,7 +12,8 @@ def make_dynamic_quantize_linear_function_proto(
     domain: str, opset: int, to: Optional[int] = None
 ) -> FunctionProto:
     """
-    Creates the FunctionProto for a function doing a quantization to float 8.
+    Creates the FunctionProto for function `DynamicQuantizeLinear`
+    doing a quantization to float 8.
 
     :param domain: local domain name
     :param opset: opset to use to define the function
@@ -20,7 +21,9 @@ def make_dynamic_quantize_linear_function_proto(
         otherwise, it is replaced by the given value
     :return: FunctionProto
 
-    The function takes 1 input and returns 3 outputs.
+    The function takes 1 input and returns 3 outputs like
+    operator `DynamicQuantizeLinear
+    <https://onnx.ai/onnx/operators/onnx__DynamicQuantizeLinear.html>`_.
     It has one attribute *to* which specified the quantized type.
     """
     normalization_values = list(

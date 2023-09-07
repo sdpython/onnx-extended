@@ -1,5 +1,4 @@
-from typing import Optional
-from onnx import AttributeProto, FunctionProto, TensorProto
+from onnx import FunctionProto, TensorProto
 from onnx.helper import (
     make_function,
     make_node,
@@ -9,85 +8,108 @@ from onnx.helper import (
 
 
 def make_reshape_transpose_function_proto(
-    domain: str, opset: int, to: Optional[int] = None
+    domain: str, opset: int, index: int
 ) -> FunctionProto:
     """
-    Creates the FunctionProto for a function doing a quantization to float 8.
+    Creates the FunctionProto for function `ReshapeTranspose[index]`
+    to reshape in two dimensions and transpose an input
+    for operator Matmul.
 
     :param domain: local domain name
     :param opset: opset to use to define the function
-    :param to: if None, the function has an attribute,
-        otherwise, it is replaced by the given value
+    :param index: which input it is, 0 for left, 1 for right
     :return: FunctionProto
 
-    The function takes 1 input and returns 3 outputs.
-    It has one attribute *to* which specified the quantized type.
+    The function takes 1 input and returns 1 output.
     """
-    normalization_values = list(
-        {
-            TensorProto.FLOAT8E4M3FN: 100.057724,
-            TensorProto.FLOAT8E4M3FNUZ: 54.26635,
-            TensorProto.FLOAT8E5M2: 9535.286,
-            TensorProto.FLOAT8E5M2FNUZ: 9403.499,
-        }.items()
-    )
 
-    if to is None:
-        cast = make_node("Cast", ["zerof"], ["Zeropoint"])
-        att = AttributeProto()
-        att.name = "to"
-        att.ref_attr_name = "to"
-        att.type = AttributeProto.INT
-        cast.attribute.append(att)
-
-        cst = make_node("Constant", [], ["vto"])
-        att = AttributeProto()
-        att.name = "value_int"
-        att.ref_attr_name = "to"
-        att.type = AttributeProto.INT
-        cst.attribute.append(att)
+    if index == 0:
+        nodes = [
+            make_node("Shape", ["x"], ["shape_x"]),
+            make_node(
+                "Constant",
+                [],
+                ["m1"],
+                value=make_tensor("new_shape", TensorProto.INT64, [1], [-1]),
+            ),
+            make_node("Gather", ["shape_x", "m1"], ["last_dim"]),
+            make_node("Concat", ["m1", "last_dim"], ["new_shape"], axis=0),
+            make_node(
+                "Reshape",
+                ["x", "new_shape"],
+                ["reshaped_name"],
+            ),
+            make_node(
+                "Transpose",
+                ["reshaped_name"],
+                ["y"],
+                perm=[1, 0],
+            ),
+        ]
+    elif index == 1:
+        raise NotImplementedError()
     else:
-        cast = make_node("Cast", ["zerof"], ["Zeropoint"], to=to)
-        cst = make_node("Constant", [], ["vto"], value_int=to)
+        raise ValueError(f"index must be 0 or 1 not {index}.")
 
-    nodes = [
-        make_node(
-            "Constant",
-            [],
-            ["zerof"],
-            value=make_tensor("zerof", TensorProto.FLOAT, [], [0]),
-        ),
-        make_node(
-            "Constant",
-            [],
-            ["newshape"],
-            value=make_tensor("newshape", TensorProto.INT64, [1], [-1]),
-        ),
-        cast,
-        make_node("Mul", ["x", "x"], ["xsquare"]),
-        make_node("ReduceMean", ["xsquare"], ["Dev"], keepdims=0),
-        make_node("Sqrt", ["Dev"], ["Scale"]),
-        cst,
-        make_node("Reshape", ["vto", "newshape"], ["vtotensor"]),
-        make_node(
-            "LabelEncoder",
-            ["vtotensor"],
-            ["stdftensor"],
-            keys_int64s=[v[0] for v in normalization_values],
-            values_floats=[v[1] for v in normalization_values],
-            domain="ai.onnx.ml",
-        ),
-        make_node("ReduceSum", ["stdftensor"], ["stdf"], keepdims=0),
-        make_node("CastLike", ["stdf", "Scale"], ["std"]),
-        make_node("Div", ["Scale", "std"], ["ScaleScaled"]),
-        make_node("QuantizeLinear", ["x", "ScaleScaled", "Zeropoint"], ["y"]),
-    ]
     return make_function(
         domain,
-        "DynamicQuantizeLinear",
+        f"ReshapeTranspose{index}",
         ["x"],
-        ["y", "ScaleScaled", "Zeropoint"],
+        ["y"],
         nodes,
-        opset_imports=[make_opsetid("", opset), make_opsetid("ai.onnx.ml", 2)],
-        attributes=["to"],
+        opset_imports=[make_opsetid("", opset)],
+    )
+
+
+def make_reshape_transpose_back_function_proto(
+    domain: str, opset: int, index: int
+) -> FunctionProto:
+    """
+    Creates the FunctionProto for function `ReshapeTransposeBack[index]`
+    to reshape with more two dimensions an input which was modified
+    by `ReshapeTranspose[index]`
+
+    :param domain: local domain name
+    :param opset: opset to use to define the function
+    :param index: which input it is, 0 for left, 1 for right
+    :return: FunctionProto
+
+    The function takes 1 input and returns 1 output.
+    """
+
+    if index == 0:
+        nodes = [
+            make_node(
+                "Constant",
+                [],
+                ["zero"],
+                value=make_tensor("zero", TensorProto.INT64, [1], [0]),
+            ),
+            make_node(
+                "Constant",
+                [],
+                ["m2"],
+                value=make_tensor("m2", TensorProto.INT64, [1], [-2]),
+            ),
+            make_node("Slice", ["sh1", "zero", "m2", "zero"], ["sliced"]),
+            make_node("Gather", ["sh1", "m2"], ["shm2"]),
+            make_node("Concat", ["sliced", "shm2", "m1"], ["new_shape"], axis=0),
+            make_node(
+                "Reshape",
+                ["x", "new_shape"],
+                "y",
+            ),
+        ]
+    elif index == 1:
+        raise NotImplementedError()
+    else:
+        raise ValueError(f"index must be 0 or 1 not {index}.")
+
+    return make_function(
+        domain,
+        f"ReshapeTransposeBack{index}",
+        ["x"],
+        ["y"],
+        nodes,
+        opset_imports=[make_opsetid("", opset)],
     )
