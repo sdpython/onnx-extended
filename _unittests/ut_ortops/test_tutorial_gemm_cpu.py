@@ -132,18 +132,26 @@ class TestOrtOpTutorialCpu(ExtTestCase):
 
         if square:
             inputs = [
-                (numpy.arange(256) / 256).astype(numpy.float32).reshape((-1, 16))
+                (numpy.arange(16) / 16).astype(numpy.float32).reshape((-1, 4))
                 for to in tos
             ]
+            inputs[0][0, 1] = -0.5
+            inputs[1][0, 1] = -0.145
         else:
             inputs = [
-                (numpy.arange(256) / 256).astype(numpy.float32).reshape((32, -1)),
-                (numpy.arange(512) / 512).astype(numpy.float32).reshape((32, -1)),
+                (numpy.arange(10) / 10).astype(numpy.float32).reshape((2, -1)),
+                (numpy.arange(15) / 15).astype(numpy.float32).reshape((5, -1)),
             ]
+            inputs[0][0, 1] = -0.5
+            inputs[1][0, 1] = -0.145
             if len(tos) == 3:
                 inputs.append(
-                    (numpy.arange(128) / 128).astype(numpy.float32).reshape((8, 16))
+                    (numpy.arange(6) / 6).astype(numpy.float32).reshape((2, 3))
                 )
+            if kwargs.get("transA", 0):
+                inputs[0] = inputs[0].T
+            if kwargs.get("transB", 0):
+                inputs[1] = inputs[1].T
 
         a, b = inputs[:2]
         expected = (a.T if kwargs.get("transA", 0) else a) @ (
@@ -363,12 +371,55 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             rowMajor=0,
         )
 
-    def test_custom_gemm_float32_col_major_not_square(self):
+    def test_custom_gemm_base0_cnot_square(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=1,
+            square=False,
+        )
+
+    def test_custom_gemm_base0_col_major_not_square(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
+    def test_custom_gemm_base0_col_major_not_square_with_transa(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
             transA=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
+    def test_custom_gemm_base0_col_major_not_square_with_transb(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            transB=1,
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=0,
+            square=False,
+        )
+
+    def test_custom_gemm_base0_col_major_not_square_with_transab(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            transA=1,
+            transB=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             rowMajor=0,
             square=False,

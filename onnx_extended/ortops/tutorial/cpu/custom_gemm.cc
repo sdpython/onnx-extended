@@ -151,9 +151,9 @@ void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
     M = shape_A[ic];
     N = shape_B[ir];
     K = shape_A[ir];
-    lda = shape_A[row_major ? ir : ic];
-    ldb = shape_B[row_major ? ir : ic];
-    ldd = shape_B[row_major ? ic : ir];
+    lda = shape_A[row_major ? ic : ir];
+    ldb = shape_B[row_major ? ic : ir];
+    ldd = shape_B[row_major ? ir : ic];
   }
 }
 
@@ -370,6 +370,7 @@ void CustomGemmKernel::ComputeGemm(
   }
 
   if (rowMajor_ == 1) {
+    // rowMajor_ == 0
     if (transa) {
       if (transb) {
 #pragma omp parallel for
@@ -418,15 +419,16 @@ void CustomGemmKernel::ComputeGemm(
       }
     }
   } else {
+    // rowMajor_ == 0
     if (transa) {
       if (transb) {
 #pragma omp parallel for
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
-            A_PART = alpha_ * p_input_a[k * lda + i];
+            A_PART = alpha_ * p_input_a[i * lda + k];
             for (j = 0; j < N; ++j) {
-              p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
             }
           }
         }
@@ -437,7 +439,7 @@ void CustomGemmKernel::ComputeGemm(
           for (k = 0; k < K; ++k) {
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
-              p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
             }
           }
         }
@@ -449,7 +451,7 @@ void CustomGemmKernel::ComputeGemm(
         for (k = 0; k < K; ++k) {
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
-            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
           }
         }
       }
@@ -458,9 +460,9 @@ void CustomGemmKernel::ComputeGemm(
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
-          A_PART = alpha_ * p_input_a[i * lda + k];
+          A_PART = alpha_ * p_input_a[k * lda + i];
           for (j = 0; j < N; ++j) {
-            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
           }
         }
       }
