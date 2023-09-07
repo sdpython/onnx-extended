@@ -313,7 +313,7 @@ def cmd_quantize(
     early_stop: Optional[int] = None,
     quiet: bool = False,
     verbose: int = 0,
-    index_transposed: int = 0,
+    index_transpose: int = 0,
 ):
     """
     Quantizes a model
@@ -327,7 +327,7 @@ def cmd_quantize(
     :param early_stop: stops early to see the preliminary results
     :param quiet: do not stop an exception
     :param verbose: verbosity level
-    :param index_transposed: which input to transpose
+    :param index_transpose: which input to transpose
     """
     from .tools.graph import Graph
 
@@ -360,7 +360,7 @@ def cmd_quantize(
             quiet=quiet,
             version=scenario,
             local_function=use_local_functions,
-            index_transposed=index_transposed,
+            index_transpose=index_transpose,
         )
         if new_graph is None:
             logger.warning("No node was quantized.")

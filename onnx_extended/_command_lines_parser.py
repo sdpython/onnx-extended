@@ -230,6 +230,13 @@ def get_parser_quantize() -> ArgumentParser:
         default=0,
         help="enable logging, can be repeated",
     )
+    parser.add_argument(
+        "-t",
+        "--transpose",
+        default=2,
+        help="which input(s) to transpose, 1 for the first one, "
+        "2 for the second, 3 for both, 0 for None",
+    )
     return parser
 
 
@@ -356,7 +363,7 @@ def main(argv: Optional[List[Any]] = None):
             kind=args.kind,
             early_stop=args.early_stop,
             quiet=args.quiet,
-            index_transposed=args.transposed,
+            index_transpose=args.transpose,
         )
 
     elif cmd == "select":
