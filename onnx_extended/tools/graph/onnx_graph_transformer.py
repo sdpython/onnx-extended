@@ -297,10 +297,11 @@ def _quantize_float8_matmul(
                 input_names.append([weight.outname, scale.outname, zero_point.outname])
                 removed.append(cst)
             else:
+                shape = node.parent.get_shape(name)
+
                 # Add DynamicQuantizeLinear
                 if do_transpose:
-                    # transposition is needed for the first input
-                    shape = node.parent.get_shape(name)
+                    # transposition is needed for one
                     if shape is None:
                         raise QuantizationError(
                             f"Shape is unknown for result {name!r} in node {node}. "
@@ -356,9 +357,16 @@ def _quantize_float8_matmul(
                         )
                     )
                     temp_name = tr_name
-                else:
-                    # no transposition for the other input
+                elif shape is None:
+                    # shape unknown, let's hope it has two dimensions.
                     temp_name = name
+                elif len(shape) == 2:
+                    temp_name = name
+                else:
+                    raise NotImplementedError(
+                        f"Shape is {shape}. This case is not implemented yet."
+                    )
+
                 new_name = node.parent.generate_name(f"{name}_f8")
                 scale = node.parent.generate_name(f"{name}_scale")
                 zero_point = node.parent.generate_name(f"{name}_zp")

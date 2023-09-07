@@ -751,6 +751,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                     ) from e
                 self.assertNotEmpty(sess)
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_no_trans(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -769,6 +770,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             beta=1.0,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base2_no_trans_col_major(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -778,6 +780,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     @unittest.skipIf(cuda_version_int() < (12, 0), reason="beta_ == 0 not supported")
     def test_custom_gemm_base2_no_trans_col_major_bias(self):
         self.common_test_custom_gemm(
@@ -789,6 +792,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             beta=1.0,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_with_transa(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -798,6 +802,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             transA=1,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base2_with_transa_col_major(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -808,6 +813,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base2_with_transb_col_major(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -818,6 +824,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base2_with_transab_col_major(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -829,6 +836,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             rowMajor=0,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_with_transb(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -838,6 +846,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             transB=1,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_with_transab(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -848,6 +857,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             transB=1,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_cnot_square(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -858,6 +868,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_col_major_not_square(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -868,6 +879,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_col_major_not_square_with_transa(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -879,6 +891,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_col_major_not_square_with_transb(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -890,6 +903,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_custom_gemm_base0_col_major_not_square_with_transab(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
