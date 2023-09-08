@@ -317,7 +317,6 @@ class TestCommandLines(ExtTestCase):
                     model_out,
                     "-k",
                     "fp8",
-                    "-l",
                 ]
                 main(args)
             text = st.getvalue()

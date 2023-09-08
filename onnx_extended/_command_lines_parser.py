@@ -352,7 +352,6 @@ def main(argv: Optional[List[Any]] = None):
             output=args.output,
             verbose=args.verbose,
             scenario=args.scenario,
-            use_local_functions=args.use_local_functions,
             kind=args.kind,
             early_stop=args.early_stop,
             quiet=args.quiet,

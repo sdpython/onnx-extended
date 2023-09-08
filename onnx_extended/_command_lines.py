@@ -309,7 +309,6 @@ def cmd_quantize(
     output: Optional[str] = None,
     kind: str = "fp8",
     scenario: str = "onnxruntime",
-    use_local_functions: bool = False,
     early_stop: Optional[int] = None,
     quiet: bool = False,
     verbose: int = 0,
@@ -322,8 +321,6 @@ def cmd_quantize(
     :param output: output file
     :param kind: kind of quantization
     :param scenario: depends on the quantization
-    :param use_local_functions: use local functions wherever possible
-        instead of using experimental operators
     :param early_stop: stops early to see the preliminary results
     :param quiet: do not stop an exception
     :param verbose: verbosity level

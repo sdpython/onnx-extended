@@ -103,8 +103,8 @@ class TestOnnxToolsGraph(ExtTestCase):
         atts = dict(to=TensorProto.FLOAT8E4M3FN)
 
         def dynamic_qdq_linear(x):
-            qx, scale, zp = dynql.run(None, dict(x=x), attributes=atts)
-            qdq = DequantizeLinear.eval(qx, scale, zp)
+            qx, scale, _ = dynql.run(None, dict(x=x), attributes=atts)
+            qdq = DequantizeLinear.eval(qx, scale)
             return qdq
 
         def check_onx(onx, tr):
