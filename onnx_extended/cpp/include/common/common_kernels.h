@@ -49,6 +49,32 @@ inline bool is_float8(ONNXTensorElementDataType type) {
 #endif
 }
 
+////////////////
+// kernel inputs
+////////////////
+
+inline std::string KernelInfoGetInputName(const OrtApi &api,
+                                          const OrtKernelInfo *info,
+                                          int index) {
+  size_t size;
+  OrtStatus *status = api.KernelInfo_GetInputName(info, index, nullptr, &size);
+  if (status != nullptr) {
+    OrtErrorCode code = api.GetErrorCode(status);
+    if (code == ORT_FAIL) {
+      api.ReleaseStatus(status);
+      return std::string();
+    } else {
+      ThrowOnError(api, status);
+    }
+    api.ReleaseStatus(status);
+  }
+  std::string out;
+  out.resize(size);
+  ThrowOnError(api, api.KernelInfo_GetInputName(info, index, &out[0], &size));
+  out.resize(size - 1); // remove the terminating character '\0'
+  return out;
+}
+
 ////////////////////
 // kernel attributes
 ////////////////////

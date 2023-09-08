@@ -119,6 +119,9 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   } else {
     EXT_THROW("Unexpected value for activation '", activation, "'.");
   }
+
+  std::string name = KernelInfoGetInputName(api, info, 5);
+  has_scale_Y_ = !name.empty();
 }
 
 void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
@@ -159,7 +162,7 @@ void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
 }
 
 void check_device(const Ort::ConstValue &input, const char *name) {
-  EXT_ENFORCE(input.HasValue(), "Input '", name, "' is not empty.");
+  EXT_ENFORCE(input.HasValue(), "Input '", name, "' is empty.");
   auto mem = input.GetTensorMemoryInfo();
   EXT_ENFORCE(mem.GetDeviceType() ==
                   OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU,
@@ -208,7 +211,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     check_device(input_C, "C");
 
   bool has_scales = n_inputs > 3;
-  bool has_scales_Y = n_inputs > 5;
+  bool has_scales_Y = n_inputs > 5 && has_scale_Y_;
   if (has_scales) {
     EXT_ENFORCE(n_inputs == 5 || n_inputs == 6,
                 "Number of inputs must be 5 or 6 but is ", n_inputs, ".");
@@ -335,9 +338,9 @@ void CustomGemmKernel::ComputeGemm(
     std::vector<float> c_input_a(M * K);
     std::vector<float> c_input_b(N * K);
     e4m3fn_to_float(c_input_a.size(), static_cast<const uint8_t *>(p_input_a),
-                    c_input_a.data());
+                    c_input_a.data(), *(static_cast<const float *>(p_scale_a)));
     e4m3fn_to_float(c_input_b.size(), static_cast<const uint8_t *>(p_input_b),
-                    c_input_b.data());
+                    c_input_b.data(), *(static_cast<const float *>(p_scale_b)));
     ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, shape_A,
                 shape_B, shape_C, shape_Y, trans_A, trans_B, c_input_a.data(),
                 c_input_b.data(), static_cast<const float *>(p_input_c),
@@ -360,11 +363,11 @@ void CustomGemmKernel::ComputeGemm(
     const float *p_scale_a, const float *p_scale_b, const float *p_scale_y,
     float *p_output_y, int M, int N, int K, int lda, int ldb, int ldd) {
 
-  EXT_ENFORCE(p_scale_a == nullptr || *p_scale_a == 1,
-              "scale_A must be empty or one for float.");
-  EXT_ENFORCE(p_scale_b == nullptr || *p_scale_b == 1,
+  EXT_ENFORCE(has_scales || p_scale_a == nullptr || *p_scale_a == 1,
+              "scale_A must be empty or one for float");
+  EXT_ENFORCE(has_scales || p_scale_b == nullptr || *p_scale_b == 1,
               "scale_B must be empty or one for float.");
-  EXT_ENFORCE(p_scale_y == nullptr || *p_scale_y == 1,
+  EXT_ENFORCE(has_scales_Y || p_scale_y == nullptr || *p_scale_y == 1,
               "scale_Y must be empty or one for float.");
 
   /*
@@ -475,7 +478,7 @@ void CustomGemmKernel::ComputeGemm(
         }
       }
     } else {
-#pragma omp parallel for
+// #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {

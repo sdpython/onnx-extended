@@ -21,9 +21,9 @@ except ImportError:
 from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 
 
-def _make_schema_gemm_float8() -> OpSchema:
+def _make_schema_gemm_float8(cls_name: str) -> OpSchema:
     """
-    Returns the schema for operator GemmFloat8.
+    Returns the schema for operator `cls_name="GemmFloat8"`.
     """
     gemm_float8_types = [
         "tensor(float8e4m3fn)",
@@ -33,7 +33,7 @@ def _make_schema_gemm_float8() -> OpSchema:
         "tensor(float)",
     ]
     return OpSchema(
-        "GemmFloat8",
+        cls_name,
         "com.microsoft",
         1,
         attributes=[
@@ -103,7 +103,7 @@ def is_float8_dtype(dtype) -> bool:
 
 class GemmFloat8(OpRun):
     op_domain = "com.microsoft"
-    op_schema = _make_schema_gemm_float8()
+    op_schema = _make_schema_gemm_float8("GemmFloat8")
 
     def _run(
         self,
@@ -159,7 +159,7 @@ class GemmFloat8(OpRun):
                 )
             if rowMajor == 1:
                 raise RuntimeError("Only rowMajor == 0 is supported on GPU.")
-            if transA or not transB:
+            if self.__class__.__name__ == "GemmFloat8" and (transA or not transB):
                 raise RuntimeError(
                     f"If both types are float 8, then transA=0 and "
                     f"transB=1 but transA={transA} and transB={transB}."
@@ -202,3 +202,8 @@ class GemmFloat8(OpRun):
 
         final = Cast.eval(res, to=dtype)
         return (final,)
+
+
+class GemmFloat8Quiet(GemmFloat8):
+    op_domain = "com.microsoft"
+    op_schema = _make_schema_gemm_float8("GemmFloat8Quiet")

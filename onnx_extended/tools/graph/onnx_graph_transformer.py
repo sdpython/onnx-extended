@@ -181,22 +181,20 @@ def _quantize_float8_matmul(
     :param domain_ops: domain to use for operators used as keys in the dictionary
     :return: nodes to remove, nodes to add, new opsets
     """
+    domain_dq = "local.quant.domain"
     if domain_ops is None:
         domain_ops = {}
     if version == "onnxruntime":
-        domain_dq = ""
         op_gemm = "GemmFloat8"
         domain_gemm = domain_ops.get("GemmFloat8", "com.microsoft")
     elif version == "onnx-extended":
-        domain_dq = "onnx_extented.ortops.tutorial.cpu"
         op_gemm = "CustomGemmFloat8E4M3FN"
         domain_gemm = domain_ops.get(
             "CustomGemmFloat8E4M3FN", "onnx_extented.ortops.tutorial.cuda"
         )
     else:
         raise ValueError(f"Unexpected value {version!r} for version.")
-    if local_functions is not None:
-        domain_dq = "local.quant.domain"
+
     if node.op_type == "MatMul":
         removed = []
         added = []

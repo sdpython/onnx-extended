@@ -1,3 +1,4 @@
+import itertools
 import unittest
 import numpy as np
 from packaging.version import Version
@@ -12,6 +13,8 @@ from onnx.helper import (
 )
 from onnx.checker import check_model, ValidationError
 from onnx.defs import onnx_opset_version
+from onnx.reference import ReferenceEvaluator
+from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -36,13 +39,14 @@ except ImportError:
     onnx_simple_text_plot = str
 
 from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.helper import make_dynamic_quantize_linear_function_proto
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
 from onnx_extended.tools.graph.onnx_graph_transformer import (
     cast_constant,
     quantize_float8,
 )
-from onnx_extended.tools.graph.onnx_custom_ops import GemmFloat8
+from onnx_extended.tools.graph.onnx_custom_ops import GemmFloat8, GemmFloat8Quiet
 from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs as get_ort_ext_libs_cpu
 from onnx_extended import has_cuda
 
@@ -53,6 +57,173 @@ else:
 
 
 class TestOnnxToolsGraph(ExtTestCase):
+    def _get_basic_square_model(self, init, n_dim_x, n_dim_c, side_x):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None] * n_dim_x)
+        Y = make_tensor_value_info(
+            "Y", TensorProto.FLOAT, [None] * max(n_dim_x, n_dim_c)
+        )
+        shape_cst = np.array([2] * n_dim_c).astype(np.int64)
+        value_cst = (np.arange(np.prod(shape_cst)) / np.prod(shape_cst)).astype(
+            np.float32
+        )
+        matmul = make_node(
+            "MatMul", ["X", "cst"] if side_x == 0 else ["cst", "X"], ["Y"]
+        )
+        cst = make_tensor(
+            "cst", TensorProto.FLOAT, shape_cst.tolist(), value_cst.tolist()
+        )
+        if init:
+            nodes = [matmul]
+            inits = [cst]
+        else:
+            nodes = [
+                make_node("Constant", [], ["cst"], value=cst),
+                matmul,
+            ]
+            inits = []
+
+        graph = make_graph(nodes, "zoo", [X], [Y], inits)
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model, value_cst.reshape(tuple(shape_cst.tolist()))
+
+    def test_basic_all(self):
+        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+        sess_opts = SessionOptions()
+        sess_opts.register_custom_ops_library(get_ort_ext_libs()[0])
+
+        # Let's create a function equivalent to DynamicQuantizeLinear
+        dynql = ReferenceEvaluator(
+            make_dynamic_quantize_linear_function_proto(domain="qtest", opset=18)
+        )
+        atts = dict(to=TensorProto.FLOAT8E4M3FN)
+
+        def dynamic_qdq_linear(x):
+            qx, scale, zp = dynql.run(None, dict(x=x), attributes=atts)
+            qdq = DequantizeLinear.eval(qx, scale, zp)
+            return qdq
+
+        def check_onx(onx, tr):
+            # check transpose are correct
+            for node in onx.graph.node:
+                if node.op_type not in {"GemmFloat8", "CustomGemmFloat8E4M3FN"}:
+                    continue
+                for att in node.attribute:
+                    if att.name == "transA":
+                        if att.i != (1 if tr & 1 else 0):
+                            raise AssertionError(
+                                f"Unexpected value for transA in\n-----\n"
+                                f"{onnx_simple_text_plot(onx)}"
+                            )
+                    elif att.name == "transB":
+                        if att.i != (1 if tr & 2 else 0):
+                            raise AssertionError(
+                                f"Unexpected value for transB in\n-----\n"
+                                f"{onnx_simple_text_plot(onx)}"
+                            )
+
+        options = itertools.product(
+            [True, False],  # init
+            [0, 1, 2, 3],  # tr
+            [0, 1],  # side_
+            [2, 3],  # n_dim_x
+            [3, 2],  # n_dim_c
+        )
+
+        for init, tr, side_x, n_dim_x, n_dim_c in options:
+            with self.subTest(
+                init=init, tr=tr, side_x=side_x, n_dim_x=n_dim_x, n_dim_c=n_dim_c
+            ):
+                print("-----------------------------")
+                print(
+                    dict(
+                        init=init,
+                        tr=tr,
+                        side_x=side_x,
+                        n_dim_x=n_dim_x,
+                        n_dim_c=n_dim_c,
+                    )
+                )
+                model, cst = self._get_basic_square_model(
+                    init=init, n_dim_x=n_dim_x, n_dim_c=n_dim_c, side_x=side_x
+                )
+
+                x = np.random.random((2,) * n_dim_x).astype(np.float32)
+                feeds = dict(X=x)
+
+                try:
+                    ref = CReferenceEvaluator(model)
+                except RuntimeError as e:
+                    raise AssertionError(
+                        f"Unable to load model\n----\n{onnx_simple_text_plot(model)}"
+                    ) from e
+                z0 = ref.run(None, feeds)[0]
+
+                # Let's compute expected value after quandization
+                qx, qc = dynamic_qdq_linear(x), dynamic_qdq_linear(cst)
+                expected = qx @ qc if side_x == 0 else qc @ qx
+                self.assertEqualArray(expected, z0, atol=0.5)
+
+                graph = Graph(model)
+                try:
+                    new_graph = quantize_float8(graph, index_transpose=tr)
+                except NotImplementedError:
+                    continue
+                onx = new_graph.to_onnx()
+                check_onx(onx, tr)
+
+                # check the reshape is there if the dimension is greather than 3
+                if max(n_dim_x, n_dim_c) > 2 and (
+                    'op_type: "Reshape"' not in str(onx) or len(onx.functions) <= 1
+                ):
+                    raise AssertionError(
+                        f"Dimension is 3 but Reshape is missing "
+                        f"or the number of functions is <= 1 in "
+                        f"\n----\n{onnx_simple_text_plot(onx)}"
+                    )
+
+                # let's replace the operator by another one not checking
+                # transA and transB attributes during execution
+                for node in onx.graph.node:
+                    if node.op_type == "GemmFloat8":
+                        node.op_type = "GemmFloat8Quiet"
+                try:
+                    ref2 = CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet])
+                except RuntimeError as e:
+                    raise AssertionError(
+                        f"Unable to load model\n----\n{onnx_simple_text_plot(onx)}"
+                    ) from e
+                try:
+                    got = ref2.run(None, dict(X=x))[0]
+                except ValueError as e:
+                    raise AssertionError(
+                        f"Unable to run model with x.shape={x.shape}"
+                        f"\n----\n{onnx_simple_text_plot(onx)}"
+                    ) from e
+                self.assertEqualArray(expected, got, atol=1e-5)
+
+                graph = Graph(model)
+                new_graph = quantize_float8(
+                    graph,
+                    version="onnx-extended",
+                    domain_ops={
+                        "CustomGemmFloat8E4M3FN": "onnx_extented.ortops.tutorial.cpu"
+                    },
+                    index_transpose=tr,
+                )
+                onxo = new_graph.to_onnx()
+                check_onx(onxo, tr)
+                sess = InferenceSession(
+                    onxo.SerializeToString(),
+                    sess_opts,
+                    providers=["CPUExecutionProvider"],
+                )
+                got = sess.run(None, dict(X=x))[0]
+                self.assertEqualArray(expected, got, atol=1e-5)
+
     def _get_model(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
@@ -899,9 +1070,8 @@ class TestOnnxToolsGraph(ExtTestCase):
 if __name__ == "__main__":
     import logging
 
-    # logging.basicConfig(level=logging.ERROR)
     for name in ["onnx-extended", "skl2onnx"]:
         log = logging.getLogger(name)
         log.setLevel(logging.ERROR)
-    # TestOnnxToolsGraph().test_quantize_f8_onnxruntime_x3()
+    TestOnnxToolsGraph().test_basic_all()
     unittest.main(verbosity=2)

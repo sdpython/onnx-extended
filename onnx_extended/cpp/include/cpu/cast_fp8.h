@@ -130,3 +130,10 @@ inline void e4m3fn_to_float(int64_t n, const uint8_t *src, float *dst) {
     dst[i] = e4m3fn_to_float(src[i]);
   }
 }
+
+inline void e4m3fn_to_float(int64_t n, const uint8_t *src, float *dst, float scale) {
+#pragma omp parallel for
+  for (int64_t i = 0; i < n; ++i) {
+    dst[i] = e4m3fn_to_float(src[i]) * scale;
+  }
+}
