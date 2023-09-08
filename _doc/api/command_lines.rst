@@ -16,6 +16,16 @@ and in a csv file.
 
 .. autofunction:: onnx_extended._command_lines.display_intermediate_results
 
+external
+========
+
+Split the model and the coefficients. The coefficients goes to an external file.
+
+.. runpython::
+
+    from onnx_extended._command_lines_parser import get_parser_external
+    get_parser_external().print_help()
+
 print
 =====
 
