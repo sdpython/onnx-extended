@@ -59,7 +59,10 @@ private:
   int64_t smCount_;
   ONNXTensorElementDataType computeType_;
   EpiloqueGemmKernel epilogue_;
+
+  // when the kernel is initialized
   bool has_scale_Y_;
+  size_t n_inputs_;
 };
 
 struct CustomGemmOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {

@@ -1091,5 +1091,6 @@ if __name__ == "__main__":
     for name in ["onnx-extended", "skl2onnx"]:
         log = logging.getLogger(name)
         log.setLevel(logging.ERROR)
-    TestOnnxToolsGraph().test_basic_all()
+    # TestOnnxToolsGraph().test_basic_all()
+    # TestOnnxToolsGraph().test_quantize_f8_onnx_onnxruntime()
     unittest.main(verbosity=2)

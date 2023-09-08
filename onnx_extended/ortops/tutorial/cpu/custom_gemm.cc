@@ -120,8 +120,13 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
     EXT_THROW("Unexpected value for activation '", activation, "'.");
   }
 
-  std::string name = KernelInfoGetInputName(api, info, 5);
-  has_scale_Y_ = !name.empty();
+  ThrowOnError(api, api.KernelInfo_GetInputCount(info, &n_inputs_));
+  if (n_inputs_ > 5) {
+    std::string name = KernelInfoGetInputName(api, info, 5);
+    has_scale_Y_ = !name.empty();
+  } else {
+    has_scale_Y_ = false;
+  }
 }
 
 void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
@@ -192,7 +197,7 @@ ONNXTensorElementDataType GetTypeAndShape(const TValue &input,
 void CustomGemmKernel::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
 
-  int n_inputs = ctx.GetInputCount();
+  int n_inputs = static_cast<int>(n_inputs_);
   Ort::ConstValue scale_A, scale_B, scale_Y;
   Ort::ConstValue input_A = ctx.GetInput(0);
   Ort::ConstValue input_B = ctx.GetInput(1);
@@ -478,7 +483,7 @@ void CustomGemmKernel::ComputeGemm(
         }
       }
     } else {
-// #pragma omp parallel for
+#pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
