@@ -11,8 +11,8 @@ from onnx.helper import (
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.helper import (
     make_dynamic_quantize_linear_function_proto,
-    make_reshape_transpose_function_proto,
-    make_reshape_transpose_back_function_proto,
+    make_matmul_reshape_transpose_function_proto,
+    make_matmul_reshape_transpose_back_function_proto,
 )
 from onnx_extended.reference import CReferenceEvaluator
 
@@ -62,12 +62,12 @@ class TestMakeHelper(ExtTestCase):
         )
         self.assertEqualArray(np.array(0.073612, dtype=np.float32), got[1], atol=1e-5)
 
-    def test_reshape_transpose(self):
+    def test_reshape_transpose0(self):
         onx = make_model(
             make_graph(
                 [
                     make_node(
-                        "ReshapeTranspose0",
+                        "MatMulReshapeTransposeT0",
                         ["X"],
                         ["Y"],
                         domain="qtest",
@@ -78,7 +78,9 @@ class TestMakeHelper(ExtTestCase):
                 [make_tensor_value_info("Y", TensorProto.FLOAT, [None])],
             ),
             functions=[
-                make_reshape_transpose_function_proto(domain="qtest", opset=18, index=0)
+                make_matmul_reshape_transpose_function_proto(
+                    domain="qtest", opset=18, index=0, transpose=True
+                )
             ],
             opset_imports=[
                 make_opsetid("", 18),
@@ -93,12 +95,48 @@ class TestMakeHelper(ExtTestCase):
             got[0],
         )
 
-    def test_reshape_transpose_back(self):
+    def test_reshape_transpose1(self):
         onx = make_model(
             make_graph(
                 [
                     make_node(
-                        "ReshapeTransposeBack0",
+                        "MatMulReshapeTransposeT1",
+                        ["X"],
+                        ["Y"],
+                        domain="qtest",
+                    ),
+                ],
+                "name",
+                [make_tensor_value_info("X", TensorProto.FLOAT, [None])],
+                [make_tensor_value_info("Y", TensorProto.FLOAT, [None])],
+            ),
+            functions=[
+                make_matmul_reshape_transpose_function_proto(
+                    domain="qtest", opset=18, index=1, transpose=True
+                )
+            ],
+            opset_imports=[
+                make_opsetid("", 18),
+                make_opsetid("qtest", 1),
+            ],
+        )
+        ref = CReferenceEvaluator(onx)
+        feeds = {"X": np.arange(24).reshape((2, 3, 4)).astype(np.float32)}
+        got = ref.run(None, feeds)
+        b = np.arange(24).reshape((2, 3, 4)).astype(np.float32)
+        eb = (
+            b.reshape((-1,) + b.shape[-2:])
+            .transpose((1, 0, 2))
+            .reshape((b.shape[-2], -1))
+        )
+        self.assertEqualArray(eb.T, got[0])
+
+    def test_reshape_transpose_back0(self):
+        onx = make_model(
+            make_graph(
+                [
+                    make_node(
+                        "MatMulReshapeTransposeBack0",
                         ["X", "shape"],
                         ["Y"],
                         domain="qtest",
@@ -112,7 +150,7 @@ class TestMakeHelper(ExtTestCase):
                 [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None, None])],
             ),
             functions=[
-                make_reshape_transpose_back_function_proto(
+                make_matmul_reshape_transpose_back_function_proto(
                     domain="qtest", opset=18, index=0
                 )
             ],
@@ -131,6 +169,50 @@ class TestMakeHelper(ExtTestCase):
             np.arange(24).reshape((2, 3, 4)).astype(np.float32),
             got[0],
         )
+
+    def test_reshape_transpose_back1(self):
+        onx = make_model(
+            make_graph(
+                [
+                    make_node(
+                        "MatMulReshapeTransposeBack1",
+                        ["X", "shape"],
+                        ["Y"],
+                        domain="qtest",
+                    ),
+                ],
+                "name",
+                [
+                    make_tensor_value_info("X", TensorProto.FLOAT, [None, None]),
+                    make_tensor_value_info("shape", TensorProto.INT64, [None]),
+                ],
+                [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None, None])],
+            ),
+            functions=[
+                make_matmul_reshape_transpose_back_function_proto(
+                    domain="qtest", opset=18, index=1
+                )
+            ],
+            opset_imports=[
+                make_opsetid("", 18),
+                make_opsetid("qtest", 1),
+            ],
+        )
+        ref = CReferenceEvaluator(onx)
+        feeds = {
+            "X": np.arange(24).reshape((-1, 4)).astype(np.float32),
+            "shape": np.array([2, 3, 4], dtype=np.int64),
+        }
+        got = ref.run(None, feeds)
+
+        b = np.arange(24).reshape((2, 3, 4)).astype(np.float32)
+        final = (
+            b.reshape(6, -1, b.shape[-1])
+            .transpose((1, 0, 2))
+            .reshape(b.shape[:-2] + (-1, b.shape[-1]))
+        )
+
+        self.assertEqualArray(final, got[0])
 
 
 if __name__ == "__main__":

@@ -45,6 +45,7 @@ from onnx_extended.tools.graph.onnx_graph_struct import Graph
 from onnx_extended.tools.graph.onnx_graph_transformer import (
     cast_constant,
     quantize_float8,
+    QuantizationError,
 )
 from onnx_extended.tools.graph.onnx_custom_ops import GemmFloat8, GemmFloat8Quiet
 from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs as get_ort_ext_libs_cpu
@@ -170,8 +171,10 @@ class TestOnnxToolsGraph(ExtTestCase):
                 graph = Graph(model)
                 try:
                     new_graph = quantize_float8(graph, index_transpose=tr)
-                except NotImplementedError:
-                    continue
+                except QuantizationError as e:
+                    if n_dim_x > 2 and n_dim_c > 2:
+                        continue
+                    raise e
                 onx = new_graph.to_onnx()
                 check_onx(onx, tr)
 
@@ -203,7 +206,16 @@ class TestOnnxToolsGraph(ExtTestCase):
                         f"Unable to run model with x.shape={x.shape}"
                         f"\n----\n{onnx_simple_text_plot(onx)}"
                     ) from e
-                self.assertEqualArray(expected, got, atol=1e-5)
+                try:
+                    self.assertEqualArray(expected, got, atol=1e-5)
+                except AssertionError as e:
+                    raise AssertionError(
+                        f"Verification failed with GemmFloat8Quiet\n"
+                        f"expected.shape={expected.shape} got.shape={got.shape}\n"
+                        f"x=\n{x}\nqx=\n{qx}\ncst=\n{cst}\nqc=\n{qc}\n--\n"
+                        f"expected=\n{expected}\ngot={got}\n"
+                        f"onx={onnx_simple_text_plot(onx)}"
+                    ) from e
 
                 graph = Graph(model)
                 new_graph = quantize_float8(
@@ -216,11 +228,17 @@ class TestOnnxToolsGraph(ExtTestCase):
                 )
                 onxo = new_graph.to_onnx()
                 check_onx(onxo, tr)
-                sess = InferenceSession(
-                    onxo.SerializeToString(),
-                    sess_opts,
-                    providers=["CPUExecutionProvider"],
-                )
+                try:
+                    sess = InferenceSession(
+                        onxo.SerializeToString(),
+                        sess_opts,
+                        providers=["CPUExecutionProvider"],
+                    )
+                except OrtFail as e:
+                    if "type inference failed" in str(e):
+                        # bug of onnxruntime
+                        continue
+                    raise e
                 got = sess.run(None, dict(X=x))[0]
                 self.assertEqualArray(expected, got, atol=1e-5)
 
