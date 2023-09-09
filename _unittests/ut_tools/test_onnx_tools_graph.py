@@ -135,19 +135,12 @@ class TestOnnxToolsGraph(ExtTestCase):
         )
 
         for init, tr, side_x, n_dim_x, n_dim_c in options:
-            with self.subTest(
-                init=init, tr=tr, side_x=side_x, n_dim_x=n_dim_x, n_dim_c=n_dim_c
-            ):
-                print("-----------------------------")
-                print(
-                    dict(
-                        init=init,
-                        tr=tr,
-                        side_x=side_x,
-                        n_dim_x=n_dim_x,
-                        n_dim_c=n_dim_c,
-                    )
-                )
+            msg = (
+                f"init={init}, tr={tr}, side_x={side_x}, "
+                f"n_dim_x={n_dim_x}, n_dim_c={n_dim_c}"
+            )
+            with self.subTest(msg=msg):
+                print(f"-----------------------------\n{msg}")
                 model, cst = self._get_basic_square_model(
                     init=init, n_dim_x=n_dim_x, n_dim_c=n_dim_c, side_x=side_x
                 )
@@ -185,7 +178,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                     raise AssertionError(
                         f"Dimension is 3 but Reshape is missing "
                         f"or the number of functions is <= 1 in "
-                        f"\n----\n{onnx_simple_text_plot(onx)}"
+                        f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}"
                     )
 
                 # let's replace the operator by another one not checking
@@ -197,14 +190,15 @@ class TestOnnxToolsGraph(ExtTestCase):
                     ref2 = CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet])
                 except RuntimeError as e:
                     raise AssertionError(
-                        f"Unable to load model\n----\n{onnx_simple_text_plot(onx)}"
+                        f"Unable to load model\n----\n{msg}\n"
+                        f"{onnx_simple_text_plot(onx)}"
                     ) from e
                 try:
                     got = ref2.run(None, dict(X=x))[0]
                 except (ValueError, RuntimeError) as e:
                     raise AssertionError(
                         f"Unable to run model with x.shape={x.shape}"
-                        f"\n----\n{onnx_simple_text_plot(onx)}"
+                        f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}"
                     ) from e
                 try:
                     self.assertEqualArray(expected, got, atol=1e-5)
@@ -213,7 +207,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         f"Verification failed with GemmFloat8Quiet\n"
                         f"expected.shape={expected.shape} got.shape={got.shape}\n"
                         f"x=\n{x}\nqx=\n{qx}\ncst=\n{cst}\nqc=\n{qc}\n--\n"
-                        f"expected=\n{expected}\ngot={got}\n"
+                        f"expected=\n{expected}\ngot={got}\n----\n{msg}\n"
                         f"onx={onnx_simple_text_plot(onx)}"
                     ) from e
 
