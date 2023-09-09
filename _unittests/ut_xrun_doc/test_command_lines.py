@@ -459,7 +459,6 @@ class TestCommandLines(ExtTestCase):
             with open(model_out, "rb") as f:
                 model = load(f)
                 size2 = len(model.SerializeToString())
-                print(model)
             self.assertLess(size2, size - 1000)
 
 

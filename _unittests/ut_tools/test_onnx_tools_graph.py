@@ -201,7 +201,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                     ) from e
                 try:
                     got = ref2.run(None, dict(X=x))[0]
-                except ValueError as e:
+                except (ValueError, RuntimeError) as e:
                     raise AssertionError(
                         f"Unable to run model with x.shape={x.shape}"
                         f"\n----\n{onnx_simple_text_plot(onx)}"
@@ -217,6 +217,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         f"onx={onnx_simple_text_plot(onx)}"
                     ) from e
 
+                # check with onnxruntime and CPU kernel
                 graph = Graph(model)
                 new_graph = quantize_float8(
                     graph,
