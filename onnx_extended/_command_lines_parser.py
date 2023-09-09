@@ -439,7 +439,7 @@ def main(argv: Optional[List[Any]] = None):
         convert_model_to_external_data(
             proto,
             all_tensors_to_one_file=True,
-            location="data",
+            location=os.path.split(save)[-1] + ".data",
             convert_attribute=True,
             size_threshold=1024,
         )
