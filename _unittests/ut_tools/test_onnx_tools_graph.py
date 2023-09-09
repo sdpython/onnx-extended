@@ -2,7 +2,7 @@ import itertools
 import unittest
 import numpy as np
 from packaging.version import Version
-from onnx import TensorProto
+from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import (
     make_model,
     make_node,
@@ -16,6 +16,7 @@ from onnx.defs import onnx_opset_version
 from onnx.reference import ReferenceEvaluator
 from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 from onnx.reference.op_run import to_array_extended
+from onnx.onnx_cpp2py_export.defs import SchemaError
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -209,6 +210,12 @@ class TestOnnxToolsGraph(ExtTestCase):
                     ) from e
                 try:
                     got = ref2.run(None, dict(X=x))[0]
+                except SchemaError as es:
+                    if Version(onnx_version) < Version(
+                        "1.16.0"
+                    ) and "No schema registered for 'Cast_19'" in str(es):
+                        continue
+                    raise es
                 except (ValueError, RuntimeError) as e:
                     raise AssertionError(
                         f"Unable to run model with x.shape={x.shape}"
