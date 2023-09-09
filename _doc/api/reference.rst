@@ -26,7 +26,7 @@ Backend
 Tools
 =====
 
-.. autofunction:: onnx_extended.reference.c_reference_evaluator.from_array_extended
+.. autofunction:: onnx_extended.reference.from_array_extended
 
 Operators
 =========

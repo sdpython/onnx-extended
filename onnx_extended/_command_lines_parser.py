@@ -1,3 +1,4 @@
+import os
 import sys
 from typing import Any, List, Optional
 from argparse import ArgumentParser
@@ -325,6 +326,12 @@ def get_parser_external() -> ArgumentParser:
         required=True,
         help="saves into that file",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="display sizes",
+    )
     return parser
 
 
@@ -410,9 +417,10 @@ def main(argv: Optional[List[Any]] = None):
         )
 
     elif cmd == "external":
-        from onnx import load, save_model
+        from onnx import load
         from onnx.external_data_helper import (
             convert_model_to_external_data,
+            write_external_data_tensors,
         )
 
         parser = get_parser_external()
@@ -420,9 +428,14 @@ def main(argv: Optional[List[Any]] = None):
         model = args.model
         save = args.save
 
+        if args.verbose:
+            size = os.stat(model).st_size
+            print(f"Load model {model!r}, size is {size / 2 ** 10:1.3f} kb")
         with open(model, "rb") as f:
             proto = load(f)
 
+        if args.verbose:
+            print("convert_model_to_external_data")
         convert_model_to_external_data(
             proto,
             all_tensors_to_one_file=True,
@@ -430,7 +443,14 @@ def main(argv: Optional[List[Any]] = None):
             convert_attribute=True,
             size_threshold=1024,
         )
-        save_model(proto, save)
+
+        dirname = os.path.dirname(save)
+        proto = write_external_data_tensors(proto, dirname)
+        with open(save, "wb") as f:
+            f.write(proto.SerializeToString())
+        if args.verbose:
+            size = os.stat(save).st_size
+            print(f"Saved model {save!r}, size is {size / 2 ** 10:1.3f} kb")
 
     else:
         raise ValueError(

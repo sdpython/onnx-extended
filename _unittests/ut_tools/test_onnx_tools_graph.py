@@ -15,6 +15,7 @@ from onnx.checker import check_model, ValidationError
 from onnx.defs import onnx_opset_version
 from onnx.reference import ReferenceEvaluator
 from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
+from onnx.reference.op_run import to_array_extended
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -53,8 +54,13 @@ from onnx_extended import has_cuda
 
 if has_cuda():
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
+
+    try:
+        device_props = get_device_prop()
+    except RuntimeError:
+        device_props = {}
 else:
-    get_device_prop = None
+    device_props = {}
 
 
 class TestOnnxToolsGraph(ExtTestCase):
@@ -109,6 +115,14 @@ class TestOnnxToolsGraph(ExtTestCase):
 
         def check_onx(onx, tr):
             # check transpose are correct
+            for init in onx.graph.initializer:
+                if init.name.startswith("cst") and "scale" not in init.name:
+                    value = to_array_extended(init)
+                    if value.dtype == np.float32:
+                        raise AssertionError(
+                            f"Iniatialier {init.name!r} "
+                            f"has dtype {value.dtype}: {init}."
+                        )
             for node in onx.graph.node:
                 if node.op_type not in {"GemmFloat8", "CustomGemmFloat8E4M3FN"}:
                     continue
@@ -585,7 +599,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         Version(ort_version) < Version("1.16"), reason="float8 types not released"
     )
     @unittest.skipIf(
-        get_device_prop is None or get_device_prop().get("major") < 9,
+        device_props.get("major", 0) < 9,
         reason="Float 8 not supported on this machine",
     )
     def test_quantize_f8_onnx_extended_cuda(self):
@@ -1086,6 +1100,6 @@ if __name__ == "__main__":
     for name in ["onnx-extended", "skl2onnx"]:
         log = logging.getLogger(name)
         log.setLevel(logging.ERROR)
-    # TestOnnxToolsGraph().test_basic_all()
+    TestOnnxToolsGraph().test_basic_all()
     # TestOnnxToolsGraph().test_quantize_f8_onnx_onnxruntime()
     unittest.main(verbosity=2)

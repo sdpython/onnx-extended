@@ -454,14 +454,20 @@ class TestCommandLines(ExtTestCase):
                 model_file,
                 "-s",
                 model_out,
+                "-v",
             ]
-            main(args)
+            out = StringIO()
+            with redirect_stdout(out):
+                main(args)
+            text = out.getvalue()
+            self.assertIn("size is", text)
             with open(model_out, "rb") as f:
                 model = load(f)
                 size2 = len(model.SerializeToString())
-            self.assertLess(size2, size - 1000)
+            self.assertGreater(size2, size)
+            self.assertLess(os.stat(model_out).st_size, size)
 
 
 if __name__ == "__main__":
-    TestCommandLines().test_command_external()
+    # TestCommandLines().test_command_external()
     unittest.main(verbosity=2)

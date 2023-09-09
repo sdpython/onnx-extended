@@ -26,7 +26,7 @@ from ...helper import (
     make_matmul_reshape_transpose_back_function_proto,
     make_matmul_reshape_transpose_function_proto,
 )
-from ...reference.c_reference_evaluator import from_array_extended
+from ...reference import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .errors import QuantizationError
 from .onnx_graph_struct import _get_shape, Graph, Node, NodeKind
