@@ -382,6 +382,113 @@ void CustomGemmKernel::ComputeGemm(
             << " ldd=" << ldd << " M=" << M << " N=" << N << " K=" << K
             << ")\n";
   */
+#if defined(__MACOSX__) || defined(__APPLE__)
+
+  int i, j, k;
+  int MN = M * N;
+  if (p_input_c == nullptr) {
+    for (i = 0; i < MN; ++i) {
+      p_output_y[i] = 0;
+    }
+  } else {
+    for (i = 0; i < MN; ++i) {
+      p_output_y[i] = beta_ * p_input_c[i];
+    }
+  }
+
+  if (rowMajor_ == 1) {
+    // rowMajor_ == 0
+    if (transa) {
+      if (transb) {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+            }
+          }
+        }
+      } else {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
+        }
+      }
+    } else if (transb) {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    } else {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+          }
+        }
+      }
+    }
+  } else {
+    // rowMajor_ == 0
+    if (transa) {
+      if (transb) {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[i * lda + k];
+            for (j = 0; j < N; ++j) {
+              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
+        }
+      } else {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
+        }
+      }
+    } else if (transb) {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    } else {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[k * lda + i];
+          for (j = 0; j < N; ++j) {
+            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    }
+  }
+
+#else
 
   int i, j, k;
   int MN = M * N;
@@ -496,6 +603,8 @@ void CustomGemmKernel::ComputeGemm(
       }
     }
   }
+
+#endif
 }
 
 } // namespace ortops
