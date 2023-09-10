@@ -384,14 +384,15 @@ void CustomGemmKernel::ComputeGemm(
   */
 
   int i, j, k;
+  int MN = M * N;
   if (p_input_c == nullptr) {
 #pragma omp parallel for
-    for (i = 0; i < M * N; ++i) {
+    for (i = 0; i < MN; ++i) {
       p_output_y[i] = 0;
     }
   } else {
 #pragma omp parallel for
-    for (i = 0; i < M * N; ++i) {
+    for (i = 0; i < MN; ++i) {
       p_output_y[i] = beta_ * p_input_c[i];
     }
   }

@@ -71,7 +71,7 @@ def get_stdcpp() -> int:
     """
     import re
 
-    reg = re.compile("-std=c[+][+]([0-9]+)")
+    reg = re.compile("std[:=]c[+][+]([0-9]+)")
     f = reg.findall(get_cxx_flags())
     if len(f) == 0:
         raise ValueError(f"Unable to extract c++ version from {get_cxx_flags()!r}.")
