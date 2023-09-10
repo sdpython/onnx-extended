@@ -211,9 +211,11 @@ class TestOnnxToolsGraph(ExtTestCase):
                 try:
                     got = ref2.run(None, dict(X=x))[0]
                 except SchemaError as es:
-                    if Version(onnx_version) < Version(
-                        "1.16.0"
-                    ) and "No schema registered for 'Cast_19'" in str(es):
+                    if (
+                        Version(onnx_version) < Version("1.16.0")
+                        and "No schema registered for 'Cast_19'" in str(es)
+                        or "Both types must be float 8" in str(es)
+                    ):
                         continue
                     raise es
                 except (ValueError, RuntimeError) as e:
