@@ -213,11 +213,14 @@ class TestOnnxToolsGraph(ExtTestCase):
                 except SchemaError as es:
                     if Version(onnx_version) < Version("1.16.0") and (
                         "No schema registered for 'Cast_19'" in str(es)
-                        or "Both types must be float 8" in str(es)
                     ):
                         continue
                     raise es
                 except (ValueError, RuntimeError) as e:
+                    if Version(onnx_version) < Version("1.16.0") and (
+                        "Both types must be float 8" in str(e)
+                    ):
+                        continue
                     raise AssertionError(
                         f"Unable to run model with x.shape={x.shape}"
                         f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}"
