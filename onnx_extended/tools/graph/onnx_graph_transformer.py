@@ -112,21 +112,26 @@ def estimation_quantization_scale(
 
 
 def quantize_weights(
-    node: Node, elem_type: int, index: int, transpose: bool = False
-) -> Tuple[Node, Node, Node, Union[bool, Tuple[int, ...]]]:
+    node: Node,
+    elem_type: int,
+    index: int,
+    transpose: bool = False,
+) -> Tuple[Node, Node, Node, Union[bool, Tuple[int, ...]], Tuple[int, ...]]:
     """
     Quantizes a tensor into a tensor of element type *elem_type*.
 
     :param node: Node to quantize
     :param elem_type: element type
     :param transpose: transpose the weight before doing it
+    :param verbose: logs what is quantized
     :return: three new nodes, quantized weights, scale, zero point
-        and the original shape of the constant
+        and the original shape of the constant, shape
 
     See function :func:`quantize_float8_matmul`
     """
     tensor = node.get_tensor()
     values = to_array_extended(tensor)
+    shape = values.shape
     if len(values.shape) == 1:
         raise NotImplementedError(
             f"Input {index} is a constant, it must have at "
@@ -173,7 +178,7 @@ def quantize_weights(
     )
     node_zp = node.create_with_new_values(new_zp)
 
-    return node_weight, node_scale, node_zp, reshaped
+    return node_weight, node_scale, node_zp, reshaped, shape
 
 
 def quantize_float8_matmul(
@@ -309,21 +314,28 @@ def quantize_float8_matmul(
         added = []
         input_names = []
         was_reshaped = [False, False]
+        shapes = []
         for index, name in enumerate(node.inputs):
             do_transpose = bool((1 << index) & index_transpose)
             if node.parent.is_constant(name):
                 # Quantized constant weights
                 cst = node.parent.get_node_producer(name)
-                weight, scale, zero_point, reshaped = quantize_weights(
+                weight, scale, zero_point, reshaped, shape = quantize_weights(
                     cst, elem_type, index, transpose=do_transpose
                 )
                 added.extend([weight.proto, scale.proto, zero_point.proto])
                 input_names.append([weight.outname, scale.outname, zero_point.outname])
                 removed.append(cst)
                 was_reshaped[index] = reshaped
+                shapes.append(shape)
+                logger.debug("[quantize_weights] static quantize shape=%r", shape)
             else:
                 # Not a constant
                 shape = node.parent.get_shape(name)
+                shapes.append(shape)
+                logger.debug(
+                    "[quantize_float8_matmul] quantize dynamic shape %r", shape
+                )
                 if len(shape) == 2:
                     if do_transpose:
                         # no need
@@ -357,6 +369,7 @@ def quantize_float8_matmul(
                             [temp_name],
                             perm=[1, 0],
                             domain=domain_dq,
+                            name=node.parent.generate_node_name("MMRT"),
                         )
                     )
                     was_reshaped[index] = name
@@ -380,6 +393,7 @@ def quantize_float8_matmul(
                     [new_name, scale, zero_point],
                     to=elem_type,
                     domain=domain_dq,
+                    name=node.parent.generate_node_name("DQL"),
                 )
                 dql = Node(None, node.parent, proto, NodeKind.NODE)
                 added.extend([dql.proto])
@@ -398,7 +412,7 @@ def quantize_float8_matmul(
         if was_reshaped[0] and was_reshaped[1]:
             raise QuantizationError(
                 f"MatMul cannot be replaced by operator Gemm as both inputs "
-                f"are not matrices of shapes {was_reshaped}."
+                f"are not matrices. Their shapes are {shapes}."
             )
 
         if output_type in {
@@ -449,6 +463,7 @@ def quantize_float8_matmul(
                 transB=1 if (index_transpose & 2) else 0,
                 domain=domain_gemm,
                 computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+                name=node.parent.generate_node_name("GEMMFP8"),
             )
         )
         if do_reshape:
@@ -483,6 +498,7 @@ def quantize_float8_matmul(
                     node.outputs,
                     perm=[1, 0],
                     domain=domain_dq,
+                    name=node.parent.generate_node_name("MMRTB"),
                 )
             )
             if (domain_dq, fname) not in local_functions:

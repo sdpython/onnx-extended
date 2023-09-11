@@ -257,7 +257,9 @@ class TestOnnxToolsGraph(ExtTestCase):
                 except OrtFail as e:
                     if "type inference failed" in str(e):
                         # bug of onnxruntime
-                        with open(f"custom_ops_type_inference_fails_{it}.onnx", "wb") as f:
+                        with open(
+                            f"custom_ops_type_inference_fails_{it}.onnx", "wb"
+                        ) as f:
                             f.write(onxo.SerializeToString())
                         continue
                     raise e
