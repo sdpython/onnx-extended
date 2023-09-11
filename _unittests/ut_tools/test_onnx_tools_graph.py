@@ -149,13 +149,13 @@ class TestOnnxToolsGraph(ExtTestCase):
             [3, 2],  # n_dim_c
         )
 
-        for init, tr, side_x, n_dim_x, n_dim_c in options:
+        for it, (init, tr, side_x, n_dim_x, n_dim_c) in enumerate(options):
             msg = (
                 f"init={init}, tr={tr}, side_x={side_x}, "
                 f"n_dim_x={n_dim_x}, n_dim_c={n_dim_c}"
             )
             with self.subTest(msg=msg):
-                print(f"-----------------------------\n{msg}")
+                # print(f"-----------------------------\n{msg}")
                 model, cst = self._get_basic_square_model(
                     init=init, n_dim_x=n_dim_x, n_dim_c=n_dim_c, side_x=side_x
                 )
@@ -257,6 +257,8 @@ class TestOnnxToolsGraph(ExtTestCase):
                 except OrtFail as e:
                     if "type inference failed" in str(e):
                         # bug of onnxruntime
+                        with open(f"custom_ops_type_inference_fails_{it}.onnx", "wb") as f:
+                            f.write(onxo.SerializeToString())
                         continue
                     raise e
                 got = sess.run(None, dict(X=x))[0]
