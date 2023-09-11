@@ -31,9 +31,7 @@ if InferenceSession is not None:
 
 
 from onnx_extended.ortops.tutorial.cuda import documentation
-from onnx_extended.tools.graph.onnx_graph_transformer import (
-    make_dynamic_quantize_linear_function,
-)
+from onnx_extended.helper import make_dynamic_quantize_linear_function_proto
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended import has_cuda, cuda_version_int
 
@@ -695,9 +693,9 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         ]
 
         if use_local:
-            functions = [make_dynamic_quantize_linear_function("local", 19)]
+            functions = [make_dynamic_quantize_linear_function_proto("local", 19)]
         else:
-            dql = make_dynamic_quantize_linear_function(
+            dql = make_dynamic_quantize_linear_function_proto(
                 "local", 19, to=TensorProto.FLOAT8E4M3FN
             )
             functions = []

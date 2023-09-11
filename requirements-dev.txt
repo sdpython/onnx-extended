@@ -21,6 +21,7 @@ pandas
 psutil
 pytest
 pytest-cov
+pytest-subtests
 rstcheck[sphinx,toml]
 ruff
 scikit-learn

@@ -119,6 +119,14 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
   } else {
     EXT_THROW("Unexpected value for activation '", activation, "'.");
   }
+
+  ThrowOnError(api, api.KernelInfo_GetInputCount(info, &n_inputs_));
+  if (n_inputs_ > 5) {
+    std::string name = KernelInfoGetInputName(api, info, 5);
+    has_scale_Y_ = !name.empty();
+  } else {
+    has_scale_Y_ = false;
+  }
 }
 
 void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
@@ -159,7 +167,7 @@ void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
 }
 
 void check_device(const Ort::ConstValue &input, const char *name) {
-  EXT_ENFORCE(input.HasValue(), "Input '", name, "' is not empty.");
+  EXT_ENFORCE(input.HasValue(), "Input '", name, "' is empty.");
   auto mem = input.GetTensorMemoryInfo();
   EXT_ENFORCE(mem.GetDeviceType() ==
                   OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU,
@@ -189,7 +197,7 @@ ONNXTensorElementDataType GetTypeAndShape(const TValue &input,
 void CustomGemmKernel::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
 
-  int n_inputs = ctx.GetInputCount();
+  int n_inputs = static_cast<int>(n_inputs_);
   Ort::ConstValue scale_A, scale_B, scale_Y;
   Ort::ConstValue input_A = ctx.GetInput(0);
   Ort::ConstValue input_B = ctx.GetInput(1);
@@ -208,7 +216,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
     check_device(input_C, "C");
 
   bool has_scales = n_inputs > 3;
-  bool has_scales_Y = n_inputs > 5;
+  bool has_scales_Y = n_inputs > 5 && has_scale_Y_;
   if (has_scales) {
     EXT_ENFORCE(n_inputs == 5 || n_inputs == 6,
                 "Number of inputs must be 5 or 6 but is ", n_inputs, ".");
@@ -335,9 +343,9 @@ void CustomGemmKernel::ComputeGemm(
     std::vector<float> c_input_a(M * K);
     std::vector<float> c_input_b(N * K);
     e4m3fn_to_float(c_input_a.size(), static_cast<const uint8_t *>(p_input_a),
-                    c_input_a.data());
+                    c_input_a.data(), *(static_cast<const float *>(p_scale_a)));
     e4m3fn_to_float(c_input_b.size(), static_cast<const uint8_t *>(p_input_b),
-                    c_input_b.data());
+                    c_input_b.data(), *(static_cast<const float *>(p_scale_b)));
     ComputeGemm(ctx, n_inputs, has_bias, has_scales, has_scales_Y, shape_A,
                 shape_B, shape_C, shape_Y, trans_A, trans_B, c_input_a.data(),
                 c_input_b.data(), static_cast<const float *>(p_input_c),
@@ -360,11 +368,11 @@ void CustomGemmKernel::ComputeGemm(
     const float *p_scale_a, const float *p_scale_b, const float *p_scale_y,
     float *p_output_y, int M, int N, int K, int lda, int ldb, int ldd) {
 
-  EXT_ENFORCE(p_scale_a == nullptr || *p_scale_a == 1,
-              "scale_A must be empty or one for float.");
-  EXT_ENFORCE(p_scale_b == nullptr || *p_scale_b == 1,
+  EXT_ENFORCE(has_scales || p_scale_a == nullptr || *p_scale_a == 1,
+              "scale_A must be empty or one for float");
+  EXT_ENFORCE(has_scales || p_scale_b == nullptr || *p_scale_b == 1,
               "scale_B must be empty or one for float.");
-  EXT_ENFORCE(p_scale_y == nullptr || *p_scale_y == 1,
+  EXT_ENFORCE(has_scales_Y || p_scale_y == nullptr || *p_scale_y == 1,
               "scale_Y must be empty or one for float.");
 
   /*
@@ -374,16 +382,124 @@ void CustomGemmKernel::ComputeGemm(
             << " ldd=" << ldd << " M=" << M << " N=" << N << " K=" << K
             << ")\n";
   */
+#if defined(__MACOSX__) || defined(__APPLE__)
 
   int i, j, k;
+  int MN = M * N;
+  if (p_input_c == nullptr) {
+    for (i = 0; i < MN; ++i) {
+      p_output_y[i] = 0;
+    }
+  } else {
+    for (i = 0; i < MN; ++i) {
+      p_output_y[i] = beta_ * p_input_c[i];
+    }
+  }
+
+  if (rowMajor_ == 1) {
+    // rowMajor_ == 0
+    if (transa) {
+      if (transb) {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+            }
+          }
+        }
+      } else {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
+        }
+      }
+    } else if (transb) {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    } else {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+          }
+        }
+      }
+    }
+  } else {
+    // rowMajor_ == 0
+    if (transa) {
+      if (transb) {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[i * lda + k];
+            for (j = 0; j < N; ++j) {
+              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
+        }
+      } else {
+        for (i = 0; i < M; ++i) {
+          float A_PART;
+          for (k = 0; k < K; ++k) {
+            A_PART = alpha_ * p_input_a[k * lda + i];
+            for (j = 0; j < N; ++j) {
+              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+            }
+          }
+        }
+      }
+    } else if (transb) {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[i * lda + k];
+          for (j = 0; j < N; ++j) {
+            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    } else {
+      for (i = 0; i < M; ++i) {
+        float A_PART;
+        for (k = 0; k < K; ++k) {
+          A_PART = alpha_ * p_input_a[k * lda + i];
+          for (j = 0; j < N; ++j) {
+            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+          }
+        }
+      }
+    }
+  }
+
+#else
+
+  int i, j, k;
+  int MN = M * N;
   if (p_input_c == nullptr) {
 #pragma omp parallel for
-    for (i = 0; i < M * N; ++i) {
+    for (i = 0; i < MN; ++i) {
       p_output_y[i] = 0;
     }
   } else {
 #pragma omp parallel for
-    for (i = 0; i < M * N; ++i) {
+    for (i = 0; i < MN; ++i) {
       p_output_y[i] = beta_ * p_input_c[i];
     }
   }
@@ -487,6 +603,8 @@ void CustomGemmKernel::ComputeGemm(
       }
     }
   }
+
+#endif
 }
 
 } // namespace ortops

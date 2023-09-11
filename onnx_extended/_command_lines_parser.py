@@ -1,3 +1,4 @@
+import os
 import sys
 from typing import Any, List, Optional
 from argparse import ArgumentParser
@@ -13,7 +14,15 @@ def get_main_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "cmd",
-        choices=["store", "check", "display", "print", "quantize", "select"],
+        choices=[
+            "store",
+            "check",
+            "display",
+            "print",
+            "quantize",
+            "select",
+            "external",
+        ],
         help=dedent(
             """
         Select a command.
@@ -24,7 +33,8 @@ def get_main_parser() -> ArgumentParser:
         'display' displays the shapes inferences results,
         'print' prints out a model or a protobuf file on the standard output,
         'quantize' quantizes an onnx model in simple ways,
-        'select' selects a subgraph inside a bigger models
+        'select' selects a subgraph inside a bigger models,
+        'external' saves the coefficients in a different files for an onnx model
         """
         ),
     )
@@ -195,13 +205,6 @@ def get_parser_quantize() -> ArgumentParser:
         "cast into float 32.",
     )
     parser.add_argument(
-        "-l",
-        "--use-local-functions",
-        action="store_true",
-        help="use local functions wherever possible "
-        "instead of using experimental operators",
-    )
-    parser.add_argument(
         "-s",
         "--scenario",
         choices=["onnxruntime", "onnx-extended"],
@@ -248,7 +251,7 @@ def get_parser_select() -> ArgumentParser:
         Selects a subpart of an onnx model.
         """
         ),
-        epilog="The function removed the unused nodes.",
+        epilog="The function removes the unused nodes.",
     )
     parser.add_argument(
         "-m",
@@ -298,6 +301,40 @@ def get_parser_select() -> ArgumentParser:
     return parser
 
 
+def get_parser_external() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="external",
+        description=dedent(
+            """
+        Takes an onnx model and split the model and the coefficients.    
+        """
+        ),
+        epilog="The functions stores the coefficients as external data. "
+        "It calls the function convert_model_to_external_data.",
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        required=True,
+        help="onnx model",
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        type=str,
+        required=True,
+        help="saves into that file",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="display sizes",
+    )
+    return parser
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -312,6 +349,7 @@ def main(argv: Optional[List[Any]] = None):
                 display=get_parser_display,
                 quantize=get_parser_quantize,
                 select=get_parser_select,
+                external=get_parser_external,
             )
             cmd = argv[0]
             if cmd not in parsers:
@@ -359,7 +397,6 @@ def main(argv: Optional[List[Any]] = None):
             output=args.output,
             verbose=args.verbose,
             scenario=args.scenario,
-            use_local_functions=args.use_local_functions,
             kind=args.kind,
             early_stop=args.early_stop,
             quiet=args.quiet,
@@ -378,6 +415,42 @@ def main(argv: Optional[List[Any]] = None):
             outputs=args.outputs,
             verbose=args.verbose,
         )
+
+    elif cmd == "external":
+        from onnx import load
+        from onnx.external_data_helper import (
+            convert_model_to_external_data,
+            write_external_data_tensors,
+        )
+
+        parser = get_parser_external()
+        args = parser.parse_args(argv[1:])
+        model = args.model
+        save = args.save
+
+        if args.verbose:
+            size = os.stat(model).st_size
+            print(f"Load model {model!r}, size is {size / 2 ** 10:1.3f} kb")
+        with open(model, "rb") as f:
+            proto = load(f)
+
+        if args.verbose:
+            print("convert_model_to_external_data")
+        convert_model_to_external_data(
+            proto,
+            all_tensors_to_one_file=True,
+            location=os.path.split(save)[-1] + ".data",
+            convert_attribute=True,
+            size_threshold=1024,
+        )
+
+        dirname = os.path.dirname(save)
+        proto = write_external_data_tensors(proto, dirname)
+        with open(save, "wb") as f:
+            f.write(proto.SerializeToString())
+        if args.verbose:
+            size = os.stat(save).st_size
+            print(f"Saved model {save!r}, size is {size / 2 ** 10:1.3f} kb")
 
     else:
         raise ValueError(

@@ -20,8 +20,7 @@ from onnx.helper import (
 )
 from onnx.shape_inference import infer_shapes
 from onnx.version_converter import convert_version
-from ...reference import CReferenceEvaluator
-from ...reference.c_reference_evaluator import from_array_extended
+from ...reference import CReferenceEvaluator, from_array_extended
 
 
 def _get_shape(ttype: TypeProto) -> Optional[Tuple[Union[None, str, int], ...]]:

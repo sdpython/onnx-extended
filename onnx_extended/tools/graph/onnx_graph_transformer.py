@@ -1,11 +1,9 @@
 from logging import getLogger
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
-from onnx import AttributeProto, FunctionProto, NodeProto, TensorProto
+from onnx import FunctionProto, NodeProto, TensorProto
 from onnx.helper import (
-    make_function,
     make_node,
-    make_opsetid,
     make_tensor,
     make_tensor_value_info,
     tensor_dtype_to_np_dtype,
@@ -23,7 +21,12 @@ try:
 except ImportError:
     from onnx.reference.ops.op_cast import Cast
     from onnx.reference.ops.op_quantize_linear import QuantizeLinear
-from ...reference.c_reference_evaluator import from_array_extended
+from ...helper import (
+    make_dynamic_quantize_linear_function_proto,
+    make_matmul_reshape_transpose_back_function_proto,
+    make_matmul_reshape_transpose_function_proto,
+)
+from ...reference import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
 from .errors import QuantizationError
 from .onnx_graph_struct import _get_shape, Graph, Node, NodeKind
@@ -109,8 +112,8 @@ def estimation_quantization_scale(
 
 
 def quantize_weights(
-    node: Node, elem_type: int, transpose: bool = False
-) -> Tuple[Node, Node, Node]:
+    node: Node, elem_type: int, index: int, transpose: bool = False
+) -> Tuple[Node, Node, Node, Union[bool, Tuple[int, ...]]]:
     """
     Quantizes a tensor into a tensor of element type *elem_type*.
 
@@ -118,9 +121,32 @@ def quantize_weights(
     :param elem_type: element type
     :param transpose: transpose the weight before doing it
     :return: three new nodes, quantized weights, scale, zero point
+        and the original shape of the constant
+
+    See function :func:`quantize_float8_matmul`
     """
     tensor = node.get_tensor()
     values = to_array_extended(tensor)
+    if len(values.shape) == 1:
+        raise NotImplementedError(
+            f"Input {index} is a constant, it must have at "
+            f"least 2 dimensions not {values.shape}."
+        )
+    if len(values.shape) > 2:
+        # Needs to be reshaped.
+        reshaped = values.shape
+        if index == 0:
+            # first input
+            values = values.reshape((-1, values.shape[-1]))
+        else:
+            # second input
+            values = (
+                values.reshape((-1,) + values.shape[-2:])
+                .transpose((1, 0, 2))
+                .reshape((values.shape[-2], -1))
+            )
+    else:
+        reshaped = False
     if transpose:
         values = values.T
     scale, zp = estimation_quantization_scale(values, to=elem_type)
@@ -147,95 +173,10 @@ def quantize_weights(
     )
     node_zp = node.create_with_new_values(new_zp)
 
-    return node_weight, node_scale, node_zp
+    return node_weight, node_scale, node_zp, reshaped
 
 
-def make_dynamic_quantize_linear_function(
-    domain: str, opset: int, to: Optional[int] = None
-) -> FunctionProto:
-    """
-    Creates the FunctionProto for a function doing a quantization to float 8.
-
-    :param domain: local domain name
-    :param opset: opset to use to define the function
-    :param to: if None, the function has an attribute,
-        otherwise, it is replaced by the given value
-    :return: FunctionProto
-
-    The function takes 1 input and returns 3 outputs.
-    It has one attribute *to* which specified the quantized type.
-    """
-    normalization_values = list(
-        {
-            TensorProto.FLOAT8E4M3FN: 100.057724,
-            TensorProto.FLOAT8E4M3FNUZ: 54.26635,
-            TensorProto.FLOAT8E5M2: 9535.286,
-            TensorProto.FLOAT8E5M2FNUZ: 9403.499,
-        }.items()
-    )
-
-    if to is None:
-        cast = make_node("Cast", ["zerof"], ["Zeropoint"])
-        att = AttributeProto()
-        att.name = "to"
-        att.ref_attr_name = "to"
-        att.type = AttributeProto.INT
-        cast.attribute.append(att)
-
-        cst = make_node("Constant", [], ["vto"])
-        att = AttributeProto()
-        att.name = "value_int"
-        att.ref_attr_name = "to"
-        att.type = AttributeProto.INT
-        cst.attribute.append(att)
-    else:
-        cast = make_node("Cast", ["zerof"], ["Zeropoint"], to=to)
-        cst = make_node("Constant", [], ["vto"], value_int=to)
-
-    nodes = [
-        make_node(
-            "Constant",
-            [],
-            ["zerof"],
-            value=make_tensor("zerof", TensorProto.FLOAT, [], [0]),
-        ),
-        make_node(
-            "Constant",
-            [],
-            ["newshape"],
-            value=make_tensor("newshape", TensorProto.INT64, [1], [-1]),
-        ),
-        cast,
-        make_node("Mul", ["x", "x"], ["xsquare"]),
-        make_node("ReduceMean", ["xsquare"], ["Dev"], keepdims=0),
-        make_node("Sqrt", ["Dev"], ["Scale"]),
-        cst,
-        make_node("Reshape", ["vto", "newshape"], ["vtotensor"]),
-        make_node(
-            "LabelEncoder",
-            ["vtotensor"],
-            ["stdftensor"],
-            keys_int64s=[v[0] for v in normalization_values],
-            values_floats=[v[1] for v in normalization_values],
-            domain="ai.onnx.ml",
-        ),
-        make_node("ReduceSum", ["stdftensor"], ["stdf"], keepdims=0),
-        make_node("CastLike", ["stdf", "Scale"], ["std"]),
-        make_node("Div", ["Scale", "std"], ["ScaleScaled"]),
-        make_node("QuantizeLinear", ["x", "ScaleScaled", "Zeropoint"], ["y"]),
-    ]
-    return make_function(
-        domain,
-        "DynamicQuantizeLinear",
-        ["x"],
-        ["y", "ScaleScaled", "Zeropoint"],
-        nodes,
-        opset_imports=[make_opsetid("", opset), make_opsetid("ai.onnx.ml", 2)],
-        attributes=["to"],
-    )
-
-
-def _quantize_float8_matmul(
+def quantize_float8_matmul(
     node: Node,
     elem_type: int,
     output_type: int,
@@ -246,7 +187,7 @@ def _quantize_float8_matmul(
     domain_ops: Optional[Dict[str, str]] = None,
 ) -> Optional[TransformResults]:
     """
-    Quantize matrix multiplications.
+    Quantizes matrix multiplications.
 
     :param node: matrix multiplication
     :param elem_type: float 8 type to quantize into
@@ -262,110 +203,173 @@ def _quantize_float8_matmul(
         0 (none), 1 (first), 2 (second), 3 for both
     :param domain_ops: domain to use for operators used as keys in the dictionary
     :return: nodes to remove, nodes to add, new opsets
+
+    **About tensors with more than two dimensions.**
+
+    Gemm only supports matrices or 2D tensors.
+    When one input does not follow that schema,
+    it uses the following tricks. First one when the first input
+    has more than one dimension. We could describe that
+    with the Einstein summation. We want `abij, jk -> abik`.
+
+    ::
+
+        abij, jk -> abik
+        abij ~> Cj
+        Cj, jk -> Ck      # gemm
+        Ck ~> abik
+
+    In python:
+
+    .. runpython::
+        :showcode:
+
+        import numpy as np
+
+        a = np.arange(16).reshape((2, 2, 2, 2))
+        b = np.arange(4).reshape((2, 2)) * 10
+
+        expected = a @ b
+
+        a2 = a.reshape((-1, a.shape[-1]))
+        b2 = b
+        res = a2 @ b2
+        final = res.reshape(a.shape[:-2] + (-1, res.shape[-1]))
+
+        print("------")
+        print(a)
+        print(b)
+        print("------")
+        print(expected)
+        print("------")
+        print(final)
+        assert expected.tolist() == final.tolist()
+
+    For the other, we use the trick `a @ b = (b' @ a')'`.
+    Second one when the second input has more than one dimension.
+    We want `ij, abjk -> abik`.
+
+    ::
+
+        ij, abjk -> abik
+        abjk ~> Cjk ~> jCk ~> jD
+        ij, jD -> iD      # gemm
+        iD ~> iCk ~> Cik ~> abik
+
+    .. runpython::
+        :showcode:
+
+        import numpy as np
+
+        a = np.arange(4).reshape((2, 2)) * 10
+        b = np.arange(16).reshape((2, 2, 2, 2))
+
+        expected = a @ b
+
+        a2 = a
+        b2 = (
+            b.reshape((-1,) + b.shape[-2:])
+            .transpose((1, 0, 2))
+            .reshape((b.shape[-2], -1))
+        )
+        res = a2 @ b2
+        final = (
+            res.reshape(a.shape[0], -1, b.shape[-1])
+            .transpose((1, 0, 2))
+            .reshape(b.shape[:-2] + (-1, b.shape[-1]))
+        )
+
+        print("------")
+        print(a)
+        print(b)
+        print("------")
+        print(expected)
+        print("------")
+        print(final)
+        assert expected.tolist() == final.tolist()
+
+    Both sides cannot have more than two dimensions in the current implementation.
     """
+    domain_dq = "local.quant.domain"
     if domain_ops is None:
         domain_ops = {}
     if version == "onnxruntime":
-        domain_dq = ""
         op_gemm = "GemmFloat8"
         domain_gemm = domain_ops.get("GemmFloat8", "com.microsoft")
     elif version == "onnx-extended":
-        domain_dq = "onnx_extented.ortops.tutorial.cpu"
         op_gemm = "CustomGemmFloat8E4M3FN"
         domain_gemm = domain_ops.get(
             "CustomGemmFloat8E4M3FN", "onnx_extented.ortops.tutorial.cuda"
         )
     else:
         raise ValueError(f"Unexpected value {version!r} for version.")
-    if local_functions is not None:
-        domain_dq = "local.quant.domain"
+
     if node.op_type == "MatMul":
         removed = []
         added = []
         input_names = []
-        was_reshaped = [None, None]
-        m1 = None
+        was_reshaped = [False, False]
         for index, name in enumerate(node.inputs):
             do_transpose = bool((1 << index) & index_transpose)
             if node.parent.is_constant(name):
                 # Quantized constant weights
                 cst = node.parent.get_node_producer(name)
-                weight, scale, zero_point = quantize_weights(
-                    cst, elem_type, transpose=do_transpose
+                weight, scale, zero_point, reshaped = quantize_weights(
+                    cst, elem_type, index, transpose=do_transpose
                 )
                 added.extend([weight.proto, scale.proto, zero_point.proto])
                 input_names.append([weight.outname, scale.outname, zero_point.outname])
                 removed.append(cst)
+                was_reshaped[index] = reshaped
             else:
+                # Not a constant
                 shape = node.parent.get_shape(name)
-
-                # Add DynamicQuantizeLinear
-                if do_transpose:
-                    # transposition is needed for one
+                if len(shape) == 2:
+                    if do_transpose:
+                        # no need
+                        temp_name = node.parent.generate_name(f"{name}_tr")
+                        added.append(
+                            make_node(
+                                "Transpose",
+                                [name],
+                                [temp_name],
+                                perm=[1, 0],
+                                name=node.parent.generate_node_name(f"tra8_{name}"),
+                            )
+                        )
+                    else:
+                        temp_name = name
+                else:
                     if shape is None:
                         raise QuantizationError(
                             f"Shape is unknown for result {name!r} in node {node}. "
                             f"This input cannot be transposed with certainty."
                         )
 
-                    # Let's reshape if the dimension is != 2
-                    if len(shape) == 2:
-                        # no need
-                        reshaped_name = name
-                    else:
-                        # The input needs to be reshaped.
-                        reshaped_name = node.parent.generate_name(f"{name}_sh")
-                        shape_name = node.parent.generate_name(f"{name}_sh")
-                        new_shape = node.parent.generate_name(f"{name}_nsh")
-                        last_dim = node.parent.generate_name(f"{name}_ldim")
-                        m1 = node.parent.generate_name(f"{name}_m1")
-                        was_reshaped[index] = shape_name
-                        added.extend(
-                            [
-                                make_node("Shape", [name], [shape_name]),
-                                make_node(
-                                    "Constant",
-                                    [],
-                                    [m1],
-                                    value=make_tensor(
-                                        new_shape, TensorProto.INT64, [1], [-1]
-                                    ),
-                                ),
-                                make_node("Gather", [shape_name, m1], [last_dim]),
-                                make_node(
-                                    "Concat", [m1, last_dim], [new_shape], axis=0
-                                ),
-                                make_node(
-                                    "Reshape",
-                                    [name, new_shape],
-                                    [reshaped_name],
-                                    name=node.parent.generate_node_name(
-                                        f"resh8_{name}"
-                                    ),
-                                ),
-                            ]
-                        )
-
-                    tr_name = node.parent.generate_name(f"{name}_tr")
+                    temp_name = node.parent.generate_name(f"{name}_tr")
+                    fname = (
+                        f"MatMulReshapeTranspose{'T' if do_transpose else 'N'}{index}"
+                    )
                     added.append(
                         make_node(
-                            "Transpose",
-                            [reshaped_name],
-                            [tr_name],
+                            fname,
+                            [name],
+                            [temp_name],
                             perm=[1, 0],
-                            name=node.parent.generate_node_name(f"tra8_{name}"),
+                            domain=domain_dq,
                         )
                     )
-                    temp_name = tr_name
-                elif shape is None:
-                    # shape unknown, let's hope it has two dimensions.
-                    temp_name = name
-                elif len(shape) == 2:
-                    temp_name = name
-                else:
-                    raise NotImplementedError(
-                        f"Shape is {shape}. This case is not implemented yet."
-                    )
+                    was_reshaped[index] = name
+                    if (domain_dq, fname) not in local_functions:
+                        # use local functions
+                        local_functions[
+                            domain_dq, fname
+                        ] = make_matmul_reshape_transpose_function_proto(
+                            domain=domain_dq,
+                            opset=opset,
+                            index=index,
+                            transpose=do_transpose,
+                        )
 
                 new_name = node.parent.generate_name(f"{name}_f8")
                 scale = node.parent.generate_name(f"{name}_scale")
@@ -376,7 +380,6 @@ def _quantize_float8_matmul(
                     [new_name, scale, zero_point],
                     to=elem_type,
                     domain=domain_dq,
-                    name=node.parent.generate_node_name(f"dql8_{name}"),
                 )
                 dql = Node(None, node.parent, proto, NodeKind.NODE)
                 added.extend([dql.proto])
@@ -388,15 +391,16 @@ def _quantize_float8_matmul(
                     # use local functions
                     local_functions[
                         domain_dq, "DynamicQuantizeLinear"
-                    ] = make_dynamic_quantize_linear_function(
+                    ] = make_dynamic_quantize_linear_function_proto(
                         domain=domain_dq, opset=opset
                     )
 
-        if was_reshaped[0] is not None and was_reshaped[1] is not None:
+        if was_reshaped[0] and was_reshaped[1]:
             raise QuantizationError(
                 f"MatMul cannot be replaced by operator Gemm as both inputs "
                 f"are not matrices of shapes {was_reshaped}."
             )
+
         if output_type in {
             TensorProto.INT8,
             TensorProto.UINT8,
@@ -418,6 +422,7 @@ def _quantize_float8_matmul(
         else:
             # output is not quantized, no need for an output scale
             scale_out = ""
+
         gemm_inputs = [
             input_names[0][0],  # A
             input_names[1][0],  # B
@@ -426,12 +431,13 @@ def _quantize_float8_matmul(
             input_names[1][1],  # scaleB
             scale_out,  # scaleR
         ]
-        if was_reshaped[0] is not None or was_reshaped[1] is not None:
+        if was_reshaped[0] or was_reshaped[1]:
             gemm_outputs = [node.parent.generate_name(f"{name}_gemm")]
             do_reshape = True
         else:
             gemm_outputs = node.outputs
             do_reshape = False
+
         added.append(
             make_node(
                 op_gemm,
@@ -447,44 +453,51 @@ def _quantize_float8_matmul(
         )
         if do_reshape:
             # One of the inputs had 3 dimensions.
-            if was_reshaped[0] is not None:
-                assert m1 is not None
-                sliced = node.parent.generate_name(f"{name}_sli")
-                new_shape = node.parent.generate_name(f"{name}_sh1")
-                zero = node.parent.generate_name("zero")
-                m2 = node.parent.generate_name(f"{name}_shm2")
-                shm2 = node.parent.generate_name("m2")
-                sh1 = was_reshaped[0]
-                added.extend(
-                    [
-                        make_node(
-                            "Constant",
-                            [],
-                            [zero],
-                            value=make_tensor(new_shape, TensorProto.INT64, [1], [0]),
+            index = 0 if was_reshaped[0] else 1
+            fname = f"MatMulReshapeTransposeBack{index}"
+            mmshape = node.parent.generate_name(f"{name}_mmshape")
+
+            shape = was_reshaped[index]
+            if isinstance(shape, tuple):
+                added.append(
+                    make_node(
+                        "Constant",
+                        [],
+                        [mmshape],
+                        value=make_tensor(
+                            mmshape, TensorProto.INT64, [len(shape)], list(shape)
                         ),
-                        make_node(
-                            "Constant",
-                            [],
-                            [m2],
-                            value=make_tensor(new_shape, TensorProto.INT64, [1], [-2]),
-                        ),
-                        make_node("Slice", [sh1, zero, m2, zero], [sliced]),
-                        make_node("Gather", [sh1, m2], [shm2]),
-                        make_node("Concat", [sliced, shm2, m1], [new_shape], axis=0),
-                        make_node(
-                            "Reshape",
-                            [gemm_outputs[0], new_shape],
-                            node.outputs,
-                            name=node.parent.generate_node_name(f"resh82_{name}"),
-                        ),
-                    ]
+                    )
                 )
+            elif isinstance(shape, str):
+                added.append(make_node("Shape", [shape], [mmshape]))
             else:
-                raise NotImplementedError(
-                    f"MatMul cannot be replaced by operator Gemm, "
-                    f"shapes are {was_reshaped}."
+                raise TypeError(
+                    f"Unexpected shape={shape} in was_reshaped={was_reshaped}."
                 )
+
+            added.append(
+                make_node(
+                    fname,
+                    [gemm_outputs[0], mmshape],
+                    node.outputs,
+                    perm=[1, 0],
+                    domain=domain_dq,
+                )
+            )
+            if (domain_dq, fname) not in local_functions:
+                # use local functions
+                local_functions[
+                    domain_dq, fname
+                ] = make_matmul_reshape_transpose_back_function_proto(
+                    domain=domain_dq, opset=opset, index=index
+                )
+
+            elif was_reshaped[1]:
+                raise NotImplementedError(
+                    f"Shape is {shape}. This case is not implemented yet."
+                )
+
         removed.append(node)
         opsets = {domain_gemm: 1}
         if domain_dq != "":
@@ -504,7 +517,6 @@ def quantize_float8(
     output_type: int = TensorProto.FLOAT,
     early_stop: int = -1,
     version: str = "onnxruntime",
-    local_function: bool = False,
     quiet: bool = False,
     index_transpose: int = 2,
     domain_ops: Optional[Dict[str, str]] = None,
@@ -522,7 +534,6 @@ def quantize_float8(
         to stop after n changes
     :param version: `'onnxruntime'` to use operators from onnx and onnxruntime,
         `'onnx-extended'` to use experimental operators
-    :param local_function: use local function to inline DynamicQuantizeLinear
     :param quiet: catch exception and silently skip failing nodes
     :param index_transpose: which input to transpose before calling gemm:
         0 (none), 1 (first), 2 (second), 3 for both
@@ -534,13 +545,7 @@ def quantize_float8(
     Enables the logs gives a better idea of the progress.
     """
     main_opset = graph.get_opset("")
-    if not local_function and main_opset < 20 and version == "onnxruntime":
-        logger.info(
-            "[quantize_float8] upgrade model from opset %d to %s", main_opset, 20
-        )
-        graph.upgrade_opsets({"": 20})
-        main_opset = 20
-    elif local_function and main_opset < 19:
+    if main_opset < 19:
         logger.info(
             "[quantize_float8] upgrade model from opset %d to %s", main_opset, 19
         )
@@ -549,8 +554,8 @@ def quantize_float8(
 
     if len(graph.functions) > 0:
         raise NotImplementedError("Quantization of local functions is not implemented.")
-    local_functions = graph.functions.copy() if local_function else None
-    n_local_functions = 0 if local_functions is None else len(local_functions)
+    local_functions = graph.functions.copy()
+    n_local_functions = len(local_functions)
     new_opsets = {}
     to_add = []
     n_nodes = len(graph)
@@ -559,7 +564,7 @@ def quantize_float8(
         if node.op_type in {"MatMul", "Gemm"}:
             logger.info("[quantize_float8] %d/%d quantize %s", index, n_nodes, node)
             try:
-                results = _quantize_float8_matmul(
+                results = quantize_float8_matmul(
                     node,
                     elem_type,
                     output_type,

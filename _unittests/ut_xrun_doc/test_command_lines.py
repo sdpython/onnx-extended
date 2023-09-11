@@ -16,12 +16,14 @@ from onnx.helper import (
     make_tensor,
     make_tensor_value_info,
 )
+from onnx.numpy_helper import from_array
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended._command_lines import _type_shape
 from onnx_extended._command_lines_parser import (
     get_main_parser,
     get_parser_store,
     get_parser_display,
+    get_parser_external,
     get_parser_print,
     get_parser_quantize,
     get_parser_select,
@@ -59,6 +61,13 @@ class TestCommandLines(ExtTestCase):
             get_parser_display().print_help()
         text = st.getvalue()
         self.assertIn("display", text)
+
+    def test_parser_external(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_external().print_help()
+        text = st.getvalue()
+        self.assertIn("external", text)
 
     def test_parser_print(self):
         st = StringIO()
@@ -317,7 +326,6 @@ class TestCommandLines(ExtTestCase):
                     model_out,
                     "-k",
                     "fp8",
-                    "-l",
                 ]
                 main(args)
             text = st.getvalue()
@@ -406,7 +414,60 @@ class TestCommandLines(ExtTestCase):
                 model = load(f)
             self.assertEqual(len(model.graph.node), 1)
 
+    def _get_model_32_big(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [4, 1000])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node(
+                    "Constant",
+                    [],
+                    ["mat"],
+                    value=from_array(
+                        np.arange(2000).reshape((-1, 2)).astype(np.float32)
+                    ),
+                ),
+                make_node("MatMul", ["X", "mat"], ["Z"]),
+            ],
+            "zoo",
+            [X],
+            [Z],
+        )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    def test_command_external(self):
+        onnx_model = self._get_model_32_big()
+        size = len(onnx_model.SerializeToString())
+
+        with tempfile.TemporaryDirectory() as root:
+            model_file = os.path.join(root, "model.onnx")
+            model_out = os.path.join(root, "model.out.onnx")
+            with open(model_file, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            args = [
+                "external",
+                "-m",
+                model_file,
+                "-s",
+                model_out,
+                "-v",
+            ]
+            out = StringIO()
+            with redirect_stdout(out):
+                main(args)
+            text = out.getvalue()
+            self.assertIn("size is", text)
+            with open(model_out, "rb") as f:
+                model = load(f)
+                size2 = len(model.SerializeToString())
+            self.assertGreater(size2, size)
+            self.assertLess(os.stat(model_out).st_size, size)
+
 
 if __name__ == "__main__":
-    TestCommandLines().test_command_select()
+    # TestCommandLines().test_command_external()
     unittest.main(verbosity=2)
