@@ -116,6 +116,22 @@ class Node:
             return self.proto.name
         return None
 
+    def match(self, pattern: Optional[Dict[str, str]]) -> bool:
+        """
+        Checks if a node match the proposed pattern.
+
+        :param pattern: a node matches the pattern `{"name": "node_name"}`
+            if its node is equal to `'node_name'`
+        :return: match
+        """
+        if pattern is None:
+            return False
+        for k, v in pattern.items():
+            if k == "name":
+                return v == self.name
+            raise ValueError(f"Unexpected pattern key k={k!r}, v={v!r}")
+        return False
+
     def get_tensor(self) -> TensorProto:
         "Returns the value of the"
         if self.is_node:

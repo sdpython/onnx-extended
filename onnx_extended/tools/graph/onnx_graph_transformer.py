@@ -536,6 +536,7 @@ def quantize_float8(
     quiet: bool = False,
     index_transpose: int = 2,
     domain_ops: Optional[Dict[str, str]] = None,
+    exceptions: Optional[List[Dict[str, str]]] = None,
 ) -> Optional[Graph]:
     """
     Transforms a graph to introduce quantized weights.
@@ -554,6 +555,9 @@ def quantize_float8(
     :param index_transpose: which input to transpose before calling gemm:
         0 (none), 1 (first), 2 (second), 3 for both
     :param domain_ops: domain to use for operators used as keys in the dictionary
+    :param exceptions: exclude nodes from the quantization,
+        `[{"name": "node_name1"}, {"name": "node_name2"}]` will exclude
+        these two node names from the quantization
     :return: Graph or None if not modified
 
     Transformation are logged with logger `onnx-extended/transformer`.
@@ -577,6 +581,16 @@ def quantize_float8(
     n_nodes = len(graph)
     n_changes = 0
     for index, node in enumerate(graph):
+        if exceptions is not None:
+            # checks if a node is not excluded from the list to convert
+            has_matched = False
+            for exc in exceptions:
+                if node.match(exc):
+                    has_matched = True
+                    break
+            if has_matched:
+                continue
+
         if node.op_type in {"MatMul", "Gemm"}:
             logger.info("[quantize_float8] %d/%d quantize %s", index, n_nodes, node)
             try:

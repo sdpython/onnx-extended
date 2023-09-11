@@ -367,6 +367,8 @@ class TestCommandLines(ExtTestCase):
                     model_out,
                     "-k",
                     "fp16",
+                    "-e",
+                    "fuzzy,logi",
                 ]
                 main(args)
             text = st.getvalue()
