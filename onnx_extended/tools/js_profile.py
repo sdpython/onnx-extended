@@ -1,6 +1,19 @@
 import json
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 from pandas import DataFrame
+
+
+def _process_shape(shape_df):
+    if len(shape_df) == 0:
+        return ""
+    values = []
+    for val in shape_df:
+        if len(val) != 1:
+            raise ValueError(f"Unable to process shape {val!r} from {values!r}.")
+        k, v = list(val.items())[0]
+        vs = "x".join(map(str, v))
+        values.append(f"{k}:{vs}")
+        return ",".join(vs)
 
 
 def post_process_df_profile(
@@ -8,6 +21,7 @@ def post_process_df_profile(
     first_it_out: bool = False,
     agg: bool = False,
     agg_op_name: bool = True,
+    add_shape: bool = False,
 ) -> DataFrame:
     """
     Post-processed a dataframe obtained after profiling onnxruntime.
@@ -18,6 +32,7 @@ def post_process_df_profile(
     :param first_it_out: leave the first iteration
         out of the aggregation
     :param agg_op_name: aggregate on operator name or operator index
+    :param add_shape: keep the shape to aggregate
     :return: DataFrame
     """
     events = {"kernel_time", "fence_after", "fence_before"}
@@ -41,6 +56,15 @@ def post_process_df_profile(
         return df
 
     agg_cols = ["cat", "args_node_index", "args_op_name", "args_provider", "event_name"]
+    if add_shape:
+        agg_cols.append("args_input_type_shape")
+        df["args_input_type_shape"] = df["args_input_type_shape"].apply(_process_shape)
+        df["args_output_type_shape"] = df["args_output_type_shape"].apply(
+            _process_shape
+        )
+    else:
+        df = df.drop(["args_input_type_shape", "args_output_type_shape"], axis=1)
+
     if first_it_out:
         df["it==0"] = (df["iteration"] <= 0).astype(int)
         agg_cols.insert(0, "it==0")
@@ -59,6 +83,7 @@ def js_profile_to_dataframe(
     first_it_out: bool = False,
     agg: bool = False,
     agg_op_name: bool = False,
+    add_shape: bool = False,
 ) -> Union[List, DataFrame]:
     """
     Profiles the execution of an onnx graph with onnxruntime.
@@ -68,6 +93,7 @@ def js_profile_to_dataframe(
     :param first_it_out: if aggregated, leaves the first iteration out
     :param agg: aggregate by event
     :param agg_op_name: aggregate on operator name or operator index
+    :param add_shape: keep the shape before aggregating
     :return: DataFrame or dictionary
     """
     with open(filename, "r") as f:
@@ -90,70 +116,33 @@ def js_profile_to_dataframe(
         rows.append(row)
     if as_df:
         return post_process_df_profile(
-            DataFrame(rows), first_it_out=first_it_out, agg=agg, agg_op_name=agg_op_name
+            DataFrame(rows),
+            first_it_out=first_it_out,
+            agg=agg,
+            agg_op_name=agg_op_name,
+            add_shape=add_shape,
         )
     return rows
 
 
-def plot_ort_profile(
-    df: DataFrame,
-    ax0: Optional["matplotlib.axes.Axes"] = None,
-    ax1: Optional["matplotlib.axes.Axes"] = None,
-    title: Optional[str] = None,
-) -> Tuple["matplotlib.axes.Axes", DataFrame]:
-    """
-    Plots time spend in computation based on dataframe
-    produced by function :func:`js_profile_to_dataframe`.
+def _preprocess_graph1(df):
+    df = df.copy()
+    df["args_provider"] = df["args_provider"].apply(
+        lambda s: s.replace("ExecutionProvider", "") if isinstance(s, str) else s
+    )
+    agg_cols = ["dur", "args_op_name", "args_provider"]
+    if "args_input_type_shape" in df.columns:
+        agg_cols.append("args_input_type_shape")
+    gr_dur = df[agg_cols].groupby(agg_cols[1:]).sum().sort_values("dur")
+    gr_n = df[agg_cols].groupby(agg_cols[1:]).count().sort_values("dur")
+    gr_n = gr_n.loc[gr_dur.index, :]
+    gr_n.columns = ["count"]
+    gr = gr_dur.merge(gr_n)
+    gr["ratio"] = gr["dur"] / gr["dur"].sum()
+    return gr_dur, gr_n, gr
 
-    :param df: dataframe
-    :param ax0: first axis to draw time
-    :param ax1: second axis to draw occurences
-    :param title: graph title
-    :return: the graph, the data of the graph
-    """
-    fontsize = 10
-    if ax0 is None:
-        import matplotlib as plt
 
-        ax0 = plt.gca()  # pragma: no cover
-
-    if "args_provider" in df.columns:
-        # Aggregation by operator
-        df = df.copy()
-        df["args_provider"] = df["args_provider"].apply(
-            lambda s: s.replace("ExecutionProvider", "") if isinstance(s, str) else s
-        )
-        gr_dur = (
-            df[["dur", "args_op_name", "args_provider"]]
-            .groupby(["args_provider", "args_op_name"])
-            .sum()
-            .sort_values("dur")
-        )
-        gr_dur.plot.barh(ax=ax0)
-        ax0.get_yaxis().set_label_text("")
-        ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
-        ax0.set_yticklabels(
-            ax0.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
-        )
-        if title is not None:
-            ax0.set_title(title)
-        if ax1 is not None:
-            gr_n = (
-                df[["dur", "args_op_name", "args_provider"]]
-                .groupby(["args_provider", "args_op_name"])
-                .count()
-                .sort_values("dur")
-            )
-            gr_n = gr_n.loc[gr_dur.index, :]
-            gr_n.plot.barh(ax=ax1)
-            ax1.set_title("n occurences")
-            ax1.get_yaxis().set_label_text("")
-            ax1.set_xticklabels(ax1.get_xticklabels(), fontsize=fontsize)
-            ax1.set_yticklabels(
-                ax1.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
-            )
-        return ax0, gr_dur
-
+def _preprocess_graph2(df):
     df = df.reset_index(drop=False).copy()
     df["args_node_index"] = df["args_node_index"].apply(
         lambda i: int(i) if i not in {None, ""} else -1
@@ -164,22 +153,63 @@ def plot_ort_profile(
     df = df[
         (df["it==0"] == 0) & (df["cat"] == "Node") & (df["event_name"] == "kernel_time")
     ]
-    df = (
-        df[["args_node_index", "args_op_name", "args_provider", "dur"]]
-        .groupby(
-            [
-                "args_node_index",
-                "args_provider",
-                "args_op_name",
-            ]
-        )
-        .sum()
-    )
+    agg_cols = ["dur", "args_node_index", "args_op_name", "args_provider"]
+    if "args_input_type_shape" in df.columns:
+        agg_cols.append("args_input_type_shape")
+    df = df[agg_cols].groupby(agg_cols[1:]).sum()
     df = df.sort_index(ascending=False)
-    df.plot.barh(ax=ax0)
+    df["ratio"] = df["dur"] / df["dur"].sum()
+    return df
+
+
+def plot_ort_profile(
+    df: DataFrame,
+    ax0: Optional["matplotlib.axes.Axes"] = None,
+    ax1: Optional["matplotlib.axes.Axes"] = None,
+    title: Optional[str] = None,
+) -> "matplotlib.axes.Axes":
+    """
+    Plots time spend in computation based on dataframe
+    produced by function :func:`js_profile_to_dataframe`.
+
+    :param df: dataframe
+    :param ax0: first axis to draw time
+    :param ax1: second axis to draw occurences
+    :param title: graph title
+    :return: the graph
+    """
+    fontsize = 10
+    if ax0 is None:
+        import matplotlib as plt
+
+        ax0 = plt.gca()  # pragma: no cover
+
+    if "args_provider" in df.columns:
+        # Aggregation by operator
+        gr_dur, gr_n, _ = _preprocess_graph1(df)
+        gr_dur.plot.barh(ax=ax0)
+        ax0.get_yaxis().set_label_text("")
+        ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
+        ax0.set_yticklabels(
+            ax0.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
+        )
+        if title is not None:
+            ax0.set_title(title)
+        if ax1 is not None:
+            gr_n.plot.barh(ax=ax1)
+            ax1.set_title("n occurences")
+            ax1.get_yaxis().set_label_text("")
+            ax1.set_xticklabels(ax1.get_xticklabels(), fontsize=fontsize)
+            ax1.set_yticklabels(
+                ax1.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
+            )
+        return ax0
+
+    df = _preprocess_graph2(df)
+    df[["dur"]].plot.barh(ax=ax0)
     ax0.get_yaxis().set_label_text("")
     ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
     ax0.set_yticklabels(ax0.get_yticklabels(), fontsize=fontsize)
     if title is not None:
         ax0.set_title(title)
-    return ax0, df
+    return ax0

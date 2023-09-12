@@ -70,12 +70,10 @@ class TestJsProfile(ExtTestCase):
                     "args_op_name",
                     "op_name",
                     "args_thread_scheduling_stats",
-                    "args_output_type_shape",
                     "args_output_size",
                     "args_parameter_size",
                     "args_activation_size",
                     "args_node_index",
-                    "args_input_type_shape",
                     "args_provider",
                     "event_name",
                     "iteration",
@@ -103,12 +101,10 @@ class TestJsProfile(ExtTestCase):
                     "args_op_name",
                     "op_name",
                     "args_thread_scheduling_stats",
-                    "args_output_type_shape",
                     "args_output_size",
                     "args_parameter_size",
                     "args_activation_size",
                     "args_node_index",
-                    "args_input_type_shape",
                     "args_provider",
                     "event_name",
                     "iteration",
@@ -131,6 +127,27 @@ class TestJsProfile(ExtTestCase):
         prof = sess.end_profiling()
 
         df = js_profile_to_dataframe(prof, first_it_out=True)
+
+        fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+        plot_ort_profile(df, ax[0], ax[1], "test_title")
+        # fig.savefig("graph1.png")
+        self.assertNotEmpty(fig)
+
+        os.remove(prof)
+
+    def test_plot_profile_2_shape(self):
+        sess_options = SessionOptions()
+        sess_options.enable_profiling = True
+        sess = InferenceSession(
+            self._get_model().SerializeToString(),
+            sess_options,
+            providers=["CPUExecutionProvider"],
+        )
+        for _ in range(11):
+            sess.run(None, dict(X=np.arange(10).astype(np.float32)))
+        prof = sess.end_profiling()
+
+        df = js_profile_to_dataframe(prof, first_it_out=True, add_shape=True)
 
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         plot_ort_profile(df, ax[0], ax[1], "test_title")
