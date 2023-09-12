@@ -111,6 +111,7 @@ def plot_ort_profile(
     :param title: graph title
     :return: the graph, the data of the graph
     """
+    fontsize = 10
     if ax0 is None:
         import matplotlib as plt
 
@@ -130,7 +131,10 @@ def plot_ort_profile(
         )
         gr_dur.plot.barh(ax=ax0)
         ax0.get_yaxis().set_label_text("")
-        ax0.set_yticklabels(ax0.get_yticklabels(), rotation=45, ha="right")
+        ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
+        ax0.set_yticklabels(
+            ax0.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
+        )
         if title is not None:
             ax0.set_title(title)
         if ax1 is not None:
@@ -144,10 +148,16 @@ def plot_ort_profile(
             gr_n.plot.barh(ax=ax1)
             ax1.set_title("n occurences")
             ax1.get_yaxis().set_label_text("")
-            ax1.set_yticklabels(ax1.get_yticklabels(), rotation=45, ha="right")
+            ax1.set_xticklabels(ax1.get_xticklabels(), fontsize=fontsize)
+            ax1.set_yticklabels(
+                ax1.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
+            )
         return ax0, gr_dur
 
     df = df.reset_index(drop=False).copy()
+    df["args_node_index"] = df["args_node_index"].apply(
+        lambda i: int(i) if i not in {None, ""} else -1
+    )
     df["args_provider"] = df["args_provider"].apply(
         lambda s: s.replace("ExecutionProvider", "") if isinstance(s, str) else s
     )
@@ -168,6 +178,8 @@ def plot_ort_profile(
     df = df.sort_index(ascending=False)
     df.plot.barh(ax=ax0)
     ax0.get_yaxis().set_label_text("")
+    ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
+    ax0.set_yticklabels(ax0.get_yticklabels(), fontsize=fontsize)
     if title is not None:
         ax0.set_title(title)
     return ax0, df
