@@ -493,7 +493,6 @@ class TestOnnxToolsGraph(ExtTestCase):
     def test_quantize_f8_exceptions(self):
         model = self._get_model_32()
         graph = Graph(model)
-        n_nodes = len(graph)
         new_graph = quantize_float8(graph, exceptions=[dict(name="m1")])
         self.assertEmpty(new_graph)
 
