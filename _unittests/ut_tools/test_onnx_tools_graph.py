@@ -149,13 +149,13 @@ class TestOnnxToolsGraph(ExtTestCase):
             [3, 2],  # n_dim_c
         )
 
-        for init, tr, side_x, n_dim_x, n_dim_c in options:
+        for it, (init, tr, side_x, n_dim_x, n_dim_c) in enumerate(options):
             msg = (
                 f"init={init}, tr={tr}, side_x={side_x}, "
                 f"n_dim_x={n_dim_x}, n_dim_c={n_dim_c}"
             )
             with self.subTest(msg=msg):
-                print(f"-----------------------------\n{msg}")
+                # print(f"-----------------------------\n{msg}")
                 model, cst = self._get_basic_square_model(
                     init=init, n_dim_x=n_dim_x, n_dim_c=n_dim_c, side_x=side_x
                 )
@@ -257,6 +257,10 @@ class TestOnnxToolsGraph(ExtTestCase):
                 except OrtFail as e:
                     if "type inference failed" in str(e):
                         # bug of onnxruntime
+                        with open(
+                            f"custom_ops_type_inference_fails_{it}.onnx", "wb"
+                        ) as f:
+                            f.write(onxo.SerializeToString())
                         continue
                     raise e
                 got = sess.run(None, dict(X=x))[0]
@@ -275,8 +279,8 @@ class TestOnnxToolsGraph(ExtTestCase):
                 ),
                 make_node("Add", ["one", "one"], ["two"]),
                 make_node("Add", ["X", "two"], ["xp"]),
-                make_node("MatMul", ["X", "xp"], ["res"]),
-                make_node("MatMul", ["X", "res"], ["Z"]),
+                make_node("MatMul", ["X", "xp"], ["res"], name="m1"),
+                make_node("MatMul", ["X", "res"], ["Z"], name="m2"),
             ],
             "zoo",
             [X],
@@ -464,7 +468,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         list(float(i) for i in range(11, 17)),
                     ),
                 ),
-                make_node("MatMul", ["X", "mat"], ["Z"]),
+                make_node("MatMul", ["X", "mat"], ["Z"], name="m1"),
             ],
             "zoo",
             [X],
@@ -484,6 +488,13 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph)
         self.assertEqual(len(new_graph), len(graph))
         self.assertGreater(len(new_graph), n_nodes)
+
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    def test_quantize_f8_exceptions(self):
+        model = self._get_model_32()
+        graph = Graph(model)
+        new_graph = quantize_float8(graph, exceptions=[dict(name="m1")])
+        self.assertEmpty(new_graph)
 
     @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnx(self):

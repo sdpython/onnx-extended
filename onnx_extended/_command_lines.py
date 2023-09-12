@@ -313,6 +313,7 @@ def cmd_quantize(
     quiet: bool = False,
     verbose: int = 0,
     index_transpose: int = 2,
+    exceptions: Optional[List[Dict[str, str]]] = None,
 ):
     """
     Quantizes a model
@@ -326,6 +327,9 @@ def cmd_quantize(
     :param verbose: verbosity level
     :param index_transpose: which input to transpose before calling gemm:
         0 (none), 1 (first), 2 (second), 3 for both
+    :param exceptions: exclude nodes from the quantization,
+        `[{"name": "node_name1"}, {"name": "node_name2"}]` will exclude
+        these two node names from the quantization
     """
     from .tools.graph import Graph
 
@@ -358,6 +362,7 @@ def cmd_quantize(
             quiet=quiet,
             version=scenario,
             index_transpose=index_transpose,
+            exceptions=exceptions,
         )
         if new_graph is None:
             logger.warning("No node was quantized.")

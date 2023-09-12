@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from argparse import ArgumentParser
 from textwrap import dedent
 
@@ -240,6 +240,13 @@ def get_parser_quantize() -> ArgumentParser:
         help="which input(s) to transpose, 1 for the first one, "
         "2 for the second, 3 for both, 0 for None",
     )
+    parser.add_argument(
+        "-x",
+        "--exclude",
+        type=str,
+        help="to avoid quantizing nodes if their names belongs "
+        "to that list (comma separated)",
+    )
     return parser
 
 
@@ -335,6 +342,13 @@ def get_parser_external() -> ArgumentParser:
     return parser
 
 
+def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
+    if text is None:
+        return []
+    names = text.split(",")
+    return [dict(name=n) for n in names]
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -392,6 +406,7 @@ def main(argv: Optional[List[Any]] = None):
 
         parser = get_parser_quantize()
         args = parser.parse_args(argv[1:])
+        processed_exceptions = _process_exceptions(args.exclude)
         cmd_quantize(
             model=args.input,
             output=args.output,
@@ -401,6 +416,7 @@ def main(argv: Optional[List[Any]] = None):
             early_stop=args.early_stop,
             quiet=args.quiet,
             index_transpose=args.transpose,
+            exceptions=processed_exceptions,
         )
 
     elif cmd == "select":
