@@ -31,7 +31,7 @@ from onnx_extended._command_lines_parser import (
 )
 
 
-class TestCommandLines(ExtTestCase):
+class TestCommandLines1(ExtTestCase):
     def test_main_parser(self):
         st = StringIO()
         with redirect_stdout(st):

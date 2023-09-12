@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 from pandas import DataFrame
 
 
@@ -100,7 +100,7 @@ def plot_ort_profile(
     ax0: Optional["matplotlib.axes.Axes"] = None,
     ax1: Optional["matplotlib.axes.Axes"] = None,
     title: Optional[str] = None,
-) -> "matplotlib.axes.Axes":
+) -> Tuple["matplotlib.axes.Axes", DataFrame]:
     """
     Plots time spend in computation based on dataframe
     produced by function :func:`js_profile_to_dataframe`.
@@ -109,7 +109,7 @@ def plot_ort_profile(
     :param ax0: first axis to draw time
     :param ax1: second axis to draw occurences
     :param title: graph title
-    :return: the graph
+    :return: the graph, the data of the graph
     """
     if ax0 is None:
         import matplotlib as plt
@@ -145,7 +145,7 @@ def plot_ort_profile(
             ax1.set_title("n occurences")
             ax1.get_yaxis().set_label_text("")
             ax1.set_yticklabels(ax1.get_yticklabels(), rotation=45, ha="right")
-        return ax0
+        return ax0, gr_dur
 
     df = df.reset_index(drop=False).copy()
     df["args_provider"] = df["args_provider"].apply(
@@ -170,4 +170,4 @@ def plot_ort_profile(
     ax0.get_yaxis().set_label_text("")
     if title is not None:
         ax0.set_title(title)
-    return ax0
+    return ax0, df

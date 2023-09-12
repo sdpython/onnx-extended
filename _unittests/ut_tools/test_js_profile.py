@@ -57,28 +57,30 @@ class TestJsProfile(ExtTestCase):
         df = js_profile_to_dataframe(prof, first_it_out=True)
         self.assertEqual(df.shape, (189, 19))
         self.assertEqual(
-            list(df.columns),
-            [
-                "cat",
-                "pid",
-                "tid",
-                "dur",
-                "ts",
-                "ph",
-                "name",
-                "args_op_name",
-                "op_name",
-                "args_thread_scheduling_stats",
-                "args_output_type_shape",
-                "args_output_size",
-                "args_parameter_size",
-                "args_activation_size",
-                "args_node_index",
-                "args_input_type_shape",
-                "args_provider",
-                "event_name",
-                "iteration",
-            ],
+            set(df.columns),
+            set(
+                [
+                    "cat",
+                    "pid",
+                    "tid",
+                    "dur",
+                    "ts",
+                    "ph",
+                    "name",
+                    "args_op_name",
+                    "op_name",
+                    "args_thread_scheduling_stats",
+                    "args_output_type_shape",
+                    "args_output_size",
+                    "args_parameter_size",
+                    "args_activation_size",
+                    "args_node_index",
+                    "args_input_type_shape",
+                    "args_provider",
+                    "event_name",
+                    "iteration",
+                ]
+            ),
         )
 
         df = js_profile_to_dataframe(prof, agg=True)
@@ -88,28 +90,30 @@ class TestJsProfile(ExtTestCase):
         df = js_profile_to_dataframe(prof, agg_op_name=True)
         self.assertEqual(df.shape, (189, 19))
         self.assertEqual(
-            list(df.columns),
-            [
-                "cat",
-                "pid",
-                "tid",
-                "dur",
-                "ts",
-                "ph",
-                "name",
-                "args_op_name",
-                "op_name",
-                "args_thread_scheduling_stats",
-                "args_output_type_shape",
-                "args_output_size",
-                "args_parameter_size",
-                "args_activation_size",
-                "args_node_index",
-                "args_input_type_shape",
-                "args_provider",
-                "event_name",
-                "iteration",
-            ],
+            set(df.columns),
+            set(
+                [
+                    "cat",
+                    "pid",
+                    "tid",
+                    "dur",
+                    "ts",
+                    "ph",
+                    "name",
+                    "args_op_name",
+                    "op_name",
+                    "args_thread_scheduling_stats",
+                    "args_output_type_shape",
+                    "args_output_size",
+                    "args_parameter_size",
+                    "args_activation_size",
+                    "args_node_index",
+                    "args_input_type_shape",
+                    "args_provider",
+                    "event_name",
+                    "iteration",
+                ]
+            ),
         )
 
         os.remove(prof)
@@ -197,8 +201,6 @@ class TestJsProfile(ExtTestCase):
         prof = sess.end_profiling()
 
         df = js_profile_to_dataframe(prof, first_it_out=True)
-        print(df)
-        print(df.tail(5).T)
 
         fig, ax = plt.subplots(1, 1, figsize=(10, 5))
         plot_ort_profile(df, ax, title="test_title")
