@@ -279,8 +279,8 @@ class TestOnnxToolsGraph(ExtTestCase):
                 ),
                 make_node("Add", ["one", "one"], ["two"]),
                 make_node("Add", ["X", "two"], ["xp"]),
-                make_node("MatMul", ["X", "xp"], ["res"]),
-                make_node("MatMul", ["X", "res"], ["Z"]),
+                make_node("MatMul", ["X", "xp"], ["res"], name="m1"),
+                make_node("MatMul", ["X", "res"], ["Z"], name="m2"),
             ],
             "zoo",
             [X],
@@ -468,7 +468,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         list(float(i) for i in range(11, 17)),
                     ),
                 ),
-                make_node("MatMul", ["X", "mat"], ["Z"]),
+                make_node("MatMul", ["X", "mat"], ["Z"], name="m1"),
             ],
             "zoo",
             [X],
@@ -488,6 +488,14 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph)
         self.assertEqual(len(new_graph), len(graph))
         self.assertGreater(len(new_graph), n_nodes)
+
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    def test_quantize_f8_exceptions(self):
+        model = self._get_model_32()
+        graph = Graph(model)
+        n_nodes = len(graph)
+        new_graph = quantize_float8(graph, exceptions=[dict(name="m1")])
+        self.assertEmpty(new_graph)
 
     @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnx(self):

@@ -342,7 +342,9 @@ def get_parser_external() -> ArgumentParser:
     return parser
 
 
-def _process_exceptions(text: str) -> List[Dict[str, str]]:
+def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
+    if text is None:
+        return []
     names = text.split(",")
     return [dict(name=n) for n in names]
 
