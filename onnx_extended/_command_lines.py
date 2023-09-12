@@ -459,6 +459,7 @@ def plot_profile(
     out_csv: Optional[str] = None,
     out_png: Optional[str] = None,
     title: Optional[str] = None,
+    with_shape: bool = False,
     verbose: int = 0,
 ):
     """
@@ -468,25 +469,35 @@ def plot_profile(
     :param kind: kind of plot to so, see below
     :param out_csv: output the data into that csv file
     :param out_png: output the graph in that file
+    :param with_shape: consider input shape when showing results
     :param title: title (optional)
     :param verbose: verbosity, if > 0, prints out the data in csv format
     """
     import matplotlib.pyplot as plt
-    from .tools.js_profile import js_profile_to_dataframe, plot_ort_profile
+    from .tools.js_profile import (
+        js_profile_to_dataframe,
+        plot_ort_profile,
+        _preprocess_graph1,
+        _preprocess_graph2,
+    )
 
     if verbose:
         print(f"[plot_profile] load {filename!r}")
 
     if kind == "profile_op":
-        df = js_profile_to_dataframe(filename, first_it_out=True)
+        df = js_profile_to_dataframe(filename, first_it_out=True, with_shape=with_shape)
 
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-        _, df = plot_ort_profile(df, ax, title=title)
+        plot_ort_profile(df, ax, title=title)
+        df = _preprocess_graph1(df)
     elif kind == "profile_node":
-        df = js_profile_to_dataframe(filename, first_it_out=True, agg=True)
+        df = js_profile_to_dataframe(
+            filename, first_it_out=True, agg=True, with_shape=with_shape
+        )
 
         fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-        _, df = plot_ort_profile(df, ax, title=title)
+        plot_ort_profile(df, ax, title=title)
+        df = _preprocess_graph2(df)
     else:
         raise ValueError(f"Unexpected kind {kind:r}.")
 
@@ -512,6 +523,7 @@ def cmd_plot(
     out_csv: Optional[str] = None,
     out_png: Optional[str] = None,
     title: Optional[str] = None,
+    with_shape: bool = False,
     verbose: int = 0,
 ):
     """
@@ -522,6 +534,7 @@ def cmd_plot(
     :param out_csv: output the data into that csv file
     :param out_png: output the graph in that file
     :param title: title (optional)
+    :param with_shape: keep the shape to aggregate
     :param verbose: verbosity, if > 0, prints out the data in csv format
 
     Kinds of plots:

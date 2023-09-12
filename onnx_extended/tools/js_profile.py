@@ -21,7 +21,7 @@ def post_process_df_profile(
     first_it_out: bool = False,
     agg: bool = False,
     agg_op_name: bool = True,
-    add_shape: bool = False,
+    with_shape: bool = False,
 ) -> DataFrame:
     """
     Post-processed a dataframe obtained after profiling onnxruntime.
@@ -32,7 +32,7 @@ def post_process_df_profile(
     :param first_it_out: leave the first iteration
         out of the aggregation
     :param agg_op_name: aggregate on operator name or operator index
-    :param add_shape: keep the shape to aggregate
+    :param with_shape: keep the shape to aggregate
     :return: DataFrame
     """
     events = {"kernel_time", "fence_after", "fence_before"}
@@ -53,7 +53,7 @@ def post_process_df_profile(
         df.loc[i, "iteration"] = current
 
     if not agg:
-        if add_shape:
+        if with_shape:
             df["args_input_type_shape"] = df["args_input_type_shape"].apply(
                 _process_shape
             )
@@ -65,7 +65,7 @@ def post_process_df_profile(
         return df
 
     agg_cols = ["cat", "args_node_index", "args_op_name", "args_provider", "event_name"]
-    if add_shape:
+    if with_shape:
         agg_cols.append("args_input_type_shape")
         df["args_input_type_shape"] = df["args_input_type_shape"].apply(_process_shape)
         df["args_output_type_shape"] = df["args_output_type_shape"].apply(
@@ -92,7 +92,7 @@ def js_profile_to_dataframe(
     first_it_out: bool = False,
     agg: bool = False,
     agg_op_name: bool = False,
-    add_shape: bool = False,
+    with_shape: bool = False,
 ) -> Union[List, DataFrame]:
     """
     Profiles the execution of an onnx graph with onnxruntime.
@@ -102,7 +102,7 @@ def js_profile_to_dataframe(
     :param first_it_out: if aggregated, leaves the first iteration out
     :param agg: aggregate by event
     :param agg_op_name: aggregate on operator name or operator index
-    :param add_shape: keep the shape before aggregating
+    :param with_shape: keep the shape before aggregating
     :return: DataFrame or dictionary
     """
     with open(filename, "r") as f:
@@ -129,7 +129,7 @@ def js_profile_to_dataframe(
             first_it_out=first_it_out,
             agg=agg,
             agg_op_name=agg_op_name,
-            add_shape=add_shape,
+            with_shape=with_shape,
         )
     return rows
 

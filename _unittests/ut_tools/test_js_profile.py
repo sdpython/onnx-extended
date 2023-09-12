@@ -148,7 +148,7 @@ class TestJsProfile(ExtTestCase):
             sess.run(None, dict(X=np.arange(10).astype(np.float32)))
         prof = sess.end_profiling()
 
-        df = js_profile_to_dataframe(prof, first_it_out=True, add_shape=True)
+        df = js_profile_to_dataframe(prof, first_it_out=True, with_shape=True)
 
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
         plot_ort_profile(df, ax[0], ax[1], "test_title")

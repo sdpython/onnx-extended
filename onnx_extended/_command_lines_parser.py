@@ -507,6 +507,12 @@ def get_parser_plot() -> ArgumentParser:
         help="display sizes",
     )
     parser.add_argument(
+        "-w",
+        "--with-shape",
+        action="store_true",
+        help="keep the shape before aggregating the results",
+    )
+    parser.add_argument(
         "-t",
         "--title",
         required=False,
@@ -527,6 +533,7 @@ def _cmd_plot(argv):
         out_png=args.opng,
         title=args.title,
         verbose=args.verbose,
+        with_shape=args.with_shape,
     )
 
 
