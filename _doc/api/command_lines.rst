@@ -26,6 +26,18 @@ Split the model and the coefficients. The coefficients goes to an external file.
     from onnx_extended._command_lines_parser import get_parser_external
     get_parser_external().print_help()
 
+plot
+====
+
+Plots a graph like a profiling.
+
+.. runpython::
+
+    from onnx_extended._command_lines_parser import get_parser_plot
+    get_parser_plot().print_help()
+
+.. autofunction:: onnx_extended._command_lines.cmd_plot
+
 print
 =====
 

@@ -1,5 +1,6 @@
 import os
 import re
+import io
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
@@ -450,3 +451,101 @@ def cmd_select(
     logger.info("Selected model size: %d", len(seq))
     with open(save, "wb") as f:
         f.write(seq)
+
+
+def plot_profile(
+    filename: str,
+    kind: str,
+    out_csv: Optional[str] = None,
+    out_png: Optional[str] = None,
+    title: Optional[str] = None,
+    with_shape: bool = False,
+    verbose: int = 0,
+):
+    """
+    Plots a profiling.
+
+    :param filename: raw data to load
+    :param kind: kind of plot to so, see below
+    :param out_csv: output the data into that csv file
+    :param out_png: output the graph in that file
+    :param with_shape: consider input shape when showing results
+    :param title: title (optional)
+    :param verbose: verbosity, if > 0, prints out the data in csv format
+    """
+    import matplotlib.pyplot as plt
+    from .tools.js_profile import (
+        js_profile_to_dataframe,
+        plot_ort_profile,
+        _preprocess_graph1,
+        _preprocess_graph2,
+    )
+
+    if verbose:
+        print(f"[plot_profile] load {filename!r}")
+
+    if kind == "profile_op":
+        df = js_profile_to_dataframe(filename, first_it_out=True, with_shape=with_shape)
+
+        fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+        plot_ort_profile(df, ax, title=title)
+        df = _preprocess_graph1(df)
+    elif kind == "profile_node":
+        df = js_profile_to_dataframe(
+            filename, first_it_out=True, agg=True, with_shape=with_shape
+        )
+
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+        plot_ort_profile(df, ax, title=title)
+        df = _preprocess_graph2(df)
+    else:
+        raise ValueError(f"Unexpected kind {kind:r}.")
+
+    if verbose:
+        st = io.StringIO()
+        df.to_csv(st)
+        print(st.getvalue())
+
+    if out_csv not in {"", None}:
+        if verbose:
+            print(f"[plot_profile] save {out_csv!r}")
+        df.to_csv(out_csv)
+
+    if out_png not in {"", None}:
+        if verbose:
+            print(f"[plot_profile] save {out_png!r}")
+        fig.savefig(out_png)
+
+
+def cmd_plot(
+    filename: str,
+    kind: str,
+    out_csv: Optional[str] = None,
+    out_png: Optional[str] = None,
+    title: Optional[str] = None,
+    with_shape: bool = False,
+    verbose: int = 0,
+):
+    """
+    Plots a graph.
+
+    :param filename: raw data to load
+    :param kind: kind of plot to so, see below
+    :param out_csv: output the data into that csv file
+    :param out_png: output the graph in that file
+    :param title: title (optional)
+    :param with_shape: keep the shape to aggregate
+    :param verbose: verbosity, if > 0, prints out the data in csv format
+
+    Kinds of plots:
+
+    * `'profile_op'`: draws the profiling per node type
+    * `'profile_node'`: draws the profiling per node
+    """
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Unable to find {filename!r}.")
+    allowed = {"profile_op", "profile_node"}
+    if kind in allowed:
+        plot_profile(filename, kind, out_csv, out_png, title=title, verbose=verbose)
+    else:
+        raise ValueError(f"Unexpected kind {kind:r}, it should be {allowed}.")

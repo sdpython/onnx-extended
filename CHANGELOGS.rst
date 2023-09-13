@@ -4,7 +4,7 @@ Change Logs
 0.2.0
 +++++
 
-* :pr:`68`: add CPU implementation for CustomGemmFloat8
+* :pr:`68`, :pr:`69`, :pr:`70`: add CPU implementation for CustomGemmFloat8
 * :pr:`67`: add a function to extract a subgraph of a model
 * :pr:`59`, :pr:`60`, :pr:`61`, :pr:`62`, :pr:`63`, :pr:`65`,
   :pr:`66`, :pr:`68`, :pr:`69`:

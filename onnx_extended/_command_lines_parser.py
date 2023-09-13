@@ -22,6 +22,7 @@ def get_main_parser() -> ArgumentParser:
             "quantize",
             "select",
             "external",
+            "plot",
         ],
         help=dedent(
             """
@@ -34,7 +35,8 @@ def get_main_parser() -> ArgumentParser:
         'print' prints out a model or a protobuf file on the standard output,
         'quantize' quantizes an onnx model in simple ways,
         'select' selects a subgraph inside a bigger models,
-        'external' saves the coefficients in a different files for an onnx model
+        'external' saves the coefficients in a different files for an onnx model,
+        'plot' plots a graph like a profiling
         """
         ),
     )
@@ -342,11 +344,197 @@ def get_parser_external() -> ArgumentParser:
     return parser
 
 
+def _cmd_store(argv):
+    from ._command_lines import store_intermediate_results
+
+    parser = get_parser_store()
+    args = parser.parse_args(argv[1:])
+    store_intermediate_results(
+        model=args.model,
+        runtime=args.runtime,
+        verbose=args.verbose,
+        inputs=args.input,
+        out=args.out,
+        providers=args.providers,
+    )
+
+
+def _cmd_display(argv):
+    from ._command_lines import display_intermediate_results
+
+    parser = get_parser_display()
+    args = parser.parse_args(argv[1:])
+    display_intermediate_results(model=args.model, save=args.save, tab=args.tab)
+
+
+def _cmd_print(argv):
+    from ._command_lines import print_proto
+
+    parser = get_parser_print()
+    args = parser.parse_args(argv[1:])
+    print_proto(proto=args.input, fmt=args.format)
+
+
 def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
     if text is None:
         return []
     names = text.split(",")
     return [dict(name=n) for n in names]
+
+
+def _cmd_quantize(argv):
+    from ._command_lines import cmd_quantize
+
+    parser = get_parser_quantize()
+    args = parser.parse_args(argv[1:])
+    processed_exceptions = _process_exceptions(args.exclude)
+    cmd_quantize(
+        model=args.input,
+        output=args.output,
+        verbose=args.verbose,
+        scenario=args.scenario,
+        kind=args.kind,
+        early_stop=args.early_stop,
+        quiet=args.quiet,
+        index_transpose=args.transpose,
+        exceptions=processed_exceptions,
+    )
+
+
+def _cmd_select(argv):
+    from ._command_lines import cmd_select
+
+    parser = get_parser_select()
+    args = parser.parse_args(argv[1:])
+    cmd_select(
+        model=args.model,
+        save=args.save,
+        inputs=args.inputs,
+        outputs=args.outputs,
+        verbose=args.verbose,
+    )
+
+
+def _cmd_external(argv):
+    from onnx import load
+    from onnx.external_data_helper import (
+        convert_model_to_external_data,
+        write_external_data_tensors,
+    )
+
+    parser = get_parser_external()
+    args = parser.parse_args(argv[1:])
+    model = args.model
+    save = args.save
+
+    if args.verbose:
+        size = os.stat(model).st_size
+        print(f"Load model {model!r}, size is {size / 2 ** 10:1.3f} kb")
+    with open(model, "rb") as f:
+        proto = load(f)
+
+    if args.verbose:
+        print("convert_model_to_external_data")
+    convert_model_to_external_data(
+        proto,
+        all_tensors_to_one_file=True,
+        location=os.path.split(save)[-1] + ".data",
+        convert_attribute=True,
+        size_threshold=1024,
+    )
+
+    dirname = os.path.dirname(save)
+    proto = write_external_data_tensors(proto, dirname)
+    with open(save, "wb") as f:
+        f.write(proto.SerializeToString())
+    if args.verbose:
+        size = os.stat(save).st_size
+        print(f"Saved model {save!r}, size is {size / 2 ** 10:1.3f} kb")
+
+
+def get_parser_plot() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="plot",
+        description=dedent(
+            """
+        Plots a graph reprsenting the data loaded from a filename.
+        """
+        ),
+        epilog="Plots a graph",
+    )
+    parser.add_argument(
+        "-k",
+        "--kind",
+        choices=[
+            "profile_op",
+            "profile_node",
+        ],
+        help=dedent(
+            """
+        Kind of plot to draw.
+        
+        'profile_op' shows the time spent in every kernel per operator type,
+        'profile_node' shows the time spent in every kernel per operator node,
+        """
+        ),
+        required=True,
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=str,
+        required=True,
+        help="input file",
+    )
+    parser.add_argument(
+        "-c",
+        "--ocsv",
+        type=str,
+        required=False,
+        help="saves the data used to plot the graph as csv file",
+    )
+    parser.add_argument(
+        "-o",
+        "--opng",
+        type=str,
+        required=False,
+        help="saves the plot as png into that file",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="display sizes",
+    )
+    parser.add_argument(
+        "-w",
+        "--with-shape",
+        action="store_true",
+        help="keep the shape before aggregating the results",
+    )
+    parser.add_argument(
+        "-t",
+        "--title",
+        required=False,
+        help="plot title",
+    )
+    return parser
+
+
+def _cmd_plot(argv):
+    from ._command_lines import cmd_plot
+
+    parser = get_parser_plot()
+    args = parser.parse_args(argv[1:])
+    cmd_plot(
+        kind=args.kind,
+        filename=args.input,
+        out_csv=args.ocsv,
+        out_png=args.opng,
+        title=args.title,
+        verbose=args.verbose,
+        with_shape=args.with_shape,
+    )
 
 
 def main(argv: Optional[List[Any]] = None):
@@ -364,6 +552,7 @@ def main(argv: Optional[List[Any]] = None):
                 quantize=get_parser_quantize,
                 select=get_parser_select,
                 external=get_parser_external,
+                plot=get_parser_plot,
             )
             cmd = argv[0]
             if cmd not in parsers:
@@ -375,99 +564,17 @@ def main(argv: Optional[List[Any]] = None):
         raise RuntimeError("The programme should have exited before.")
 
     cmd = argv[0]
-    if cmd == "store":
-        from ._command_lines import store_intermediate_results
-
-        parser = get_parser_store()
-        args = parser.parse_args(argv[1:])
-        store_intermediate_results(
-            model=args.model,
-            runtime=args.runtime,
-            verbose=args.verbose,
-            inputs=args.input,
-            out=args.out,
-            providers=args.providers,
-        )
-    elif cmd == "display":
-        from ._command_lines import display_intermediate_results
-
-        parser = get_parser_display()
-        args = parser.parse_args(argv[1:])
-        display_intermediate_results(model=args.model, save=args.save, tab=args.tab)
-    elif cmd == "print":
-        from ._command_lines import print_proto
-
-        parser = get_parser_print()
-        args = parser.parse_args(argv[1:])
-        print_proto(proto=args.input, fmt=args.format)
-
-    elif cmd == "quantize":
-        from ._command_lines import cmd_quantize
-
-        parser = get_parser_quantize()
-        args = parser.parse_args(argv[1:])
-        processed_exceptions = _process_exceptions(args.exclude)
-        cmd_quantize(
-            model=args.input,
-            output=args.output,
-            verbose=args.verbose,
-            scenario=args.scenario,
-            kind=args.kind,
-            early_stop=args.early_stop,
-            quiet=args.quiet,
-            index_transpose=args.transpose,
-            exceptions=processed_exceptions,
-        )
-
-    elif cmd == "select":
-        from ._command_lines import cmd_select
-
-        parser = get_parser_select()
-        args = parser.parse_args(argv[1:])
-        cmd_select(
-            model=args.model,
-            save=args.save,
-            inputs=args.inputs,
-            outputs=args.outputs,
-            verbose=args.verbose,
-        )
-
-    elif cmd == "external":
-        from onnx import load
-        from onnx.external_data_helper import (
-            convert_model_to_external_data,
-            write_external_data_tensors,
-        )
-
-        parser = get_parser_external()
-        args = parser.parse_args(argv[1:])
-        model = args.model
-        save = args.save
-
-        if args.verbose:
-            size = os.stat(model).st_size
-            print(f"Load model {model!r}, size is {size / 2 ** 10:1.3f} kb")
-        with open(model, "rb") as f:
-            proto = load(f)
-
-        if args.verbose:
-            print("convert_model_to_external_data")
-        convert_model_to_external_data(
-            proto,
-            all_tensors_to_one_file=True,
-            location=os.path.split(save)[-1] + ".data",
-            convert_attribute=True,
-            size_threshold=1024,
-        )
-
-        dirname = os.path.dirname(save)
-        proto = write_external_data_tensors(proto, dirname)
-        with open(save, "wb") as f:
-            f.write(proto.SerializeToString())
-        if args.verbose:
-            size = os.stat(save).st_size
-            print(f"Saved model {save!r}, size is {size / 2 ** 10:1.3f} kb")
-
+    fcts = dict(
+        store=_cmd_store,
+        display=_cmd_display,
+        print=_cmd_print,
+        quantize=_cmd_quantize,
+        select=_cmd_select,
+        external=_cmd_external,
+        plot=_cmd_plot,
+    )
+    if cmd in fcts:
+        fcts[cmd](argv)
     else:
         raise ValueError(
             f"Unknown command {cmd!r}, use --help to get the list of known command."
