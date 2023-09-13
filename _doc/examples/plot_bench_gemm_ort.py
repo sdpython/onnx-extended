@@ -473,7 +473,9 @@ for tt, engine, provider, dim, domain in pbar:
 df = DataFrame(data)
 df.to_excel("plot_bench_gemm_ort.xlsx")
 df.to_csv("plot_bench_gemm_ort.csv")
-df.drop(["min_exec", "max_exec"], axis=1).to_csv("plot_bench_gemm_ort.csv")
+df.drop(["min_exec", "max_exec", "cost_s", "cost"], axis=1).to_csv(
+    "plot_bench_gemm_ort.csv", index=False
+)
 print(df.head().T)
 df
 

@@ -140,13 +140,14 @@ def _preprocess_graph1(df):
         lambda s: s.replace("ExecutionProvider", "") if isinstance(s, str) else s
     )
     agg_cols = ["dur", "args_op_name", "args_provider"]
-    if "args_input_type_shape" in df.columns:
-        agg_cols.append("args_input_type_shape")
+    for c in ["it==0", "args_input_type_shape"]:
+        if c in df.columns:
+            agg_cols.append(c)
     gr_dur = df[agg_cols].groupby(agg_cols[1:]).sum().sort_values("dur")
-    gr_n = df[agg_cols].groupby(agg_cols[1:]).count().sort_values("dur")
+    gr_n = df[agg_cols].groupby(agg_cols[1:]).count()
     gr_n = gr_n.loc[gr_dur.index, :]
     gr_n.columns = ["count"]
-    gr = gr_dur.merge(gr_n, left_index=True, right_index=True)
+    gr = gr_dur.merge(gr_n, left_index=True, right_index=True, how="outer")
     gr["ratio"] = gr["dur"] / gr["dur"].sum()
     return gr_dur, gr_n, gr
 
@@ -159,12 +160,11 @@ def _preprocess_graph2(df):
     df["args_provider"] = df["args_provider"].apply(
         lambda s: s.replace("ExecutionProvider", "") if isinstance(s, str) else s
     )
-    df = df[
-        (df["it==0"] == 0) & (df["cat"] == "Node") & (df["event_name"] == "kernel_time")
-    ]
+    df = df[(df["cat"] == "Node") & (df["event_name"] == "kernel_time")]
     agg_cols = ["dur", "args_node_index", "args_op_name", "args_provider"]
-    if "args_input_type_shape" in df.columns:
-        agg_cols.append("args_input_type_shape")
+    for c in ["it==0", "args_input_type_shape"]:
+        if c in df.columns:
+            agg_cols.append(c)
     df = df[agg_cols].groupby(agg_cols[1:]).sum()
     df = df.sort_index(ascending=False)
     df["ratio"] = df["dur"] / df["dur"].sum()
