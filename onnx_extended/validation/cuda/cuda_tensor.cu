@@ -32,6 +32,7 @@ bool is_fp8_dtype(cudaDataType_t dtype) {
 
 int32_t type_size(cudaDataType_t element_type) {
   switch (element_type) {
+  case CUDA_R_32I:
   case CUDA_R_32F:
     return 4;
   case CUDA_R_16F:
@@ -143,6 +144,17 @@ __global__ void generateRandomBFloat16(__nv_bfloat16 *randomFloat16,
   }
 }
 
+__global__ void generateRandomInt8x4(int *randomInt8, int numElements,
+                                     unsigned int seed) {
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid < numElements / 4) {
+    curandState state;
+    curand_init(seed, tid, 0, &state);
+    int randValue = curand_poisson(&state, 1);
+    randomInt8[tid] = randValue;
+  }
+}
+
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
 
 __global__ void generateRandomFloat8E4M3FN(__nv_fp8_storage_t *randomFloat16,
@@ -190,6 +202,13 @@ void Tensor::rnd() {
     int numBlocks = (data.size + blockSize - 1) / blockSize;
     generateRandomBFloat16<<<numBlocks, blockSize>>>(
         static_cast<__nv_bfloat16 *>(data.dptr), data.size, 0);
+    cudaDeviceSynchronize();
+  } break;
+  case CUDA_R_8I: {
+    int blockSize = 256;
+    int numBlocks = (data.size + blockSize - 1) / blockSize;
+    generateRandomInt8x4<<<numBlocks, blockSize>>>(
+        static_cast<int *>(data.dptr), data.size, 0);
     cudaDeviceSynchronize();
   } break;
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080

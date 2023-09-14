@@ -130,6 +130,8 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
     computeType_ = CUBLAS_COMPUTE_32F_FAST_16BF;
   } else if (compute_type == "CUBLAS_COMPUTE_32F_FAST_TF32") {
     computeType_ = CUBLAS_COMPUTE_32F_FAST_TF32;
+  } else if (compute_type == "CUBLAS_COMPUTE_32I") {
+    computeType_ = CUBLAS_COMPUTE_32I;
   } else {
     EXT_THROW("Unexpected value for compute_type '", compute_type, "'.");
   }
