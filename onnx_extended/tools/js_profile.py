@@ -1,4 +1,5 @@
 import json
+import warnings
 from typing import List, Optional, Union
 from pandas import DataFrame
 
@@ -217,28 +218,34 @@ def plot_ort_profile(
         # Aggregation by operator
         gr_dur, gr_n, _ = _preprocess_graph1(df)
         gr_dur.plot.barh(ax=ax0)
-        ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
-        ax0.get_yaxis().set_label_text("")
-        ax0.set_yticklabels(
-            ax0.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
+            ax0.get_yaxis().set_label_text("")
+            ax0.set_yticklabels(
+                ax0.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
+            )
         if title is not None:
             ax0.set_title(title)
         if ax1 is not None:
             gr_n.plot.barh(ax=ax1)
             ax1.set_title("n occurences")
-            ax1.set_xticklabels(ax1.get_xticklabels(), fontsize=fontsize)
-            ax1.get_yaxis().set_label_text("")
-            ax1.set_yticklabels(
-                ax1.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
-            )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                ax1.set_xticklabels(ax1.get_xticklabels(), fontsize=fontsize)
+                ax1.get_yaxis().set_label_text("")
+                ax1.set_yticklabels(
+                    ax1.get_yticklabels(), rotation=45, ha="right", fontsize=fontsize
+                )
         return ax0
 
     df = _preprocess_graph2(df)
     df[["dur"]].plot.barh(ax=ax0)
-    ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
-    ax0.get_yaxis().set_label_text("")
-    ax0.set_yticklabels(ax0.get_yticklabels(), fontsize=fontsize)
     if title is not None:
         ax0.set_title(title)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        ax0.set_xticklabels(ax0.get_xticklabels(), fontsize=fontsize)
+        ax0.get_yaxis().set_label_text("")
+        ax0.set_yticklabels(ax0.get_yticklabels(), fontsize=fontsize)
     return ax0
