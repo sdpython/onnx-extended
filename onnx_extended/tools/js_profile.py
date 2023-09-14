@@ -3,6 +3,21 @@ from typing import List, Optional, Union
 from pandas import DataFrame
 
 
+_mapping_types = {
+    "float": "F",
+    "double": "D",
+    "float16": "H",
+    "uint8": "U8",
+    "uint16": "U16",
+    "uint32": "U32",
+    "uint64": "U64",
+    "int8": "I8",
+    "int16": "I16",
+    "int32": "I32",
+    "int64": "I64",
+}
+
+
 def _process_shape(shape_df):
     if isinstance(shape_df, float) or len(shape_df) == 0:
         return ""
@@ -11,9 +26,12 @@ def _process_shape(shape_df):
         if len(val) != 1:
             raise ValueError(f"Unable to process shape {val!r} from {values!r}.")
         k, v = list(val.items())[0]
-        vs = "x".join(map(str, v))
-        values.append(f"{k}:{vs}")
-        return ",".join(vs)
+        if len(v) > 0:
+            vs = "x".join(map(str, v))
+            values.append(f"{_mapping_types.get(k,k)}[{vs}]")
+        else:
+            values.append(f"{_mapping_types.get(k,k)}")
+    return "+".join(values)
 
 
 def post_process_df_profile(
@@ -62,6 +80,8 @@ def post_process_df_profile(
             )
         else:
             df = df.drop(["args_input_type_shape", "args_output_type_shape"], axis=1)
+        if first_it_out:
+            df["it==0"] = (df["iteration"] <= 0).astype(int)
         return df
 
     agg_cols = ["cat", "args_node_index", "args_op_name", "args_provider", "event_name"]

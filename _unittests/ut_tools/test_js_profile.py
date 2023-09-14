@@ -14,10 +14,27 @@ from onnx.numpy_helper import from_array
 from onnxruntime import InferenceSession, SessionOptions
 import matplotlib.pyplot as plt
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
-from onnx_extended.tools.js_profile import js_profile_to_dataframe, plot_ort_profile
+from onnx_extended.tools.js_profile import (
+    js_profile_to_dataframe,
+    plot_ort_profile,
+    _process_shape,
+)
 
 
 class TestJsProfile(ExtTestCase):
+    def test_shapes(self):
+        tests = [
+            (
+                "U8[1x128x768]+F+U8",
+                [{"uint8": [1, 128, 768]}, {"float": []}, {"uint8": []}],
+            ),
+            ("F[1x128x768]", [{"float": [1, 128, 768]}]),
+        ]
+        for expected, shapes in tests:
+            with self.subTest(shapes=shapes):
+                out = _process_shape(shapes)
+                self.assertEqual(expected, out)
+
     def _get_model(self):
         model_def0 = make_model(
             make_graph(
@@ -54,7 +71,7 @@ class TestJsProfile(ExtTestCase):
         prof = sess.end_profiling()
 
         df = js_profile_to_dataframe(prof, first_it_out=True)
-        self.assertEqual(df.shape, (189, 17))
+        self.assertEqual(df.shape, (189, 18))
         self.assertEqual(
             set(df.columns),
             set(
@@ -76,6 +93,7 @@ class TestJsProfile(ExtTestCase):
                     "args_provider",
                     "event_name",
                     "iteration",
+                    "it==0",
                 ]
             ),
         )

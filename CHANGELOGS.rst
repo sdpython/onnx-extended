@@ -4,10 +4,11 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`71`, :pr:`72`, :pr:`73`: add function to analyse a profile produce by onnxruntime
 * :pr:`68`, :pr:`69`, :pr:`70`: add CPU implementation for CustomGemmFloat8
 * :pr:`67`: add a function to extract a subgraph of a model
 * :pr:`59`, :pr:`60`, :pr:`61`, :pr:`62`, :pr:`63`, :pr:`65`,
-  :pr:`66`, :pr:`68`, :pr:`69`:
+  :pr:`66`, :pr:`68`, :pr:`69`, :pr:`70`:
   add local functions to quantize into float 8, float 16
 * :pr:`57`: add C implementation for DynamicQuantizeLinear (for experimentation)
 * :pr:`56`: add C implementation to cast a float into float 8
