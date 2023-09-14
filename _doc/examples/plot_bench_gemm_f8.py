@@ -35,14 +35,19 @@ if has_cuda:
         dtests, ddims = "", ""
     elif prop["major"] < 7:
         # No float 8.
-        dtests, ddims = "0,1,2,3,4,15", "16,32,64"
+        dtests, ddims = "0,1,2,3,4,15", "16,32,64,64x128x92"
     elif prop["major"] < 9:  # T100, A100
         # No float 8.
-        dtests, ddims = "0,1,2,3,4,15", "16,32,64,128,256,512,1024,2048,4096,8192"
+        dtests, ddims = (
+            "0,1,2,3,4,15",
+            "16,32,64,128,256,512,1024,2048,4096,8192,"
+            "128x768x768,128x3072x768,128x768x3072",
+        )
     else:
         dtests, ddims = (
             "0,1,2,3,4,5,6,7,11,14,15",
-            "16,32,64,128,256,512,1024,2048,4096,8192,16384",
+            "16,32,64,128,256,512,1024,2048,4096,8192,16384,"
+            "128x768x768,128x3072x768,128x768x3072",
         )
 else:
     dtests, ddims = "", ""
@@ -113,11 +118,12 @@ for test, dim in pbar:
     if test in {8, 9, 10, 12, 13}:
         warnings.warn(f"unsupported configuration {test}.")
         continue
-    if dim < 128:
+    mdim = dim if isinstance(dim, int) else max(dim)
+    if mdim < 128:
         n, N = script_args.warmup * 8, script_args.repeat * 8
-    elif dim < 512:
+    elif mdim < 512:
         n, N = script_args.warmup * 4, script_args.repeat * 4
-    elif dim < 8192:
+    elif mdim < 8192:
         n, N = script_args.warmup * 2, script_args.repeat * 2
     else:
         n, N = script_args.warmup, script_args.repeat
@@ -148,6 +154,7 @@ for test, dim in pbar:
     for c in ["N", "m", "n", "k", "lda", "ldb", "ldd"]:
         update[c] = int(res[c])
     update["~dim"] = (update["k"] * max(update["m"], update["n"])) ** 0.5
+    update["mnk"] = f"{update['m']}x{update['n']}x{update['k']}"
     update["name"] = (
         f"{update['type_a']}x{update['type_b']}->"
         f"{update['type_d']}{update['compute_type']}"
@@ -179,7 +186,7 @@ if df.shape[0] > 0:
 # ++++++++++++++++++++++++
 
 if df.shape[0] > 0:
-    dfi = df[col_def + ["~dim", "t-total", "t-gemm_sync"]]
+    dfi = df[col_def + ["~dim", "mnk", "t-total", "t-gemm_sync"]]
     print(dfi)
 
 ###################################
@@ -191,11 +198,11 @@ if df.shape[0] > 0:
     dfis = dfi[dfi.test.isin(subset)]
     print()
     print("t-gemm_sync")
-    pivi = dfis.pivot_table(index="~dim", columns="name", values="t-gemm_sync")
+    pivi = dfis.pivot_table(index=["~dim", "mnk"], columns="name", values="t-gemm_sync")
     print(pivi)
     print()
     print("t-total")
-    pivi = dfis.pivot_table(index="~dim", columns="name", values="t-total")
+    pivi = dfis.pivot_table(index=["~dim", "mnk"], columns="name", values="t-total")
     print(pivi)
 
 
@@ -204,14 +211,14 @@ if df.shape[0] > 0:
 # +++++
 
 if df.shape[0] > 0:
-    piv = df.pivot_table(index="~dim", columns="name", values="t-gemm_sync")
+    piv = df.pivot_table(index=["~dim", "mnk"], columns="name", values="t-gemm_sync")
     piv.plot(title="MatMul performances")
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
     piv.plot(ax=ax[0], title="Gemm performance\nlower is better", logx=True, logy=True)
 
     piv = df[df.test.isin(subset)].pivot_table(
-        index="~dim", columns="name", values="t-gemm_sync"
+        index=["~dim", "mnk"], columns="name", values="t-gemm_sync"
     )
     if piv.shape[0] > 0:
         piv.plot(
