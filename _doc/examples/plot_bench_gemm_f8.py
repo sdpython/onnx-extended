@@ -136,7 +136,6 @@ for test, dim in pbar:
         gemm_args = [m, n, k, lda, ldb, ldd]
 
     # warmup
-    print(test, N, gemm_args)
     gemm_benchmark_test(test, N, *gemm_args)
 
     # benchmark
