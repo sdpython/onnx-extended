@@ -9,7 +9,7 @@ Debugging
 enumerate_ort_run
 +++++++++++++++++
 
-.. autofunction:: onnx_extended.tools.debug.enumerate_ort_run
+.. autofunction:: onnx_extended.tools.ort_debug.enumerate_ort_run
 
 
 Profiling

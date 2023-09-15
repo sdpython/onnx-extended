@@ -19,11 +19,12 @@ class TestOrtDebug(ExtTestCase):
     def _get_model(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
-        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        Z = make_tensor_value_info("Z", TensorProto.INT64, [None, None])
         graph = make_graph(
             [
                 make_node("Add", ["X", "Y"], ["z1"]),
-                make_node("Mul", ["X", "z1"], ["Z"]),
+                make_node("Mul", ["X", "z1"], ["z2"]),
+                make_node("Cast", ["z2"], ["Z"], to=TensorProto.INT64),
             ],
             "add",
             [X, Y],
@@ -41,7 +42,7 @@ class TestOrtDebug(ExtTestCase):
             "X": np.arange(4).reshape((2, 2)).astype(np.float32),
             "Y": np.arange(4).reshape((2, 2)).astype(np.float32),
         }
-        expected_names = [["z1"], ["Z"]]
+        expected_names = [["z1"], ["z2"], ["Z"]]
         for i, (names, outs) in enumerate(enumerate_ort_run(model, feeds)):
             self.assertIsInstance(names, list)
             self.assertIsInstance(outs, list)
@@ -55,6 +56,7 @@ class TestOrtDebug(ExtTestCase):
         std = st.getvalue()
         self.assertIn("Add(X, Y) -> z1", std)
         self.assertIn("+ z1: float32(2, 2)", std)
+        self.assertIn("Cast(z2, to=7) -> Z", std)
 
         st = StringIO()
         with redirect_stdout(st):
