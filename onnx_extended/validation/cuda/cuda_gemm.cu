@@ -269,7 +269,9 @@ void BenchmarkGemm::to_map(std::unordered_map<std::string, double> &bench) {
 }
 
 std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
-                                                            int dim) {
+                                                            int m, int n, int k,
+                                                            int lda, int ldb,
+                                                            int ldd) {
 
   // see
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatMul#cublasltmatmul
@@ -369,6 +371,18 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
     type_compute = CUBLAS_COMPUTE_32F;
     break;
 #endif
+  case 15:
+    type_a = CUDA_R_8I;
+    type_b = CUDA_R_8I;
+    type_d = CUDA_R_32I;
+    type_compute = CUBLAS_COMPUTE_32I;
+    break;
+  case 16:
+    type_a = CUDA_R_8I;
+    type_b = CUDA_R_8I;
+    type_d = CUDA_R_8I;
+    type_compute = CUBLAS_COMPUTE_32I;
+    break;
   default:
     NVTE_CHECK(false, std::string("Unknown test ") + to_string(test) +
                           std::string(" and this CUDA version ") +
@@ -377,11 +391,11 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
 
   time_type begin, heuristic, end, end2;
   int epilogue, compute_type, algo;
-  Tensor inputA("A", dim * dim, type_a);
+  Tensor inputA("A", m * k, type_a);
   inputA.rnd();
-  Tensor inputB("B", dim * dim, type_b);
+  Tensor inputB("B", n * k, type_b);
   inputB.rnd();
-  Tensor outputD("D", dim * dim, type_d);
+  Tensor outputD("D", m * n, type_d);
   if (is_fp8_dtype(type_a) || is_fp8_dtype(type_b))
     outputD.amax.allocate(CUDA_R_32F, 1, outputD.scale.device);
   Tensor inputBias("bias");
@@ -400,20 +414,20 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
       Tensor workspace("workspace", 1 << 20, CUDA_R_8I);
       time_type t2 = std::chrono::high_resolution_clock::now();
 
-      cublas_gemm(
-          &inputA, &inputB, &outputD, &inputBias, &outputPreGelu, dim, dim,
-          dim,                 // int m, int n, int k,
-          dim, dim, dim,       // int lda, int ldb, int ldd,
-          CUBLAS_OP_T,         // cublasOperation_t transa,
-          CUBLAS_OP_N,         // cublasOperation_t transb,
-          false,               // bool grad,
-          workspace.data.dptr, // void* workspace,
-          workspace.data.size, // size_t workspaceSize,
-          false,               // bool accumulate,
-          false,               // bool use_split_accumulator,
-          0,                   // int math_sm_count,
-          type_compute,        // compute_type
-          stream, begin, heuristic, end, end2, epilogue, compute_type, algo);
+      cublas_gemm(&inputA, &inputB, &outputD, &inputBias, &outputPreGelu, m, n,
+                  k,                   // int m, int n, int k,
+                  lda, ldb, ldd,       // int lda, int ldb, int ldd,
+                  CUBLAS_OP_T,         // cublasOperation_t transa,
+                  CUBLAS_OP_N,         // cublasOperation_t transb,
+                  false,               // bool grad,
+                  workspace.data.dptr, // void* workspace,
+                  workspace.data.size, // size_t workspaceSize,
+                  false,               // bool accumulate,
+                  false,               // bool use_split_accumulator,
+                  0,                   // int math_sm_count,
+                  type_compute,        // compute_type
+                  stream, begin, heuristic, end, end2, epilogue, compute_type,
+                  algo);
 
       time_type t3 = std::chrono::high_resolution_clock::now();
       NVTE_CHECK_CUDA(cudaStreamSynchronize(stream));
@@ -439,7 +453,12 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
   bench["algo"] = algo;
   bench["compute_type"] = compute_type;
   bench["workspace_size"] = workspace_size;
-  bench["dim"] = dim;
+  bench["m"] = m;
+  bench["n"] = n;
+  bench["k"] = k;
+  bench["lda"] = lda;
+  bench["ldb"] = ldb;
+  bench["ldd"] = ldd;
   bench["type_a"] = type_a;
   bench["type_b"] = type_b;
   bench["type_d"] = type_d;

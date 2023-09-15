@@ -104,6 +104,8 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
     computeType_ = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
   } else if (compute_type == "CUBLAS_COMPUTE_32F_FAST_TF32") {
     computeType_ = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  } else if (compute_type == "CUBLAS_COMPUTE_32I") {
+    computeType_ = ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32;
   } else {
     EXT_THROW("Unexpected value for compute_type '", compute_type, "'.");
   }
