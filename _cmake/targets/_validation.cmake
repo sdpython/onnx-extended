@@ -4,6 +4,8 @@
 message(STATUS "+ PYBIND11 onnx_extended.validation.cpu._validation")
 
 add_library(lib_validation_cpp STATIC
+  ../onnx_extended/validation/cpu/murmur_hash3_ort.cpp
+  ../onnx_extended/validation/cpu/murmur_hash3_sklearn.cpp
   ../onnx_extended/validation/cpu/speed_metrics.cpp
   ../onnx_extended/validation/cpu/vector_function.cpp)
 set_property(TARGET lib_validation_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
