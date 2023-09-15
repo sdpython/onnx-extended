@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`74`: add a function to enumerate all intermediate results with onnxruntime
 * :pr:`71`, :pr:`72`, :pr:`73`: add function to analyse a profile produce by onnxruntime
 * :pr:`68`, :pr:`69`, :pr:`70`: add CPU implementation for CustomGemmFloat8
 * :pr:`67`: add a function to extract a subgraph of a model
