@@ -57,5 +57,3 @@ def save_for_benchmark_or_test(
         with open(os.path.join(sub_path, f"output_{i}.pb"), "wb") as f:
             f.write(t.SerializeToString())
     return path
-
-
