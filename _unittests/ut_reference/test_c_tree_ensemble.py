@@ -408,11 +408,12 @@ class TestCTreeEnsemble(ExtTestCase):
             options={RandomForestClassifier: {"zipmap": False}},
             target_opset=17,
         )
+
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test.astype(dtype)})
         lexp = clr.predict_proba(X_test).astype(numpy.float32)
         atol = {numpy.float32: 1e-5, numpy.float64: 1.01e-1}
-        with self.subTest(dtype=dtype):
+        with self.subTest(dtype=dtype, cls_type=type(oinf.rt_nodes_[0].rt_)):
             if single_cls:
                 diff = list(sorted(numpy.abs(lexp.ravel() - y[1])))
                 mx = max(diff[:-5])
@@ -422,22 +423,6 @@ class TestCTreeEnsemble(ExtTestCase):
                     )
             else:
                 self.assertEqualArray(lexp.astype(dtype), y[1], atol=atol[dtype])
-
-        # other runtime
-        for rv in [0, 1, 2, 3]:
-            if single_cls and rv == 0:
-                continue
-            with self.subTest(runtime_version=rv):
-                y = oinf.run(None, {"X": X_test.astype(dtype)})
-                if single_cls:
-                    diff = list(sorted(numpy.abs(lexp.ravel() - y[1])))
-                    mx = max(diff[:-5])
-                    if mx > 1e-5:
-                        self.assertEqualArray(
-                            lexp.ravel().astype(dtype), y[1], atol=atol[dtype]
-                        )
-                else:
-                    self.assertEqualArray(lexp.astype(dtype), y[1], atol=atol[dtype])
 
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
