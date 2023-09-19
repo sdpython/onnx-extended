@@ -30,15 +30,15 @@ Testing
 save_for_benchmark_or_test
 ++++++++++++++++++++++++++
 
-.. autofunction:: onnx_extended.tools.test_onnx.save_for_benchmark_or_test
+.. autofunction:: onnx_extended.tools.run_onnx.save_for_benchmark_or_test
 
 bench_virtual
 +++++++++++++
 
-.. autofunction:: onnx_extended.tools.test_onnx.bench_virtual
+.. autofunction:: onnx_extended.tools.run_onnx.bench_virtual
 
 TestRun
 +++++++
 
-.. autoclass:: onnx_extended.tools.test_onnx.TestRun
+.. autoclass:: onnx_extended.tools.run_onnx.TestRun
     :members:
