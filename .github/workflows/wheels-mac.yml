@@ -2,9 +2,9 @@ name: Build Wheel MacOS
 
 on:
   push:
-    branches:
-      - main
-      - 'releases/**'
+#    branches:
+#      - main
+#      - 'releases/**'
   pull_request:
     types:
       - closed

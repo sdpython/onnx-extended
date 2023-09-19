@@ -2,9 +2,9 @@ name: Build Wheel Windows
 
 on:
   push:
-    branches:
-      - main
-      - 'releases/**'
+#    branches:
+#      - main
+#      - 'releases/**'
   pull_request:
     types:
       - closed

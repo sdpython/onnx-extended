@@ -100,7 +100,7 @@ namespaces = false
 
 [tool.cibuildwheel]
 build = "*"
-manylinux-x86_64-image = "manylinux2014"
+manylinux-x86_64-image = "manylinux_2_28"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]

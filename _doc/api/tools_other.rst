@@ -40,5 +40,5 @@ bench_virtual
 TestRun
 +++++++
 
-.. class:: onnx_extended.tools.test_onnx.TestRun
+.. autoclass:: onnx_extended.tools.test_onnx.TestRun
     :members:
