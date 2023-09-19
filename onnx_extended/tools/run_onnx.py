@@ -1,6 +1,7 @@
 import os
 import pprint
-from typing import Any, Callable, Dict, List, Optional, Tuple
+import time
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from onnx import ModelProto, TensorProto, load
 from onnx.reference.op_run import to_array_extended
@@ -215,3 +216,68 @@ class TestRun:
                 f"\n{pprint.pformat(checks)}"
             )
         return checks
+
+    def bench(
+        self,
+        f_build: Callable[[ModelProto], Any],
+        f_run: Callable[[Any, Dict[str, np.array]], List[np.array]],
+        index: int = 0,
+        warmup: int = 5,
+        repeat: int = 10,
+    ) -> Dict[str, Union[float, Dict[str, Tuple[int, ...]]]]:
+        """
+        Runs the model on the given inputs.
+
+        :param f_build: function to call to build the inference class
+        :param f_run: function to call to run the inference
+        :param index: test index to measure
+        :param warmup: number of iterations to run before
+            starting to measure the model
+        :param bench: number of iterations to measure
+        :return: dictionary with many metrics,
+            any metric endings with `"_time"` is a duration
+        """
+        stats = {}
+        begin = time.perf_counter()
+        rt = f_build(self.proto)
+        stats["build_time"] = time.perf_counter() - begin
+
+        shapes = {}
+        dtypes = {}
+        input_names = self.input_names
+        inputs = self.datasets[index][0]
+        feeds = {}
+        input_size = 0
+        for ii, tensor in inputs:
+            feeds[input_names[ii]] = tensor
+            shapes[input_names[ii]] = tensor.shape
+            dtypes[input_names[ii]] = tensor.dtype
+            input_size += np.prod(tensor.shape)
+        stats["shapes"] = shapes
+        stats["dtypes"] = dtypes
+        stats["input_size"] = input_size
+
+        begin = time.perf_counter()
+        for _ in range(warmup):
+            f_run(rt, feeds)
+        stats["warmup_time"] = time.perf_counter() - begin
+        stats["warmup"] = warmup
+        stats["name"] = self.folder
+        stats["index"] = index
+
+        ts = []
+        for i in range(repeat):
+            begin = time.perf_counter()
+            f_run(rt, feeds)
+            ts.append(time.perf_counter() - begin)
+
+        stats["repeat"] = repeat
+        stats["avg_time"] = np.array(ts).mean()
+        stats["min_time"] = np.array(ts).min()
+        stats["max_time"] = np.array(ts).max()
+
+        ts.sort()
+        if repeat > 4:
+            stats["max1_time"] = ts[-2]
+            stats["min1_time"] = ts[1]
+        return stats

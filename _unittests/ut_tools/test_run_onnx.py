@@ -55,6 +55,34 @@ class TestRunOnnx(ExtTestCase):
                 f_run=lambda rt, feeds: rt.run(None, feeds),
             )
             self.assertEmpty(res)
+            bench = tr.bench(
+                f_build=lambda proto: CReferenceEvaluator(proto),
+                f_run=lambda rt, feeds: rt.run(None, feeds),
+            )
+            examples = {
+                "build_time": 0.0012805999995180173,
+                "shapes": {"X": (2, 2), "Y": (2, 2)},
+                "dtypes": {"X": np.float32, "Y": np.float32},
+                "warmup_time": 0.0002456999991409248,
+                "warmup": 5,
+                "name": "/tmp/tmpz2tw4rqj/t1",
+                "index": 0,
+                "repeat": 10,
+                "avg_time": 3.1990000206860716e-05,
+                "min_time": 3.1000001399661414e-05,
+                "max_time": 3.319999996165279e-05,
+                "max1_time": 3.2699999792384915e-05,
+                "min1_time": 3.130000004603062e-05,
+                "input_size": 8,
+            }
+            for k, v in examples.items():
+                self.assertIn(k, bench)
+                if "_time" in k:
+                    self.assertIsInstance(v, float)
+                elif k == "name":
+                    self.assertEqual(os.path.join(temp, "t1"), bench[k])
+                else:
+                    self.assertEqual(examples[k], bench[k])
 
 
 if __name__ == "__main__":
