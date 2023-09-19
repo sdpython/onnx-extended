@@ -12,10 +12,11 @@ from onnx.helper import (
 )
 from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.tools.test_onnx import save_for_benchmark_or_test
+from onnx_extended.reference import CReferenceEvaluator
+from onnx_extended.tools.run_onnx import save_for_benchmark_or_test, TestRun
 
 
-class TestTestOnnx(ExtTestCase):
+class TestRunOnnx(ExtTestCase):
     def _get_model(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
@@ -47,6 +48,13 @@ class TestTestOnnx(ExtTestCase):
             save_for_benchmark_or_test(temp, "t1", model, inputs)
             self.assertExists(os.path.join(temp, "t1"))
             self.assertExists(os.path.join(temp, "t1", "model.onnx"))
+
+            tr = TestRun(os.path.join(temp, "t1"))
+            res = tr.test(
+                f_build=lambda proto: CReferenceEvaluator(proto),
+                f_run=lambda rt, feeds: rt.run(None, feeds),
+            )
+            self.assertEmpty(res)
 
 
 if __name__ == "__main__":
