@@ -160,16 +160,17 @@ class TestRunOnnx(ExtTestCase):
         out = _run_cmd(args)
         self.assertIn("Python", out)
 
-    def test_bench_virtual(self):
+    def test_virtual_bench(self):
         folder = os.path.join(os.path.dirname(__file__), "bench")
 
         with tempfile.TemporaryDirectory() as temp:
             st = StringIO()
             with redirect_stdout(st):
                 df = bench_virtual(folder, temp, verbose=3)
-                print(df)
+            self.assertIsinstance(df, list)
+            self.assertEqual(len(df), 2)
             text = st.getvalue()
-            print(text)
+            self.assertNotEmpty(text)
 
 
 if __name__ == "__main__":

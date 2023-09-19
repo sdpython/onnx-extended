@@ -6,6 +6,7 @@ import time
 import sys
 from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from urllib.request import urlretrieve
 import numpy as np
 from onnx import ModelProto, TensorProto, load
 from onnx.reference.op_run import to_array_extended
@@ -353,16 +354,24 @@ def bench_virtual(
         if verbose > 0:
             print(f"[bench_virtual] create the virtual environment in {virtual_path!r}")
         out = _run_cmd([sys.executable, "-m", "venv", virtual_path])
-        print([sys.executable, "-m", "venv", virtual_path])
         if verbose > 2:
             print(out)
         if not os.path.exists(exe):
             raise RuntimeError(f"The virtual environment was not created:\n{out}")
+        get_pip = os.path.join(virtual_path, "get_pip.py")
+        if not os.path.exists(get_pip):
+            if verbose > 2:
+                print("[bench_virtual] install pip")
+            urlretrieve("https://bootstrap.pypa.io/get-pip.py", get_pip)
+        out = _run_cmd([exe, get_pip])
+        if verbose > 2:
+            print(out)
+
     if modules is None:
         ext = "https://github.com/sdpython/onnx-extended.git"
         modules = [
             {"onnxruntime": "1.15.1", "onnx": None, "onnx_extended": f"git+{ext}"},
-            {"onnxruntime": "1.13.0", "onnx": None, "onnx_extended": f"git+{ext}"},
+            {"onnxruntime": "1.13.1", "onnx": None, "onnx_extended": f"git+{ext}"},
         ]
     if isinstance(runtimes, str):
         runtimes = [runtimes]
@@ -373,6 +382,13 @@ def bench_virtual(
             print(f"[bench_virtual] {i+1}/{len(modules)}:{conf}")
 
         for k, v in conf.items():
+            if verbose > 1:
+                print(f"[bench_virtual] uninstall {k}")
+            out = _run_cmd([exe, "-m", "pip", "uninstall", "-y", k])
+            if verbose > 2:
+                print(out)
+            if verbose > 2:
+                print(out)
             if verbose > 1:
                 print(f"[bench_virtual] install {k}: {v or 'upgrade'}")
             if v is None:
@@ -413,6 +429,7 @@ def bench_virtual(
                 except json.decoder.JSONDecodeError as e:
                     raise RuntimeError(f"Unable to decode {out!r}") from e
                 if verbose > 2:
+                    print("[bench_virtual] final results")
                     print(js)
                 obs.append(js)
 
@@ -422,4 +439,4 @@ def bench_virtual(
         df = pandas.DataFrame(obs)
         df.to_csv(save_as_dataframe, index=False)
         return df
-    return out
+    return obs
