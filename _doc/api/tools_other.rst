@@ -31,3 +31,14 @@ save_for_benchmark_or_test
 ++++++++++++++++++++++++++
 
 .. autofunction:: onnx_extended.tools.test_onnx.save_for_benchmark_or_test
+
+bench_virtual
++++++++++++++
+
+.. autofunction:: onnx_extended.tools.test_onnx.bench_virtual
+
+TestRun
++++++++
+
+.. class:: onnx_extended.tools.test_onnx.TestRun
+    :members:

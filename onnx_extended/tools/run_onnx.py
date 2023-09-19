@@ -1,6 +1,8 @@
+import json
 import os
 import pprint
 import time
+import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from onnx import ModelProto, TensorProto, load
@@ -237,6 +239,20 @@ class TestRun:
         :return: dictionary with many metrics,
             any metric endings with `"_time"` is a duration
         """
+        str_type = {
+            np.float16: "float16",
+            np.float32: "float32",
+            np.float64: "float64",
+            np.int8: "int8",
+            np.int16: "int16",
+            np.int32: "int32",
+            np.int64: "int64",
+            np.uint8: "uint8",
+            np.uint16: "uint16",
+            np.uint32: "uint32",
+            np.uint64: "uint64",
+        }
+
         stats = {}
         begin = time.perf_counter()
         rt = f_build(self.proto)
@@ -251,11 +267,11 @@ class TestRun:
         for ii, tensor in inputs:
             feeds[input_names[ii]] = tensor
             shapes[input_names[ii]] = tensor.shape
-            dtypes[input_names[ii]] = tensor.dtype
+            dtypes[input_names[ii]] = str_type.get(tensor.dtype, str(tensor.dtype))
             input_size += np.prod(tensor.shape)
         stats["shapes"] = shapes
         stats["dtypes"] = dtypes
-        stats["input_size"] = input_size
+        stats["input_size"] = int(input_size)
 
         begin = time.perf_counter()
         for _ in range(warmup):
@@ -272,12 +288,100 @@ class TestRun:
             ts.append(time.perf_counter() - begin)
 
         stats["repeat"] = repeat
-        stats["avg_time"] = np.array(ts).mean()
-        stats["min_time"] = np.array(ts).min()
-        stats["max_time"] = np.array(ts).max()
+        stats["avg_time"] = float(np.array(ts).mean())
+        stats["min_time"] = float(np.array(ts).min())
+        stats["max_time"] = float(np.array(ts).max())
 
         ts.sort()
         if repeat > 4:
             stats["max1_time"] = ts[-2]
             stats["min1_time"] = ts[1]
         return stats
+
+
+def bench_virtual(
+    test_path: str,
+    virtual_path: str,
+    runtimes: Union[List[str], str] = "ReferenceEvaluator",
+    index: int = 0,
+    warmup: int = 5,
+    repeat: int = 10,
+    modules: Optional[List[Dict[str, str]]] = None,
+    verbose: int = 0,
+    save_as_dataframe: Optional[str] = None,
+) -> List[Dict[str, Union[float, Dict[str, Tuple[int, ...]]]]]:
+    """
+    Runs the same benchmark over different
+    versions of the same packages in a virtual environment.
+
+    :param test_path: test path
+    :param virtual_path: path to the virtual environment
+    :param index: test index to measure
+    :param runtimes: runtimes to measure
+        (ReferenceEvaluation, CReferenceEvaluator, onnxruntime)
+    :param warmup: number of iterations to run before
+        starting to measure the model
+    :param modules: modules to install, example:
+        `modules=[{"onnxruntime": "1.15.1", "onnx": "1.15.0"}]`
+    :param save_as_dataframe: saves as dataframe
+    :param verbose: verbosity
+    :return: list of statistics
+    """
+    exe = os.path.join(virtual_path, "bin", "python")
+    if not os.path.exists(exe):
+        if verbose > 0:
+            print(f"[bench_virtual] create the virtual environment in {virtual_path!r}")
+            out = _run_cmd(f"{sys.executable} -m venv")
+            if verbose > 2:
+                print(out)
+        if not os.path.exists(exe):
+            raise RuntimeError(f"The virtual environment was not created:\n{out}")
+    if modules is None:
+        ext = "https://github.com/sdpython/onnx-extended.git"
+        modules = [
+            {"onnxruntime": "1.15.1", "onnx": None, "onnx_extended": f"git+{ext}"},
+            {"onnxruntime": "1.13.0", "onnx": None, "onnx_extended": f"git+{ext}"},
+        ]
+    if isinstance(runtimes, str):
+        runtimes = [runtimes]
+
+    obs = []
+    for i, conf in enumerate(modules):
+        if verbose > 0:
+            print(f"[bench_virtual] {i+1}/{len(modules)}:{conf}")
+
+        for k, v in conf.items():
+            if verbose > 1:
+                print(f"[bench_virtual] install {k}: {v or 'upgrade'}")
+            if v is None:
+                out = _run_cmd(f"{exe} -m pip install {k} --upgrade")
+                if verbose > 2:
+                    print(out)
+            elif v.startswith("git"):
+                out = _run_cmd(f"{exe} -m pip install {v}")
+                if verbose > 2:
+                    print(out)
+            else:
+                out = _run_cmd(f"{exe} -m pip install {k}=={v}")
+                if verbose > 2:
+                    print(out)
+
+            for rt in runtimes:
+                if verbose > 1:
+                    print(f"[bench_virtual] run with {rt}")
+                out = _run_cmd(
+                    f"{exe} onnx_extended.tools.run_onnx_main -p "
+                    f"{test_path} -r {repeat} -w {warmup} -r {rt}"
+                )
+                js = json.load(out)
+                if verbose > 2:
+                    print(js)
+                obs.append(js)
+
+    if save_as_dataframe:
+        import pandas
+
+        df = pandas.DataFrame(obs)
+        df.to_csv(save_as_dataframe, index=False)
+        return df
+    return out
