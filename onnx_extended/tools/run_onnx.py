@@ -304,9 +304,7 @@ class TestRun:
 
 def _run_cmd(args: List[str]) -> Tuple[str, str]:
     p = subprocess.Popen(
-        args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"PYTHONPATH": ""}
     )
     st = StringIO()
     while True:
@@ -370,14 +368,23 @@ def bench_virtual(
     if modules is None:
         ext = "https://github.com/sdpython/onnx-extended.git"
         modules = [
-            {"onnxruntime": "1.15.1", "onnx": None, "onnx_extended": f"git+{ext}"},
-            {"onnxruntime": "1.13.1", "onnx": None, "onnx_extended": f"git+{ext}"},
+            {"onnxruntime": "1.15.1", "onnx": None, "onnx-extended": f"git+{ext}"},
+            {"onnxruntime": "1.13.1", "onnx": None, "onnx-extended": f"git+{ext}"},
         ]
     if isinstance(runtimes, str):
         runtimes = [runtimes]
 
+    # mandatory packages
+    for name in ["setuptools", "wheel", "pybind11", "cython", "tomli", "packaging"]:
+        out = _run_cmd([exe, "-m", "pip", "install", name])
+        if verbose > 2:
+            print(out)
+
+    # packages defined by the user
     obs = []
     for i, conf in enumerate(modules):
+        if verbose > 2:
+            print("-------------------------------------------------------")
         if verbose > 0:
             print(f"[bench_virtual] {i+1}/{len(modules)}:{conf}")
 
@@ -403,35 +410,44 @@ def bench_virtual(
                 out = _run_cmd([exe, "-m", "pip", "install", f"{k}=={v}"])
                 if verbose > 2:
                     print(out)
+            if verbose > 1:
+                print(f"[bench_virtual] check {k} is installed")
+            out = _run_cmd(
+                [exe, "-c", f"import {k.replace('-', '_')} as m;print(m.__file__)"]
+            )
+            if verbose > 2:
+                print(out)
+            if "Error" in out:
+                raise RuntimeError(out)
 
-            for rt in runtimes:
-                if verbose > 1:
-                    print(f"[bench_virtual] run with {rt}")
-                out = _run_cmd(
-                    [
-                        exe,
-                        "-m",
-                        "onnx_extended.tools.run_onnx_main",
-                        "-p",
-                        test_path,
-                        "-r",
-                        str(repeat),
-                        "-w",
-                        str(warmup),
-                        "-e",
-                        rt,
-                    ]
-                )
-                if "Traceback" in out:
-                    raise RuntimeError(out)
-                try:
-                    js = json.loads(out)
-                except json.decoder.JSONDecodeError as e:
-                    raise RuntimeError(f"Unable to decode {out!r}") from e
-                if verbose > 2:
-                    print("[bench_virtual] final results")
-                    print(js)
-                obs.append(js)
+        for rt in runtimes:
+            if verbose > 1:
+                print(f"[bench_virtual] run with {rt}")
+            out = _run_cmd(
+                [
+                    exe,
+                    "-m",
+                    "onnx_extended.tools.run_onnx_main",
+                    "-p",
+                    test_path,
+                    "-r",
+                    str(repeat),
+                    "-w",
+                    str(warmup),
+                    "-e",
+                    rt,
+                ]
+            )
+            if "Traceback" in out:
+                raise RuntimeError(out)
+            try:
+                js = json.loads(out)
+            except json.decoder.JSONDecodeError as e:
+                raise RuntimeError(f"Unable to decode {out!r}") from e
+            if verbose > 2:
+                print("[bench_virtual] final results")
+                print(js)
+            obs.append(js)
 
     if save_as_dataframe:
         import pandas

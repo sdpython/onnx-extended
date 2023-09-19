@@ -164,10 +164,11 @@ class TestRunOnnx(ExtTestCase):
         folder = os.path.join(os.path.dirname(__file__), "bench")
 
         with tempfile.TemporaryDirectory() as temp:
+            temp = "llll"
             st = StringIO()
             with redirect_stdout(st):
                 df = bench_virtual(folder, temp, verbose=3)
-            self.assertIsinstance(df, list)
+            self.assertIsInstance(df, list)
             self.assertEqual(len(df), 2)
             text = st.getvalue()
             self.assertNotEmpty(text)
