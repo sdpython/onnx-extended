@@ -1,8 +1,10 @@
 import json
 import os
 import pprint
+import subprocess
 import time
 import sys
+from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from onnx import ModelProto, TensorProto, load
@@ -299,6 +301,25 @@ class TestRun:
         return stats
 
 
+def _run_cmd(args: List[str]) -> Tuple[str, str]:
+    p = subprocess.Popen(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    st = StringIO()
+    while True:
+        output = p.stdout.readline().decode(errors="ignore")
+        if output == "" and p.poll() is not None:
+            break
+        if output:
+            out = output.rstrip()
+            st.write(out + "\n")
+    p.poll()
+    p.stdout.close()
+    return st.getvalue()
+
+
 def bench_virtual(
     test_path: str,
     virtual_path: str,
@@ -331,9 +352,10 @@ def bench_virtual(
     if not os.path.exists(exe):
         if verbose > 0:
             print(f"[bench_virtual] create the virtual environment in {virtual_path!r}")
-            out = _run_cmd(f"{sys.executable} -m venv")
-            if verbose > 2:
-                print(out)
+        out = _run_cmd([sys.executable, "-m", "venv", virtual_path])
+        print([sys.executable, "-m", "venv", virtual_path])
+        if verbose > 2:
+            print(out)
         if not os.path.exists(exe):
             raise RuntimeError(f"The virtual environment was not created:\n{out}")
     if modules is None:
@@ -354,15 +376,15 @@ def bench_virtual(
             if verbose > 1:
                 print(f"[bench_virtual] install {k}: {v or 'upgrade'}")
             if v is None:
-                out = _run_cmd(f"{exe} -m pip install {k} --upgrade")
+                out = _run_cmd([exe, "-m", "pip", "install", k, "--upgrade"])
                 if verbose > 2:
                     print(out)
             elif v.startswith("git"):
-                out = _run_cmd(f"{exe} -m pip install {v}")
+                out = _run_cmd([exe, "-m", "pip", "install", v])
                 if verbose > 2:
                     print(out)
             else:
-                out = _run_cmd(f"{exe} -m pip install {k}=={v}")
+                out = _run_cmd([exe, "-m", "pip", "install", f"{k}=={v}"])
                 if verbose > 2:
                     print(out)
 
@@ -370,10 +392,26 @@ def bench_virtual(
                 if verbose > 1:
                     print(f"[bench_virtual] run with {rt}")
                 out = _run_cmd(
-                    f"{exe} onnx_extended.tools.run_onnx_main -p "
-                    f"{test_path} -r {repeat} -w {warmup} -r {rt}"
+                    [
+                        exe,
+                        "-m",
+                        "onnx_extended.tools.run_onnx_main",
+                        "-p",
+                        test_path,
+                        "-r",
+                        str(repeat),
+                        "-w",
+                        str(warmup),
+                        "-e",
+                        rt,
+                    ]
                 )
-                js = json.load(out)
+                if "Traceback" in out:
+                    raise RuntimeError(out)
+                try:
+                    js = json.loads(out)
+                except json.decoder.JSONDecodeError as e:
+                    raise RuntimeError(f"Unable to decode {out!r}") from e
                 if verbose > 2:
                     print(js)
                 obs.append(js)

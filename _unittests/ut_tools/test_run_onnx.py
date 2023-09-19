@@ -2,6 +2,7 @@ import unittest
 import json
 import os
 import tempfile
+import sys
 import numpy as np
 from contextlib import redirect_stdout
 from io import StringIO
@@ -16,7 +17,12 @@ from onnx.helper import (
 from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
-from onnx_extended.tools.run_onnx import save_for_benchmark_or_test, TestRun
+from onnx_extended.tools.run_onnx import (
+    save_for_benchmark_or_test,
+    TestRun,
+    _run_cmd,
+    bench_virtual,
+)
 from onnx_extended.tools.run_onnx_main import get_parser, main
 
 
@@ -148,6 +154,22 @@ class TestRunOnnx(ExtTestCase):
                 self.assertEqual(folder, bench["bench"][k])
             else:
                 self.assertEqual(examples["bench"][k], bench["bench"][k])
+
+    def test_run_cmd(self):
+        args = [sys.executable, "-V"]
+        out = _run_cmd(args)
+        self.assertIn("Python", out)
+
+    def test_bench_virtual(self):
+        folder = os.path.join(os.path.dirname(__file__), "bench")
+
+        with tempfile.TemporaryDirectory() as temp:
+            st = StringIO()
+            with redirect_stdout(st):
+                df = bench_virtual(folder, temp, verbose=3)
+                print(df)
+            text = st.getvalue()
+            print(text)
 
 
 if __name__ == "__main__":
