@@ -239,7 +239,6 @@ class TestRun:
         :param warmup: number of iterations to run before
             starting to measure the model
         :param repeat: number of iterations to measure
-        :param bench: number of iterations to measure
         :return: dictionary with many metrics,
             any metric endings with `"_time"` is a duration
         """

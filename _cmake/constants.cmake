@@ -32,6 +32,9 @@ else()
     message(FATAL_ERROR "gcc>=6.0 is needed but "
                         "${CMAKE_C_COMPILER_VERSION} was detected.")
   endif()
+  # needed to build many linux build
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lm")
 endif()
 
 set(TEST_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../_unittests")
