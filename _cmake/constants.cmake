@@ -20,12 +20,13 @@ elseif(APPLE)
 else()
   if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "15")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
   elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "11")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
   elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "9")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
   elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "6")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
   else()
@@ -35,6 +36,13 @@ else()
   # needed to build many linux build
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lm")
+
+  execute_process(
+    COMMAND ldd --version | grep 'ldd (.*)'
+    OUTPUT_VARIABLE ldd_version_output
+    ERROR_VARIABLE ldd_version_error
+    RESULT_VARIABLE ldd_version_result)
+  message(STATUS "GLIBC_VERSION=${ldd_version_output}")
 endif()
 
 set(TEST_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../_unittests")
@@ -67,11 +75,11 @@ endif()
 
 message(STATUS "**********************************")
 message(STATUS "CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}")
+message(STATUS "CMAKE_SHARED_LINKER_FLAGS=${CMAKE_SHARED_LINKER_FLAGS}")
 message(STATUS "LDFLAGS=${LDFLAGS}")
 message(STATUS "CPPFLAGS=${CPPFLAGS}")
 message(STATUS "DLL_EXT=${DLL_EXT}")
 message(STATUS "TEST_FOLDER=${TEST_FOLDER}")
 message(STATUS "CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "**********************************")
-
-
