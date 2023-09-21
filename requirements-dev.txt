@@ -1,4 +1,4 @@
-autopep8
+auditwheel-symbols
 black
 clang-format
 cmakelang

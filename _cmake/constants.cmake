@@ -107,6 +107,17 @@ else()
   endif()
 endif()
 
+# Disable fast-math for Intel oneAPI compiler
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "IntelLLVM")
+  if("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC-like")
+    # Using icx-cl compiler driver with MSVC-like arguments
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise")
+  else()
+    # Using icpx compiler driver
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-fast-math")
+  endif()
+endif()
+
 set(TEST_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../_unittests")
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/test_constants.h.in

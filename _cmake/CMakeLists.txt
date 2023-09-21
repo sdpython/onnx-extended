@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24.0)
+cmake_minimum_required(VERSION 3.25.0)
 project(onnx_extended VERSION ${ONNX_EXTENDED_VERSION})
 
 

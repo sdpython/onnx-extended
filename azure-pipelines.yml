@@ -56,6 +56,9 @@ jobs:
       mkdir dist
       cp onnx_extended*.whl dist
     displayName: 'copy wheel'
+  - script: |
+      auditwheel-symbols --manylinux 2_28 dist/*.whl
+    displayName: 'Audit wheel'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-linux-pip-$(python.version)'
@@ -119,6 +122,9 @@ jobs:
   - script: |
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
+  - script: |
+      auditwheel-symbols --manylinux 2_28 dist/*.whl
+    displayName: 'Audit wheel'
   - script: |
       ls dist/*
       find dist -type f \( -name "onnx_extended*.whl" \) | while read f; do
