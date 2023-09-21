@@ -154,13 +154,3 @@ else()
 endif()
 
 message(STATUS "-------------------")
-
-if(CUDA_AVAILABLE)
-  set(
-    config_content
-    "HAS_CUDA = 1\nCUDA_VERSION = '${CUDA_VERSION}'"
-    "\nCUDA_VERSION_INT = ${CUDA_VERSION_INT}"
-    "\nCXX_FLAGS = '${CMAKE_CXX_FLAGS}'\n")
-else()
-  set(config_content "HAS_CUDA = 0\nCXX_FLAGS='${CMAKE_CXX_FLAGS}'\n")
-endif()

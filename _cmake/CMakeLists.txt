@@ -66,6 +66,12 @@ include("targets/ortops_tutorial_cuda.cmake")
 include("targets/ortops_optim_cpu.cmake")
 
 #
+# finalize
+#
+
+include("finalize.cmake")
+
+#
 # write version
 #
 
