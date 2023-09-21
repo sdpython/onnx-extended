@@ -355,6 +355,8 @@ class cmake_build_class_extension(Command):
             "manylinux2014_s390x",
             "manylinux_2_28_x86_64",
             "manylinux_2_28_aarch64",
+            "manylinux_2_35_x86_64",
+            "manylinux_2_35_aarch64",
         ]
         is_manylinux = os.environ.get("AUDITWHEEL_PLAT", None) in manylinux_tags
 
