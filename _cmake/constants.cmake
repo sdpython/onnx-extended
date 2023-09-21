@@ -1,3 +1,42 @@
+
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
+  cmake_policy(SET CMP0077 NEW)
+endif()
+
+#
+# initialisation
+#
+
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+message(STATUS "ONNX_EXTENDED_VERSION=${ONNX_EXTENDED_VERSION}")
+message(STATUS "CMAKE_VERSION=${CMAKE_VERSION}")
+message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+message(STATUS "CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "CMAKE_CXX_COMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "USE_SETUP_PYTHON=${USE_SETUP_PYTHON}")
+message(STATUS "USE_PYTHON_SETUP=${USE_PYTHON_SETUP}")
+message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
+message(STATUS "PYTHON_VERSION_MM=${PYTHON_VERSION_MM}")
+message(STATUS "PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
+message(STATUS "PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}")
+message(STATUS "PYTHON_LIBRARY=${PYTHON_LIBRARY}")
+message(STATUS "PYTHON_LIBRARY_DIR=${PYTHON_LIBRARY_DIR}")
+message(STATUS "PYTHON_NUMPY_INCLUDE_DIR=${PYTHON_NUMPY_INCLUDE_DIR}")
+message(STATUS "PYTHON_MODULE_EXTENSION=${PYTHON_MODULE_EXTENSION}")
+message(STATUS "PYTHON_NUMPY_VERSION=${PYTHON_NUMPY_VERSION}")
+message(STATUS "USE_CUDA=${USE_CUDA}")
+message(STATUS "CUDA_BUILD=${CUDA_BUILD}")
+message(STATUS "CUDA_LINK=${CUDA_LINK}")
+message(STATUS "USE_NVTX=${USE_NVTX}")
+message(STATUS "ORT_VERSION=${ORT_VERSION}")
+message(STATUS "PYTHON_MANYLINUX=${PYTHON_MANYLINUX}")
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+message(STATUS "--------------------------------------------")
+
 #
 # python extension
 #
@@ -10,39 +49,62 @@ else()
 endif()
 
 #
-# C++ 14 or C++ 17
+# C++ 14 or C++ 17 or...
 #
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
-elseif(APPLE)
+if (PYTHON_MANYLINUX EQUAL "1")
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  set(CMAKE_CXX_STANDARD 17)
+  if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-else()
-  if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "15")
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-  elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "11")
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-  elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "9")
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-  elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "6")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+  elseif(MSVC)
+    # nothing
   else()
-    message(FATAL_ERROR "gcc>=6.0 is needed but "
-                        "${CMAKE_C_COMPILER_VERSION} was detected.")
+    if(CMAKE_C_COMPILER_VERSION VERSION_LESS_EQUAL "8")
+      message(FATAL_ERROR "gcc>=9.0 is needed to build manylinux wheel but "
+                          "${CMAKE_C_COMPILER_VERSION} was detected.")
+    endif()
+    execute_process(
+      COMMAND ldd --version | grep 'ldd (.*)'
+      OUTPUT_VARIABLE ldd_version_output
+      ERROR_VARIABLE ldd_version_error
+      RESULT_VARIABLE ldd_version_result)
   endif()
-  # needed to build many linux build
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lm")
+else()
+  if(MSVC)
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+    set(CMAKE_CXX_STANDARD 17)
+  elseif(APPLE)
+      set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
+      # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+      set(CMAKE_CXX_STANDARD 17)
+  else()
+    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "15")
+      # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23")
+      set(CMAKE_CXX_STANDARD 23)
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "11")
+      # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+      set(CMAKE_CXX_STANDARD 20)
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "9")
+      # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+      set(CMAKE_CXX_STANDARD 17)
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "6")
+      # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+      set(CMAKE_CXX_STANDARD 14)
+    else()
+      message(FATAL_ERROR "gcc>=6.0 is needed but "
+                          "${CMAKE_C_COMPILER_VERSION} was detected.")
+    endif()
+    # needed to build many linux build
+    # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
+    # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lm")
 
-  execute_process(
-    COMMAND ldd --version | grep 'ldd (.*)'
-    OUTPUT_VARIABLE ldd_version_output
-    ERROR_VARIABLE ldd_version_error
-    RESULT_VARIABLE ldd_version_result)
-  message(STATUS "GLIBC_VERSION=${ldd_version_output}")
+    execute_process(
+      COMMAND ldd --version | grep 'ldd (.*)'
+      OUTPUT_VARIABLE ldd_version_output
+      ERROR_VARIABLE ldd_version_error
+      RESULT_VARIABLE ldd_version_result)
+  endif()
 endif()
 
 set(TEST_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../_unittests")
@@ -74,7 +136,13 @@ if(APPLE)
 endif()
 
 message(STATUS "**********************************")
+message(STATUS "**********************************")
+message(STATUS "**********************************")
+message(STATUS "GLIBC_VERSION=${ldd_version_output}")
+message(STATUS "CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}")
 message(STATUS "CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_CXX_STANDARD_REQUIRED={CMAKE_CXX_STANDARD_REQUIRED}")
+message(STATUS "CMAKE_CXX_EXTENSIONS={CMAKE_CXX_EXTENSIONS}")
 message(STATUS "CMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}")
 message(STATUS "CMAKE_SHARED_LINKER_FLAGS=${CMAKE_SHARED_LINKER_FLAGS}")
 message(STATUS "LDFLAGS=${LDFLAGS}")
@@ -82,4 +150,6 @@ message(STATUS "CPPFLAGS=${CPPFLAGS}")
 message(STATUS "DLL_EXT=${DLL_EXT}")
 message(STATUS "TEST_FOLDER=${TEST_FOLDER}")
 message(STATUS "CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "**********************************")
+message(STATUS "**********************************")
 message(STATUS "**********************************")

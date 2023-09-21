@@ -341,6 +341,23 @@ class cmake_build_class_extension(Command):
         if here == "":
             here = "."
 
+        manylinux_tags = [
+            "manylinux1_x86_64",
+            "manylinux1_i686",
+            "manylinux2010_x86_64",
+            "manylinux2010_i686",
+            "manylinux2014_x86_64",
+            "manylinux2014_i686",
+            "manylinux2014_aarch64",
+            "manylinux2014_armv7l",
+            "manylinux2014_ppc64",
+            "manylinux2014_ppc64le",
+            "manylinux2014_s390x",
+            "manylinux_2_28_x86_64",
+            "manylinux_2_28_aarch64",
+        ]
+        is_manylinux = os.environ.get("AUDITWHEEL_PLAT", None) in manylinux_tags
+
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
             f"-DCMAKE_BUILD_TYPE={cfg}",
@@ -349,6 +366,7 @@ class cmake_build_class_extension(Command):
             f"-DPYTHON_MODULE_EXTENSION={module_ext}",
             f"-DORT_VERSION={self.ort_version}",
             f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
+            f"-DPYTHON_MANYLINUX={1 if is_manylinux else 0}",
         ]
         if self.parallel is not None:
             cmake_args.append(f"-j{self.parallel}")
