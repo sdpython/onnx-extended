@@ -93,9 +93,6 @@ ignore_directives = [
 ignore_roles = ["epkg", "pr"]
 ignore_messages = "Duplicate implicit target name: \"setup.py\""
 
-[tool.distutils.bdist_wheel]
-universal2 = true
-
 [tool.setuptools.packages.find]
 namespaces = false
 
