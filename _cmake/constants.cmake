@@ -67,7 +67,7 @@ if (PYTHON_MANYLINUX EQUAL "1")
                           "${CMAKE_C_COMPILER_VERSION} was detected.")
     endif()
     execute_process(
-      COMMAND ldd --version | grep 'ldd (.*)'
+      COMMAND ldd --version | grep "ldd (.*)"
       OUTPUT_VARIABLE ldd_version_output
       ERROR_VARIABLE ldd_version_error
       RESULT_VARIABLE ldd_version_result)
@@ -102,7 +102,7 @@ else()
     # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lm")
 
     execute_process(
-      COMMAND ldd --version | grep 'ldd (.*)'
+      COMMAND ldd --version | grep "ldd (.*)"
       OUTPUT_VARIABLE ldd_version_output
       ERROR_VARIABLE ldd_version_error
       RESULT_VARIABLE ldd_version_result)

@@ -92,40 +92,26 @@ endif()
 #
 function(ort_add_dependency name folder_copy folder_copy_ort)
   get_target_property(target_output_directory ${name} BINARY_DIR)
-  message(STATUS "ort: copy-1 ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}'")
   if(MSVC)
     set(destination_dir ${target_output_directory}/${CMAKE_BUILD_TYPE})
   else()
     set(destination_dir ${target_output_directory})
   endif()
-  message(STATUS "ort: copy-2 to '${destination_dir}'")
-  if(folder_copy)
-    message(STATUS "ort: copy-3 to '${folder_copy}'")
-  endif()
+  message(STATUS "ort: copy ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}' "
+                 "to '${destination_dir}', '${folder_copy}', '${folder_copy_ort}' if it exists")
   foreach(file_i ${ORT_LIB_FILES})
-    if(NOT EXISTS ${destination_dir}/${file_i})
-      message(STATUS "ort: copy-4 '${file_i}' to '${destination_dir}'")
+    add_custom_command(
+      TARGET ${name} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
+    if(folder_copy)
       add_custom_command(
         TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
     endif()
-    if(folder_copy)
-      if(NOT EXISTS ${folder_copy}/${file_i})
-        message(STATUS "ort: copy-5 '${file_i}' to '${folder_copy}'")
-        # file(APPEND "../_setup_ext.txt" "copy,${file_i},${folder_copy}\n")
-        add_custom_command(
-          TARGET ${name} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
-      endif()
-    endif()
-    if(folder_copy_ort)
-      if(NOT EXISTS ${folder_copy_ort}/${file_i})
-        message(STATUS "ort: copy-6 '${file_i}' to '${folder_copy_ort}'")
-        # file(APPEND "../_setup_ext.txt" "copy,${file_i},${folder_copy_ort}\n")
-        add_custom_command(
-          TARGET ${name} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy_ort})
-      endif()
+    if exists(folder_copy_ort)
+      add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy_ort})
     endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
@@ -189,18 +175,9 @@ function(ort_add_custom_op name provider folder)
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
-  message(STATUS "ort: copy-o '${name}' to '${folder}")
   add_custom_command(
     TARGET ${name} POST_BUILD
     COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
-  # $<TARGET_FILE_NAME:${name}> does not seem to work.
-  # The following step adds a line in '_setup.txt' to tell setup.py
-  # to copy an additional file.
-  # if (provider STREQUAL "CUDA")
-  #   file(APPEND "../_setup_ext.txt" "copy,${cuda_name},${folder}\n")
-  # endif()
-  # CHECK
-  # file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
 endfunction()
 
 include(FindPackageHandleStandardArgs)
