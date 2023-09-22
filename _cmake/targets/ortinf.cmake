@@ -17,7 +17,10 @@ target_link_directories(ortinf PRIVATE ${ONNXRUNTIME_LIB_DIR})
 message(STATUS "    LINK ortinf <- lib_ortapi onnxruntime")
 target_link_libraries(ortinf PRIVATE lib_ortapi onnxruntime common_kernels)
 target_include_directories(ortinf PRIVATE ${ROOT_INCLUDE_PATH})
-ort_add_dependency(ortinf ${CMAKE_CURRENT_SOURCE_DIR}/../onnx_extended/ortcy/wrap/)
+ort_add_dependency(
+  ortinf
+  ${CMAKE_CURRENT_SOURCE_DIR}/../onnx_extended/ortcy/wrap/
+  ${SETUP_BUILD_LIB}/onnx_extended/ortcy/wrap/)
 
 set(ORTAPI_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortcy/wrap")
 
@@ -36,5 +39,5 @@ target_link_libraries(
   lib_ortapi
   onnxruntime
   common_kernels)
-ort_add_dependency(test_ortcy_inference_cpp "")
+ort_add_dependency(test_ortcy_inference_cpp "" "")
 add_test(NAME test_ortcy_inference_cpp COMMAND test_ortcy_inference_cpp)

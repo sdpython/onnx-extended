@@ -87,8 +87,10 @@ endif()
 #                       to the location a target is build
 #
 # \arg:name target name
+# \arg:folder_copy where to copy the assembly
+# \arg:folder_copy_ort whenre to copy the dll for onnxruntime
 #
-function(ort_add_dependency name folder_copy)
+function(ort_add_dependency name folder_copy folder_copy_ort)
   get_target_property(target_output_directory ${name} BINARY_DIR)
   message(STATUS "ort: copy-1 ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}'")
   if(MSVC)
@@ -114,6 +116,15 @@ function(ort_add_dependency name folder_copy)
         add_custom_command(
           TARGET ${name} POST_BUILD
           COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
+      endif()
+    endif()
+    if(folder_copy_ort)
+      if(NOT EXISTS ${folder_copy_ort}/${file_i})
+        message(STATUS "ort: copy-6 '${file_i}' to '${folder_copy_ort}'")
+        # file(APPEND "../_setup_ext.txt" "copy,${file_i},${folder_copy_ort}\n")
+        add_custom_command(
+          TARGET ${name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy_ort})
       endif()
     endif()
   endforeach()
@@ -178,16 +189,18 @@ function(ort_add_custom_op name provider folder)
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
-  # add_custom_command(
-  #   TARGET ${name} POST_BUILD
-  #   COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
+  message(STATUS "ort: copy-o '${name}' to '${folder}")
+  add_custom_command(
+    TARGET ${name} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
   # $<TARGET_FILE_NAME:${name}> does not seem to work.
   # The following step adds a line in '_setup.txt' to tell setup.py
   # to copy an additional file.
   # if (provider STREQUAL "CUDA")
   #   file(APPEND "../_setup_ext.txt" "copy,${cuda_name},${folder}\n")
   # endif()
-  file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
+  # CHECK
+  # file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
 endfunction()
 
 include(FindPackageHandleStandardArgs)

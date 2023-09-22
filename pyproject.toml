@@ -69,6 +69,7 @@ dev = [
 
 [build-system]
 requires = [
+    "auditwheel-symbols; sys_platform == 'linux'",
     "Cython",
     "cmake",
     "numpy",
@@ -107,7 +108,6 @@ archs = ["x86_64"]
 build = "cp*"
 skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* *musllinux*"
 manylinux-x86_64-image = "manylinux_2_28"
-before-build = "pip install git+https://github.com/messense/auditwheel-symbols.git"
 build-verbosity = 1
 repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} && auditwheel repair -w {dest_dir} {wheel}"
 

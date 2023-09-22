@@ -1,4 +1,3 @@
-git+https://github.com/messense/auditwheel-symbols.git; sys_platform == 'linux'
 black
 clang-format
 cmakelang

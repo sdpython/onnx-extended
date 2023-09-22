@@ -424,6 +424,11 @@ class cmake_build_class_extension(Command):
 
         # Builds the project.
         build_path = os.path.abspath(build_temp)
+        build_lib = getattr(self, "build_lib", build_path)
+        cmake_args = cmake_args + [
+            f"-DSETUP_BUILD_PATH={os.path.abspath(build_path)}",
+            f"-DSETUP_BUILD_LIB={os.path.abspath(build_lib)}",
+        ]
         with open(
             os.path.join(os.path.dirname(__file__), ".build_path.txt"),
             "w",
@@ -455,7 +460,7 @@ class cmake_build_class_extension(Command):
             cmd, cwd=build_path, capture_output=True, cuda_version=self.cuda_version
         )
         print("-- setup: done.")
-        return build_path, getattr(self, "build_lib", build_path)
+        return build_path, build_lib
 
     def process_extensions(self, cfg: str, build_path: str, build_lib: str):
         """
@@ -723,6 +728,7 @@ def get_package_data():
         "onnx_extended.validation.cython": known_extensions,
         "onnx_extended.validation.cuda": known_extensions,
     }
+
 
 setup(
     name="onnx-extended",
