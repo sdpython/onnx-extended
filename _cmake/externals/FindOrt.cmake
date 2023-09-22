@@ -108,7 +108,7 @@ function(ort_add_dependency name folder_copy folder_copy_ort)
         TARGET ${name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
     endif()
-    if exists(folder_copy_ort)
+    if(EXISTS folder_copy_ort)
       add_custom_command(
         TARGET ${name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy_ort})
