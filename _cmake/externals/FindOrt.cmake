@@ -132,7 +132,7 @@ function(ort_add_custom_op name provider folder)
     list(APPEND ARGN "${folder}/${name}.def")
   endif()
   if (provider STREQUAL "CUDA")
-    message(STATUS "ort: custom op ${provider}: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op ${provider}: '${name}' in '${folder}'")
     add_library(${name} SHARED ${ARGN})
 
     # add property --use_fast_math to cu files
@@ -168,16 +168,17 @@ function(ort_add_custom_op name provider folder)
       PRIVATE
       ${ONNXRUNTIME_INCLUDE_DIR})
   else()
-    message(STATUS "ort: custom op CPU: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op CPU: '${name}' in '${folder}'")
     add_library(${name} SHARED ${ARGN})
     target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
     target_compile_definitions(${name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
+  message(STATUS "ort: custom op LIBRARY_OUTPUT_NAME=${LIBRARY_OUTPUT_NAME}")
   add_custom_command(
     TARGET ${name} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
+    COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${CMAKE_CURRENT_SOURCE_DIR}/${folder})
 endfunction()
 
 include(FindPackageHandleStandardArgs)
