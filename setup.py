@@ -724,7 +724,6 @@ def get_package_data():
         "onnx_extended.validation.cuda": known_extensions,
     }
 
-
 setup(
     name="onnx-extended",
     version=get_version_str(here, "0.2.0"),

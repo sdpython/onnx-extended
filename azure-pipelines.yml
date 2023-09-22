@@ -49,6 +49,7 @@ jobs:
   - script: |
       # --config-settings does not work yet.
       # python -m pip wheel . --config-settings="--use_cuda=0" -v
+      # python -m pip wheel . --global-option "--use_cuda=0" -v
       export USE_CUDA=0
       python -m pip wheel . -v
     displayName: 'build wheel'

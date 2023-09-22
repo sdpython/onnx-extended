@@ -10,15 +10,27 @@ void *AllocatorDefaultAlloc(size_t size) {
 #if _MSC_VER
   p = _aligned_malloc(size, alignment);
   if (p == nullptr)
+#if __cplusplus >= 202002L
     throw std::bad_alloc();
+#else
+    abort();
+#endif
 #elif defined(_LIBCPP_SGX_CONFIG)
   p = memalign(alignment, size);
   if (p == nullptr)
+#if __cplusplus >= 202002L
     throw std::bad_alloc();
+#else
+    abort();
+#endif
 #else
   int ret = posix_memalign(&p, alignment, size);
   if (ret != 0)
+#if __cplusplus >= 202002L
     throw std::bad_alloc();
+#else
+    abort();
+#endif
 #endif
   return p;
 }
