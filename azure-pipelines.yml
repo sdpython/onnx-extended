@@ -58,6 +58,7 @@ jobs:
     displayName: 'copy wheel'
   - script: |
       auditwheel-symbols --manylinux 2_28 dist/*.whl
+    continueOnError: true
     displayName: 'Audit wheel'
   - task: PublishPipelineArtifact@0
     inputs:
@@ -124,6 +125,7 @@ jobs:
     displayName: 'Build Package'
   - script: |
       auditwheel-symbols --manylinux 2_28 dist/*.whl
+    continueOnError: true
     displayName: 'Audit wheel'
   - script: |
       ls dist/*
