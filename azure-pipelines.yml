@@ -58,6 +58,7 @@ jobs:
       cp onnx_extended*.whl dist
     displayName: 'copy wheel'
   - script: |
+      pip install auditwheel-symbols
       auditwheel-symbols --manylinux 2_28 dist/*.whl
     continueOnError: true
     displayName: 'Audit wheel'
@@ -125,6 +126,7 @@ jobs:
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
   - script: |
+      pip install auditwheel-symbols
       auditwheel-symbols --manylinux 2_28 dist/*.whl
     continueOnError: true
     displayName: 'Audit wheel'

@@ -175,7 +175,6 @@ function(ort_add_custom_op name provider folder)
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
-  message(STATUS "ort: custom op LIBRARY_OUTPUT_NAME=${LIBRARY_OUTPUT_NAME}")
   add_custom_command(
     TARGET ${name} POST_BUILD
     COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${CMAKE_CURRENT_SOURCE_DIR}/${folder})
