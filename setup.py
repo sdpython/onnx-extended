@@ -506,59 +506,6 @@ class cmake_build_class_extension(Command):
             print(f"-- setup: copy-2 {look!r} to {dest!r}")
             shutil.copy(look, dest)
 
-    def _process_setup_ext_line(self, cfg, build_path, line):
-        line = line.strip(" \n\r")
-        if not line:
-            return
-        spl = line.split(",")
-        if len(spl) != 3:
-            raise RuntimeError(f"Unable to process line {line!r}.")
-        if spl[0] == "copy":
-            if is_windows():
-                ext = "dll"
-                prefix = ""
-            elif is_darwin():
-                ext = "dylib"
-                prefix = "lib"
-            else:
-                ext = "so"
-                prefix = "lib"
-            src, dest = spl[1:]
-            shortened = dest.split("onnx_extended")[-1].strip("/\\")
-            fulldest = f"onnx_extended/{shortened}"
-            assumed_name = f"{prefix}{src}.{ext}"
-            if is_windows():
-                fullname = os.path.join(build_path, cfg, assumed_name)
-            else:
-                fullname = os.path.join(build_path, assumed_name)
-            if not os.path.exists(fullname):
-                raise FileNotFoundError(
-                    f"Unable to find library {fullname!r} (line={line!r})."
-                )
-            print(f"-- setup: copy-1 {fullname!r} to {fulldest!r}")
-            shutil.copy(fullname, fulldest)
-        else:
-            raise RuntimeError(f"Unable to interpret line {line!r}.")
-
-    def process_setup_ext(self, cfg, build_path, filename):
-        """
-        Copies the additional files done after cmake was executed
-        into python subfolders. These files are listed in file
-        `_setup_ext.txt` produced by cmake.
-
-        :param cfg: configuration (Release, ...)
-        :param build_path: where it was built
-        :param filename: path of file `_setup_ext.txt`.
-        """
-        this = os.path.abspath(os.path.dirname(__file__))
-        fullname = os.path.join(this, filename)
-        if not os.path.exists(fullname):
-            raise FileNotFoundError(f"Unable to find filename {fullname!r}.")
-        with open(fullname, "r") as f:
-            lines = f.readlines()
-        for line in lines:
-            self._process_setup_ext_line(cfg, build_path, line)
-
     def run_cmake(self):
         # Ensure that CMake is present and working
         try:
@@ -569,8 +516,6 @@ class cmake_build_class_extension(Command):
         cfg = "Release"
         cmake_args = self.get_cmake_args(cfg)
         build_path, build_lib = self.build_cmake(cfg, cmake_args)
-        print("-- process_setup_ext")
-        self.process_setup_ext(cfg, build_path, "_setup_ext.txt")
         if hasattr(self, "extensions"):
             print("-- process_extensions")
             self.process_extensions(cfg, build_path, build_lib)

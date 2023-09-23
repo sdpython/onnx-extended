@@ -62,8 +62,8 @@ if (PYTHON_MANYLINUX EQUAL "1")
   elseif(MSVC)
     # nothing
   else()
-    if(CMAKE_C_COMPILER_VERSION VERSION_LESS_EQUAL "8")
-      message(FATAL_ERROR "gcc>=9.0 is needed to build manylinux wheel but "
+    if(CMAKE_C_COMPILER_VERSION VERSION_LESS_EQUAL "6.2")
+      message(FATAL_ERROR "gcc>=6.3 is needed to build manylinux wheel but "
                           "${CMAKE_C_COMPILER_VERSION} was detected.")
     endif()
     execute_process(
