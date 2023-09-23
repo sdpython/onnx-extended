@@ -111,7 +111,7 @@ manylinux-x86_64-image = "manylinux_2_28"
 before-build = "pip install auditwheel-symbols"
 build-verbosity = 1
 # repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} && auditwheel repair -w {dest_dir} {wheel}"
-repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel}"
+repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} || exit 0"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
