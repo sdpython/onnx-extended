@@ -9,6 +9,7 @@ target_include_directories(
   lib_ortapi PUBLIC
   ${ONNXRUNTIME_INCLUDE_DIR}
   ${ROOT_INCLUDE_PATH})
+target_link_libraries(lib_ortapi PRIVATE common)
 
 cython_add_module(
   ortinf
@@ -16,7 +17,7 @@ cython_add_module(
   OpenMP::OpenMP_CXX)
 target_link_directories(ortinf PRIVATE ${ONNXRUNTIME_LIB_DIR})
 message(STATUS "    LINK ortinf <- lib_ortapi onnxruntime")
-target_link_libraries(ortinf PRIVATE lib_ortapi onnxruntime common_kernels common)
+target_link_libraries(ortinf PRIVATE lib_ortapi onnxruntime common_kernels)
 target_include_directories(ortinf PRIVATE ${ROOT_INCLUDE_PATH})
 ort_add_dependency(
   ortinf

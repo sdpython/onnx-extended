@@ -34,8 +34,6 @@ std::string to_string(int value);
 
 std::vector<std::string> SplitString(const std::string &input, char delimiter);
 
-void MakeStringInternal(StringStream &ss);
-
 void MakeStringInternalElement(StringStream &ss, const char *t);
 
 void MakeStringInternalElement(StringStream &ss, const std::string &t);
@@ -70,6 +68,8 @@ void MakeStringInternalElement(StringStream &ss, const std::vector<int32_t> &t);
 void MakeStringInternalElement(StringStream &ss, const std::vector<int64_t> &t);
 
 void MakeStringInternalElement(StringStream &ss, const std::vector<float> &t);
+
+void MakeStringInternal(StringStream &ss);
 
 template <typename T, typename... Args>
 inline void MakeStringInternal(StringStream &ss, const T &t) {
