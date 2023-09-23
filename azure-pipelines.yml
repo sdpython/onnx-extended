@@ -59,9 +59,12 @@ jobs:
     displayName: 'copy wheel'
   - script: |
       pip install auditwheel-symbols
-      auditwheel-symbols --manylinux 2_28 dist/*.whl
-    continueOnError: true
+      auditwheel-symbols --manylinux 2_28 dist/*.whl || exit 0
     displayName: 'Audit wheel'
+  - script: |
+      pip install abi3audit
+      abi3audit dist/*.whl || exit 0
+    displayName: 'abi3audit wheel'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-linux-pip-$(python.version)'
@@ -127,9 +130,12 @@ jobs:
     displayName: 'Build Package'
   - script: |
       pip install auditwheel-symbols
-      auditwheel-symbols --manylinux 2_28 dist/*.whl
-    continueOnError: true
+      auditwheel-symbols --manylinux 2_28 dist/*.whl || exit 0
     displayName: 'Audit wheel'
+  - script: |
+      pip install abi3audit
+      abi3audit dist/*.whl || exit 0
+    displayName: 'abi3audit wheel'
   - script: |
       ls dist/*
       find dist -type f \( -name "onnx_extended*.whl" \) | while read f; do

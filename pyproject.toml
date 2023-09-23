@@ -69,6 +69,7 @@ dev = [
 
 [build-system]
 requires = [
+    "abi3audit; sys_platform == 'linux'",
     "auditwheel-symbols; sys_platform == 'linux'",
     "Cython",
     "cmake",
@@ -108,9 +109,9 @@ archs = ["x86_64"]
 build = "cp*"
 skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* *musllinux*"
 manylinux-x86_64-image = "manylinux_2_28"
-before-build = "pip install auditwheel-symbols"
+before-build = "pip install auditwheel-symbols abi3audit"
 build-verbosity = 1
-repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
+repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
 # repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} || exit 0"
 
 [tool.cibuildwheel.macos]
