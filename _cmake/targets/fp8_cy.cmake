@@ -1,5 +1,5 @@
 #
-# module: onnx_extended.validation.cython.vector_function_cy
+# module: onnx_extended.validation.cython.fp8
 #
 message(STATUS "+ CYTHON onnx_extended.validation.cython.fp8")
 
