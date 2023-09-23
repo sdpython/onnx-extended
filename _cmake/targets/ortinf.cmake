@@ -4,6 +4,7 @@
 message(STATUS "+ CYTHON onnx_extended.ortcy.wrap.ortapi")
 
 add_library(lib_ortapi STATIC ../onnx_extended/ortcy/wrap/ortapi.cpp)
+target_compile_definitions(lib_ortapi PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(
   lib_ortapi PUBLIC
   ${ONNXRUNTIME_INCLUDE_DIR}
@@ -25,6 +26,7 @@ ort_add_dependency(
 set(ORTAPI_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortcy/wrap")
 
 add_executable(test_ortcy_inference_cpp ../_unittests/ut_ortcy/test_inference.cpp)
+target_compile_definitions(test_ortcy_inference_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(
   test_ortcy_inference_cpp
   PRIVATE

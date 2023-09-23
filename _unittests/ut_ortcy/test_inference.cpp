@@ -1,7 +1,9 @@
 #include "onnx_extended_test_common.h"
 #include "onnx_extended/ortcy/wrap/ortapi.h"
 #include "onnxruntime_cxx_api.h"
+#if __cplusplus >= 201703L 
 #include <filesystem>
+#endif
 #include <iostream>
 #ifdef _WIN32
 #include <codecvt>
@@ -24,7 +26,7 @@ void test_inference() {
   session_options.SetLogSeverityLevel(0);
 
   // requires C++ 17
-  #if __cplusplus >= 201703L 
+  #if ((!defined(PYTHON_MANYLINUX) || !PYTHON_MANYLINUX) && __cplusplus >= 201703L)
     std::filesystem::path cwd = TEST_FOLDER;
     #ifdef _WIN32
     std::wstring model = (cwd / "ut_ortcy/data/add.onnx").wstring();

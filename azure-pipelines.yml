@@ -130,7 +130,7 @@ jobs:
     displayName: 'Build Package'
   - script: |
       pip install auditwheel-symbols
-      auditwheel-symbols --manylinux 2_24 dist/*.whl || exit 0
+      auditwheel-symbols --manylinux 2014 dist/*.whl || exit 0
     displayName: 'Audit wheel'
   - script: |
       pip install abi3audit

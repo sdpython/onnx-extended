@@ -62,11 +62,6 @@ if (PYTHON_MANYLINUX EQUAL "1")
   elseif(MSVC)
     # nothing
   else()
-    if(CMAKE_C_COMPILER_VERSION VERSION_LESS "8")
-      message(FATAL_ERROR "gcc>=8 is needed to build manylinux wheel "
-                          "(filesystem) but "
-                          "${CMAKE_C_COMPILER_VERSION} was detected.")
-    endif()
     execute_process(
       COMMAND ldd --version | grep "ldd (.*)"
       OUTPUT_VARIABLE ldd_version_output

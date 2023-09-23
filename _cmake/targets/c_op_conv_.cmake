@@ -12,6 +12,7 @@ target_link_libraries(c_op_conv_ PRIVATE common_kernels)
 target_include_directories(c_op_conv_ PRIVATE ${ROOT_INCLUDE_PATH})
 
 add_executable(test_c_op_conv_cpp ../_unittests/ut_reference/test_c_op_conv.cpp)
+target_compile_definitions(test_c_op_conv_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_link_libraries(test_c_op_conv_cpp PRIVATE common_kernels)
 target_include_directories(
   test_c_op_conv_cpp

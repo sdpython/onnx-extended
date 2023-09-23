@@ -144,7 +144,8 @@ function(ort_add_custom_op name provider folder)
       ${name}
       PRIVATE
       CUDA_VERSION=${CUDA_VERSION_INT}
-      ORT_VERSION=${ORT_VERSION_INT})
+      ORT_VERSION=${ORT_VERSION_INT}
+      PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
     if(USE_NVTX)
       message(STATUS "    LINK ${name} <- stdc++ nvtx3-cpp ${CUDA_LIBRARIES}")
       target_link_libraries(
@@ -169,7 +170,11 @@ function(ort_add_custom_op name provider folder)
     message(STATUS "ort: custom op CPU: '${name}' in '${folder}'")
     add_library(${name} SHARED ${ARGN})
     target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
-    target_compile_definitions(${name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})
+    target_compile_definitions(
+      ${name}
+      PRIVATE
+      ORT_VERSION=${ORT_VERSION_INT}
+      PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)

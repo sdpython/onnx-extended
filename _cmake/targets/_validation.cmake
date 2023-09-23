@@ -6,6 +6,7 @@ message(STATUS "+ PYBIND11 onnx_extended.validation.cpu._validation")
 add_library(lib_validation_cpp STATIC
   ../onnx_extended/validation/cpu/speed_metrics.cpp
   ../onnx_extended/validation/cpu/vector_function.cpp)
+target_compile_definitions(lib_validation_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 set_property(TARGET lib_validation_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 local_pybind11_add_module(
@@ -16,6 +17,7 @@ message(STATUS "    LINK _validation <- lib_validation_cpp")
 target_link_libraries(_validation PRIVATE lib_validation_cpp)
 
 add_executable(test_validation_cpp ../_unittests/ut_validation/test_vector_sum.cpp)
+target_compile_definitions(test_validation_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(
   test_validation_cpp
   PRIVATE
