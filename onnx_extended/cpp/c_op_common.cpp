@@ -4,6 +4,18 @@
 
 namespace onnx_c_ops {
 
+#if (defined(PYTHON_MANYLINUX) && PYTHON_MANYLINUX)
+
+void *AllocatorDefaultAlloc(size_t size) {
+  return malloc(size);
+}
+
+void AllocatorDefaultFree(void *p) {
+  free(p);
+}
+
+#else
+
 void *AllocatorDefaultAlloc(size_t size) {
   const size_t alignment = 64;
   void *p;
@@ -42,6 +54,8 @@ void AllocatorDefaultFree(void *p) {
   free(p);
 #endif
 }
+
+#endif
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value) {
   if (value.compare("NONE") == 0)

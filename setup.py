@@ -247,6 +247,11 @@ class cmake_build_class_extension(Command):
             "(SHARED), default is STATIC."
             "STATIC",
         ),
+        (
+            "manylinux=",
+            None,
+            "Enforces the compilation with manylinux, " "default is set to 0.",
+        ),
     ]
 
     def initialize_options(self):
@@ -254,6 +259,7 @@ class cmake_build_class_extension(Command):
         self.use_cuda = None
         self.cuda_version = None
         self.parallel = None
+        self.manylinux = None
         self.ort_version = DEFAULT_ORT_VERSION
         self.cuda_build = "DEFAULT"
         self.cuda_link = "STATIC"
@@ -263,7 +269,7 @@ class cmake_build_class_extension(Command):
         # boolean
         b_values = {0, 1, "1", "0", True, False}
         t_values = {1, "1", True}
-        for att in ["use_nvtx", "use_cuda"]:
+        for att in ["use_nvtx", "use_cuda", "manylinux"]:
             v = getattr(self, att)
             if v is not None:
                 continue
@@ -274,6 +280,7 @@ class cmake_build_class_extension(Command):
                 raise ValueError(f"Unable to interpret value {v} for {att.upper()!r}.")
             print(f"-- setup: use env {att.upper()}={v in t_values}")
             setattr(self, att, v in t_values)
+
         if self.ort_version is None:
             self.ort_version = os.environ.get("ORT_VERSION", None)
             if self.ort_version not in ("", None):
@@ -288,6 +295,8 @@ class cmake_build_class_extension(Command):
                 print(f"-- setup: use env CUDA_VERSION={self.cuda_version}")
         if self.use_nvtx is None:
             self.use_nvtx = False
+        if self.manylinux is None:
+            self.manylinux = False
 
     def finalize_options(self):
         self._parent.finalize_options(self)
@@ -299,8 +308,11 @@ class cmake_build_class_extension(Command):
             self.use_cuda = find_cuda()
         if self.use_cuda not in b_values:
             raise ValueError(f"use_cuda={self.use_cuda!r} must be in {b_values}.")
+
         self.use_nvtx = self.use_nvtx in {1, "1", True, "True"}
         self.use_cuda = self.use_cuda in {1, "1", True, "True"}
+        self.manylinux = self.manylinux in {1, "1", True, "True"}
+
         if self.cuda_version in (None, ""):
             self.cuda_version = None
         build = {"DEFAULT", "H100", "H100opt"}
@@ -360,7 +372,9 @@ class cmake_build_class_extension(Command):
             "manylinux_2_35_x86_64",
             "manylinux_2_35_aarch64",
         ]
-        is_manylinux = os.environ.get("AUDITWHEEL_PLAT", None) in manylinux_tags
+        is_manylinux = (
+            self.manylinux or os.environ.get("AUDITWHEEL_PLAT", None) in manylinux_tags
+        )
 
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={path}",
