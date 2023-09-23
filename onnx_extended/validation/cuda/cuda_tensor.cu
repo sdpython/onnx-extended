@@ -6,7 +6,6 @@
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
 #include <cuda_fp8.h>
 #endif
-#include <iostream>
 #include <sstream>
 
 namespace cuda_example {

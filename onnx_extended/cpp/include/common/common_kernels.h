@@ -68,11 +68,11 @@ inline std::string KernelInfoGetInputName(const OrtApi &api,
     }
     api.ReleaseStatus(status);
   }
-  std::string out;
-  out.resize(size);
-  ThrowOnError(api, api.KernelInfo_GetInputName(info, index, &out[0], &size));
-  out.resize(size - 1); // remove the terminating character '\0'
-  return out;
+  std::string str_out;
+  str_out.resize(size);
+  ThrowOnError(api, api.KernelInfo_GetInputName(info, index, &str_out[0], &size));
+  str_out.resize(size - 1); // remove the terminating character '\0'
+  return str_out;
 }
 
 ////////////////////
@@ -83,7 +83,7 @@ inline std::string KernelInfoGetOptionalAttributeString(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
     const std::string &default_value) {
   size_t size = 0;
-  std::string out;
+  std::string str_out;
 
   OrtStatus *status =
       api.KernelInfoGetAttribute_string(info, name, nullptr, &size);
@@ -98,11 +98,11 @@ inline std::string KernelInfoGetOptionalAttributeString(
     }
     api.ReleaseStatus(status);
   }
-  out.resize(size);
+  str_out.resize(size);
   ThrowOnError(api,
-               api.KernelInfoGetAttribute_string(info, name, &out[0], &size));
-  out.resize(size - 1); // remove the terminating character '\0'
-  return out;
+               api.KernelInfoGetAttribute_string(info, name, &str_out[0], &size));
+  str_out.resize(size - 1); // remove the terminating character '\0'
+  return str_out;
 }
 
 template <typename T>

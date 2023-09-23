@@ -3,7 +3,6 @@
 #include "cuda_nvtx.cuh"
 #include "cuda_utils.h"
 #include <cuda_runtime.h>
-#include <iostream>
 #include <sstream>
 
 // https://github.com/mark-poscablo/gpu-sum-reduction/blob/master/sum_reduction/reduce.cu

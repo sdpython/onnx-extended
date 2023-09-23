@@ -6,7 +6,6 @@
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
-#include <iostream>
 #include <sstream>
 
 typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_type;

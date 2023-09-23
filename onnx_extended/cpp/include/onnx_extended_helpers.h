@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <float.h>
-#include <iostream> // cout
 #include <iterator>
 #include <sstream>
 #include <thread>
