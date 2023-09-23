@@ -5,6 +5,7 @@
 #include <iterator>
 #include <thread>
 #include <vector>
+#include <string>
 
 namespace onnx_extended_helpers {
 

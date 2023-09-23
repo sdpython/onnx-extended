@@ -2,7 +2,7 @@
 
 namespace onnx_c_ops {
 
-#if (defined(PYTHON_MANYLINUX) && PYTHON_MANYLINUX)
+#if 1 // (defined(PYTHON_MANYLINUX) && PYTHON_MANYLINUX)
 
 void *AllocatorDefaultAlloc(size_t size) {
   return malloc(size);

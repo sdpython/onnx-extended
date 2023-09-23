@@ -6,11 +6,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
-#if _WIN32
 #include <cmath>
-#else
-#include <cmath>
-#endif
 
 namespace onnx_c_ops {
 
