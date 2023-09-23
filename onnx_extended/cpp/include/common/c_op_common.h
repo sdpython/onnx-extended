@@ -2,16 +2,15 @@
 
 #include <algorithm>
 #include <float.h>
-#include <iterator>
 #include <thread>
 #include <vector>
+#include <string>
+#include <stdexcept>
 #if _WIN32
 // #include <cmath>
 #else
 #include <cmath>
 #endif
-
-#include "onnx_extended_helpers.h"
 
 namespace onnx_c_ops {
 

@@ -4,6 +4,7 @@
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
 
 #include "common/c_op_common.h"
+#include "onnx_extended_helpers.h"
 
 #include <algorithm>
 #include <iterator>

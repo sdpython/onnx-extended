@@ -6,6 +6,7 @@
 
 #include "c_op_tree_ensemble_common_agg_.hpp"
 #include "common/c_op_common_parallel.hpp"
+#include "onnx_extended_helpers.h"
 #include <deque>
 #include <unordered_map>
 

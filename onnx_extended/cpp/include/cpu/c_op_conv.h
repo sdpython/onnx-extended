@@ -1,4 +1,5 @@
 #include "c_op_conv_common.h"
+#include "onnx_extended_helpers.h"
 
 using namespace onnx_extended_helpers;
 
@@ -92,7 +93,6 @@ void Im2colNd_NCHW(const T *data_img, const int64_t *im_shape,
       incremented = false;
       for (int64_t d_i = N - 1; d_i >= 0; --d_i) {
         int64_t d_max = col_shape[d_i + 1];
-        // ORT_ENFORCE(d_iter[d_i] < d_max);
         if (d_iter[d_i] == d_max - 1)
           d_iter[d_i] = 0;
         else { // d_iter[d_i] < d_max - 1
