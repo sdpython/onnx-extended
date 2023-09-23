@@ -353,6 +353,8 @@ class cmake_build_class_extension(Command):
             "manylinux2014_ppc64",
             "manylinux2014_ppc64le",
             "manylinux2014_s390x",
+            "manylinux_2_24_x86_64",
+            "manylinux_2_24_aarch64",
             "manylinux_2_28_x86_64",
             "manylinux_2_28_aarch64",
             "manylinux_2_35_x86_64",
