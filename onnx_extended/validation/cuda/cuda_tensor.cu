@@ -6,15 +6,9 @@
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
 #include <cuda_fp8.h>
 #endif
-#include <sstream>
+#include "onnx_extended_helpers.h"
 
 namespace cuda_example {
-
-std::string to_string(int value) {
-  std::ostringstream st;
-  st << value;
-  return std::string(st.str());
-}
 
 bool is_fp8_dtype(cudaDataType_t dtype) {
   switch (dtype) {
@@ -45,10 +39,9 @@ int32_t type_size(cudaDataType_t element_type) {
 #endif
     return 1;
   default:
-    NVTE_CHECK(false, std::string("Unkown data type ") +
-                          to_string((int)element_type) +
-                          std::string(" and this CUDA version ") +
-                          to_string(CUDA_VERSION) + std::string("."));
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString(
+                          "Unkown data type ", element_type,
+                          " and this CUDA version ", CUDA_VERSION, "."));
   }
 }
 
@@ -63,9 +56,8 @@ void TensorData::allocate(cudaDataType_t dtype, size_t size,
     break;
   case TensorDevice::CUDA:
     if (cudaMalloc(&dptr, size * type_size(dtype)) != cudaSuccess) {
-      std::ostringstream st;
-      st << "Unable to allocate " << size << " bytes on GPU.";
-      NVTE_ERROR(std::string(st.str()));
+      NVTE_ERROR(onnx_extended_helpers::MakeString("Unable to allocate ", size,
+                                                   " bytes on GPU."));
     }
     break;
   }

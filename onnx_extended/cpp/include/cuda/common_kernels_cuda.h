@@ -161,10 +161,9 @@ template <typename T>
 void _check_cuda(T err, const char *const func, const char *const file,
                  const int line) {
   if (err != cudaSuccess) {
-    std::stringstream strstr;
-    strstr << "CUDA error at: " << file << ":" << line << std::endl;
-    strstr << cudaGetErrorString(err) << " " << func << std::endl;
-    throw strstr.str();
+    throw std::runtime_error(onnx_extended_helpers::MakeString(
+        "CUDA error at: ", file, ":", line, "\n", cudaGetErrorString(err), " ",
+        func, "\n"));
   }
 }
 

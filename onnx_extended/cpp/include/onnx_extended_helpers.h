@@ -3,88 +3,91 @@
 #include <algorithm>
 #include <float.h>
 #include <iterator>
-#include <sstream>
 #include <thread>
 #include <vector>
 
 namespace onnx_extended_helpers {
 
-inline std::vector<std::string> SplitString(const std::string &input,
-                                            char delimiter) {
-  std::vector<std::string> parts;
-  std::string::size_type start = 0;
-  std::string::size_type end = input.find(delimiter);
+std::string Version();
 
-  while (end != std::string::npos) {
-    parts.push_back(input.substr(start, end - start));
-    start = end + 1;
-    end = input.find(delimiter, start);
-  }
+class StringStream {
+public:
+  StringStream();
+  virtual ~StringStream();
+  virtual StringStream &append_uint16(const uint16_t &obj);
+  virtual StringStream &append_uint32(const uint32_t &obj);
+  virtual StringStream &append_uint64(const uint64_t &obj);
+  virtual StringStream &append_int16(const int16_t &obj);
+  virtual StringStream &append_int32(const int32_t &obj);
+  virtual StringStream &append_int64(const int64_t &obj);
+  virtual StringStream &append_float(const float &obj);
+  virtual StringStream &append_double(const double &obj);
+  virtual StringStream &append_char(const char &obj);
+  virtual StringStream &append_string(const std::string &obj);
+  virtual StringStream &append_charp(const char *obj);
+  virtual std::string str();
+  static StringStream *NewStream();
+};
 
-  parts.push_back(input.substr(start));
-  return parts;
-}
+std::string to_string(int value);
 
-inline void MakeStringInternal(std::ostringstream &ss) noexcept {}
+std::vector<std::string> SplitString(const std::string &input, char delimiter);
 
-template <typename T>
-inline void MakeStringInternal(std::ostringstream &ss, const T &t) noexcept {
-  ss << t;
-}
+void MakeStringInternal(StringStream &ss);
 
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int32_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
+void MakeStringInternalElement(StringStream &ss, const char *t);
 
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint32_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
+void MakeStringInternalElement(StringStream &ss, const std::string &t);
 
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int64_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
+void MakeStringInternalElement(StringStream &ss, const char &t);
 
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint64_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
+void MakeStringInternalElement(StringStream &ss, const uint16_t &t);
+void MakeStringInternalElement(StringStream &ss, const uint32_t &t);
+void MakeStringInternalElement(StringStream &ss, const uint64_t &t);
 
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<int16_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
-}
+void MakeStringInternalElement(StringStream &ss, const int16_t &t);
+void MakeStringInternalElement(StringStream &ss, const int32_t &t);
+void MakeStringInternalElement(StringStream &ss, const int64_t &t);
 
-template <>
-inline void MakeStringInternal(std::ostringstream &ss,
-                               const std::vector<uint16_t> &t) noexcept {
-  for (auto it : t)
-    ss << "x" << it;
+void MakeStringInternalElement(StringStream &ss, const float &t);
+
+void MakeStringInternalElement(StringStream &ss, const double &t);
+
+void MakeStringInternalElement(StringStream &ss,
+                               const std::vector<uint16_t> &t);
+
+void MakeStringInternalElement(StringStream &ss,
+                               const std::vector<uint32_t> &t);
+
+void MakeStringInternalElement(StringStream &ss,
+                               const std::vector<uint64_t> &t);
+
+void MakeStringInternalElement(StringStream &ss, const std::vector<int16_t> &t);
+
+void MakeStringInternalElement(StringStream &ss, const std::vector<int32_t> &t);
+
+void MakeStringInternalElement(StringStream &ss, const std::vector<int64_t> &t);
+
+void MakeStringInternalElement(StringStream &ss, const std::vector<float> &t);
+
+template <typename T, typename... Args>
+inline void MakeStringInternal(StringStream &ss, const T &t) {
+  MakeStringInternalElement(ss, t);
 }
 
 template <typename T, typename... Args>
-inline void MakeStringInternal(std::ostringstream &ss, const T &t,
-                               const Args &...args) noexcept {
-  MakeStringInternal(ss, t);
+inline void MakeStringInternal(StringStream &ss, const T &t,
+                               const Args &...args) {
+  MakeStringInternalElement(ss, t);
   MakeStringInternal(ss, args...);
 }
 
 template <typename... Args> inline std::string MakeString(const Args &...args) {
-  std::ostringstream ss;
-  MakeStringInternal(ss, args...);
-  return std::string(ss.str());
+  StringStream *ss = StringStream::NewStream();
+  MakeStringInternal(*ss, args...);
+  std::string res = ss->str();
+  delete ss;
+  return res;
 }
 
 #if !defined(_THROW_DEFINED)

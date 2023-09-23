@@ -32,6 +32,12 @@ message(STATUS "ROOT_UNITTEST_PATH=${ROOT_UNITTEST_PATH}")
 message(STATUS "--------------------------------------------")
 
 #
+# common libraries for everything
+#
+
+include("targets/common.cmake")
+
+#
 # standalone modules
 #
 

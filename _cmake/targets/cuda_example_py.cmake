@@ -13,4 +13,6 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/validation/cuda/cuda_example.cu
     ../onnx_extended/validation/cuda/cuda_example_reduce.cu)
 
+  target_include_directories(cuda_example_py PRIVATE ${ROOT_INCLUDE_PATH})
+
 endif()
