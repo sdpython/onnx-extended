@@ -7,7 +7,7 @@
 #include <string>
 #include <stdexcept>
 #if _WIN32
-// #include <cmath>
+#include <cmath>
 #else
 #include <cmath>
 #endif
