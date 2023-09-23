@@ -1,15 +1,5 @@
 #include "vector_function.h"
 
-#include <chrono>
-#include <cstring>
-#include <immintrin.h>
-#include <stdexcept>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
-#include <omp.h>
-
 // source: https://stackoverflow.com/questions/9412585/
 // see-the-cache-missess-simple-c-cache-benchmark
 

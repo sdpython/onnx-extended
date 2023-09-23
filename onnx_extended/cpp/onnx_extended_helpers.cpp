@@ -109,7 +109,7 @@ std::vector<std::string> SplitString(const std::string &input, char delimiter) {
   return parts;
 }
 
-void MakeStringInternalElement(StringStream &ss) {}
+void MakeStringInternal(StringStream &ss) {}
 
 void MakeStringInternalElement(StringStream &ss, const std::string &t) {
   ss.append_string(t);
