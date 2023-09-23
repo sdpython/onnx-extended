@@ -1,8 +1,6 @@
 #pragma once
 
-#include <algorithm>
-#include <float.h>
-#include <thread>
+#include <cfloat>
 #include <vector>
 #include <string>
 #include <stdexcept>
