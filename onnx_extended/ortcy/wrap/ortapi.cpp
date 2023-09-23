@@ -145,10 +145,10 @@ public:
              size_t max_outputs, OrtShape *out_shapes,
              OrtCpuValue *out_values) {
     if (max_outputs < n_outputs_)
-      EXT_THROW("Not enough expected outputs, max_outputs=", max_outputs, " > ",
-                n_outputs_, ".");
+      EXT_THROW("Not enough expected outputs, max_outputs=", (uint64_t)max_outputs, " > ",
+                (uint64_t)n_outputs_, ".");
     if (n_inputs > n_inputs_)
-      EXT_THROW("Too many inputs, n_inputs=", n_inputs, " > ", n_inputs, ".");
+      EXT_THROW("Too many inputs, n_inputs=", (uint64_t)n_inputs, " > ", (uint64_t)n_inputs, ".");
     std::vector<OrtValue *> ort_values(n_inputs);
 
     for (size_t i = 0; i < n_inputs; ++i) {

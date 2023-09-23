@@ -9,7 +9,6 @@ target_include_directories(
   lib_ortapi PUBLIC
   ${ONNXRUNTIME_INCLUDE_DIR}
   ${ROOT_INCLUDE_PATH})
-target_link_libraries(lib_ortapi PRIVATE common)
 
 cython_add_module(
   ortinf
