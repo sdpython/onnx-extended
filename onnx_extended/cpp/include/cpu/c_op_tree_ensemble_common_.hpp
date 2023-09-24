@@ -1108,7 +1108,7 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave3(
                           "follow the same mode.");
   const TreeNodeElement3<ThresholdType> *root3 = roots3_[root_id];
   const TreeNodeElement<ThresholdType> *root;
-  EXT_ENFORCE(root3 != nullptr, "No optimization for tree ", root_id, ".");
+  EXT_ENFORCE(root3 != nullptr, "No optimization for tree ", (int64_t)root_id, ".");
   InputType features[4];
   int node_id;
   switch (root3->mode()) {
@@ -1131,7 +1131,7 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave3(
     }
     break;
   default:
-    EXT_THROW("TreeNodeElement3 not yet implement with mode ", root3->mode(),
+    EXT_THROW("TreeNodeElement3 not yet implement with mode ", (int64_t)root3->mode(),
               ".");
   }
 }
@@ -1144,8 +1144,8 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
     return ProcessTreeNodeLeave3(root_id, x_data);
   }
   DEBUG_INDEX(root_id, roots_.size(),
-              "ERROR ProcessTreeNodeLeave root_id=", root_id,
-              " roots_.size()=", roots_.size(), ".");
+              "ERROR ProcessTreeNodeLeave root_id=", (int64_t)root_id,
+              " roots_.size()=", (int64_t)roots_.size(), ".");
   const TreeNodeElement<ThresholdType> *root = roots_[root_id];
   InputType val;
   if (same_mode_) {
@@ -1164,8 +1164,6 @@ TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
         DEBUG_PRINT("LEQ2")
         while (root->is_not_leaf()) {
           val = x_data[root->feature_id];
-          // DEBUG_PRINT("val=", val, " root->value_or_unique_weight=",
-          //             root->value_or_unique_weight)
           root += val <= root->value_or_unique_weight
                       ? root->truenode_inc_or_first_weight
                       : root->falsenode_inc_or_n_weights;
