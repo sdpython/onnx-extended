@@ -243,7 +243,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   bool has_scales_Y = n_inputs > 5;
   if (has_scales) {
     EXT_ENFORCE(n_inputs == 5 || n_inputs == 6,
-                "Number of inputs must be 5 or 6 but is ", n_inputs, ".");
+                "Number of inputs must be 5 or 6 but is ", (int64_t)n_inputs, ".");
     scale_A = ctx.GetInput(3);
     scale_B = ctx.GetInput(4);
     check_device(scale_A, "scale_A");
@@ -253,7 +253,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       check_device(scale_Y, "scale_Y");
     }
   } else if (n_inputs != 2 && n_inputs != 3) {
-    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", n_inputs, ".");
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", (int64_t)n_inputs, ".");
   }
 
   switch (rowMajor_) {

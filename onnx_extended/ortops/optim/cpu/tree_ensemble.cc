@@ -67,7 +67,7 @@ TreeEnsembleClassifier::GetOutputType(std::size_t index) const {
   case 1:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
-    EXT_THROW("Unexpected output index: ", index, ".");
+    EXT_THROW("Unexpected output index: ", (uint64_t)index, ".");
   }
 };
 
@@ -150,8 +150,8 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
   EXT_ENFORCE(nodes_values.size() > 0);
   EXT_ENFORCE(nodes_nodeids.size() > 0);
   EXT_ENFORCE(nodes_modes.size() == nodes_falsenodeids.size(),
-              " nodes_modes.size()==", nodes_modes.size(),
-              "!=", nodes_falsenodeids.size(),
+              " nodes_modes.size()==", (uint64_t)nodes_modes.size(),
+              "!=", (uint64_t)nodes_falsenodeids.size(),
               ", nodes_modes=", nodes_modes_single, ".");
   EXT_ENFORCE(n_targets_or_classes > 0);
 
@@ -209,9 +209,10 @@ void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
                                    p_labels);
   } else {
     EXT_ENFORCE("No implementation yet for input type=",
-                input_X.GetTensorTypeAndShapeInfo().GetElementType(),
+                (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
                 " and output type=",
-                output.GetTensorTypeAndShapeInfo().GetElementType(), ".");
+                (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
+                ".");
   }
 }
 

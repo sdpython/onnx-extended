@@ -231,7 +231,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       check_device(scale_Y, "scale_Y");
     }
   } else if (n_inputs != 2 && n_inputs != 3) {
-    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", n_inputs, ".");
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ",
+              (int64_t)n_inputs, ".");
   }
 
   switch (rowMajor_) {
@@ -356,8 +357,10 @@ void CustomGemmKernel::ComputeGemm(
                 static_cast<const float *>(p_scale_y),
                 static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
   } else {
-    EXT_THROW("Not implemented for dtype_A=", dtype_A, " dtype_B=", dtype_B,
-              " dtype_C=", dtype_C, " dtype_Y=", dtype_Y, ".");
+    EXT_THROW("Not implemented for dtype_A=", (int64_t)dtype_A,
+              " dtype_B=", (int64_t)dtype_B,
+              " dtype_C=", (int64_t)dtype_C,
+              " dtype_Y=", (int64_t)dtype_Y, ".");
   }
 }
 

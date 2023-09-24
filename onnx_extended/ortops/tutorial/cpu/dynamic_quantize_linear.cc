@@ -46,7 +46,7 @@ DynamicQuantizeLinearOp::GetOutputType(std::size_t index) const {
   case 2:
     return quant_type_;
   default:
-    EXT_THROW("Unexpected output index=", index, ".");
+    EXT_THROW("Unexpected output index=", (uint64_t)index, ".");
   }
 }
 
