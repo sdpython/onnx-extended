@@ -30,11 +30,11 @@ struct DynamicQuantizeLinearOp
   const char *GetName() const noexcept;
   const char *GetExecutionProviderType() const noexcept;
 
-  size_t GetInputTypeCount() const noexcept;
-  ONNXTensorElementDataType GetInputType(size_t index) const noexcept;
+  std::size_t GetInputTypeCount() const noexcept;
+  ONNXTensorElementDataType GetInputType(std::size_t index) const noexcept;
 
-  size_t GetOutputTypeCount() const noexcept;
-  ONNXTensorElementDataType GetOutputType(size_t index) const;
+  std::size_t GetOutputTypeCount() const noexcept;
+  ONNXTensorElementDataType GetOutputType(std::size_t index) const;
 
 private:
   ONNXTensorElementDataType input_type_;

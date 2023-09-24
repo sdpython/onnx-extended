@@ -21,7 +21,7 @@ const char *CustomGemmOp::GetExecutionProviderType() const {
 
 size_t CustomGemmOp::GetInputTypeCount() const { return 6; };
 
-ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetInputType(std::size_t index) const {
   switch (index) {
   case 0: // A
   case 1: // B
@@ -33,12 +33,12 @@ ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
   case 5: // scale Y
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
-    EXT_THROW("Input index=", index, " is out of boundary.");
+    EXT_THROW("Input index=", (int64_t)index, " is out of boundary.");
   }
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetInputCharacteristic(size_t index) const {
+CustomGemmOp::GetInputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
   case 1:
@@ -50,29 +50,29 @@ CustomGemmOp::GetInputCharacteristic(size_t index) const {
   case 5:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
 size_t CustomGemmOp::GetOutputTypeCount() const { return 1; }
 
-ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetOutputType(std::size_t index) const {
   // D, scale D
   switch (index) {
   case 0:
     return d_type_;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetOutputCharacteristic(size_t index) const {
+CustomGemmOp::GetOutputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
@@ -231,7 +231,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       check_device(scale_Y, "scale_Y");
     }
   } else if (n_inputs != 2 && n_inputs != 3) {
-    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", n_inputs, ".");
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ",
+              (int64_t)n_inputs, ".");
   }
 
   switch (rowMajor_) {
@@ -356,8 +357,10 @@ void CustomGemmKernel::ComputeGemm(
                 static_cast<const float *>(p_scale_y),
                 static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
   } else {
-    EXT_THROW("Not implemented for dtype_A=", dtype_A, " dtype_B=", dtype_B,
-              " dtype_C=", dtype_C, " dtype_Y=", dtype_Y, ".");
+    EXT_THROW("Not implemented for dtype_A=", (int64_t)dtype_A,
+              " dtype_B=", (int64_t)dtype_B,
+              " dtype_C=", (int64_t)dtype_C,
+              " dtype_Y=", (int64_t)dtype_Y, ".");
   }
 }
 

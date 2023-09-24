@@ -238,7 +238,7 @@ class TestRun:
         :param index: test index to measure
         :param warmup: number of iterations to run before
             starting to measure the model
-        :param bench: number of iterations to measure
+        :param repeat: number of iterations to measure
         :return: dictionary with many metrics,
             any metric endings with `"_time"` is a duration
         """
@@ -336,15 +336,16 @@ def bench_virtual(
 
     :param test_path: test path
     :param virtual_path: path to the virtual environment
-    :param index: test index to measure
     :param runtimes: runtimes to measure
         (ReferenceEvaluation, CReferenceEvaluator, onnxruntime)
+    :param index: test index to measure
     :param warmup: number of iterations to run before
         starting to measure the model
+    :param repeat: number of iterations to measure
     :param modules: modules to install, example:
         `modules=[{"onnxruntime": "1.15.1", "onnx": "1.15.0"}]`
-    :param save_as_dataframe: saves as dataframe
     :param verbose: verbosity
+    :param save_as_dataframe: saves as dataframe
     :return: list of statistics
     """
     exe = os.path.join(virtual_path, "bin", "python")

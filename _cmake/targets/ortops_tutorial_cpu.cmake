@@ -27,4 +27,5 @@ target_link_libraries(
   ortops_tutorial_cpu
   PRIVATE
   OpenMP::OpenMP_CXX
-  common_kernels)
+  common_kernels
+  common)

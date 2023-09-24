@@ -4,10 +4,9 @@
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <string>
 
 namespace cuda_example {
-
-std::string to_string(int value);
 
 typedef enum TensorDevice { CPU = 0, CUDA = 1 } TensorDevice;
 
@@ -20,7 +19,7 @@ inline cudaDataType_t get_cuda_dtype(cudaDataType_t dtype) { return dtype; }
 struct TensorData {
   TensorDevice device;
   cudaDataType_t dtype;
-  size_t size;
+  std::size_t size;
   void *dptr;
   inline TensorData() {
     device = TensorDevice::CPU;
@@ -28,7 +27,7 @@ struct TensorData {
     dptr = nullptr;
     dtype = CUDA_R_32F;
   }
-  void allocate(cudaDataType_t dtype, size_t size, TensorDevice device);
+  void allocate(cudaDataType_t dtype, std::size_t size, TensorDevice device);
   void free();
   void copy_from_cpu(void *ptr);
 };
@@ -45,7 +44,7 @@ public:
   inline Tensor(const char *name) : data(), scale(), amax(), scale_inv() {
     this->name = name;
   }
-  Tensor(const char *name, size_t size, cudaDataType_t dtype = CUDA_R_32F,
+  Tensor(const char *name, std::size_t size, cudaDataType_t dtype = CUDA_R_32F,
          TensorDevice device = TensorDevice::CUDA,
          TensorDevice scale_device = TensorDevice::CUDA);
   ~Tensor();

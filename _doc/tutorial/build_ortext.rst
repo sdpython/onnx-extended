@@ -32,9 +32,5 @@ several custom kernels for onnxruntime and links it with onnxruntime.
 Every new kernel can be added by adding new source file. A line must be added
 in file `ort_tutorial_cpu_lib.cc` to register the kernel. That file also defines
 the domain the kernel belongs to.
-
-This function is subject to change. It creates a file `_setup_ext.txt` to indicate
-which file to copy from the build directory to the package directory.
-This file is loaded by `setup.py` after cmake is done with the compilation.
 These project define constant `ORT_VERSION`. For example, version 1.15 becomes
 `1150`.

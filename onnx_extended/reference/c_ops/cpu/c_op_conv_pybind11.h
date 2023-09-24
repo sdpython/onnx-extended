@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/c_op_helpers.h"
 #include "cpu/c_op_conv.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -69,7 +70,7 @@ void ConvPoolCommonShape::compute_kernel_shape(
       throw std::invalid_argument(
           "kernel_shape num_dims is not compatible with W num_dims (1).");
 
-    for (size_t i = 0; i < kernel_shape.size(); ++i)
+    for (std::size_t i = 0; i < kernel_shape.size(); ++i)
       if (kernel_shape[i] != weight_shape[i + 2])
         throw std::invalid_argument(
             "kernel_shape num_dims is not compatible with W num_dims (2).");
@@ -220,7 +221,7 @@ void Conv<T>::compute_gil_free(
   const T *Xdata = X.data(0);
   T *Ydata = (T *)Y.data(0);
   T *yptr;
-  size_t k2;
+  std::size_t k2;
 
   std::fill(Ydata, Ydata + y_size, (T)0);
 
@@ -229,7 +230,7 @@ void Conv<T>::compute_gil_free(
   col_buffer_shape.insert(col_buffer_shape.end(), output_shape.begin(),
                           output_shape.end());
 
-  const size_t kernel_rank = kernel_shape.size();
+  const std::size_t kernel_rank = kernel_shape.size();
 
   for (int image_id = 0; image_id < N; ++image_id) {
     for (int group_id = 0; group_id < group_; ++group_id) {
@@ -247,9 +248,9 @@ void Conv<T>::compute_gil_free(
       }
 
       gemm<T>(false, false,
-              (size_t)(M / group_),                       // m
-              (size_t)(output_image_size),                // n
-              (size_t)kernel_dim,                         // k
+              (std::size_t)(M / group_),                       // m
+              (std::size_t)(output_image_size),                // n
+              (std::size_t)kernel_dim,                         // k
               (T)1,                                       // alpha
               (const T *)W.data(0) + group_id * W_offset, // *a
               (const T *)col_buffer_data,                 // *b
@@ -260,9 +261,9 @@ void Conv<T>::compute_gil_free(
 
     if (b_dims.size() != 0 && b_dims[0] != 0) {
       const T *ptrb = B.data(0);
-      for (size_t k = 0; k < (size_t)M; ++k, ++ptrb) {
+      for (std::size_t k = 0; k < (std::size_t)M; ++k, ++ptrb) {
         yptr = Ydata + output_image_size * k;
-        for (k2 = 0; k2 < (size_t)output_image_size; ++k2, ++yptr)
+        for (k2 = 0; k2 < (std::size_t)output_image_size; ++k2, ++yptr)
           *yptr += *ptrb;
       }
     }

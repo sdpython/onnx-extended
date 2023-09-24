@@ -18,7 +18,7 @@ MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
 
   // A string attribute.
   char value_string[1000];
-  size_t size = 1000;
+  std::size_t size = 1000;
   ThrowOnError(api, api.KernelInfoGetAttribute_string(info, "att_string",
                                                       value_string, &size));
   att_string = value_string;
@@ -49,12 +49,12 @@ MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
   }
 
   // Retrieve the number of elements in the shape.
-  size_t n_dims;
+  std::size_t n_dims;
   ThrowOnError(api, api.GetDimensionsCount(shape_info, &n_dims));
   std::vector<int64_t> shape(n_dims);
   ThrowOnError(api, api.GetDimensions(shape_info, shape.data(), n_dims));
 
-  size_t size_tensor;
+  std::size_t size_tensor;
   ThrowOnError(api, api.GetTensorShapeElementCount(shape_info, &size_tensor));
   att_tensor_double.resize(size_tensor);
   void *data;
@@ -87,14 +87,14 @@ void MyCustomKernelWithAttributes::Compute(OrtKernelContext *context) {
   Ort::UnownedValue output = ctx.GetOutput(0, dimensions);
   double *out = output.GetTensorMutableData<double>();
 
-  const size_t size = output.GetTensorTypeAndShapeInfo().GetElementCount();
+  const std::size_t size = output.GetTensorTypeAndShapeInfo().GetElementCount();
 
   // Do computation
   double cst = att_tensor_double[0] + static_cast<double>(att_float) +
                static_cast<double>(att_int64) +
                static_cast<double>(att_string[0]);
 
-  for (size_t i = 0; i < size; i++) {
+  for (std::size_t i = 0; i < size; i++) {
     out[i] = X[i] + Y[i] + cst;
   }
 }
@@ -115,14 +115,14 @@ const char *MyCustomOpWithAttributes::GetExecutionProviderType() const {
 size_t MyCustomOpWithAttributes::GetInputTypeCount() const { return 2; };
 
 ONNXTensorElementDataType
-MyCustomOpWithAttributes::GetInputType(size_t index) const {
+MyCustomOpWithAttributes::GetInputType(std::size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
 }
 
 size_t MyCustomOpWithAttributes::GetOutputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType
-MyCustomOpWithAttributes::GetOutputType(size_t index) const {
+MyCustomOpWithAttributes::GetOutputType(std::size_t index) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
 }
 

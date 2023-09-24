@@ -78,7 +78,7 @@ public:
     InlinedHashSet<int64_t> weights_classes;
     weights_classes.reserve(class_ids.size());
     weights_are_all_positive_ = true;
-    for (size_t i = 0, end = class_ids.size(); i < end; ++i) {
+    for (std::size_t i = 0, end = class_ids.size(); i < end; ++i) {
       weights_classes.insert(class_ids[i]);
       if (weights_are_all_positive_ && (class_weights[i] < 0))
         weights_are_all_positive_ = false;
