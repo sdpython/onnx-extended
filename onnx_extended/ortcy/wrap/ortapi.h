@@ -1,6 +1,6 @@
 #pragma once
 
-#include "onnxruntime_c_api.h"
+#include "ortapi_version.h"
 #include <stdexcept>
 #include <string>
 #include <vector>

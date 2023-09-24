@@ -15,7 +15,7 @@ void testAssertTrue() {
 }
 
 void test_inference() {
-  const OrtApi* api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
+  const OrtApi* api = OrtGetApiBase()->GetApi(ORT_API_VERSION_ALLOWED);
   ASSERT_THROW(api != nullptr);
   Ort::Env env;
   auto ort_env = &env;// std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "Default");

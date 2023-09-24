@@ -1,6 +1,10 @@
 #include "common/c_op_allocation.h"
 #include <cstdlib>
 
+#if (!(defined(PYTHON_MANYLINUX) && PYTHON_MANYLINUX))
+#include <new>
+#endif
+
 namespace onnx_c_ops {
 
 #if (defined(PYTHON_MANYLINUX) && PYTHON_MANYLINUX)
