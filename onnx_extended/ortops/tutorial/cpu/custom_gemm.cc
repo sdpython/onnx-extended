@@ -50,7 +50,7 @@ CustomGemmOp::GetInputCharacteristic(std::size_t index) const {
   case 5:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
@@ -62,7 +62,7 @@ ONNXTensorElementDataType CustomGemmOp::GetOutputType(std::size_t index) const {
   case 0:
     return d_type_;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
@@ -72,7 +72,7 @@ CustomGemmOp::GetOutputCharacteristic(std::size_t index) const {
   case 0:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
