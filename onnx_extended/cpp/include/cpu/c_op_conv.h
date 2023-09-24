@@ -468,7 +468,7 @@ void conv_infer_output_shape(const std::vector<int64_t> &input_shape,
     if (dim >= strides_p.size() || dim >= kernel_shape.size() ||
         dim >= dilations_p.size() || dim >= pads_p.size() ||
         rank + dim >= pads_p.size())
-      throw std::invalid_argument(MakeString(
+      throw std::invalid_argument(onnx_extended_helpers::MakeString(
           "Failure in infer_output_shape, one of these conditions should be "
           "True:",
           "dim >= strides.size(), dim >= kernel_shape.size(), ",

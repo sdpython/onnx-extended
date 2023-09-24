@@ -1,6 +1,6 @@
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
-#include "onnx_extended/ortcy/wrap/ortapi.h"
+//#include "onnx_extended/ortcy/wrap/ortapi.h"
 #include "onnxruntime_cxx_api.h"
 #if __cplusplus >= 201703L 
 #include <filesystem>
@@ -15,7 +15,7 @@ void testAssertTrue() {
 }
 
 void test_inference() {
-  const OrtApi* api = OrtGetApiBase()->GetApi(ORT_API_VERSION_ALLOWED);
+  const OrtApi* api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
   ASSERT_THROW(api != nullptr);
   Ort::Env env;
   auto ort_env = &env;// std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "Default");

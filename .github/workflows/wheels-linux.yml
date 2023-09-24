@@ -2,6 +2,9 @@ name: Build Wheel Linux
 
 on:
   push:
+#    branches:
+#      - main
+#      - 'releases/**'
   pull_request:
     types:
       - closed
