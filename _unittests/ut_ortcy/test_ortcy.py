@@ -17,7 +17,7 @@ from onnx_extended.ext_test_case import ExtTestCase
 try:
     from onnx_extended.ortcy.wrap.ortinf import OrtSession
 except ImportError as e:
-    msg = "libonnxruntime.so.1.15.1: cannot open shared object file"
+    msg = "libonnxruntime.so.1.16.0: cannot open shared object file"
     if msg in str(e):
         from onnx_extended.ortcy.wrap import __file__ as loc
 
