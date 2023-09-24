@@ -473,11 +473,11 @@ void conv_infer_output_shape(const std::vector<int64_t> &input_shape,
           "Failure in infer_output_shape, one of these conditions should be "
           "True:",
           "dim >= strides.size(), dim >= kernel_shape.size(), ",
-          "dim >= dilations.size(), dim >= padding.size(), dim=", (int64_t)dim,
-          ", strides.size()=", (int64_t)strides_p.size(),
-          ", kernel_shape.size()=", (int64_t)kernel_shape.size(),
-          ", dilations.size()=", (int64_t)dilations_p.size(),
-          ", padding.size()=", (int64_t)pads_p.size(), "."));
+          "dim >= dilations.size(), dim >= padding.size(), dim=", (uint64_t)dim,
+          ", strides.size()=", (uint64_t)strides_p.size(),
+          ", kernel_shape.size()=", (uint64_t)kernel_shape.size(),
+          ", dilations.size()=", (uint64_t)dilations_p.size(),
+          ", padding.size()=", (uint64_t)pads_p.size(), "."));
 
     dim_size = 0;
     ComputePadAndOutputShape(

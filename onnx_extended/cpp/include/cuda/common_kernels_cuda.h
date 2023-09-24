@@ -111,11 +111,11 @@ inline cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
 #endif
   default:
 #if defined(CUDA_VERSION)
-    EXT_THROW("(ToCudaDataType) Unexpected element_type=", element_type,
+    EXT_THROW("(ToCudaDataType) Unexpected element_type=", (int64_t)element_type,
               " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION,
               ".");
 #else
-    EXT_THROW("(ToCudaDataType) Unexpected element_type=", element_type,
+    EXT_THROW("(ToCudaDataType) Unexpected element_type=", (int64_t)element_type,
               " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
 #endif
   }
@@ -140,7 +140,7 @@ inline int32_t TypeSize(ONNXTensorElementDataType element_type) {
               " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION,
               ".");
 #else
-    EXT_THROW("(TypeSize) Unexpected element_type=", element_type,
+    EXT_THROW("(TypeSize) Unexpected element_type=", (int64_t)element_type,
               " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
 #endif
   }

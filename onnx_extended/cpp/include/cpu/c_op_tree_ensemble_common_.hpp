@@ -214,7 +214,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
   EXT_ENFORCE(n_targets_or_classes > 0);
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_featureids.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_modes.size(),
-              "nodes_falsenodeids.size()=", (int64_t)nodes_falsenodeids.size(),
+              "nodes_falsenodeids.size()=", (uint64_t)nodes_falsenodeids.size(),
               " nodes_modes.size()=", (int64_t)nodes_modes.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_nodeids.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_treeids.size());
