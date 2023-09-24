@@ -1,5 +1,5 @@
-#include "common/c_op_math.h"
 #include "c_op_conv_common.h"
+#include "common/c_op_math.h"
 #include "onnx_extended_helpers.h"
 
 using namespace onnx_extended_helpers;
@@ -370,9 +370,10 @@ void Im2col_NHWC(const T *data_im, int64_t group_channels,
               // Increase the copy count size to reduce the number of copy
               // calls.
               int64_t batch_w = std::min(kw, input_w - iw);
-              std::memcpy(
-                  data_col, data_im + (ih * input_w + iw) * group_channels,
-                  static_cast<std::size_t>(sizeof(T) * batch_w * group_channels));
+              std::memcpy(data_col,
+                          data_im + (ih * input_w + iw) * group_channels,
+                          static_cast<std::size_t>(sizeof(T) * batch_w *
+                                                   group_channels));
               data_col += batch_w * group_channels;
               iw += batch_w;
               kw -= batch_w;
@@ -472,7 +473,7 @@ void conv_infer_output_shape(const std::vector<int64_t> &input_shape,
           "Failure in infer_output_shape, one of these conditions should be "
           "True:",
           "dim >= strides.size(), dim >= kernel_shape.size(), ",
-          "dim >= dilations.size(), dim >= padding.size(), dim=", dim,
+          "dim >= dilations.size(), dim >= padding.size(), dim=", (int64_t)dim,
           ", strides.size()=", (int64_t)strides_p.size(),
           ", kernel_shape.size()=", (int64_t)kernel_shape.size(),
           ", dilations.size()=", (int64_t)dilations_p.size(),
