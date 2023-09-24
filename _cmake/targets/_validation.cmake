@@ -22,7 +22,12 @@ target_include_directories(
   test_validation_cpp
   PRIVATE
   "${ROOT_PROJECT_PATH}"
+  "${ROOT_INCLUDE_PATH}"
   "${ROOT_UNITTEST_PATH}")
 message(STATUS "    LINK test_validation_cpp <- lib_validation_cpp")
-target_link_libraries(test_validation_cpp PRIVATE lib_validation_cpp)
+target_link_libraries(
+  test_validation_cpp
+  PRIVATE
+  lib_validation_cpp
+  common)
 add_test(NAME test_validation_cpp COMMAND test_validation_cpp)

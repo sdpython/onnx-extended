@@ -87,9 +87,9 @@ void TensorData::copy_from_cpu(void *ptr) {
         cudaMemcpy(dptr, ptr, type_size(dtype) * size, cudaMemcpyHostToDevice));
     break;
   default:
-    NVTE_CHECK(false, std::string("Unsupported device ") +
-                          to_string((int)device) +
-                          std::string(" for copy_from_cpu."));
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString("Unsupported device ",
+                                                        (int)device,
+                                                        " for copy_from_cpu."));
   }
 }
 
@@ -219,9 +219,8 @@ void Tensor::rnd() {
   } break;
 #endif
   default:
-    NVTE_CHECK(false, std::string("Unsupported dtype ") +
-                          to_string((int)data.dtype) +
-                          std::string(" for rnd."));
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString(
+                          "Unsupported dtype ", data.dtype, " for rnd."));
   }
   curandDestroyGenerator(gen);
 }

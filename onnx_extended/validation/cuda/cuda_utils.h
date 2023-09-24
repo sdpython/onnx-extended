@@ -5,9 +5,8 @@
 
 #define NVTE_ERROR(x)                                                          \
   do {                                                                         \
-    throw std::runtime_error(std::string(__FILE__ ":") +                       \
-                             std::to_string(__LINE__) + " in function " +      \
-                             __func__ + ": " + x);                             \
+    throw std::runtime_error(onnx_extended_helpers::MakeString(                \
+        __FILE__, ":", __LINE__, " in function ", __func__, ": ", x));         \
   } while (false)
 
 #define NVTE_CHECK(x, ...)                                                     \

@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <float.h>
 #include <iterator>
+#include <string>
 #include <thread>
 #include <vector>
-#include <string>
 
 namespace onnx_extended_helpers {
 
@@ -29,8 +29,6 @@ public:
   virtual std::string str();
   static StringStream *NewStream();
 };
-
-std::string to_string(int value);
 
 std::vector<std::string> SplitString(const std::string &input, char delimiter);
 

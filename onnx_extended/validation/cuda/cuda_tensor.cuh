@@ -8,8 +8,6 @@
 
 namespace cuda_example {
 
-std::string to_string(int value);
-
 typedef enum TensorDevice { CPU = 0, CUDA = 1 } TensorDevice;
 
 bool is_fp8_dtype(cudaDataType_t dtype);

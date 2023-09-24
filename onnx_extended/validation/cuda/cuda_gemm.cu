@@ -382,9 +382,9 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
     type_compute = CUBLAS_COMPUTE_32I;
     break;
   default:
-    NVTE_CHECK(false, std::string("Unknown test ") + to_string(test) +
-                          std::string(" and this CUDA version ") +
-                          to_string(CUDA_VERSION) + std::string("."));
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString(
+                          "Unknown test ", test, " and this CUDA version ",
+                          CUDA_VERSION, "."));
   }
 
   time_type begin, heuristic, end, end2;

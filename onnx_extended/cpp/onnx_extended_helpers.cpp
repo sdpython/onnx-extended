@@ -88,12 +88,6 @@ private:
 
 StringStream *StringStream::NewStream() { return new StringStreamStd(); }
 
-std::string to_string(int value) {
-  StringStreamStd st;
-  st.append_int64(value);
-  return std::string(st.str());
-}
-
 std::vector<std::string> SplitString(const std::string &input, char delimiter) {
   std::vector<std::string> parts;
   std::string::size_type start = 0;

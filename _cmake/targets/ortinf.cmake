@@ -33,6 +33,7 @@ target_include_directories(
   PRIVATE
   ${ROOT_UNITTEST_PATH}
   ${ROOT_PROJECT_PATH}
+  ${ROOT_INCLUDE_PATH}
   ${ORT_DIR}/include)
 message(STATUS "    LINK test_ortcy_inference_cpp <- lib_ortapi onnxruntime")
 target_link_directories(test_ortcy_inference_cpp PRIVATE ${ONNXRUNTIME_LIB_DIR})
