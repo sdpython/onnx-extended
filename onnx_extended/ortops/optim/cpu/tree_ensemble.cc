@@ -132,7 +132,7 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
       EXT_ENFORCE(labels_ints[i] == i,
                   "classlabels_int64s should be an array of consecutive "
                   "integers starting at 0, but position ",
-                  i, " fails.");
+                  (uint64_t)i, " fails.");
     }
   } else {
     // A regressor.
