@@ -1,3 +1,4 @@
+#include "common/c_op_math.h"
 #include "c_op_conv_common.h"
 #include "onnx_extended_helpers.h"
 
@@ -371,7 +372,7 @@ void Im2col_NHWC(const T *data_im, int64_t group_channels,
               int64_t batch_w = std::min(kw, input_w - iw);
               std::memcpy(
                   data_col, data_im + (ih * input_w + iw) * group_channels,
-                  static_cast<size_t>(sizeof(T) * batch_w * group_channels));
+                  static_cast<std::size_t>(sizeof(T) * batch_w * group_channels));
               data_col += batch_w * group_channels;
               iw += batch_w;
               kw -= batch_w;
@@ -388,7 +389,7 @@ void Im2col_NHWC(const T *data_im, int64_t group_channels,
               // a transform for an image with a small number of group channels.
               std::memcpy(data_col,
                           data_im + (ih * input_w + iw) * input_channels,
-                          static_cast<size_t>(sizeof(T) * group_channels));
+                          static_cast<std::size_t>(sizeof(T) * group_channels));
               data_col += group_channels;
             } else {
               data_col = std::fill_n(data_col, group_channels, padding_value);
@@ -460,10 +461,10 @@ void conv_infer_output_shape(const std::vector<int64_t> &input_shape,
                              std::vector<int64_t> &output_shape,
                              bool ForceSymmetricAutoPadding,
                              AutoPadType auto_pad) {
-  size_t rank = input_shape.size();
+  std::size_t rank = input_shape.size();
   int64_t dim_size;
 
-  for (size_t dim = 0; dim < rank; ++dim) {
+  for (std::size_t dim = 0; dim < rank; ++dim) {
     if (dim >= strides_p.size() || dim >= kernel_shape.size() ||
         dim >= dilations_p.size() || dim >= pads_p.size() ||
         rank + dim >= pads_p.size())
@@ -472,9 +473,10 @@ void conv_infer_output_shape(const std::vector<int64_t> &input_shape,
           "True:",
           "dim >= strides.size(), dim >= kernel_shape.size(), ",
           "dim >= dilations.size(), dim >= padding.size(), dim=", dim,
-          ", strides.size()=", strides_p.size(), ", kernel_shape.size()=",
-          kernel_shape.size(), ", dilations.size()=", dilations_p.size(),
-          ", padding.size()=", pads_p.size(), "."));
+          ", strides.size()=", (int64_t)strides_p.size(),
+          ", kernel_shape.size()=", (int64_t)kernel_shape.size(),
+          ", dilations.size()=", (int64_t)dilations_p.size(),
+          ", padding.size()=", (int64_t)pads_p.size(), "."));
 
     dim_size = 0;
     ComputePadAndOutputShape(

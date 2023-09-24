@@ -3,7 +3,9 @@
 // Inspired from
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
 
-#include "common/c_op_common.h"
+#include "common/c_op_common_parameters.h"
+#include "common/c_op_math.h"
+#include "common/c_op_status.h"
 #include "onnx_extended_helpers.h"
 
 #include <algorithm>
@@ -210,7 +212,7 @@ template <typename T> struct TreeNodeElement3 {
 template <typename InputType, typename ThresholdType, typename OutputType>
 class TreeAggregator {
 protected:
-  size_t n_trees_;
+  std::size_t n_trees_;
   int64_t n_targets_or_classes_;
   POST_EVAL_TRANSFORM post_transform_;
   const std::vector<ThresholdType> &base_values_;
@@ -218,14 +220,14 @@ protected:
   bool use_base_values_;
 
 public:
-  TreeAggregator(size_t n_trees, const int64_t &n_targets_or_classes,
+  TreeAggregator(std::size_t n_trees, const int64_t &n_targets_or_classes,
                  POST_EVAL_TRANSFORM post_transform,
                  const std::vector<ThresholdType> &base_values)
       : n_trees_(n_trees), n_targets_or_classes_(n_targets_or_classes),
         post_transform_(post_transform), base_values_(base_values) {
     origin_ = base_values_.size() == 1 ? base_values_[0] : 0;
     use_base_values_ =
-        base_values_.size() == static_cast<size_t>(n_targets_or_classes_);
+        base_values_.size() == static_cast<std::size_t>(n_targets_or_classes_);
   }
 
   // 1 output
@@ -261,10 +263,10 @@ public:
 
   void FinalizeScores(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                       OutputType *Z, int add_second_class, int64_t *) const {
-    EXT_ENFORCE(predictions.size() == (size_t)n_targets_or_classes_);
+    EXT_ENFORCE(predictions.size() == (std::size_t)n_targets_or_classes_);
     ThresholdType val;
     auto it = predictions.begin();
-    for (size_t jt = 0; jt < static_cast<size_t>(n_targets_or_classes_);
+    for (std::size_t jt = 0; jt < static_cast<std::size_t>(n_targets_or_classes_);
          ++jt, ++it) {
       val = use_base_values_ ? base_values_[jt] : 0.f;
       val += it->has_score ? it->score : 0;
@@ -284,7 +286,7 @@ template <typename InputType, typename ThresholdType, typename OutputType>
 class TreeAggregatorSum
     : public TreeAggregator<InputType, ThresholdType, OutputType> {
 public:
-  TreeAggregatorSum(size_t n_trees, const int64_t &n_targets_or_classes,
+  TreeAggregatorSum(std::size_t n_trees, const int64_t &n_targets_or_classes,
                     POST_EVAL_TRANSFORM post_transform,
                     const std::vector<ThresholdType> &base_values)
       : TreeAggregator<InputType, ThresholdType, OutputType>(
@@ -321,8 +323,8 @@ public:
     auto it = weights.begin() + root.truenode_inc_or_first_weight;
     for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
       // EXT_ENFORCE(it->i < (int64_t)predictions.size());
-      predictions[static_cast<size_t>(it->i)].score += it->value;
-      predictions[static_cast<size_t>(it->i)].has_score = 1;
+      predictions[static_cast<std::size_t>(it->i)].score += it->value;
+      predictions[static_cast<std::size_t>(it->i)].has_score = 1;
     }
   }
 
@@ -330,7 +332,7 @@ public:
       InlinedVector<ScoreValue<ThresholdType>> &predictions,
       const InlinedVector<ScoreValue<ThresholdType>> &predictions2) const {
     EXT_ENFORCE(predictions.size() == predictions2.size());
-    for (size_t i = 0; i < predictions.size(); ++i) {
+    for (std::size_t i = 0; i < predictions.size(); ++i) {
       if (predictions2[i].has_score) {
         predictions[i].score += predictions2[i].score;
         predictions[i].has_score = 1;
@@ -356,7 +358,7 @@ template <typename InputType, typename ThresholdType, typename OutputType>
 class TreeAggregatorAverage
     : public TreeAggregatorSum<InputType, ThresholdType, OutputType> {
 public:
-  TreeAggregatorAverage(size_t n_trees, const int64_t &n_targets_or_classes,
+  TreeAggregatorAverage(std::size_t n_trees, const int64_t &n_targets_or_classes,
                         POST_EVAL_TRANSFORM post_transform,
                         const std::vector<ThresholdType> &base_values)
       : TreeAggregatorSum<InputType, ThresholdType, OutputType>(
@@ -395,7 +397,7 @@ template <typename InputType, typename ThresholdType, typename OutputType>
 class TreeAggregatorMin
     : public TreeAggregator<InputType, ThresholdType, OutputType> {
 public:
-  TreeAggregatorMin(size_t n_trees, const int64_t &n_targets_or_classes,
+  TreeAggregatorMin(std::size_t n_trees, const int64_t &n_targets_or_classes,
                     POST_EVAL_TRANSFORM post_transform,
                     const std::vector<ThresholdType> &base_values)
       : TreeAggregator<InputType, ThresholdType, OutputType>(
@@ -432,12 +434,12 @@ public:
       const InlinedVector<SparseValue<ThresholdType>> &weights) const {
     auto it = weights.begin() + root.truenode_inc_or_first_weight;
     for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
-      predictions[static_cast<size_t>(it->i)].score =
-          (!predictions[static_cast<size_t>(it->i)].has_score ||
-           it->value < predictions[static_cast<size_t>(it->i)].score)
+      predictions[static_cast<std::size_t>(it->i)].score =
+          (!predictions[static_cast<std::size_t>(it->i)].has_score ||
+           it->value < predictions[static_cast<std::size_t>(it->i)].score)
               ? it->value
-              : predictions[static_cast<size_t>(it->i)].score;
-      predictions[static_cast<size_t>(it->i)].has_score = 1;
+              : predictions[static_cast<std::size_t>(it->i)].score;
+      predictions[static_cast<std::size_t>(it->i)].has_score = 1;
     }
   }
 
@@ -445,7 +447,7 @@ public:
       InlinedVector<ScoreValue<ThresholdType>> &predictions,
       const InlinedVector<ScoreValue<ThresholdType>> &predictions2) const {
     EXT_ENFORCE(predictions.size() == predictions2.size());
-    for (size_t i = 0; i < predictions.size(); ++i) {
+    for (std::size_t i = 0; i < predictions.size(); ++i) {
       if (predictions2[i].has_score) {
         predictions[i].score =
             predictions[i].has_score &&
@@ -465,7 +467,7 @@ class TreeAggregatorMax
     : public TreeAggregator<InputType, ThresholdType, OutputType> {
 public:
   TreeAggregatorMax(
-      size_t n_trees, const int64_t &n_targets_or_classes,
+      std::size_t n_trees, const int64_t &n_targets_or_classes,
       POST_EVAL_TRANSFORM post_transform,
       const std::vector<ThresholdType> &base_values)
       : TreeAggregator<InputType, ThresholdType, OutputType>(
@@ -502,12 +504,12 @@ public:
       const InlinedVector<SparseValue<ThresholdType>> &weights) const {
     auto it = weights.begin() + root.truenode_inc_or_first_weight;
     for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
-      predictions[static_cast<size_t>(it->i)].score =
-          (!predictions[static_cast<size_t>(it->i)].has_score ||
-           it->value > predictions[static_cast<size_t>(it->i)].score)
+      predictions[static_cast<std::size_t>(it->i)].score =
+          (!predictions[static_cast<std::size_t>(it->i)].has_score ||
+           it->value > predictions[static_cast<std::size_t>(it->i)].score)
               ? it->value
-              : predictions[static_cast<size_t>(it->i)].score;
-      predictions[static_cast<size_t>(it->i)].has_score = 1;
+              : predictions[static_cast<std::size_t>(it->i)].score;
+      predictions[static_cast<std::size_t>(it->i)].has_score = 1;
     }
   }
 
@@ -515,7 +517,7 @@ public:
       InlinedVector<ScoreValue<ThresholdType>> &predictions,
       const InlinedVector<ScoreValue<ThresholdType>> &predictions2) const {
     EXT_ENFORCE(predictions.size() == predictions2.size());
-    for (size_t i = 0; i < predictions.size(); ++i) {
+    for (std::size_t i = 0; i < predictions.size(); ++i) {
       if (predictions2[i].has_score) {
         predictions[i].score =
             predictions[i].has_score &&
@@ -544,7 +546,7 @@ private:
   int64_t negative_label_;
 
 public:
-  TreeAggregatorClassifier(size_t n_trees, const int64_t &n_targets_or_classes,
+  TreeAggregatorClassifier(std::size_t n_trees, const int64_t &n_targets_or_classes,
                            POST_EVAL_TRANSFORM post_transform,
                            const std::vector<ThresholdType> &base_values,
                            bool binary_case, bool weights_are_all_positive,
@@ -659,7 +661,7 @@ public:
     int write_additional_scores = -1;
     if (this->n_targets_or_classes_ > 2) {
       // add base values
-      for (size_t k = 0; k < this->base_values_.size(); ++k) {
+      for (std::size_t k = 0; k < this->base_values_.size(); ++k) {
         if (!predictions[k].has_score) {
           predictions[k].has_score = 1;
           predictions[k].score = this->base_values_[k];

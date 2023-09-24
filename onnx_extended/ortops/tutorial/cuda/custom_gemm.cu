@@ -31,7 +31,7 @@ const char *CustomGemmOp::GetExecutionProviderType() const {
 
 size_t CustomGemmOp::GetInputTypeCount() const { return 6; };
 
-ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetInputType(std::size_t index) const {
   switch (index) {
   case 0: // A
   case 1: // B
@@ -48,7 +48,7 @@ ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetInputCharacteristic(size_t index) const {
+CustomGemmOp::GetInputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
   case 1:
@@ -68,7 +68,7 @@ size_t CustomGemmOp::GetOutputTypeCount() const {
   return compute_time_as_output_ ? 2 : 1;
 }
 
-ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetOutputType(std::size_t index) const {
   // D, scale D
   switch (index) {
   case 0:
@@ -85,7 +85,7 @@ ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetOutputCharacteristic(size_t index) const {
+CustomGemmOp::GetOutputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
@@ -465,7 +465,7 @@ void CustomGemmKernel::ComputeGemm(
   // The workspace should be allocated once from OpKernelContext assuming
   // only one cuda function is running at a time (which is not necessarily true
   // with H100).
-  size_t workspaceSize = (size_t)(1 << 25); // suggested fixed value 32Mb
+  std::size_t workspaceSize = (std::size_t)(1 << 25); // suggested fixed value 32Mb
   cublasLtMatmulPreference_t preference = nullptr;
   cublasLtMatmulPreferenceCreate(&preference);
   cublasLtMatmulPreferenceSetAttribute(preference,

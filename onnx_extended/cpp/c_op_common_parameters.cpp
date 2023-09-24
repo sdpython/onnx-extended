@@ -1,59 +1,6 @@
-#include "common/c_op_common.h"
+#include "common/c_op_common_parameters.h"
 
 namespace onnx_c_ops {
-
-#if 1 // (defined(PYTHON_MANYLINUX) && PYTHON_MANYLINUX)
-
-void *AllocatorDefaultAlloc(size_t size) {
-  return malloc(size);
-}
-
-void AllocatorDefaultFree(void *p) {
-  free(p);
-}
-
-#else
-
-void *AllocatorDefaultAlloc(size_t size) {
-  const size_t alignment = 64;
-  void *p;
-#if _MSC_VER
-  p = _aligned_malloc(size, alignment);
-  if (p == nullptr)
-#if __cplusplus >= 202002L
-    throw std::bad_alloc();
-#else
-    abort();
-#endif
-#elif defined(_LIBCPP_SGX_CONFIG)
-  p = memalign(alignment, size);
-  if (p == nullptr)
-#if __cplusplus >= 202002L
-    throw std::bad_alloc();
-#else
-    abort();
-#endif
-#else
-  int ret = posix_memalign(&p, alignment, size);
-  if (ret != 0)
-#if __cplusplus >= 202002L
-    throw std::bad_alloc();
-#else
-    abort();
-#endif
-#endif
-  return p;
-}
-
-void AllocatorDefaultFree(void *p) {
-#if _MSC_VER
-  _aligned_free(p);
-#else
-  free(p);
-#endif
-}
-
-#endif
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value) {
   if (value.compare("NONE") == 0)

@@ -21,7 +21,7 @@ const char *CustomGemmOp::GetExecutionProviderType() const {
 
 size_t CustomGemmOp::GetInputTypeCount() const { return 6; };
 
-ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetInputType(std::size_t index) const {
   switch (index) {
   case 0: // A
   case 1: // B
@@ -38,7 +38,7 @@ ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetInputCharacteristic(size_t index) const {
+CustomGemmOp::GetInputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
   case 1:
@@ -56,7 +56,7 @@ CustomGemmOp::GetInputCharacteristic(size_t index) const {
 
 size_t CustomGemmOp::GetOutputTypeCount() const { return 1; }
 
-ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetOutputType(std::size_t index) const {
   // D, scale D
   switch (index) {
   case 0:
@@ -67,7 +67,7 @@ ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetOutputCharacteristic(size_t index) const {
+CustomGemmOp::GetOutputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;

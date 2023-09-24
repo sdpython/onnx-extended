@@ -1,31 +1,15 @@
 #pragma once
 
+#include "c_op_common_parameters.h"
 #include <cfloat>
-#include <vector>
-#include <string>
-#include <stdexcept>
 #include <cmath>
+#include <string>
+#include <vector>
 
 namespace onnx_c_ops {
 
-void *AllocatorDefaultAlloc(size_t size);
-void AllocatorDefaultFree(void *p);
-
-class Status {
-public:
-  int code;
-  Status() : code(1) {}
-  Status(int code) : code(code) {}
-  Status &operator=(const Status &other) {
-    code = other.code;
-    return *this;
-  }
-  bool IsOK() const { return code == 1; }
-  int Code() const { return code; }
-  bool operator==(const Status &other) const { return code == other.code; }
-  bool operator!=(const Status &other) const { return !(*this == other); }
-  static Status OK() { return Status(1); }
-};
+#define is_a_ge_zero_and_a_lt_b(a, b)                                          \
+  (static_cast<uint64_t>(a) < static_cast<uint64_t>(b))
 
 #define InlinedVector std::vector
 #define InlinedHashSet std::unordered_set
@@ -74,60 +58,7 @@ typedef int64_t ssize_t;
 #endif
 #endif
 
-enum class POST_EVAL_TRANSFORM {
-  NONE = 0,
-  LOGISTIC = 1,
-  SOFTMAX = 2,
-  SOFTMAX_ZERO = 3,
-  PROBIT = 4
-};
-
-POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value);
-
-enum NODE_MODE : uint8_t {
-  LEAF = 1,
-  BRANCH_LEQ = 2,
-  BRANCH_LT = 4,
-  BRANCH_GTE = 6,
-  BRANCH_GT = 8,
-  BRANCH_EQ = 10,
-  BRANCH_NEQ = 12
-};
-
-NODE_MODE to_NODE_MODE(const std::string &value);
-
-const char *to_str(NODE_MODE mode);
-
-enum class AGGREGATE_FUNCTION { AVERAGE, SUM, MIN, MAX };
-
-AGGREGATE_FUNCTION to_AGGREGATE_FUNCTION(const std::string &input);
-
-enum class SVM_TYPE { SVM_LINEAR, SVM_SVC };
-
-SVM_TYPE to_SVM_TYPE(const std::string &value);
-
-enum KERNEL { LINEAR, POLY, RBF, SIGMOID };
-
-KERNEL to_KERNEL(const std::string &value);
-
-enum StorageOrder {
-  UNKNOWN = 0,
-  NHWC = 1,
-  NCHW = 2,
-};
-
-StorageOrder to_StorageOrder(const std::string &value);
-
-enum class AutoPadType {
-  NOTSET = 0,
-  VALID = 1,
-  SAME_UPPER = 2,
-  SAME_LOWER = 3,
-};
-
-AutoPadType to_AutoPadType(const std::string &value);
-
-static inline float ErfInv(float x) {
+inline float ErfInv(float x) {
   float sgn = x < 0 ? -1.0f : 1.0f;
   x = (1 - x) * (1 + x);
   float log = std::log(x);
@@ -138,7 +69,7 @@ static inline float ErfInv(float x) {
   return x;
 }
 
-static inline double ErfInv(double x) {
+inline double ErfInv(double x) {
   double sgn = x < 0 ? -1.0 : 1.0;
   x = (1 - x) * (1 + x);
   double log = std::log(x);
@@ -148,31 +79,31 @@ static inline double ErfInv(double x) {
   return sgn * std::sqrt(v3);
 }
 
-static inline float ComputeLogistic(float val) {
+inline float ComputeLogistic(float val) {
   float v = 1 / (1 + std::exp(-std::abs(val)));
   return (val < 0) ? (1 - v) : v;
 }
 
-static inline double ComputeLogistic(double val) {
+inline double ComputeLogistic(double val) {
   double v = 1. / (1. + std::exp(-std::abs(val)));
   return (val < 0) ? (1. - v) : v;
 }
 
-static const float ml_sqrt2 = 1.41421356f;
+#define ml_sqrt2 1.41421356f
 
-template <class NTYPE> static inline NTYPE ComputeProbit(NTYPE val) {
+template <class NTYPE> inline NTYPE ComputeProbit(NTYPE val) {
   return ml_sqrt2 * ErfInv(val * 2 - 1);
 }
 
 template <class NTYPE>
-static inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
+inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
   // ref:
   // https://github.com/arnaudsj/libsvm/blob/eaaefac5ebd32d0e07902e1ae740e038eaaf0826/svm.cpp#L1818
   NTYPE val = score * proba + probb;
   return 1 - ComputeLogistic(val);
 }
 
-template <typename NTYPE> void ComputeSoftmax(NTYPE *begin, NTYPE *end) {
+template <typename NTYPE> inline void ComputeSoftmax(NTYPE *begin, NTYPE *end) {
   NTYPE v_max = -FLT_MAX;
   NTYPE *it;
   for (it = begin; it != end; ++it) {
@@ -188,11 +119,13 @@ template <typename NTYPE> void ComputeSoftmax(NTYPE *begin, NTYPE *end) {
     *it /= this_sum;
 }
 
-template <typename NTYPE> void ComputeSoftmax(std::vector<NTYPE> &values) {
+template <typename NTYPE>
+inline void ComputeSoftmax(std::vector<NTYPE> &values) {
   ComputeSoftmax(values.data(), values.data() + values.size());
 }
 
-template <typename NTYPE> void ComputeSoftmaxZero(NTYPE *begin, NTYPE *end) {
+template <typename NTYPE>
+inline void ComputeSoftmaxZero(NTYPE *begin, NTYPE *end) {
   NTYPE v_max = -std::numeric_limits<NTYPE>::max();
   NTYPE *it;
   for (it = begin; it != end; ++it) {
@@ -213,14 +146,15 @@ template <typename NTYPE> void ComputeSoftmaxZero(NTYPE *begin, NTYPE *end) {
     *it /= this_sum;
 }
 
-template <typename NTYPE> void ComputeSoftmaxZero(std::vector<NTYPE> &values) {
+template <typename NTYPE>
+inline void ComputeSoftmaxZero(std::vector<NTYPE> &values) {
   ComputeSoftmaxZero(values.data(), values.data() + values.size());
 }
 
 template <typename NTYPE, typename T>
-size_t write_scores(std::vector<NTYPE> &scores,
-                    POST_EVAL_TRANSFORM post_transform, T *Z,
-                    int add_second_class) {
+std::size_t write_scores(std::vector<NTYPE> &scores,
+                         POST_EVAL_TRANSFORM post_transform, T *Z,
+                         int add_second_class) {
   if ((scores.size() == 1) && add_second_class) {
     scores.push_back(scores[0]);
     scores[1] = 0.f;
@@ -231,7 +165,7 @@ size_t write_scores(std::vector<NTYPE> &scores,
 }
 
 template <typename NTYPE, typename T>
-size_t write_scores(size_t n_classes, NTYPE *scores,
+std::size_t write_scores(std::size_t n_classes, NTYPE *scores,
                     POST_EVAL_TRANSFORM post_transform, T *Z,
                     int add_second_class) {
   if (n_classes >= 2) {
@@ -304,7 +238,7 @@ size_t write_scores(size_t n_classes, NTYPE *scores,
 }
 
 template <typename NTYPE, typename T>
-size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
+std::size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
                      int add_second_class) {
   switch (post_transform) {
   case POST_EVAL_TRANSFORM::PROBIT:
@@ -334,74 +268,8 @@ size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
   return 2;
 }
 
-#define py_array_t py::array_t
-#define py_array_style py::array::c_style | py::array::forcecast
-
-#define is_a_ge_zero_and_a_lt_b(a, b)                                          \
-  (static_cast<uint64_t>(a) < static_cast<uint64_t>(b))
-
-#define array2vector(vec, arr, dtype)                                          \
-  {                                                                            \
-    if (arr.size() > 0) {                                                      \
-      auto n = arr.size();                                                     \
-      auto p = (dtype *)arr.data(0);                                           \
-      vec = std::vector<dtype>(p, p + n);                                      \
-    }                                                                          \
-  }
-
-#define arrayshape2vector(vec, arr)                                            \
-  {                                                                            \
-    if (arr.size() > 0) {                                                      \
-      vec.resize(arr.ndim());                                                  \
-      for (size_t i = 0; i < vec.size(); ++i)                                  \
-        vec[i] = (int64_t)arr.shape(i);                                        \
-    }                                                                          \
-  }
-
-template <class NTYPE>
-NTYPE flattened_dimension(const std::vector<NTYPE> &values) {
-  NTYPE r = 1;
-  for (auto it = values.begin(); it != values.end(); ++it)
-    r *= *it;
-  return r;
-}
-
-template <class NTYPE>
-NTYPE flattened_dimension(const std::vector<NTYPE> &values, int64_t first) {
-  NTYPE r = 1;
-  auto end = values.begin() + first;
-  for (auto it = values.begin(); it != end; ++it)
-    r *= *it;
-  return r;
-}
-
-template <class DIMTYPE, class NTYPE>
-void shape2strides(const std::vector<DIMTYPE> &shape,
-                   std::vector<DIMTYPE> &strides, NTYPE cst) {
-  strides.resize(shape.size());
-  strides[strides.size() - 1] = sizeof(NTYPE);
-  for (int64_t i = (int64_t)strides.size() - 2; i >= 0; --i)
-    strides[i] = strides[i + 1] * shape[i + 1];
-}
-
-template <class DIMTYPE>
-DIMTYPE SizeFromDimension(const std::vector<DIMTYPE> &shape, size_t start,
-                          size_t end) {
-  DIMTYPE size = 1;
-  for (size_t i = start; i < end; i++) {
-    if (shape[i] < 0)
-      return -1;
-    size *= shape[i];
-  }
-  return size;
-}
-
 template <typename T, T b> constexpr T roundUpPow2(T a) {
   return (a + (b - 1)) & (~(b - 1));
-}
-
-inline int64_t HandleNegativeAxis(int64_t axis, int64_t tensor_rank) {
-  return axis < 0 ? axis + tensor_rank : axis;
 }
 
 } // namespace onnx_c_ops

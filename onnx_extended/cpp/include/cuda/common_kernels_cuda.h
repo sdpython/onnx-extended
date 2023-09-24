@@ -7,7 +7,7 @@
 
 namespace ortops {
 
-inline const char *is_aligned(const void *ptr, size_t byte_count = 16) {
+inline const char *is_aligned(const void *ptr, std::size_t byte_count = 16) {
   if (ptr == nullptr)
     return "N";
   return (uintptr_t)ptr % byte_count == 0 ? "A" : "-";

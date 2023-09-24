@@ -56,7 +56,7 @@ inline bool is_float8(ONNXTensorElementDataType type) {
 inline std::string KernelInfoGetInputName(const OrtApi &api,
                                           const OrtKernelInfo *info,
                                           int index) {
-  size_t size;
+  std::size_t size;
   OrtStatus *status = api.KernelInfo_GetInputName(info, index, nullptr, &size);
   if (status != nullptr) {
     OrtErrorCode code = api.GetErrorCode(status);
@@ -82,7 +82,7 @@ inline std::string KernelInfoGetInputName(const OrtApi &api,
 inline std::string KernelInfoGetOptionalAttributeString(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
     const std::string &default_value) {
-  size_t size = 0;
+  std::size_t size = 0;
   std::string str_out;
 
   OrtStatus *status =
@@ -128,7 +128,7 @@ template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<float>>(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
     std::vector<float> &out) {
-  size_t size = 0;
+  std::size_t size = 0;
 
   // Feed nullptr for the data buffer to query the true size of the attribute
   OrtStatus *status =
@@ -147,7 +147,7 @@ template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
     std::vector<int64_t> &out) {
-  size_t size = 0;
+  std::size_t size = 0;
 
   // Feed nullptr for the data buffer to query the true size of the attribute
   OrtStatus *status =

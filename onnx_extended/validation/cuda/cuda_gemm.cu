@@ -15,7 +15,7 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
                  const Tensor *inputBias, Tensor *outputPreGelu, int m, int n,
                  int k, int lda, int ldb, int ldd, cublasOperation_t transa,
                  cublasOperation_t transb, bool grad, void *workspace,
-                 size_t workspaceSize, bool accumulate,
+                 std::size_t workspaceSize, bool accumulate,
                  bool use_split_accumulator, int math_sm_count,
                  cublasComputeType_t gemm_compute_type, cudaStream_t stream,
                  time_type &begin, time_type &heuristic, time_type &end,
@@ -200,7 +200,7 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
     NVTE_ERROR("Unable to find any suitable algorithms");
 
   // D = alpha * (A * B) + beta * C
-  size_t written;
+  std::size_t written;
   NVTE_CHECK_CUBLAS(cublasLtMatmulAlgoConfigGetAttribute(
       &heuristicResult.algo, CUBLASLT_ALGO_CONFIG_ID, &i_algo, sizeof(int),
       &written));
@@ -398,7 +398,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
     outputD.amax.allocate(CUDA_R_32F, 1, outputD.scale.device);
   Tensor inputBias("bias");
   Tensor outputPreGelu("outputPreGelu");
-  size_t workspace_size = 1 << 20;
+  std::size_t workspace_size = 1 << 20;
   BenchmarkGemm results;
 
   cudaStream_t stream;
@@ -419,7 +419,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
                   CUBLAS_OP_N,         // cublasOperation_t transb,
                   false,               // bool grad,
                   workspace.data.dptr, // void* workspace,
-                  workspace.data.size, // size_t workspaceSize,
+                  workspace.data.size, // std::size_t workspaceSize,
                   false,               // bool accumulate,
                   false,               // bool use_split_accumulator,
                   0,                   // int math_sm_count,

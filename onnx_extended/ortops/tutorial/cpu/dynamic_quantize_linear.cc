@@ -28,7 +28,7 @@ size_t DynamicQuantizeLinearOp::GetInputTypeCount() const noexcept {
 };
 
 ONNXTensorElementDataType
-DynamicQuantizeLinearOp::GetInputType(size_t /* index */) const noexcept {
+DynamicQuantizeLinearOp::GetInputType(std::size_t /* index */) const noexcept {
   return input_type_;
 }
 
@@ -37,7 +37,7 @@ size_t DynamicQuantizeLinearOp::GetOutputTypeCount() const noexcept {
 };
 
 ONNXTensorElementDataType
-DynamicQuantizeLinearOp::GetOutputType(size_t index) const {
+DynamicQuantizeLinearOp::GetOutputType(std::size_t index) const {
   switch (index) {
   case 0:
     return quant_type_;

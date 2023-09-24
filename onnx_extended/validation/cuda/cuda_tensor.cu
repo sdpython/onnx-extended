@@ -45,7 +45,7 @@ int32_t type_size(cudaDataType_t element_type) {
   }
 }
 
-void TensorData::allocate(cudaDataType_t dtype, size_t size,
+void TensorData::allocate(cudaDataType_t dtype, std::size_t size,
                           TensorDevice device) {
   this->dtype = dtype;
   this->size = size;
@@ -93,7 +93,7 @@ void TensorData::copy_from_cpu(void *ptr) {
   }
 }
 
-Tensor::Tensor(const char *name, size_t size, cudaDataType_t dtype,
+Tensor::Tensor(const char *name, std::size_t size, cudaDataType_t dtype,
                TensorDevice device, TensorDevice scale_device) {
   this->name = name;
   data.allocate(dtype, size, device);

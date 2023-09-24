@@ -58,7 +58,7 @@ public:
     LoadFinalize();
   }
 
-  void LoadFromBytes(const void *model_data, size_t model_data_length) {
+  void LoadFromBytes(const void *model_data, std::size_t model_data_length) {
     ThrowOnError(GetOrtApi()->CreateSessionFromArray(
         env_, model_data, model_data_length, sess_options_, &sess_));
     LoadFinalize();
@@ -75,8 +75,8 @@ public:
     GetOrtApi()->ReleaseEnv(env_);
   }
 
-  size_t GetInputCount() const { return n_inputs_; }
-  size_t GetOutputCount() const { return n_outputs_; }
+  std::size_t GetInputCount() const { return n_inputs_; }
+  std::size_t GetOutputCount() const { return n_outputs_; }
 
   void Initialize(const char *optimized_file_path = nullptr,
                   int graph_optimization_level = -1, int enable_cuda = 0,
@@ -141,8 +141,8 @@ public:
     }
   }
 
-  size_t Run(size_t n_inputs, OrtShape *shapes, OrtCpuValue *values,
-             size_t max_outputs, OrtShape *out_shapes,
+  std::size_t Run(std::size_t n_inputs, OrtShape *shapes, OrtCpuValue *values,
+             std::size_t max_outputs, OrtShape *out_shapes,
              OrtCpuValue *out_values) {
     if (max_outputs < n_outputs_)
       EXT_THROW("Not enough expected outputs, max_outputs=", (uint64_t)max_outputs, " > ",
@@ -151,7 +151,7 @@ public:
       EXT_THROW("Too many inputs, n_inputs=", (uint64_t)n_inputs, " > ", (uint64_t)n_inputs, ".");
     std::vector<OrtValue *> ort_values(n_inputs);
 
-    for (size_t i = 0; i < n_inputs; ++i) {
+    for (std::size_t i = 0; i < n_inputs; ++i) {
       ONNXTensorElementDataType elem_type =
           (ONNXTensorElementDataType)values[i].elem_type();
       ThrowOnError(GetOrtApi()->CreateTensorWithDataAsOrtValue(
@@ -166,14 +166,14 @@ public:
                                   output_names_call_.data(), n_outputs_,
                                   ort_values_out.data()));
 
-    for (size_t i = 0; i < n_inputs; ++i) {
+    for (std::size_t i = 0; i < n_inputs; ++i) {
       GetOrtApi()->ReleaseValue(ort_values[i]);
     }
     OrtTensorTypeAndShapeInfo *info;
     ONNXTensorElementDataType elem_type;
-    size_t size, n_dims;
+    std::size_t size, n_dims;
     void *data;
-    for (size_t i = 0; i < n_outputs_; ++i) {
+    for (std::size_t i = 0; i < n_outputs_; ++i) {
       ThrowOnError(
           GetOrtApi()->GetTensorTypeAndShape(ort_values_out[i], &info));
       ThrowOnError(GetOrtApi()->GetTensorElementType(info, &elem_type));
@@ -191,7 +191,7 @@ public:
       out_shapes[i].init(n_dims);
       ThrowOnError(GetOrtApi()->GetDimensions(
           info, (int64_t *)out_shapes[i].dims(), n_dims));
-      /* typedef void copy_allocate(size_t output, int elem_type, size_t size,
+      /* typedef void copy_allocate(std::size_t output, int elem_type, std::size_t size,
                                     OrtShape shape, void* data, void* args); */
       GetOrtApi()->ReleaseTensorTypeAndShapeInfo(info);
       out_values[i].init(size, elem_type, data, ort_values_out[i]);
@@ -212,24 +212,24 @@ protected:
     output_names_.reserve(n_outputs_);
 
     char *name;
-    for (size_t i = 0; i < n_inputs_; ++i) {
+    for (std::size_t i = 0; i < n_inputs_; ++i) {
       ThrowOnError(
           GetOrtApi()->SessionGetInputName(sess_, i, cpu_allocator_, &name));
       input_names_.emplace_back(std::string(name));
       ThrowOnError(GetOrtApi()->AllocatorFree(cpu_allocator_, name));
     }
-    for (size_t i = 0; i < n_outputs_; ++i) {
+    for (std::size_t i = 0; i < n_outputs_; ++i) {
       ThrowOnError(
           GetOrtApi()->SessionGetOutputName(sess_, i, cpu_allocator_, &name));
       output_names_.emplace_back(std::string(name));
       ThrowOnError(GetOrtApi()->AllocatorFree(cpu_allocator_, name));
     }
     input_names_call_.resize(n_inputs_);
-    for (size_t i = 0; i < n_inputs_; ++i) {
+    for (std::size_t i = 0; i < n_inputs_; ++i) {
       input_names_call_[i] = input_names_[i].c_str();
     }
     output_names_call_.resize(n_inputs_);
-    for (size_t i = 0; i < n_inputs_; ++i) {
+    for (std::size_t i = 0; i < n_inputs_; ++i) {
       output_names_call_[i] = output_names_[i].c_str();
     }
   }
@@ -245,8 +245,8 @@ private:
   // after loading the model
   OrtSession *sess_;
   OrtAllocator *cpu_allocator_;
-  size_t n_inputs_;
-  size_t n_outputs_;
+  std::size_t n_inputs_;
+  std::size_t n_outputs_;
   std::vector<std::string> input_names_;
   std::vector<std::string> output_names_;
   std::vector<const char *> input_names_call_;
@@ -276,7 +276,7 @@ void session_load_from_file(OrtSessionType *ptr, const char *filename) {
   ((OrtInference *)ptr)->LoadFromFile(filename);
 }
 void session_load_from_bytes(OrtSessionType *ptr, const void *buffer,
-                             size_t size) {
+                             std::size_t size) {
   ((OrtInference *)ptr)->LoadFromBytes(buffer, size);
 }
 size_t session_get_input_count(OrtSessionType *ptr) {
@@ -297,8 +297,8 @@ void session_initialize(OrtSessionType *ptr, const char *optimized_file_path,
                    inter_op_num_threads, (const char **)custom_libs);
 }
 
-size_t session_run(OrtSessionType *ptr, size_t n_inputs, OrtShape *shapes,
-                   OrtCpuValue *values, size_t max_outputs,
+size_t session_run(OrtSessionType *ptr, std::size_t n_inputs, OrtShape *shapes,
+                   OrtCpuValue *values, std::size_t max_outputs,
                    OrtShape *out_shapes, OrtCpuValue *out_values) {
   return ((OrtInference *)ptr)
       ->Run(n_inputs, shapes, values, max_outputs, out_shapes, out_values);
