@@ -603,6 +603,8 @@ def get_ext_modules():
                 "False",
             ):
                 add_cuda = False
+        elif "--use-cuda=0" in sys.argv:
+            add_cuda = False
         elif os.environ.get("USE_CUDA", None) in {0, "0", False}:
             add_cuda = False
         if add_cuda:
@@ -614,10 +616,10 @@ def get_ext_modules():
                     )
                 ]
             )
-    elif "--with-cuda=1" in sys.argv or "--with-cuda" in sys.argv:
+    elif "--use-cuda=1" in sys.argv or "--use-cuda" in sys.argv:
         raise RuntimeError(
             "CUDA is not available, it cannot be build with CUDA depsite "
-            "option '--with-cuda=1'."
+            "option '--use-cuda=1'."
         )
     ext_modules = [
         CMakeExtension(
@@ -653,7 +655,7 @@ def get_ext_modules():
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.15.1"
+DEFAULT_ORT_VERSION = "1.16.0"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."

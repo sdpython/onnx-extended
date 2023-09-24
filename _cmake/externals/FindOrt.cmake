@@ -49,6 +49,14 @@ if(ORT_VERSION_LENGTH LESS_EQUAL 12)
   FetchContent_makeAvailable(onnxruntime)
   set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)
   set(ONNXRUNTIME_LIB_DIR ${onnxruntime_SOURCE_DIR}/lib)
+
+  if ("${ORT_VERSION}" EQUAL "1.16.0")
+    # The following files are missing in this release.
+    # See https://github.com/microsoft/onnxruntime/issues/17645.
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/_forgotten_files/onnxruntime_float16.h"
+         DESTINATION ${onnxruntime_SOURCE_DIR}/include)
+  endif()
+
 else()
   message(STATUS "ORT - retrieve development version from '${ORT_VERSION}'")
   set(ORT_VERSION_INT 99999)

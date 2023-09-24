@@ -4,6 +4,7 @@ Change Logs
 0.2.0
 +++++
 
+* :pr:`79`: update to onnxruntime v1.16.0
 * :pr:`77`: helpers to benchmark a model
 * :pr:`74`: add a function to enumerate all intermediate results with onnxruntime
 * :pr:`71`, :pr:`72`, :pr:`73`: add function to analyse a profile produce by onnxruntime
