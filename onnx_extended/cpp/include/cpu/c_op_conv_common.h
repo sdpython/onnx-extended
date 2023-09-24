@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/c_op_common.h"
 #include <Eigen/Dense>
 
 using namespace Eigen;
@@ -10,7 +9,7 @@ namespace onnx_c_ops {
 // The function adds value to C, assuming this array
 // was initialized.
 template <typename NTYPE>
-void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
+void gemm(bool transA, bool transB, std::size_t M, std::size_t N, std::size_t K, NTYPE alpha,
           const NTYPE *A, const NTYPE *B, NTYPE beta, NTYPE *C) {
 #if defined(__APPLE__)
   // link issues on apple, "___kmpc_fork_call", referenced from:
@@ -21,7 +20,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       NTYPE *begin;
       NTYPE val;
       NTYPE val0;
-      size_t i, j, k, maxc = 0;
+      std::size_t i, j, k, maxc = 0;
       const NTYPE *pA, *pB;
       for (i = 0, begin = C; i < M; ++i) {
         for (j = 0; j < N; ++j, ++begin) {
@@ -32,7 +31,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
           for (k = K; k > 0; --k, pA += K, pB += N)
             val += *pA * *pB;
           *begin = val0 + val * alpha;
-          maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
+          maxc = maxc > (std::size_t)(begin - C) ? maxc : (std::size_t)(begin - C);
           if (maxc > M * N)
             throw std::invalid_argument("gemm10: maxc > M * N");
         }
@@ -46,7 +45,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
       NTYPE *begin;
       NTYPE val;
       NTYPE val0;
-      size_t i, j, k, maxc = 0;
+      std::size_t i, j, k, maxc = 0;
       const NTYPE *pA, *pB;
       for (i = 0, begin = C; i < M; ++i) {
         for (j = 0; j < N; ++j, ++begin) {
@@ -57,7 +56,7 @@ void gemm(bool transA, bool transB, size_t M, size_t N, size_t K, NTYPE alpha,
           for (k = K; k > 0; --k, ++pA, pB += N)
             val += *pA * *pB;
           *begin = val0 + val * alpha;
-          maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
+          maxc = maxc > (std::size_t)(begin - C) ? maxc : (std::size_t)(begin - C);
           if (maxc > M * N)
             throw std::invalid_argument("gemm00: maxc > M * N");
         }

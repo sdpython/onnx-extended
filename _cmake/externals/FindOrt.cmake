@@ -4,8 +4,6 @@
 # downloads onnxruntime as a binary
 # functions ort_add_dependency, ort_add_custom_op
 
-file(WRITE "../_setup_ext.txt" "")
-
 if(NOT ORT_VERSION)
   set(ORT_VERSION 1.15.1)
   set(ORT_VERSION_INT 1150)
@@ -87,34 +85,31 @@ endif()
 #                       to the location a target is build
 #
 # \arg:name target name
+# \arg:folder_copy where to copy the assembly
+# \arg:folder_copy_ort whenre to copy the dll for onnxruntime
 #
-function(ort_add_dependency name folder_copy)
+function(ort_add_dependency name folder_copy folder_copy_ort)
   get_target_property(target_output_directory ${name} BINARY_DIR)
-  message(STATUS "ort: copy-1 ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}'")
   if(MSVC)
     set(destination_dir ${target_output_directory}/${CMAKE_BUILD_TYPE})
   else()
     set(destination_dir ${target_output_directory})
   endif()
-  message(STATUS "ort: copy-2 to '${destination_dir}'")
-  if(folder_copy)
-    message(STATUS "ort: copy-3 to '${folder_copy}'")
-  endif()
+  message(STATUS "ort: copy ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}' "
+                 "to '${destination_dir}', '${folder_copy}', '${folder_copy_ort}' if it exists")
   foreach(file_i ${ORT_LIB_FILES})
-    if(NOT EXISTS ${destination_dir}/${file_i})
-      message(STATUS "ort: copy-4 '${file_i}' to '${destination_dir}'")
+    add_custom_command(
+      TARGET ${name} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
+    if(folder_copy)
       add_custom_command(
         TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
     endif()
-    if(folder_copy)
-      if(NOT EXISTS ${folder_copy}/${file_i})
-        message(STATUS "ort: copy-5 '${file_i}' to '${folder_copy}'")
-        # file(APPEND "../_setup_ext.txt" "copy,${file_i},${folder_copy}\n")
-        add_custom_command(
-          TARGET ${name} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
-      endif()
+    if(EXISTS folder_copy_ort)
+      add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy_ort})
     endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
@@ -135,7 +130,7 @@ function(ort_add_custom_op name provider folder)
     list(APPEND ARGN "${folder}/${name}.def")
   endif()
   if (provider STREQUAL "CUDA")
-    message(STATUS "ort: custom op ${provider}: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op ${provider}: '${name}' in '${folder}'")
     add_library(${name} SHARED ${ARGN})
 
     # add property --use_fast_math to cu files
@@ -149,7 +144,8 @@ function(ort_add_custom_op name provider folder)
       ${name}
       PRIVATE
       CUDA_VERSION=${CUDA_VERSION_INT}
-      ORT_VERSION=${ORT_VERSION_INT})
+      ORT_VERSION=${ORT_VERSION_INT}
+      PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
     if(USE_NVTX)
       message(STATUS "    LINK ${name} <- stdc++ nvtx3-cpp ${CUDA_LIBRARIES}")
       target_link_libraries(
@@ -171,23 +167,20 @@ function(ort_add_custom_op name provider folder)
       PRIVATE
       ${ONNXRUNTIME_INCLUDE_DIR})
   else()
-    message(STATUS "ort: custom op CPU: '${name}': ${ARGN}")
+    message(STATUS "ort: custom op CPU: '${name}' in '${folder}'")
     add_library(${name} SHARED ${ARGN})
     target_include_directories(${name} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
-    target_compile_definitions(${name} PRIVATE ORT_VERSION=${ORT_VERSION_INT})
+    target_compile_definitions(
+      ${name}
+      PRIVATE
+      ORT_VERSION=${ORT_VERSION_INT}
+      PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
-  # add_custom_command(
-  #   TARGET ${name} POST_BUILD
-  #   COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE_NAME:${name}> ${folder})
-  # $<TARGET_FILE_NAME:${name}> does not seem to work.
-  # The following step adds a line in '_setup.txt' to tell setup.py
-  # to copy an additional file.
-  # if (provider STREQUAL "CUDA")
-  #   file(APPEND "../_setup_ext.txt" "copy,${cuda_name},${folder}\n")
-  # endif()
-  file(APPEND "../_setup_ext.txt" "copy,${name},${folder}\n")
+  add_custom_command(
+    TARGET ${name} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE:${name}> ${CMAKE_CURRENT_SOURCE_DIR}/${folder})
 endfunction()
 
 include(FindPackageHandleStandardArgs)

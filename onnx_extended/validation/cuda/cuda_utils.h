@@ -1,12 +1,12 @@
 #pragma once
 
-#include <sstream>
+#include "onnx_extended_helpers.h"
+#include <stdexcept>
 
 #define NVTE_ERROR(x)                                                          \
   do {                                                                         \
-    throw std::runtime_error(std::string(__FILE__ ":") +                       \
-                             std::to_string(__LINE__) + " in function " +      \
-                             __func__ + ": " + x);                             \
+    throw std::runtime_error(onnx_extended_helpers::MakeString(                \
+        __FILE__, ":", __LINE__, " in function ", __func__, ": ", x));         \
   } while (false)
 
 #define NVTE_CHECK(x, ...)                                                     \
@@ -37,9 +37,8 @@ template <typename T>
 void _check_cuda(T err, const char *const func, const char *const file,
                  const int line) {
   if (err != cudaSuccess) {
-    std::stringstream strstr;
-    strstr << "CUDA error at: " << file << ":" << line << std::endl;
-    strstr << cudaGetErrorString(err) << " " << func << std::endl;
-    throw strstr.str();
+    throw std::runtime_error(onnx_extended_helpers::MakeString(
+        "CUDA error at: ", file, ":", line, "\n", cudaGetErrorString(err), " ",
+        func, "\n"));
   }
 }

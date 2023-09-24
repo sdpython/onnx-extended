@@ -23,5 +23,6 @@ target_link_libraries(
   ortops_optim_cpu
   PRIVATE
   OpenMP::OpenMP_CXX
-  common_kernels)
+  common_kernels
+  common)
 

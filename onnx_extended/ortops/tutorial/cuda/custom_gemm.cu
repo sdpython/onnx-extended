@@ -31,7 +31,7 @@ const char *CustomGemmOp::GetExecutionProviderType() const {
 
 size_t CustomGemmOp::GetInputTypeCount() const { return 6; };
 
-ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetInputType(std::size_t index) const {
   switch (index) {
   case 0: // A
   case 1: // B
@@ -43,12 +43,12 @@ ONNXTensorElementDataType CustomGemmOp::GetInputType(size_t index) const {
   case 5: // scale Y
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
-    EXT_THROW("Input index=", index, " is out of boundary.");
+    EXT_THROW("Input index=", (int64_t)index, " is out of boundary.");
   }
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetInputCharacteristic(size_t index) const {
+CustomGemmOp::GetInputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
   case 1:
@@ -60,7 +60,7 @@ CustomGemmOp::GetInputCharacteristic(size_t index) const {
   case 5:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
@@ -68,35 +68,35 @@ size_t CustomGemmOp::GetOutputTypeCount() const {
   return compute_time_as_output_ ? 2 : 1;
 }
 
-ONNXTensorElementDataType CustomGemmOp::GetOutputType(size_t index) const {
+ONNXTensorElementDataType CustomGemmOp::GetOutputType(std::size_t index) const {
   // D, scale D
   switch (index) {
   case 0:
     return d_type_;
   case 1:
     if (!compute_time_as_output_) {
-      EXT_THROW("Output index=", index,
+      EXT_THROW("Output index=", (uint64_t)index,
                 " is out of boundary, compute_time_as_output_ is False.");
     }
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
 OrtCustomOpInputOutputCharacteristic
-CustomGemmOp::GetOutputCharacteristic(size_t index) const {
+CustomGemmOp::GetOutputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
   case 1:
     if (!compute_time_as_output_) {
-      EXT_THROW("Output index=", index,
+      EXT_THROW("Output index=", (uint64_t)index,
                 " is out of boundary, compute_time_as_output_ is False.");
     }
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_OPTIONAL;
   default:
-    EXT_THROW("Output index=", index, " is out of boundary.");
+    EXT_THROW("Output index=", (uint64_t)index, " is out of boundary.");
   }
 }
 
@@ -243,7 +243,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   bool has_scales_Y = n_inputs > 5;
   if (has_scales) {
     EXT_ENFORCE(n_inputs == 5 || n_inputs == 6,
-                "Number of inputs must be 5 or 6 but is ", n_inputs, ".");
+                "Number of inputs must be 5 or 6 but is ", (int64_t)n_inputs, ".");
     scale_A = ctx.GetInput(3);
     scale_B = ctx.GetInput(4);
     check_device(scale_A, "scale_A");
@@ -253,7 +253,7 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       check_device(scale_Y, "scale_Y");
     }
   } else if (n_inputs != 2 && n_inputs != 3) {
-    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", n_inputs, ".");
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", (int64_t)n_inputs, ".");
   }
 
   switch (rowMajor_) {
@@ -465,7 +465,7 @@ void CustomGemmKernel::ComputeGemm(
   // The workspace should be allocated once from OpKernelContext assuming
   // only one cuda function is running at a time (which is not necessarily true
   // with H100).
-  size_t workspaceSize = (size_t)(1 << 25); // suggested fixed value 32Mb
+  std::size_t workspaceSize = (std::size_t)(1 << 25); // suggested fixed value 32Mb
   cublasLtMatmulPreference_t preference = nullptr;
   cublasLtMatmulPreferenceCreate(&preference);
   cublasLtMatmulPreferenceSetAttribute(preference,

@@ -1,6 +1,7 @@
 #pragma once
 // Implements RuntimeTreeEnsembleCommon.
 
+#include "common/c_op_helpers.h"
 #include "cpu/c_op_tree_ensemble_common_.hpp"
 
 #include <pybind11/numpy.h>
@@ -177,7 +178,7 @@ private:
   void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t N,
                         int64_t stride, py_array_t_ntype_t &X,
                         py_array_t_ntype_t &Z, py_array_t_int64_t *Y) {
-    auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
+    auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(std::size_t)1>();
     const NTYPE *x_data = X.data(0);
     NTYPE *z_data = (NTYPE *)Z_.data(0);
 

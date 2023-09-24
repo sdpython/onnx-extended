@@ -69,6 +69,8 @@ dev = [
 
 [build-system]
 requires = [
+    "abi3audit; sys_platform == 'linux'",
+    "auditwheel-symbols; sys_platform == 'linux'",
     "Cython",
     "cmake",
     "numpy",
@@ -105,17 +107,22 @@ manylinux-x86_64-image = "manylinux2014"
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* pypy* *musllinux*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* *musllinux*"
+manylinux-x86_64-image = "manylinux2014"
+before-build = "pip install auditwheel-symbols abi3audit"
+build-verbosity = 1
+repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
+# repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} || exit 0"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp310-* pypy* pp*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* pp*"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* pypy*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy*"
 
 [tool.cython-lint]
 max-line-length = 88
@@ -132,3 +139,4 @@ max-complexity = 10
 "onnx_extended/reference/__init__.py" = ["F401"]
 "onnx_extended/tools/graph/__init__.py" = ["F401"]
 "onnx_extended/tools/js_profile.py" = ["F821"]
+"onnx_extended/tools/run_onnx_main.py" = ["E731"]

@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include "../../ortops_version.h"
 #include "ort_optim_cpu_lib.h"
 #include "tree_ensemble.h"
 
@@ -18,7 +19,7 @@ static void AddOrtCustomOpDomainToContainer(Ort::CustomOpDomain &&domain) {
 
 OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
                                           const OrtApiBase *api_base) {
-  Ort::InitApi(api_base->GetApi(ORT_API_VERSION));
+  Ort::InitApi(api_base->GetApi(ORT_API_VERSION_ALLOWED));
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
