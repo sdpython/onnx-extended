@@ -43,7 +43,7 @@ ONNXTensorElementDataType CustomGemmOp::GetInputType(std::size_t index) const {
   case 5: // scale Y
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
-    EXT_THROW("Input index=", index, " is out of boundary.");
+    EXT_THROW("Input index=", (int64_t)index, " is out of boundary.");
   }
 }
 
