@@ -1,7 +1,7 @@
 Change Logs
 ===========
 
-0.2.0
+0.2.1
 +++++
 
 * :pr:`79`: update to onnxruntime v1.16.0
