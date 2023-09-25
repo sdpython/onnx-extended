@@ -40,10 +40,10 @@ onnx_extended.ortops.tutorial.cpu
     from onnx_extended.ortops.tutorial.cpu import documentation
     print("\n".join(documentation()))
 
-.. ifconfig:: HAS_CUDA in ('1', )
+onnx_extended.ortops.tutorial.cuda
+++++++++++++++++++++++++++++++++++
 
-    onnx_extended.ortops.tutorial.cuda
-    ++++++++++++++++++++++++++++++++++
+.. ifconfig:: HAS_CUDA in ("1", )
 
     .. runpython::
         :showcode:
@@ -51,6 +51,10 @@ onnx_extended.ortops.tutorial.cpu
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
         print(get_ort_ext_libs())
+
+.. ifconfig:: HAS_CUDA in ("0", )
+
+    The documentation was not compiled with CUDA enabled.
 
 .. runpython::
     :rst:
