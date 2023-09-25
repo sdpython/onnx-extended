@@ -350,6 +350,7 @@ def bench_virtual(
     modules: Optional[List[Dict[str, str]]] = None,
     verbose: int = 0,
     save_as_dataframe: Optional[str] = None,
+    filter_fct: Optional[Callable[[str, Dict[str, str]], bool]] = None,
 ) -> List[Dict[str, Union[float, Dict[str, Tuple[int, ...]]]]]:
     """
     Runs the same benchmark over different
@@ -365,6 +366,8 @@ def bench_virtual(
     :param repeat: number of iterations to measure
     :param modules: modules to install, example:
         `modules=[{"onnxruntime": "1.16.0", "onnx": "1.15.0"}]`
+    :param filter_fct: to disable some of the configuration
+        based on the runtime and the installed modules
     :param verbose: verbosity
     :param save_as_dataframe: saves as dataframe
     :return: list of statistics
@@ -460,6 +463,8 @@ def bench_virtual(
                 raise RuntimeError(out)
 
         for rt in runtimes:
+            if filter_fct is not None and not filter_fct(rt, conf):
+                continue
             if verbose > 1:
                 print(f"[bench_virtual] run with {rt}")
             cmd = [

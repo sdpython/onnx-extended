@@ -76,6 +76,9 @@ It calls function :func:`bench_virtual <onnx_extended.tools.run_onnx.bench_virtu
         {"onnx-extended": "0.2.1", "onnx": "1.14.1", "onnxruntime": "1.13.1"},
         {"onnx-extended": "0.2.1", "onnx": "1.14.1", "onnxruntime": "1.12.1"},
     ]
+    filter_fct = (
+        lambda rt, modules: rt == "onnxruntime" or modules["onnxruntime"] == "1.16.0"
+    )
 
     df = bench_virtual(
         folder,
@@ -86,6 +89,7 @@ It calls function :func:`bench_virtual <onnx_extended.tools.run_onnx.bench_virtu
         warmup=5,
         repeat=10,
         save_as_dataframe="results.csv",
+        filter_fct=filter_fct,
     )
 
     columns = ["runtime", "b_avg_time", "runtime", "v_onnxruntime"]
@@ -95,25 +99,19 @@ The output would look like:
 
 ::
 
-    [bench_virtual] 1/5 17:43:50 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.16.0
-    [bench_virtual] 2/5 17:43:54 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.15.1
-    [bench_virtual] 3/5 17:43:58 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.14.1
-    [bench_virtual] 4/5 17:44:02 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.13.1
-    [bench_virtual] 5/5 17:44:05 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.12.1
-                    runtime  b_avg_time              runtime v_onnxruntime
-    0    ReferenceEvaluator    0.001791   ReferenceEvaluator        1.16.0
-    1   CReferenceEvaluator    0.000024  CReferenceEvaluator        1.16.0
-    2           onnxruntime    0.000018          onnxruntime        1.16.0
-    3    ReferenceEvaluator    0.001890   ReferenceEvaluator        1.15.1
-    4   CReferenceEvaluator    0.000027  CReferenceEvaluator        1.15.1
-    5           onnxruntime    0.000017          onnxruntime        1.15.1
-    6    ReferenceEvaluator    0.001766   ReferenceEvaluator        1.14.1
-    7   CReferenceEvaluator    0.000024  CReferenceEvaluator        1.14.1
-    8           onnxruntime    0.000012          onnxruntime        1.14.1
-    9    ReferenceEvaluator    0.001874   ReferenceEvaluator        1.13.1
-    10  CReferenceEvaluator    0.000056  CReferenceEvaluator        1.13.1
-    11          onnxruntime    0.000012          onnxruntime        1.13.1
-    12   ReferenceEvaluator    0.001840   ReferenceEvaluator        1.12.1
-    13  CReferenceEvaluator    0.000027  CReferenceEvaluator        1.12.1
-    14          onnxruntime    0.000012          onnxruntime        1.12.1
+    [bench_virtual] 1/5 18:01:02 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.16.0
+    [bench_virtual] 2/5 18:01:06 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.15.1
+    [bench_virtual] 3/5 18:01:09 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.14.1
+    [bench_virtual] 4/5 18:01:12 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.13.1
+    [bench_virtual] 5/5 18:01:15 onnx==1.14.1 onnx-extended==0.2.1 onnxruntime==1.12.1
+                runtime  b_avg_time              runtime v_onnxruntime
+    0   ReferenceEvaluator    0.001879   ReferenceEvaluator        1.16.0
+    1  CReferenceEvaluator    0.000042  CReferenceEvaluator        1.16.0
+    2          onnxruntime    0.000013          onnxruntime        1.16.0
+    3          onnxruntime    0.000012          onnxruntime        1.15.1
+    4          onnxruntime    0.000017          onnxruntime        1.14.1
+    5          onnxruntime    0.000012          onnxruntime        1.13.1
+    6          onnxruntime    0.000011          onnxruntime        1.12.1
 
+The differences are not significant on such small model except for
+the python runtime.
