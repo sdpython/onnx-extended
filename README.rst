@@ -104,7 +104,7 @@ build with C++ functions (`pybind11 <https://github.com/pybind/pybind11>`_,
 with `openmp <https://www.openmp.org/>`_,
 `eigen <https://eigen.tuxfamily.org/index.php>`_
 with or without CUDA. It also shows how to create a custom operator
-for `onnxruntime <https://onnxruntime.ai/>`_ in C++.
+for *onnxruntime* in C++.
 
 The version released on `pypi/onnx-extended <https://pypi.org/project/onnx-extended/>`_
 only works on CPU. It needs to be manually built to enable
