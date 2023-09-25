@@ -14,7 +14,8 @@ Introduction
 .. toctree::
     :maxdepth: 1
 
-    usefulcmd
-    install_cuda_wsl
     build
+    reference_evaluator
+    cython_binding
+    custom_ops
     examples

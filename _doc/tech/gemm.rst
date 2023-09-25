@@ -9,7 +9,7 @@ means general matrix multiplication. It is a common routine in linear algebra.
 
     Gemm(A, B, C, tA, tB, \alpha, \beta) = \alpha A^{tA} B^{tB} + \beta C
 
-Where :math:`A^{tA}` means *A* is *tA* is 0 and :math:`A'` if *tA* is 1.
+Where :math:`A^{tA}` means *A* is *tA* ifs 0 and :math:`A'` if *tA* is 1.
 The coefficients of a matrix are stored in memory in a one dimension
 array *T*: :math:`A(i,j) = T[i * C + j]` where *C* is the number of columns
 of matrix A. In that case, the storage is said as *row major*. In case
@@ -29,12 +29,20 @@ and :math:`C=(I,K,M_C,R)`. We note :math:`D =  A^{tA} B^{tB} = (I, K, M_D, R)`.
     \begin{array}{rcl}
     \alpha A^{tA} B^{tB} + \beta C &=& \alpha (I,J,M_A,R)^{tA} (J,K,M_B,R)^{tB} + \beta (I,K,M_C,R) \\
     &=& \left( \alpha (I,J,M_A,R)^{tA} (J,K,M_B,R)^{tB} + \beta (I,K,M_C,R) \right)'' \\
-    &=& \left( (J,K,M_B,R)^{1-tB} \alpha (I,J,M_A,R)^{1-tA}  + \beta (I,K,M_C,R)' \right)' \\
-    &=& \left( (K,J,M_B,C)^{tB} \alpha (J,I,M_A,C)^{tA}  + \beta (K,I,M_C,C) \right)' (*)\\
-    &=& \left( (K,I,M_D,C)  + \beta (K,I,M_C,C) \right)' \\
+    &=& \left( \alpha (J,K,M_B,R)^{1-tB} (I,J,M_A,R)^{1-tA} + \beta (I,K,M_C,R)' \right)' \\
+    &=& \left( \alpha (K,J,M_B,C)^{tB} (J,I,M_A,C)^{tA}  + \beta (K,I,M_C,C) \right)' (*)\\
+    &=& \left( (K,I,M_D,C) + \beta (K,I,M_C,C) \right)' \\
     &=&  (I,K,M_D,R)  + \beta (I,K,M_C,R) 
     \end{array}
 
 This trick can be used to run the computation of matrices using
-a column major algorithm instread of a row major algorithm
+a column major algorithm instead of a row major algorithm
 by using line `(*)` as a replacement.
+
+.. math::
+
+    \begin{array}{rcl}
+    &&\alpha (I,J,M_A,R)^{tA} (J,K,M_B,R)^{tB} + \beta (I,K,M_C,R) \\
+    &=& \left( \alpha (K,J,M_B,C)^{tB} (J,I,M_A,C)^{tA}  + \beta (K,I,M_C,C) \right)'\\
+    &=& \alpha (J,I,M_A,C)^{1-tA}(K,J,M_B,C)^{1-tB}   + \beta (K,I,M_C,C)'
+    \end{array}
