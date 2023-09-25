@@ -1,9 +1,11 @@
 import json
 import os
 import pprint
+import re
 import subprocess
 import time
 import sys
+import datetime
 from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.request import urlretrieve
@@ -299,6 +301,7 @@ class TestRun:
         if repeat > 4:
             stats["max1_time"] = ts[-2]
             stats["min1_time"] = ts[1]
+            stats["avg1_time"] = float(np.array(ts[1:-1]).mean())
         return stats
 
 
@@ -317,6 +320,24 @@ def _run_cmd(args: List[str]) -> Tuple[str, str]:
     p.poll()
     p.stdout.close()
     return st.getvalue()
+
+
+def _extract_version(out: str) -> str:
+    reg = re.compile("Version: ([0-9][0-9.]*)")
+    r = reg.findall(out)
+    if not r:
+        raise RuntimeError(f"Unable to find a version in\n{out}")
+    return r[0]
+
+
+def _display_conf(conf: Dict[str, str]) -> str:
+    rows = []
+    for k, v in sorted(conf.items()):
+        if v is None:
+            rows.append(k)
+        else:
+            rows.append(f"{k}=={v}")
+    return " ".join(rows)
 
 
 def bench_virtual(
@@ -384,19 +405,36 @@ def bench_virtual(
     # packages defined by the user
     obs = []
     for i, conf in enumerate(modules):
+        confs = _display_conf(conf)
         if verbose > 2:
             print("-------------------------------------------------------")
         if verbose > 0:
-            print(f"[bench_virtual] {i+1}/{len(modules)}:{conf}")
+            print(
+                f"[bench_virtual] {i+1}/{len(modules)} "
+                f"{datetime.datetime.now():%H:%M:%S} {confs}"
+            )
 
         for k, v in conf.items():
+            # We first check if it installed.
+            if verbose > 1:
+                print(f"[bench_virtual] check version of {k}")
+            out = _run_cmd([exe, "-m", "pip", "show", k])
+            if verbose > 2:
+                print(out)
+            version = _extract_version(out)
+            if verbose > 1:
+                print(f"[bench_virtual] found version of {k}: {version}")
+            if version == v:
+                continue
+
+            # If the version is different, let's uninstall first.
             if verbose > 1:
                 print(f"[bench_virtual] uninstall {k}")
             out = _run_cmd([exe, "-m", "pip", "uninstall", "-y", k])
             if verbose > 2:
                 print(out)
-            if verbose > 2:
-                print(out)
+
+            # Let's install the new one.
             if verbose > 1:
                 print(f"[bench_virtual] install {k}: {v or 'upgrade'}")
             if v is None:
@@ -424,21 +462,20 @@ def bench_virtual(
         for rt in runtimes:
             if verbose > 1:
                 print(f"[bench_virtual] run with {rt}")
-            out = _run_cmd(
-                [
-                    exe,
-                    "-m",
-                    "onnx_extended.tools.run_onnx_main",
-                    "-p",
-                    test_path,
-                    "-r",
-                    str(repeat),
-                    "-w",
-                    str(warmup),
-                    "-e",
-                    rt,
-                ]
-            )
+            cmd = [
+                exe,
+                "-m",
+                "onnx_extended.tools.run_onnx_main",
+                "-p",
+                test_path,
+                "-r",
+                str(repeat),
+                "-w",
+                str(warmup),
+                "-e",
+                rt,
+            ]
+            out = _run_cmd(cmd)
             if "Traceback" in out:
                 raise RuntimeError(out)
             try:
@@ -448,12 +485,35 @@ def bench_virtual(
             if verbose > 2:
                 print("[bench_virtual] final results")
                 print(js)
+            js["conf"] = confs
+            js["conf_dict"] = conf
+            js["cmd"] = " ".join(cmd)
+            js["runtime"] = rt
             obs.append(js)
 
     if save_as_dataframe:
         import pandas
 
-        df = pandas.DataFrame(obs)
+        data = []
+        for o in obs:
+            r = {}
+            for key, value in o.items():
+                if value is None:
+                    continue
+                if key == "bench":
+                    for k, v in value.items():
+                        r[f"b_{k}"] = v
+                elif key == "test":
+                    for k, v in value.items():
+                        r[f"t_{k}"] = v
+                elif key == "conf_dict":
+                    for k, v in value.items():
+                        r[f"v_{k}"] = v
+                else:
+                    r[key] = value
+            data.append(r)
+
+        df = pandas.DataFrame(data)
         df.to_csv(save_as_dataframe, index=False)
         return df
     return obs

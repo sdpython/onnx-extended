@@ -11,9 +11,10 @@ It rewrites the following kernels:
 .. runpython::
     :showcode:
 
+    import pprint
     from onnx_extended.reference import CReferenceEvaluator
 
-    print(CReferenceEvaluator.default_ops())
+    pprint.pprint(CReferenceEvaluator.default_ops())
 
 Full example:
 

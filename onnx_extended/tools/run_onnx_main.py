@@ -47,7 +47,7 @@ def main(argv):
         from onnxruntime import InferenceSession
 
         f_build = lambda proto: InferenceSession(
-            proto, providers=["CPUExecutionProvider"]
+            proto.SerializeToString(), providers=["CPUExecutionProvider"]
         )
         f_run = lambda rt, feeds: rt.run(None, feeds)
     else:

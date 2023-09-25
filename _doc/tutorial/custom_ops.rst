@@ -32,29 +32,31 @@ onnx_extended.ortops.tutorial.cpu
 
     from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
-    print(get_ort_ext_libs)
+    print(get_ort_ext_libs())
 
 .. runpython::
     :rst:
 
     from onnx_extended.ortops.tutorial.cpu import documentation
-    print(documentation())
+    print("\n".join(documentation()))
 
-onnx_extended.ortops.tutorial.cuda
-++++++++++++++++++++++++++++++++++
+.. ifconfig:: HAS_CUDA in ('1', )
 
-.. runpython::
-    :showcode:
+    onnx_extended.ortops.tutorial.cuda
+    ++++++++++++++++++++++++++++++++++
 
-    from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+    .. runpython::
+        :showcode:
 
-    print(get_ort_ext_libs)
+        from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+
+        print(get_ort_ext_libs())
 
 .. runpython::
     :rst:
 
     from onnx_extended.ortops.tutorial.cuda import documentation
-    print(documentation())
+    print("\n".join(documentation()))
 
 onnx_extended.ortops.optim.cpu
 ++++++++++++++++++++++++++++++
@@ -64,11 +66,11 @@ onnx_extended.ortops.optim.cpu
 
     from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 
-    print(get_ort_ext_libs)
+    print(get_ort_ext_libs())
 
 .. runpython::
     :rst:
 
     from onnx_extended.ortops.optim.cpu import documentation
-    print(documentation())
+    print("\n".join(documentation()))
 
