@@ -2,7 +2,7 @@
 Tutorial
 ========
 
-This package is mostly used to validate custom implementation
+This package is mostly used to validate custom implementations
 of a specific onnx operator or **kernel**. The first sections
 describe how to build the package and to add a new implementation
 depending the technology it relies on (CPU, openmp, CUDA, eigen, ...).
@@ -18,5 +18,5 @@ Introduction
     reference_evaluator
     cython_binding
     custom_ops
-    tools
+    many_tools
     examples
