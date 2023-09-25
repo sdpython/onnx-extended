@@ -1,5 +1,6 @@
 prune _doc
 prune _unittests
+recursive-include _cmake *.cmake *.in *.h *.txt *.sh
 exclude *.bat
 exclude *.yml
 exclude *.git*
