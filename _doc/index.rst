@@ -131,5 +131,5 @@ onnxruntime is used on small graphs and tensors.
 Older versions
 ++++++++++++++
 
-* `0.2.1 <../v0.2.1/index.html>`_
+* `0.2.2 <../v0.2.2/index.html>`_
 * `0.1.0 <../v0.1.0/index.html>`_
