@@ -1,4 +1,6 @@
 
+.. _l-command-lines:
+
 =============
 command lines
 =============

@@ -30,10 +30,9 @@ The difference is significant when onnxruntime deals with small tensors.
     onnx_model = make_model(
         graph, opset_imports=[make_opsetid("", 18)], ir_version=8
     )
-    check_model(onnx_model)
+
     with open("model.onnx", "wb") as f:
         f.write(onnx_model.SerializeToString())
-    self.assertExists(name)
 
     session = OrtSession("model.onnx")
     x = numpy.random.randn(2, 3).astype(numpy.float32)
@@ -41,6 +40,7 @@ The difference is significant when onnxruntime deals with small tensors.
     got =session.run([x, y])
 
     print(got)
+
 
 The signature is different compare to onnxruntime
 ``session.run(None, {"X": x, "Y": y})`` to increase performance.

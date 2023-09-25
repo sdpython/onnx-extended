@@ -150,6 +150,7 @@ epkg_dictionary = {
     "scikit-learn": "https://scikit-learn.org/stable/",
     "scipy": "https://scipy.org/",
     "sphinx-gallery": "https://github.com/sphinx-gallery/sphinx-gallery",
+    "sklearn-onnx": "https://onnx.ai/sklearn-onnx/",
     "torch": "https://pytorch.org/docs/stable/torch.html",
     "tqdm": "https://tqdm.github.io/",
     "TreeEnsembleClassifier": "https://onnx.ai/onnx/operators/onnx_aionnxml_TreeEnsembleClassifier.html",

@@ -18,4 +18,5 @@ Introduction
     reference_evaluator
     cython_binding
     custom_ops
+    tools
     examples

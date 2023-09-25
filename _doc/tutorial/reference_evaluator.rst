@@ -2,8 +2,8 @@
 CReferenceEvaluator
 ===================
 
-Class :class:`CReferenceEvaluator <onnx_extende.reference.CReferenceEvaluator>`
-extends :epkg:`ReferenceEvaluator` with custom operators implemented
+Class :class:`CReferenceEvaluator <onnx_extended.reference.CReferenceEvaluator>`
+extends :class:`onnx.reference.ReferenceEvaluator` with custom operators implemented
 in C++ in order to speed up the evaluation of this python runtime.
 This class works as a replacement of ReferenceEvaluator.
 It rewrites the following kernels:
