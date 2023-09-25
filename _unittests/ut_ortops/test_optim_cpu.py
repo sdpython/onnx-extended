@@ -324,5 +324,4 @@ class TestOrtOpOptimCpu(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOrtOpOptimCpu().test_random_forest_regressor_1000()
     unittest.main(verbosity=2)

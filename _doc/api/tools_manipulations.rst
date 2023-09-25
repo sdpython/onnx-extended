@@ -3,6 +3,16 @@
 tools.onnx_manipulations
 ========================
 
+enumerate_onnx_node_types
+=========================
+
+.. autofunction:: onnx_extended.tools.onnx_tools.enumerate_onnx_node_types
+
+get_hidden_inputs
+=================
+
+.. autofunction:: onnx_extended.tools.onnx_manipulations.get_hidden_inputs
+
 onnx_remove_node_unused
 =======================
 

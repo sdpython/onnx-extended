@@ -695,7 +695,7 @@ def get_package_data():
 
 setup(
     name="onnx-extended",
-    version=get_version_str(here, "0.2.1"),
+    version=get_version_str(here, "0.2.2"),
     description=get_description(),
     long_description=get_long_description(here),
     author="Xavier Dupré",

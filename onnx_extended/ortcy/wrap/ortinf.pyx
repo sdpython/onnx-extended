@@ -125,6 +125,8 @@ cdef class OrtSession:
         the execution of the graph
     :param intra_op_num_threads: number of threads used to parallelize
         the execution within nodes
+
+    .. versionadded:: 0.2.0
     """
 
     # see https://github.com/onnx/onnx/blob/main/onnx/onnx.proto3#L485

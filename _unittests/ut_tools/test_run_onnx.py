@@ -15,7 +15,7 @@ from onnx.helper import (
     make_opsetid,
 )
 from onnx.checker import check_model
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.run_onnx import (
     save_for_benchmark_or_test,
@@ -155,6 +155,28 @@ class TestRunOnnx(ExtTestCase):
             else:
                 self.assertEqual(examples["bench"][k], bench["bench"][k])
 
+    @ignore_warnings(DeprecationWarning)
+    def test_test_run_cmd_engine_rf(self):
+        folder = os.path.join(os.path.dirname(__file__), "bench_rf")
+
+        for engine in [
+            "ReferenceEvaluator",
+            "CReferenceEvaluator",
+            "onnxruntime",
+            "CustomTreeEnsembleRegressor.10.10.10",
+        ]:
+            with self.subTest(runtime=engine):
+                st = StringIO()
+                with redirect_stdout(st):
+                    args = ["-p", folder, "-e", engine]
+                    main(args)
+                text = st.getvalue()
+                bench = json.loads(text)
+                keys = list(sorted(bench))
+                self.assertEqual(keys, ["bench", "runtime", "test"])
+                self.assertIn("runtime", bench)
+                self.assertEqual(engine, bench["runtime"])
+
     def test_run_cmd(self):
         args = [sys.executable, "-V"]
         out = _run_cmd(args)
@@ -165,7 +187,6 @@ class TestRunOnnx(ExtTestCase):
         folder = os.path.join(os.path.dirname(__file__), "bench")
 
         with tempfile.TemporaryDirectory() as temp:
-            temp = "llll"
             st = StringIO()
             with redirect_stdout(st):
                 df = bench_virtual(folder, temp, verbose=3)
