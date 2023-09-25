@@ -424,7 +424,10 @@ def bench_virtual(
             out = _run_cmd([exe, "-m", "pip", "show", k])
             if verbose > 2:
                 print(out)
-            version = _extract_version(out)
+            if "Package(s) not found" in out:
+                version = None
+            else:
+                version = _extract_version(out)
             if verbose > 1:
                 print(f"[bench_virtual] found version of {k}: {version}")
             if version == v:
