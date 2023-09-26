@@ -92,7 +92,7 @@ protected:
   template <typename AGG>
   void ComputeAggClassifier(int64_t n_rows, int64_t n_features,
                             const InputType *X, OutputType *Y, int64_t *labels,
-                            const AGG &agg) const {
+                            const AGG & /* agg */) const {
     DEBUG_PRINT("ComputeAggClassifier")
     this->ComputeAgg(
         n_rows, n_features, X, Y, labels,

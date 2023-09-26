@@ -175,9 +175,9 @@ public:
   }
 
 private:
-  void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t N,
-                        int64_t stride, py_array_t_ntype_t &X,
-                        py_array_t_ntype_t &Z, py_array_t_int64_t *Y) {
+  void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t /* N */,
+                        int64_t /* stride */, py_array_t_ntype_t &X,
+                        py_array_t_ntype_t &Z, py_array_t_int64_t * /* Y */) {
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(std::size_t)1>();
     const NTYPE *x_data = X.data(0);
     NTYPE *z_data = (NTYPE *)Z_.data(0);

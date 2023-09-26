@@ -115,14 +115,14 @@ const char *MyCustomOpWithAttributes::GetExecutionProviderType() const {
 size_t MyCustomOpWithAttributes::GetInputTypeCount() const { return 2; };
 
 ONNXTensorElementDataType
-MyCustomOpWithAttributes::GetInputType(std::size_t index) const {
+MyCustomOpWithAttributes::GetInputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
 }
 
 size_t MyCustomOpWithAttributes::GetOutputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType
-MyCustomOpWithAttributes::GetOutputType(std::size_t index) const {
+MyCustomOpWithAttributes::GetOutputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
 }
 

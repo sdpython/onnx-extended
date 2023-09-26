@@ -150,8 +150,8 @@ public:
   }
 
 private:
-  void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t N,
-                        int64_t stride, py_array_t_ntype_t &X,
+  void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t /* N */,
+                        int64_t /* stride */, py_array_t_ntype_t &X,
                         py_array_t_ntype_t &Z, py_array_t_int64_t &label) {
     auto Z_ = _mutable_unchecked1(Z);
     auto label_ = _mutable_unchecked1(label);

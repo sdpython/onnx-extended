@@ -346,6 +346,8 @@ dfm = (
     .agg(["mean", "min", "max"])
     .copy()
 )
+if dfm.shape[1] == 3:
+    dfm = dfm.reset_index(drop=False)
 dfm.columns = ["name", "average", "min", "max"]
 dfi = (
     dfm[["name", "average", "min", "max"]].sort_values("average").reset_index(drop=True)

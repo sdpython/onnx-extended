@@ -197,7 +197,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     const std::vector<ThresholdType> &base_values, int64_t n_targets_or_classes,
     const std::vector<int64_t> &nodes_falsenodeids,
     const std::vector<int64_t> &nodes_featureids,
-    const std::vector<ThresholdType> &nodes_hitrates,
+    const std::vector<ThresholdType> &/* nodes_hitrates */,
     const std::vector<int64_t> &nodes_missing_value_tracks_true,
     const std::vector<std::string> &nodes_modes,
     const std::vector<int64_t> &nodes_nodeids,

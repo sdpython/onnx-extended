@@ -2,7 +2,7 @@
 
 namespace ortops {
 
-MyCustomKernel::MyCustomKernel(const OrtApi &api, const OrtKernelInfo *info) {}
+MyCustomKernel::MyCustomKernel(const OrtApi & /* api */, const OrtKernelInfo * /* info */) {}
 
 void MyCustomKernel::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
@@ -39,13 +39,13 @@ const char *MyCustomOp::GetExecutionProviderType() const {
 
 size_t MyCustomOp::GetInputTypeCount() const { return 2; };
 
-ONNXTensorElementDataType MyCustomOp::GetInputType(std::size_t index) const {
+ONNXTensorElementDataType MyCustomOp::GetInputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 }
 
 size_t MyCustomOp::GetOutputTypeCount() const { return 1; };
 
-ONNXTensorElementDataType MyCustomOp::GetOutputType(std::size_t index) const {
+ONNXTensorElementDataType MyCustomOp::GetOutputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 }
 
