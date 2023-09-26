@@ -717,7 +717,9 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       DEBUG_PRINT_STEP("S:NNB:TN-PG")
       auto n_threads =
           std::min<int32_t>(max_n_threads, static_cast<int32_t>(n_trees_));
-      int n_batches = n_trees_ / this->batch_size_tree_ + 1;
+      int n_batches = this->batch_size_tree_ <= 1
+                          ? n_trees_
+                          : n_trees_ / this->batch_size_tree_ + 1;
       int max_n = std::min(N, parallel_tree_n);
       std::vector<ScoreValue<ThresholdType>> scores(
           static_cast<std::size_t>(n_batches * max_n));
@@ -728,7 +730,8 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
         // initialization of scores to 0
         TrySimpleParallelFor(
             n_threads, n_threads * 2, [n_threads, &scores](int64_t batch_num) {
-              auto work = PartitionWork(batch_num, n_threads * 2, scores.size());
+              auto work =
+                  PartitionWork(batch_num, n_threads * 2, scores.size());
               for (int64_t i = work.start; i < work.end; ++i) {
                 DEBUG_INDEX(i, scores.size(), "ERROR i=", i,
                             " scores.size()=", scores.size(),
@@ -894,7 +897,9 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       DEBUG_PRINT()
       auto n_threads =
           std::min<int32_t>(max_n_threads, static_cast<int32_t>(n_trees_));
-      int n_batches = n_trees_ / this->batch_size_tree_ + 1;
+      int n_batches = this->batch_size_tree_ <= 1
+                          ? n_trees_
+                          : n_trees_ / this->batch_size_tree_ + 1;
       int max_n = std::min(N, parallel_tree_n);
       std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(
           static_cast<std::size_t>(n_batches * max_n));
