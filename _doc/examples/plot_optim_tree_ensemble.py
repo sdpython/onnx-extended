@@ -102,10 +102,14 @@ filename = (
 )
 if not os.path.exists(filename):
     print(f"Training to get {filename!r}")
-    X, y = make_regression(batch_size * 2, n_features=n_features, n_targets=1)
+    X, y = make_regression(
+        batch_size + max(batch_size, 4 * 2 ** (max_depth + 1)),
+        n_features=n_features,
+        n_targets=1,
+    )
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
     model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=2)
-    model.fit(X[:batch_size], y[:batch_size])
+    model.fit(X[:-batch_size], y[:-batch_size])
     onx = to_onnx(model, X[:1])
     with open(filename, "wb") as f:
         f.write(onx.SerializeToString())
@@ -113,6 +117,7 @@ else:
     X, y = make_regression(batch_size, n_features=n_features, n_targets=1)
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
 
+Xb, yb = X[-batch_size:].copy(), y[-batch_size:].copy()
 
 #######################################
 # Rewrite the onnx file to use a different kernel
@@ -170,10 +175,10 @@ sess_cus = InferenceSession(
     onx_modified.SerializeToString(), opts, providers=["CPUExecutionProvider"]
 )
 
-print(f"Running once with shape {X[-batch_size:].shape}.")
-base = sess_ort.run(None, {"X": X[-batch_size:]})[0]
-print(f"Running modified with shape {X[-batch_size:].shape}.")
-got = sess_cus.run(None, {"X": X[-batch_size:]})[0]
+print(f"Running once with shape {Xb.shape}.")
+base = sess_ort.run(None, {"X": Xb})[0]
+print(f"Running modified with shape {Xb.shape}.")
+got = sess_cus.run(None, {"X": Xb})[0]
 print("done.")
 
 #######################################
@@ -187,19 +192,19 @@ print(f"Discrepancies: {diff}")
 # +++++++++++++++++++
 #
 # Baseline with onnxruntime.
-t1 = timeit.timeit(lambda: sess_ort.run(None, {"X": X[-batch_size:]}), number=50)
+t1 = timeit.timeit(lambda: sess_ort.run(None, {"X": Xb}), number=50)
 print(f"baseline: {t1}")
 
 #################################
 # The custom implementation.
-t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": X[-batch_size:]}), number=50)
+t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": Xb}), number=50)
 print(f"new time: {t2}")
 
 #################################
 # The same implementation but ran from the onnx python backend.
 ref = CReferenceEvaluator(filename)
-ref.run(None, {"X": X[-batch_size:]})
-t3 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=50)
+ref.run(None, {"X": Xb})
+t3 = timeit.timeit(lambda: ref.run(None, {"X": Xb}), number=50)
 print(f"CReferenceEvaluator: {t3}")
 
 #################################
@@ -207,8 +212,8 @@ print(f"CReferenceEvaluator: {t3}")
 if n_trees < 50:
     # It is usully slow.
     ref = ReferenceEvaluator(filename)
-    ref.run(None, {"X": X[-batch_size:]})
-    t4 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=5)
+    ref.run(None, {"X": Xb})
+    t4 = timeit.timeit(lambda: ref.run(None, {"X": Xb}), number=5)
     print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
 
 
@@ -287,7 +292,7 @@ def create_session(onx):
 
 res = optimize_model(
     onx,
-    feeds={"X": X[-batch_size:]},
+    feeds={"X": Xb},
     transform=transform_model,
     session=create_session,
     baseline=lambda onx: InferenceSession(
@@ -363,7 +368,7 @@ print(merged.columns)
 
 fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 2))
 err_min = merged["average"] - merged["min"]
-err_max = merged["min"] - merged["average"]
+err_max = merged["max"] - merged["average"]
 merged[["average"]].plot.barh(
     ax=ax,
     title=f"TreeEnsemble tuning, n_tries={script_args.tries}"
