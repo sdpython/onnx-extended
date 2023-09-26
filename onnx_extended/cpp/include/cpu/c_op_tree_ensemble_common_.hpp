@@ -64,8 +64,8 @@ public:
     parallel_tree_ = 80;
     parallel_tree_N_ = 128;
     parallel_N_ = 50;
-    batch_size_tree_ = 2;
-    batch_size_rows_ = 2;
+    batch_size_tree_ = 1;
+    batch_size_rows_ = 1;
     use_node3_ = 0;
   }
 
@@ -717,7 +717,7 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
       DEBUG_PRINT_STEP("S:NNB:TN-PG")
       auto n_threads =
           std::min<int32_t>(max_n_threads, static_cast<int32_t>(n_trees_));
-      int n_batches = n_trees_ / this->batch_size_tree_ + 1;
+      int n_batches = n_trees_ / this->batch_size_tree_ + (n_trees_ % this->batch_size_tree_ == 0 ? 0 : 1);
       int max_n = std::min(N, parallel_tree_n);
       std::vector<ScoreValue<ThresholdType>> scores(
           static_cast<std::size_t>(n_batches * max_n));

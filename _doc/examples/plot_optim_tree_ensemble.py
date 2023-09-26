@@ -26,8 +26,23 @@ To change the training parameters:
         --n_trees=100
         --max_depth=10
         --n_features=50
-        --batch_size=100000 
+        --batch_size=100000
+    
+Another example with a full list of parameters:
+
+    python plot_optim_tree_ensemble.py
+        --n_trees=100
+        --max_depth=10
+        --n_features=50
+        --batch_size=100000
+        --parallel_tree=80,40
+        --parallel_tree_N=128,64
+        --parallel_N=50,25
+        --batch_size_tree=1,2
+        --batch_size_rows=1,2
+        --use_node3=0
 """
+import onnxruntime
 import os
 import timeit
 import numpy
@@ -188,10 +203,12 @@ print(f"CReferenceEvaluator: {t3}")
 
 #################################
 # The python implementation but from the onnx python backend.
-ref = ReferenceEvaluator(filename)
-ref.run(None, {"X": X[-batch_size:]})
-t4 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=5)
-print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
+if n_trees < 50:
+    # It is usully slow.
+    ref = ReferenceEvaluator(filename)
+    ref.run(None, {"X": X[-batch_size:]})
+    t4 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=5)
+    print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
 
 
 #############################################
@@ -245,6 +262,12 @@ else:
     raise ValueError(
         f"Unknown scenario {script_args.scenario!r}, use --help to get them."
     )
+
+cmds = []
+for att, value in optim_params.items():
+    cmds.append(f"--{att}={','.join(map(str, value))}")
+print("Full list of optimization parameters:")
+print(" ".join(cmds))
 
 ##################################
 # Then the optimization.
