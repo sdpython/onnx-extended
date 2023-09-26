@@ -149,7 +149,7 @@ opts = SessionOptions()
 if r is not None:
     opts.register_custom_ops_library(r[0])
 
-print("Loading modified {filename!r}")
+print(f"Loading modified {filename!r}")
 sess_cus = InferenceSession(
     onx_modified.SerializeToString(), opts, providers=["CPUExecutionProvider"]
 )
@@ -210,8 +210,8 @@ if unit_test_going():
         parallel_tree=[40],  # default is 80
         parallel_tree_N=[128],  # default is 128
         parallel_N=[50, 25],  # default is 50
-        batch_size_tree=[2],  # default is 2
-        batch_size_rows=[2],  # default is 2
+        batch_size_tree=[1],  # default is 1
+        batch_size_rows=[1],  # default is 1
         use_node3=[0],  # default is 0
     )
 elif script_args.scenario in (None, "SHORT"):
@@ -219,8 +219,8 @@ elif script_args.scenario in (None, "SHORT"):
         parallel_tree=[80, 40],  # default is 80
         parallel_tree_N=[128, 64],  # default is 128
         parallel_N=[50, 25],  # default is 50
-        batch_size_tree=[2],  # default is 2
-        batch_size_rows=[2],  # default is 2
+        batch_size_tree=[1],  # default is 1
+        batch_size_rows=[1],  # default is 1
         use_node3=[0],  # default is 0
     )
 elif script_args.scenario == "LONG":
@@ -228,8 +228,8 @@ elif script_args.scenario == "LONG":
         parallel_tree=[80, 160, 40],
         parallel_tree_N=[256, 128, 64],
         parallel_N=[100, 50, 25],
-        batch_size_tree=[2, 4, 8],
-        batch_size_rows=[2, 4, 8],
+        batch_size_tree=[1, 2, 4, 8],
+        batch_size_rows=[1, 2, 4, 8],
         use_node3=[0, 1],
     )
 elif script_args.scenario == "CUSTOM":

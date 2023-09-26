@@ -85,6 +85,11 @@ trees is processed in parallel.
 Otherwise, the parallelisation is done by rows. The dataset is split into
 chunks of `batch_size_rows` rows. Every of them is processed in parallel.
 
+The last parameter is independant from the other. If enabled, the implementation
+changes the structure to get bigger nodes equivalent to three node from the
+original tree. This was originally intended to use AVX instructions
+to speed up the implementation.
+
 Change the parallelization settings
 +++++++++++++++++++++++++++++++++++
 
