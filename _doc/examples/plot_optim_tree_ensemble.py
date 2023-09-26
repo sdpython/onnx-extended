@@ -34,6 +34,8 @@ Another example with a full list of parameters:
         --n_trees=100
         --max_depth=10
         --n_features=50
+        --tries=3
+        --scenario=CUSTOM
         --batch_size=100000
         --parallel_tree=80,40
         --parallel_tree_N=128,64
@@ -338,28 +340,43 @@ print(small_df.tail(n=10))
 # Plot
 # ++++
 
-dfi = df[["short_name", "average"]].sort_values("average").reset_index(drop=True)
-baseline = dfi[dfi.short_name.str.contains("baseline")]
-not_baseline = dfi[~dfi.short_name.str.contains("baseline")].reset_index(drop=True)
+dfm = (
+    df[["name", "average"]]
+    .groupby(["name"], as_index=False)
+    .agg(["mean", "min", "max"])
+    .copy()
+)
+dfm.columns = ["name", "average", "min", "max"]
+dfi = (
+    dfm[["name", "average", "min", "max"]].sort_values("average").reset_index(drop=True)
+)
+baseline = dfi[dfi["name"].str.contains("baseline")]
+not_baseline = dfi[~dfi["name"].str.contains("baseline")].reset_index(drop=True)
 if not_baseline.shape[0] > 50:
     not_baseline = not_baseline[:50]
 merged = concat([baseline, not_baseline], axis=0)
-merged = merged.sort_values("average").reset_index(drop=True).set_index("short_name")
+merged = merged.sort_values("average").reset_index(drop=True).set_index("name")
 skeys = ",".join(optim_params.keys())
+print(merged.columns)
 
-fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 4))
-merged.plot.barh(
-    ax=ax, title=f"TreeEnsemble tuning, n_tries={script_args.tries}\n{skeys}"
+fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 2))
+err_min = merged["average"] - merged["min"]
+err_max = merged["min"] - merged["average"]
+merged[["average"]].plot.barh(
+    ax=ax,
+    title=f"TreeEnsemble tuning, n_tries={script_args.tries}"
+    f"\n{skeys}\nlower is better",
+    xerr=[err_min, err_max],
 )
-b = df.loc[0, "average"]
+b = df.loc[df["name"] == "baseline", "average"].mean()
 ax.plot([b, b], [0, df.shape[0]], "r--")
 ax.set_xlim(
     [
         (df["min_exec"].min() + df["average"].min()) / 2,
-        (df["max_exec"].max() + df["average"].max()) / 2,
+        (df["average"].max() + df["average"].max()) / 2,
     ]
 )
-ax.set_xscale("log")
+# ax.set_xscale("log")
 
 fig.tight_layout()
 fig.savefig("plot_optim_tree_ensemble.png")
