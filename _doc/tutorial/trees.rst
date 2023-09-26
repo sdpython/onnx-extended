@@ -57,7 +57,6 @@ happens one at a time. We denote *T* as the number of trees and
       - parallel_N
       - 50
       - [0, :math:`\infty` [
-      - unused
     * - 3
       - batch_size_tree
       - 1
