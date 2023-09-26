@@ -181,7 +181,11 @@ def store_intermediate_results(
 
 
 def display_intermediate_results(
-    model: str, save: Optional[str] = None, tab: int = 12, fprint: Callable = print
+    model: str,
+    save: Optional[str] = None,
+    tab: int = 12,
+    external: bool = True,
+    fprint: Callable = print,
 ):
     """
     Displays shape, type for a model.
@@ -189,6 +193,7 @@ def display_intermediate_results(
     :param model: a model
     :param save: save the results as a dataframe
     :param tab: column size for the output
+    :param external: loads the external data or not
     :param fprint: function to print
     """
     from .tools.onnx_tools import enumerate_onnx_node_types
@@ -211,7 +216,7 @@ def display_intermediate_results(
 
     n_rows = 0
     rows = []
-    for obs in enumerate_onnx_node_types(model):
+    for obs in enumerate_onnx_node_types(model, external=external):
         if "level" not in obs:
             raise RuntimeError(f"Unexpected value obs={obs!r}.")
         indent = " " * obs["level"] * tab
@@ -247,7 +252,7 @@ def display_intermediate_results(
         exts[ext](save, index=False)
 
 
-def print_proto(proto: str, fmt: str = "raw"):
+def print_proto(proto: str, fmt: str = "raw", external: bool = True):
     """
     Shows an onnx model or a protobuf string on stdout.
     Extension '.onnx' is considered a model,
@@ -257,6 +262,7 @@ def print_proto(proto: str, fmt: str = "raw"):
     :param fmt: format to use to print the model,
         `raw` prints out the string produced by `print(model)`,
         `nodes` only prints out the node name
+    :param external: loads with external data
     """
     if isinstance(proto, str):
         if not os.path.exists(proto):
@@ -264,7 +270,7 @@ def print_proto(proto: str, fmt: str = "raw"):
         ext = os.path.splitext(proto)[-1]
         if ext == ".onnx":
             with open(proto, "rb") as f:
-                proto_loaded = load(f)
+                proto_loaded = load(f, load_external_data=external)
         elif ext in (".pb", ".proto"):
             with open(proto, "rb") as f:
                 content = f.read()

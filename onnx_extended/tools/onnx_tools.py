@@ -10,7 +10,8 @@ _rev_type = {
 
 
 def load(
-    model: Union[str, onnx.ModelProto, onnx.GraphProto, onnx.FunctionProto]
+    model: Union[str, onnx.ModelProto, onnx.GraphProto, onnx.FunctionProto],
+    load_external_data: bool = True,
 ) -> onnx.ModelProto:
     """
     Loads a model or returns the only argument if the type
@@ -21,7 +22,7 @@ def load(
     if not os.path.exists(model):
         raise FileNotFoundError(f"Unable to find model {model!r}.")
     with open(model, "rb") as f:
-        return onnx.load(f)
+        return onnx.load(f, load_external_data=load_external_data)
 
 
 def _info_type(
@@ -52,6 +53,7 @@ def enumerate_onnx_node_types(
     model: Union[str, onnx.ModelProto, onnx.GraphProto],
     level: int = 0,
     shapes: Optional[Dict[str, onnx.TypeProto]] = None,
+    external: bool = True,
 ) -> Generator[Dict[str, Union[str, float]], None, None]:
     """
     Looks into types for every node in a model.
@@ -60,9 +62,10 @@ def enumerate_onnx_node_types(
     :param level: level (recursivity level)
     :param shapes: known shapes,
         returned by :func:onnx.shape_inference.infer_shapes`
+    :param externl: loads the external data if the model is loaded
     :return: a list of dictionary which can be turned into a dataframe.
     """
-    proto = load(model)
+    proto = load(model, load_external_data=external)
     if shapes is None and isinstance(proto, onnx.ModelProto):
         p2 = onnx.shape_inference.infer_shapes(proto)
         values = p2.graph.value_info

@@ -34,15 +34,22 @@ Another example with a full list of parameters:
         --n_trees=100
         --max_depth=10
         --n_features=50
+        --batch_size=100000
         --tries=3
         --scenario=CUSTOM
-        --batch_size=100000
         --parallel_tree=80,40
         --parallel_tree_N=128,64
         --parallel_N=50,25
         --batch_size_tree=1,2
         --batch_size_rows=1,2
         --use_node3=0
+
+Another example:
+
+::
+
+    python plot_optim_tree_ensemble.py
+        --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
 """
 import os
 import timeit
@@ -84,6 +91,7 @@ script_args = get_parsed_args(
     batch_size_rows=("2,4,8", "values to try for batch_size_rows"),
     use_node3=("0,1", "values to try for use_node3"),
     expose="",
+    n_jobs=("-1", "number of jobs to train the RandomForestRegressor"),
 )
 
 
@@ -96,19 +104,18 @@ n_features = script_args.n_features
 n_trees = script_args.n_trees
 max_depth = script_args.max_depth
 
-filename = (
-    f"plot_optim_tree_ensemble_b{batch_size}-f{n_features}-"
-    f"t{n_trees}-d{max_depth}.onnx"
-)
+filename = f"plot_optim_tree_ensemble-f{n_features}-" f"t{n_trees}-d{max_depth}.onnx"
 if not os.path.exists(filename):
-    print(f"Training to get {filename!r}")
     X, y = make_regression(
-        batch_size + max(batch_size, 4 * 2 ** (max_depth + 1)),
+        batch_size + max(batch_size, 2 ** (max_depth + 1)),
         n_features=n_features,
         n_targets=1,
     )
+    print(f"Training to get {filename!r} with X.shape={X.shape}")
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=2, n_jobs=-1)
+    model = RandomForestRegressor(
+        n_trees, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
+    )
     model.fit(X[:-batch_size], y[:-batch_size])
     onx = to_onnx(model, X[:1])
     with open(filename, "wb") as f:
