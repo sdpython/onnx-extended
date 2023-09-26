@@ -108,7 +108,7 @@ if not os.path.exists(filename):
         n_targets=1,
     )
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=2)
+    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=2, n_jobs=-1)
     model.fit(X[:-batch_size], y[:-batch_size])
     onx = to_onnx(model, X[:1])
     with open(filename, "wb") as f:

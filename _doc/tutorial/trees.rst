@@ -126,7 +126,7 @@ The custom operator will be able to used them.
     # Let's create model.
     X, y = make_regression(batch_size * 2, n_features=n_features, n_targets=1)
     X, y = X.astype(np.float32), y.astype(np.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=0)
+    model = RandomForestRegressor(n_trees, max_depth=max_depth, n_jobs=-1)
     model.fit(X[:batch_size], y[:batch_size])
     onx = to_onnx(model, X[:1], target_opset=17)
 
