@@ -335,7 +335,7 @@ class TestCTreeEnsemble(ExtTestCase):
         if multi:
             y = numpy.vstack([y, y]).T
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = RandomForestRegressor(n_estimators=70)
+        clr = RandomForestRegressor(n_estimators=70, n_jobs=-1)
         clr.fit(X_train, y_train)
 
         X_test2 = numpy.empty((X_test.shape[0] * 200, X_test.shape[1]), dtype=dtype)

@@ -41,7 +41,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
         X = X.astype(numpy.float32)
         y = y.astype(numpy.float32)
 
-        rf = RandomForestRegressor(3, max_depth=2, random_state=32)
+        rf = RandomForestRegressor(3, max_depth=2, random_state=32, n_jobs=-1)
         rf.fit(X[:80], y[:80])
         expected = rf.predict(X[80:]).astype(numpy.float32).reshape((-1, 1))
         onx = to_onnx(rf, X[:1])
@@ -95,7 +95,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
         X = X.astype(numpy.float32)
         y = y.astype(numpy.float32)
 
-        rf = RandomForestRegressor(3, max_depth=2, random_state=32)
+        rf = RandomForestRegressor(3, max_depth=2, random_state=32, n_jobs=-1)
         rf.fit(X[:80], y[:80])
         onx = to_onnx(rf, X[:1])
 
@@ -168,7 +168,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
         X = X.astype(numpy.float32)
         y = y.astype(numpy.float32)
 
-        rf = RandomForestRegressor(500, max_depth=2, random_state=32)
+        rf = RandomForestRegressor(500, max_depth=2, random_state=32, n_jobs=-1)
         rf.fit(X[:80], y[:80])
         expected = rf.predict(X[80:]).astype(numpy.float32).reshape((-1, 1))
         onx = to_onnx(rf, X[:1])

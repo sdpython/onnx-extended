@@ -24,14 +24,14 @@ const char *TreeEnsembleRegressor::GetExecutionProviderType() const {
 size_t TreeEnsembleRegressor::GetInputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType
-TreeEnsembleRegressor::GetInputType(std::size_t index) const {
+TreeEnsembleRegressor::GetInputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
 size_t TreeEnsembleRegressor::GetOutputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType
-TreeEnsembleRegressor::GetOutputType(std::size_t index) const {
+TreeEnsembleRegressor::GetOutputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
@@ -129,7 +129,7 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
                 "This kernel does not support string classes.");
     n_targets_or_classes = labels_ints.size();
     for (std::size_t i = 0; i < labels_ints.size(); ++i) {
-      EXT_ENFORCE(labels_ints[i] == i,
+      EXT_ENFORCE(labels_ints[i] == static_cast<int64_t>(i),
                   "classlabels_int64s should be an array of consecutive "
                   "integers starting at 0, but position ",
                   (uint64_t)i, " fails.");

@@ -126,7 +126,7 @@ The custom operator will be able to used them.
     # Let's create model.
     X, y = make_regression(batch_size * 2, n_features=n_features, n_targets=1)
     X, y = X.astype(np.float32), y.astype(np.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=0)
+    model = RandomForestRegressor(n_trees, max_depth=max_depth, n_jobs=-1)
     model.fit(X[:batch_size], y[:batch_size])
     onx = to_onnx(model, X[:1], target_opset=17)
 
@@ -185,3 +185,15 @@ Optimizes the parallelisation settings
 ++++++++++++++++++++++++++++++++++++++
 
 See example :ref:`l-plot-optim-tree-ensemble`.
+It produces the following graph. The baseline means `onnxruntime==1.16.0`.
+The command line is:
+
+::
+
+    python plot_optim_tree_ensemble.py --n_features=50 --n_trees=100 --max_depth=10 --scenario=CUSTOM
+        --parallel_tree=160,120,80,40 --parallel_tree_N=192,128,64 --parallel_N=100,50,25
+        --batch_size_tree=1 --batch_size_rows=1 --use_node3=0 
+
+.. image:: images/plot_optim_tree_ensemble.png
+
+    

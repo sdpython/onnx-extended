@@ -45,6 +45,7 @@ if(ORT_VERSION_LENGTH LESS_EQUAL 12)
     "${ORT_VERSION_MAJOR} * 1000 + ${ORT_VERSION_MINOR} * 10"
     OUTPUT_FORMAT DECIMAL)
 
+  message(STATUS "ORT - ORT_URL=${ORT_URL}")
   FetchContent_Declare(onnxruntime URL ${ORT_URL})
   FetchContent_makeAvailable(onnxruntime)
   set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)

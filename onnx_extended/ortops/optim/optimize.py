@@ -226,6 +226,7 @@ def optimize_model(
         obs["n_exp_name"] = "TRY=0,baseline"
         obs["short_name"] = "0,baseline"
         obs["TRY"] = 0
+        obs["name"] = "baseline"
         res.append(obs)
 
     for it, values in enumerate(loop):
@@ -250,6 +251,7 @@ def optimize_model(
         obs["n_exp"] = it
         obs["n_exp_name"] = ",".join(f"{k}={v}" for k, v in zip(keys, values))
         obs["short_name"] = ",".join(f"{v}" for v in values)
+        obs["name"] = ",".join(f"{v}" for v in values[1:])
         res.append(obs)
 
     if baseline is not None:
@@ -266,6 +268,7 @@ def optimize_model(
             obs["n_exp"] = 0
             obs["n_exp_name"] = f"TRY={n},baseline"
             obs["short_name"] = f"{n},baseline"
+            obs["name"] = "baseline"
             obs["TRY"] = n
             res.append(obs)
 

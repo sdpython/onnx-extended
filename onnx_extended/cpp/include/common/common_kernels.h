@@ -163,8 +163,8 @@ inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
 
 template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<std::string>>(
-    const OrtApi &api, const OrtKernelInfo *info, const char *name,
-    std::vector<std::string> &output) {
+    const OrtApi & /* api */, const OrtKernelInfo * /* info */, const char * /* name */,
+    std::vector<std::string> & /* output */) {
   EXT_THROW("Unable to retrieve attribute as an array of strings. "
             "You should use a single comma separated string.");
 }

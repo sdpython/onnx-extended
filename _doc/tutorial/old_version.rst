@@ -32,7 +32,7 @@ be evaluated on. This is done with function :func:`save_for_benchmark_or_test
     # Let's create model.
     X, y = make_regression(batch_size * 2, n_features=n_features, n_targets=1)
     X, y = X.astype(np.float32), y.astype(np.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=0)
+    model = RandomForestRegressor(n_trees, max_depth=max_depth, n_jobs=-1)
     model.fit(X[:batch_size], y[:batch_size])
 
     # target_opset is used to select opset an old version of onnxruntime can process.
