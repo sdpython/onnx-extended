@@ -42,7 +42,6 @@ Another example with a full list of parameters:
         --batch_size_rows=1,2
         --use_node3=0
 """
-import onnxruntime
 import os
 import timeit
 import numpy
