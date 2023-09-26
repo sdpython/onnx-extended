@@ -9,7 +9,7 @@ means general matrix multiplication. It is a common routine in linear algebra.
 
     Gemm(A, B, C, tA, tB, \alpha, \beta) = \alpha A^{tA} B^{tB} + \beta C
 
-Where :math:`A^{tA}` means *A* is *tA* ifs 0 and :math:`A'` if *tA* is 1.
+Where :math:`A^{tA}` means *A* is *tA* if 0 and :math:`A'` if *tA* is 1.
 The coefficients of a matrix are stored in memory in a one dimension
 array *T*: :math:`A(i,j) = T[i * C + j]` where *C* is the number of columns
 of matrix A. In that case, the storage is said as *row major*. In case
