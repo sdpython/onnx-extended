@@ -60,11 +60,11 @@ happens one at a time. We denote *T* as the number of trees and
       - unused
     * - 3
       - batch_size_tree
-      - 2
+      - 1
       - [1, :math:`\infty` [
     * - 4
       - batch_size_rows
-      - 2
+      - 1
       - [1, :math:`\infty` [
     * - 5
       - use_node3
