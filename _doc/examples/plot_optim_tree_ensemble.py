@@ -26,7 +26,21 @@ To change the training parameters:
         --n_trees=100
         --max_depth=10
         --n_features=50
-        --batch_size=100000 
+        --batch_size=100000
+    
+Another example with a full list of parameters:
+
+    python plot_optim_tree_ensemble.py
+        --n_trees=100
+        --max_depth=10
+        --n_features=50
+        --batch_size=100000
+        --parallel_tree=80,40
+        --parallel_tree_N=128,64
+        --parallel_N=50,25
+        --batch_size_tree=1,2
+        --batch_size_rows=1,2
+        --use_node3=0
 """
 import os
 import timeit
@@ -149,7 +163,7 @@ opts = SessionOptions()
 if r is not None:
     opts.register_custom_ops_library(r[0])
 
-print("Loading modified {filename!r}")
+print(f"Loading modified {filename!r}")
 sess_cus = InferenceSession(
     onx_modified.SerializeToString(), opts, providers=["CPUExecutionProvider"]
 )
@@ -188,10 +202,12 @@ print(f"CReferenceEvaluator: {t3}")
 
 #################################
 # The python implementation but from the onnx python backend.
-ref = ReferenceEvaluator(filename)
-ref.run(None, {"X": X[-batch_size:]})
-t4 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=5)
-print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
+if n_trees < 50:
+    # It is usully slow.
+    ref = ReferenceEvaluator(filename)
+    ref.run(None, {"X": X[-batch_size:]})
+    t4 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=5)
+    print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
 
 
 #############################################
@@ -210,8 +226,8 @@ if unit_test_going():
         parallel_tree=[40],  # default is 80
         parallel_tree_N=[128],  # default is 128
         parallel_N=[50, 25],  # default is 50
-        batch_size_tree=[2],  # default is 2
-        batch_size_rows=[2],  # default is 2
+        batch_size_tree=[1],  # default is 1
+        batch_size_rows=[1],  # default is 1
         use_node3=[0],  # default is 0
     )
 elif script_args.scenario in (None, "SHORT"):
@@ -219,8 +235,8 @@ elif script_args.scenario in (None, "SHORT"):
         parallel_tree=[80, 40],  # default is 80
         parallel_tree_N=[128, 64],  # default is 128
         parallel_N=[50, 25],  # default is 50
-        batch_size_tree=[2],  # default is 2
-        batch_size_rows=[2],  # default is 2
+        batch_size_tree=[1],  # default is 1
+        batch_size_rows=[1],  # default is 1
         use_node3=[0],  # default is 0
     )
 elif script_args.scenario == "LONG":
@@ -228,8 +244,8 @@ elif script_args.scenario == "LONG":
         parallel_tree=[80, 160, 40],
         parallel_tree_N=[256, 128, 64],
         parallel_N=[100, 50, 25],
-        batch_size_tree=[2, 4, 8],
-        batch_size_rows=[2, 4, 8],
+        batch_size_tree=[1, 2, 4, 8],
+        batch_size_rows=[1, 2, 4, 8],
         use_node3=[0, 1],
     )
 elif script_args.scenario == "CUSTOM":
@@ -245,6 +261,12 @@ else:
     raise ValueError(
         f"Unknown scenario {script_args.scenario!r}, use --help to get them."
     )
+
+cmds = []
+for att, value in optim_params.items():
+    cmds.append(f"--{att}={','.join(map(str, value))}")
+print("Full list of optimization parameters:")
+print(" ".join(cmds))
 
 ##################################
 # Then the optimization.

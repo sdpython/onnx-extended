@@ -1,15 +1,104 @@
+=====
 Trees
 =====
 
-Parallelization parameters
-++++++++++++++++++++++++++
+Parallelization implementation
+==============================
+
+There is no optimal way to parallelize on every machine and for every tree.
+It depends on the tree size, the number of features,
+the cache size, the number of cores.
+The optimal parameters may be twice faster or twice slower, sometimes more,
+than the fixed values currently uses in onnxruntime.
+
+Six parameters
+++++++++++++++
 
 The latency of a tree ensemble depends on the tree size
 and the machine it runs on. The following example
 takes a model using a TreeEnsembleRegressor and replaces
 it with a custom node and additional parameters to tune
 the parallelization. The kernel is a custom operator
-for :epkg:`onnxruntime`.
+for :epkg:`onnxruntime`. There are six parameters.
+
+The implementation in onnxruntime only uses the first three.
+It takes place in method
+`compute <https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/core/providers/cpu/ml/tree_ensemble_common.h#L440>`_
+in file `onnxruntime/core/providers/cpu/ml/tree_ensemble_common.h`.
+
+This package uses the six parameters in an experimental implementation
+to investigate new optimizations which could be brought to onnxruntime
+if they prove to be significantly better. The code is in
+`onnx_extended/cpp/include/cpu/c_op_tree_ensemble_common_.hpp
+<https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/cpp/include/cpu/c_op_tree_ensemble_common_.hpp#L640>`_.
+
+The implementation distinguishes between batch inference and one-off inference.
+The second one is usually uses in web services as the prediction always
+happens one at a time. We denote *T* as the number of trees and
+*N* the number of predictions to do. *N* is the batch size.
+
+.. list-table::
+    :widths: 1 2 2 2
+    :header-rows: 1
+
+    * -
+      - name
+      - default
+      - range
+    * - 0
+      - parallel_tree
+      - 40
+      - [0, :math:`\infty` [
+    * - 1
+      - parallel_tree_N
+      - 128
+      - [0, :math:`\infty` [
+    * - 2
+      - parallel_N
+      - 50
+      - [0, :math:`\infty` [
+    * - 3
+      - batch_size_tree
+      - 1
+      - [1, :math:`\infty` [
+    * - 4
+      - batch_size_rows
+      - 1
+      - [1, :math:`\infty` [
+    * - 5
+      - use_node3
+      - 0
+      - {0, 1}
+
+If `N==1` (one off prediction), the inference is parallelized by tree
+if `T > parallel_tree`. Every chunk of `batch_size_tree` consecutive
+trees is processed in parallel.
+
+If `N > 1`, no parallelization is done if `N <= parallel_N_ && T <= parallel_tree_`.
+
+If `T >= parallel_tree_`, the batch is split into chunks of
+`parallel_tree_N` rows. In every chunk, the parallelization is done by tree:
+every chunk of `batch_size_tree` consecutive
+trees is processed in parallel.
+
+Otherwise, the parallelisation is done by rows. The dataset is split into
+chunks of `batch_size_rows` rows. Every of them is processed in parallel.
+
+The last parameter is independant from the other. If enabled, the implementation
+changes the structure to get bigger nodes equivalent to three node from the
+original tree. This was originally intended to use AVX instructions
+to speed up the implementation.
+
+Change the parallelization settings
++++++++++++++++++++++++++++++++++++
+
+Should we let the users define the parameters or let the
+inference session take some time during the initalization to
+find suitable parameters for the tree and the machine the model
+is running on. The following example shows how to uses a custom
+kernel to change the settings. It replaces the onnx nodes by another
+one with the same parameters plus the parallelization settings.
+The custom operator will be able to used them.
 
 .. runpython::
     :showcode:
@@ -73,6 +162,9 @@ for :epkg:`onnxruntime`.
 
 
     modified_onx = transform_model(onx, "TreeEnsembleRegressor", **optim_params)
+
+    # The new attributes are added into the onnx file and defines
+    # how the parallelisation must be done.
     print(onnx_simple_text_plot(modified_onx))
 
     # Let's check it is working.
@@ -88,3 +180,8 @@ for :epkg:`onnxruntime`.
     )
     feeds = {"X": X}
     print(sess.run(None, feeds))
+
+Optimizes the parallelisation settings
+++++++++++++++++++++++++++++++++++++++
+
+See example :ref:`l-plot-optim-tree-ensemble`.
