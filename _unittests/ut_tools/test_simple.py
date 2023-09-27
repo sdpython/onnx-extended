@@ -66,7 +66,7 @@ class TestSimple(ExtTestCase):
             name = os.path.join(root, "model_ext.onnx")
             save_model(model, name, external=True, size_threshold=15)
             self.assertEqual(
-                os.listdir(root),
+                list(sorted(os.listdir(root))),
                 ["model_ext.onnx", "model_ext.onnx.data", "model_full.onnx"],
             )
             model3 = load_model(name)
@@ -82,7 +82,7 @@ class TestSimple(ExtTestCase):
             name = os.path.join(root, "model_ext.onnx")
             save_model(model, name, external=True, size_threshold=15)
             self.assertEqual(
-                os.listdir(root),
+                list(sorted(os.listdir(root))),
                 ["model_ext.onnx", "model_ext.onnx.data"],
             )
             st = StringIO()
@@ -98,7 +98,7 @@ class TestSimple(ExtTestCase):
             name = os.path.join(root, "model_ext.onnx")
             save_model(model, name, external=True, size_threshold=15)
             self.assertEqual(
-                os.listdir(root),
+                list(sorted(os.listdir(root))),
                 ["model_ext.onnx", "model_ext.onnx.data"],
             )
             st = StringIO()
@@ -113,7 +113,7 @@ class TestSimple(ExtTestCase):
             name = os.path.join(root, "model_ext.onnx")
             save_model(model, name, external=True, size_threshold=15)
             self.assertEqual(
-                os.listdir(root),
+                list(sorted(os.listdir(root))),
                 ["model_ext.onnx", "model_ext.onnx.data"],
             )
 
@@ -141,12 +141,12 @@ class TestSimple(ExtTestCase):
             save_model(new_model, name3)
             self.assertEqual(
                 [
-                    "sub_model_ext_z1.onnx",
-                    "sub_model_ext.onnx",
                     "model_ext.onnx",
                     "model_ext.onnx.data",
+                    "sub_model_ext.onnx",
+                    "sub_model_ext_z1.onnx",
                 ],
-                os.listdir(root),
+                list(sorted(os.listdir(root))),
             )
 
             x = np.arange(16).reshape((-1, 4)).astype(np.float32)
