@@ -18,7 +18,7 @@ def load_model(
     Loads a model or returns the only argument if the type
     is already a ModelProto.
 
-    :param param: proto file
+    :param model: proto file
     :param external: loads the external data as well
     :param base_dir: needed if external is True and
         the model has external weights
@@ -29,10 +29,6 @@ def load_model(
             if base_dir is not None and not os.path.exists(base_dir):
                 raise FileNotFoundError(f"Unable to find folder {base_dir!r}.")
             onnx.load_external_data_for_model(model, base_dir)
-        else:
-            raise RuntimeError(
-                f"Unable to load external data for model stored in {model_filepath!r}."
-            )
         return model
     if isinstance(model, (onnx.GraphProto, onnx.FunctionProto)):
         return model
