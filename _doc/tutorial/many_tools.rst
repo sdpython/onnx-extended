@@ -16,6 +16,7 @@ through command lines.
     :maxdepth: 2
     :caption: onnx
 
+    external_data
     onnx_manipulations
     quantize
 
