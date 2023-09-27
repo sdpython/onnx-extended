@@ -62,7 +62,7 @@ def enumerate_onnx_node_types(
     :param level: level (recursivity level)
     :param shapes: known shapes,
         returned by :func:onnx.shape_inference.infer_shapes`
-    :param externl: loads the external data if the model is loaded
+    :param external: loads the external data if the model is loaded
     :return: a list of dictionary which can be turned into a dataframe.
     """
     proto = load(model, load_external_data=external)
