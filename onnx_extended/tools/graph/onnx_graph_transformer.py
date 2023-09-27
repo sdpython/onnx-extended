@@ -412,7 +412,8 @@ def quantize_float8_matmul(
         if was_reshaped[0] and was_reshaped[1]:
             raise QuantizationError(
                 f"MatMul cannot be replaced by operator Gemm as both inputs "
-                f"are not matrices. Their shapes are {shapes}."
+                f"are not matrices. Their shapes are {shapes}. "
+                f"Node name is {node.name!r}."
             )
 
         if output_type in {
