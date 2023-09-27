@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Generator, Optional, Union
+from typing import Dict, Generator, Optional, Set, Union
 import onnx
 
 _rev_type = {
@@ -25,7 +25,6 @@ def load_model(
         if external:
             model_filepath = model.name
             if model_filepath:
-                print("****", model_filepath)
                 base_dir = os.path.dirname(model_filepath)
                 onnx.load_external_data_for_model(model, base_dir)
         else:
@@ -39,6 +38,33 @@ def load_model(
         raise FileNotFoundError(f"Unable to find model {model!r}.")
     with open(model, "rb") as f:
         return onnx.load(f, load_external_data=external)
+
+
+def load_external(
+    model: onnx.ModelProto, base_dir: str, names: Optional[Set[str]] = None
+):
+    """
+    Loads external data into memory.
+
+    :param model: the model loaded with :func:`load_model`
+    :param base_dir: directory when the data can be found
+    :param names: subsets of names to load or None for all
+    """
+    from onnx.external_data_helper import (
+        _get_all_tensors,
+        uses_external_data,
+        load_external_data_for_tensor,
+    )
+
+    for tensor in _get_all_tensors(model):
+        if names is not None and tensor.name not in names:
+            continue
+        if uses_external_data(tensor):
+            load_external_data_for_tensor(tensor, base_dir)
+            # After loading raw_data from external_data, change the state of tensors
+            tensor.data_location = onnx.TensorProto.DEFAULT
+            # and remove external data
+            del tensor.external_data[:]
 
 
 def save_model(

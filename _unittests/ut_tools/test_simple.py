@@ -16,7 +16,7 @@ from onnx.helper import (
 from onnx.numpy_helper import from_array
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
-from onnx_extended.tools import save_model, load_model
+from onnx_extended.tools import save_model, load_model, load_external
 from onnx_extended._command_lines import print_proto, display_intermediate_results
 from onnx_extended.tools.onnx_manipulations import select_model_inputs_outputs
 
@@ -152,6 +152,11 @@ class TestSimple(ExtTestCase):
             x = np.arange(16).reshape((-1, 4)).astype(np.float32)
 
             sess = CReferenceEvaluator(name3)
+            got = sess.run(None, {"X": x})[0]
+            self.assertEqual((x**2 + y).tolist(), got.tolist())
+
+            load_external(new_model, root)
+            sess = CReferenceEvaluator(new_model)
             got = sess.run(None, {"X": x})[0]
             self.assertEqual((x**2 + y).tolist(), got.tolist())
 
