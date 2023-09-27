@@ -9,20 +9,72 @@ _rev_type = {
 }
 
 
-def load(
+def load_model(
     model: Union[str, onnx.ModelProto, onnx.GraphProto, onnx.FunctionProto],
-    load_external_data: bool = True,
-) -> onnx.ModelProto:
+    external: bool = True,
+) -> Union[onnx.ModelProto, onnx.GraphProto, onnx.FunctionProto]:
     """
     Loads a model or returns the only argument if the type
     is already a ModelProto.
+
+    :param param: proto file
+    :param external: loads the external data as well
+    :return: ModelProto
     """
-    if isinstance(model, (onnx.ModelProto, onnx.GraphProto, onnx.FunctionProto)):
+    if isinstance(model, onnx.ModelProto):
+        if external:
+            model_filepath = model.name
+            if model_filepath:
+                print("****", model_filepath)
+                base_dir = os.path.dirname(model_filepath)
+                onnx.load_external_data_for_model(model, base_dir)
+        else:
+            raise RuntimeError(
+                f"Unable to load external data for model stored in {model_filepath!r}."
+            )
+        return model
+    if isinstance(model, (onnx.GraphProto, onnx.FunctionProto)):
         return model
     if not os.path.exists(model):
         raise FileNotFoundError(f"Unable to find model {model!r}.")
     with open(model, "rb") as f:
-        return onnx.load(f, load_external_data=load_external_data)
+        return onnx.load(f, load_external_data=external)
+
+
+def save_model(
+    proto: onnx.ModelProto,
+    filename: str,
+    external: bool = False,
+    convert_attribute: bool = True,
+    size_threshold: int = 1024,
+    all_tensors_to_one_file: bool = True,
+):
+    """
+    Saves a model into an onnx file.
+
+    :param proto: ModelProto
+    :param filename: where to save it
+    :param external: saves weights as external data
+    :param convert_attribute: converts attributes as well
+    :param size_threshold: every weight above that threshold is saved as external
+    :param all_tensors_to_one_file: saves all tensors in one unique file
+    """
+    if not external:
+        onnx.save_model(proto, filename)
+        return
+
+    dirname, shortname = os.path.split(filename)
+    onnx.convert_model_to_external_data(
+        proto,
+        all_tensors_to_one_file=all_tensors_to_one_file,
+        location=shortname + ".data",
+        convert_attribute=convert_attribute,
+        size_threshold=size_threshold,
+    )
+
+    proto = onnx.write_external_data_tensors(proto, dirname)
+    with open(filename, "wb") as f:
+        f.write(proto.SerializeToString())
 
 
 def _info_type(
@@ -65,7 +117,7 @@ def enumerate_onnx_node_types(
     :param external: loads the external data if the model is loaded
     :return: a list of dictionary which can be turned into a dataframe.
     """
-    proto = load(model, load_external_data=external)
+    proto = load_model(model, external=external)
     if shapes is None and isinstance(proto, onnx.ModelProto):
         p2 = onnx.shape_inference.infer_shapes(proto)
         values = p2.graph.value_info

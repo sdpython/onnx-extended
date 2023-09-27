@@ -4,6 +4,7 @@ Change Logs
 0.2.2
 +++++
 
+* :pr:`85`: add load_model, save_model to help saving with/without external data
 * :pr:`82`: fixes benchmark on multiple versions of onnxruntime
 
 0.2.1
