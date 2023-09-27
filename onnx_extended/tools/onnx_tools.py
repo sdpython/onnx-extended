@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Generator, Optional, Set, Union
+from typing import Dict, Generator, Iterator, Optional, Set, Tuple, Union
 import onnx
 
 _rev_type = {
@@ -12,6 +12,7 @@ _rev_type = {
 def load_model(
     model: Union[str, onnx.ModelProto, onnx.GraphProto, onnx.FunctionProto],
     external: bool = True,
+    base_dir: Optional[str] = None,
 ) -> Union[onnx.ModelProto, onnx.GraphProto, onnx.FunctionProto]:
     """
     Loads a model or returns the only argument if the type
@@ -19,14 +20,15 @@ def load_model(
 
     :param param: proto file
     :param external: loads the external data as well
+    :param base_dir: needed if external is True and
+        the model has external weights
     :return: ModelProto
     """
     if isinstance(model, onnx.ModelProto):
         if external:
-            model_filepath = model.name
-            if model_filepath:
-                base_dir = os.path.dirname(model_filepath)
-                onnx.load_external_data_for_model(model, base_dir)
+            if base_dir is not None and not os.path.exists(base_dir):
+                raise FileNotFoundError(f"Unable to find folder {base_dir!r}.")
+            onnx.load_external_data_for_model(model, base_dir)
         else:
             raise RuntimeError(
                 f"Unable to load external data for model stored in {model_filepath!r}."
@@ -65,6 +67,25 @@ def load_external(
             tensor.data_location = onnx.TensorProto.DEFAULT
             # and remove external data
             del tensor.external_data[:]
+
+
+def enumerate_model_tensors(
+    model: onnx.ModelProto,
+) -> Iterator[Tuple[onnx.TensorProto, bool]]:
+    """
+    Enumerates all tensors in a model.
+
+    :param model: model to process
+    :return: iterator on a couple (TensorProto, bool),
+        the boolean indicates if the data is external
+    """
+    from onnx.external_data_helper import (
+        _get_all_tensors,
+        uses_external_data,
+    )
+
+    for tensor in _get_all_tensors(model):
+        yield tensor, uses_external_data(tensor)
 
 
 def save_model(

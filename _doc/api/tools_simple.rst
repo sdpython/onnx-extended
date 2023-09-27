@@ -6,6 +6,11 @@ Shortcuts
 IO
 ==
 
+enumerate_model_tensors
++++++++++++++++++++++++
+
+.. autofunction:: onnx_extended.tools.enumerate_model_tensors
+
 load_external
 +++++++++++++
 
