@@ -113,7 +113,7 @@ class Runner:
         self, verbose: int = 0, exc_cls: Optional[type] = AssertionError
     ) -> Tuple[
         List[Tuple[str, Callable]],
-        List[Tuple[str, Callable, SkipTest]],
+        List[Tuple[str, Callable, Any]],
         List[Tuple[str, Callable, Exception]],
     ]:
         """
