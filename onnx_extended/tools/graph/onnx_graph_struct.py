@@ -324,10 +324,10 @@ class NodeWithSubGraph(Node):
     A node with a subgraphs (If, Loop, Scan, ...).
     """
 
-    def __init__(self, parent: "Graph", proto: NodeProto):
+    def __init__(self, index: int, parent: "Graph", proto: NodeProto):
         if not isinstance(proto, NodeProto):
             raise TypeError(f"proto is not a NodeProto but {type(proto)}.")
-        super(self).__init__(parent, proto)
+        Node.__init__(self, index, parent, proto)
         self.subgraphs = {}
         for att in proto.attribute:
             if att.data_type == AttributeProto.GRAPH:

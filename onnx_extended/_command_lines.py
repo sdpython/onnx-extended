@@ -20,7 +20,7 @@ from onnx.reference import ReferenceEvaluator
 
 def _type_shape(
     input_def: Union[str, ValueInfoProto]
-) -> Tuple[Any, Tuple[int, ...], str]:
+) -> Tuple[Any, Tuple[Union[int, str], ...], Any]:
     if isinstance(input_def, str):
         reg = re.compile(
             "([a-z][a-z0-9]*)?([(]([ a-zA-Z,0-9]+)[)])?(:([A-Z][A-Z0-9]*))?"
@@ -59,7 +59,7 @@ def _type_shape(
             else:
                 new_shape.append(d.dim_value)
         ndt = tensor_dtype_to_np_dtype(dt)
-        return ndt, tuple(new_shape)
+        return ndt, tuple(new_shape), None
 
     raise TypeError(f"Unexpected type {type(input_def)} for input_def.")
 
@@ -167,7 +167,7 @@ def store_intermediate_results(
             ty, shape, law = _type_shape(inp)
             if ty is None or shape is None:
                 if isinstance(inst, ReferenceEvaluator):
-                    ty, shape = _type_shape(inst.proto_.graph.input[i])
+                    ty, shape, _ = _type_shape(inst.proto_.graph.input[i])
                 else:
                     raise RuntimeError(
                         f"shape or dtype is unknown and cannot "
@@ -304,6 +304,8 @@ def print_proto(proto: str, fmt: str = "raw", external: bool = True):
     elif fmt == "nodes":
         from .tools.graph.onnx_graph_struct import Graph
 
+        if proto_loaded is None:
+            raise ValueError(f"Unable to load {proto!r}.")
         graph = Graph(proto_loaded)
         for node in graph:
             print(str(node).replace("<parent>, ", ""))
@@ -377,8 +379,9 @@ def cmd_quantize(
         onx2 = new_graph.to_onnx()
         seq = onx2.SerializeToString()
         logger.info("Model quantized size: %d", len(seq))
-        with open(output, "wb") as f:
-            f.write(seq)
+        if output is not None:
+            with open(output, "wb") as f:
+                f.write(seq)
         return
 
     if kind == "fp16":
@@ -398,8 +401,9 @@ def cmd_quantize(
         onx2 = new_graph.to_onnx()
         seq = onx2.SerializeToString()
         logger.info("Model reduced size: %d", len(seq))
-        with open(output, "wb") as f:
-            f.write(seq)
+        if output is not None:
+            with open(output, "wb") as f:
+                f.write(seq)
         return
 
     raise ValueError(f"Unexpected value {kind!r} for kind.")
@@ -455,8 +459,9 @@ def cmd_select(
     )
     seq = onx2.SerializeToString()
     logger.info("Selected model size: %d", len(seq))
-    with open(save, "wb") as f:
-        f.write(seq)
+    if save is not None:
+        with open(save, "wb") as f:
+            f.write(seq)
 
 
 def plot_profile(

@@ -158,10 +158,10 @@ def change_onnx_operator_domain(
 def optimize_model(
     onx: ModelProto,
     feeds: Dict[str, numpy.ndarray],
-    transform: Callable[ModelProto, ModelProto],
-    session: Callable[ModelProto, Any],
+    transform: Callable[[ModelProto], ModelProto],
+    session: Callable[[ModelProto], Any],
     params: Dict[str, List[Any]],
-    baseline: Optional[Callable[ModelProto, Any]] = None,
+    baseline: Optional[Callable[[ModelProto], Any]] = None,
     verbose: bool = False,
     number: int = 10,
     repeat: int = 10,

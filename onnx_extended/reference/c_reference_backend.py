@@ -35,7 +35,7 @@ class Runner:
         self,
         backend: type[Backend],
         path_to_test: Optional[str] = None,
-        kind: Optional[str] = None,
+        kind: Optional[Union[str, List[str]]] = None,
         test_kwargs: Optional[dict[str, Any]] = None,
     ) -> None:
         self.backend = backend
@@ -44,7 +44,7 @@ class Runner:
         self._xfail_patterns: Set[Pattern[str]] = set()
         self._test_kwargs: dict = test_kwargs or {}
 
-        if not os.path.exists(path_to_test):
+        if path_to_test is None or not os.path.exists(path_to_test):
             raise FileNotFoundError(f"Unable to find path {path_to_test!r}.")
         if isinstance(kind, str):
             kind = [kind]
@@ -113,8 +113,8 @@ class Runner:
         self, verbose: int = 0, exc_cls: Optional[type] = AssertionError
     ) -> Tuple[
         List[Tuple[str, Callable]],
-        List[Tuple[str, Callable]],
-        List[Tuple[str, Callable]],
+        List[Tuple[str, Callable, Any]],
+        List[Tuple[str, Callable, Exception]],
     ]:
         """
         Runs all tests.
@@ -236,7 +236,7 @@ class CReferenceEvaluatorBackend(onnx.backend.base.Backend):
 
     @classmethod
     def create_inference_session(
-        cls, model: Union[str, ModelProto, NodeProto, FunctionProto]
+        cls, model: Union[str, bytes, ModelProto, NodeProto, FunctionProto]
     ):
         """
         Creates an instance of the class running a model.
@@ -265,7 +265,7 @@ class CReferenceEvaluatorBackend(onnx.backend.base.Backend):
         """
         Called if the onnx proto is a `ModelProto`.
         """
-        rep = cls.prepare(model, device, **kwargs)
+        rep = cls.prepare(model, device or "cpu", **kwargs)
         return rep.run(inputs, **kwargs)
 
     @classmethod
@@ -277,10 +277,10 @@ class CReferenceEvaluatorBackend(onnx.backend.base.Backend):
 
 
 def create_reference_backend(
-    backend: Optional[type] = None,
+    backend: Optional[type[Backend]] = None,
     path_to_test: Optional[str] = None,
     kind: Optional[str] = None,
-) -> CReferenceEvaluatorBackend:
+) -> Runner:
     return Runner(
         backend or CReferenceEvaluatorBackend,
         path_to_test=path_to_test,

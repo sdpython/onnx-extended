@@ -231,7 +231,7 @@ class TestRun:
         index: int = 0,
         warmup: int = 5,
         repeat: int = 10,
-    ) -> Dict[str, Union[float, Dict[str, Tuple[int, ...]]]]:
+    ) -> Dict[str, Union[float, str, Any]]:
         """
         Runs the model on the given inputs.
 
@@ -305,7 +305,7 @@ class TestRun:
         return stats
 
 
-def _run_cmd(args: List[str]) -> Tuple[str, str]:
+def _run_cmd(args: List[str]) -> str:
     p = subprocess.Popen(
         args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={"PYTHONPATH": ""}
     )
@@ -330,7 +330,7 @@ def _extract_version(out: str) -> str:
     return r[0]
 
 
-def _display_conf(conf: Dict[str, str]) -> str:
+def _display_conf(conf: Dict[str, Union[str, None]]) -> str:
     rows = []
     for k, v in sorted(conf.items()):
         if v is None:
@@ -347,10 +347,10 @@ def bench_virtual(
     index: int = 0,
     warmup: int = 5,
     repeat: int = 10,
-    modules: Optional[List[Dict[str, str]]] = None,
+    modules: Optional[List[Dict[str, Union[str, None]]]] = None,
     verbose: int = 0,
     save_as_dataframe: Optional[str] = None,
-    filter_fct: Optional[Callable[[str, Dict[str, str]], bool]] = None,
+    filter_fct: Optional[Callable[[str, Dict[str, Union[str, None]]], bool]] = None,
 ) -> List[Dict[str, Union[float, Dict[str, Tuple[int, ...]]]]]:
     """
     Runs the same benchmark over different

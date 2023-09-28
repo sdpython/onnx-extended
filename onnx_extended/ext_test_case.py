@@ -2,7 +2,7 @@ import os
 import sys
 import unittest
 import warnings
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from timeit import Timer
@@ -107,7 +107,7 @@ def measure_time(
                 "div_by_number must be set to True of max_time is defined."
             )
         i = 1
-        total_time = 0
+        total_time = 0.0
         results = []
         while True:
             for j in (1, 2):
@@ -168,7 +168,7 @@ def measure_time(
 
 
 class ExtTestCase(unittest.TestCase):
-    _warns = []
+    _warns: List[Tuple[str, int, Warning]] = []
 
     def assertExists(self, name):
         if not os.path.exists(name):
@@ -198,7 +198,7 @@ class ExtTestCase(unittest.TestCase):
             value = numpy.array(value).astype(expected.dtype)
         self.assertEqualArray(expected, value, atol=atol, rtol=rtol)
 
-    def assertRaise(self, fct: Callable, exc_type: Exception):
+    def assertRaise(self, fct: Callable, exc_type: type[Exception]):
         try:
             fct()
         except exc_type as e:
@@ -257,7 +257,7 @@ def get_parsed_args(
     tries: int = 2,
     expose: Optional[str] = None,
     **kwargs: Dict[str, Tuple[Union[int, str, float], str]],
-) -> ArgumentParser:
+) -> Namespace:
     """
     Returns parsed arguments for examples in this package.
 
