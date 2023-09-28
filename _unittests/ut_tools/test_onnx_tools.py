@@ -9,7 +9,7 @@ from onnx.helper import (
 )
 from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.tools.onnx_tools import enumerate_onnx_node_types
+from onnx_extended.tools.onnx_nodes import enumerate_onnx_node_types
 
 
 class TestOnnxTools(ExtTestCase):

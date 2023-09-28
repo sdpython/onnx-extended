@@ -23,7 +23,7 @@ from onnx_extended.tools import (
     load_external,
 )
 from onnx_extended._command_lines import print_proto, display_intermediate_results
-from onnx_extended.tools.onnx_manipulations import select_model_inputs_outputs
+from onnx_extended.tools.onnx_nodes import select_model_inputs_outputs
 
 
 class TestSimple(ExtTestCase):

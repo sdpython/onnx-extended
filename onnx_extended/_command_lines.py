@@ -196,7 +196,7 @@ def display_intermediate_results(
     :param external: loads the external data or not
     :param fprint: function to print
     """
-    from .tools.onnx_tools import enumerate_onnx_node_types
+    from .tools.onnx_nodes import enumerate_onnx_node_types
 
     if save is not None:
         ext = os.path.splitext(save)[-1]
@@ -432,7 +432,7 @@ def cmd_select(
     :param outputs: list of outputs or empty to keep the original outputs
     :param verbose: verbosity level
     """
-    from .tools.onnx_manipulations import select_model_inputs_outputs
+    from .tools.onnx_nodes import select_model_inputs_outputs
 
     if isinstance(model, str):
         if not os.path.exists(model):

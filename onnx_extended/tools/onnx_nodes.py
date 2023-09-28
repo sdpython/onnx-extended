@@ -441,7 +441,7 @@ def select_model_inputs_outputs(
     ::
 
         import onnx
-        from onnx_extended.tools.onnx_manipulations import select_model_inputs_outputs
+        from onnx_extended.tools.onnx_nodes import select_model_inputs_outputs
 
         onx = onnx.load(path)
         onx2 = select_model_inputs_outputs(
