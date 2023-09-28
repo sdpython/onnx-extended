@@ -30,5 +30,5 @@ Function :func:`get_hidden_inputs
 retrieves that information.
 
 Function :func:`enumerate_onnx_node_types
-<onnx_extended.tools.onnx_tools.enumerate_onnx_node_types>`
+<onnx_extended.tools.onnx_nodes.enumerate_onnx_node_types>`
 quickly gives the list of operators a model uses.
