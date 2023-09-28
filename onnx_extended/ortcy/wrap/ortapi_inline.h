@@ -3,12 +3,10 @@
 #include "ortapi_version.h"
 #include "onnx_extended_helpers.h"
 
-#define ORT_API_VERSION_ALLOWED 15
-
 namespace ortapi {
 
 inline static const OrtApi *GetOrtApi() {
-  const OrtApi *api_ = OrtGetApiBase()->GetApi(ORT_API_VERSION_ALLOWED);
+  const OrtApi *api_ = OrtGetApiBase()->GetApi(ORT_API_VERSION_SUPPORTED);
   return api_;
 }
 

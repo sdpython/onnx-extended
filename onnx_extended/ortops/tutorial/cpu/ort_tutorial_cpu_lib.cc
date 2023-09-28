@@ -4,7 +4,7 @@
 #include <mutex>
 #include <vector>
 
-#include "../../ortops_version.h"
+#include "ortapi_version.h"
 #include "custom_gemm.h"
 #include "dynamic_quantize_linear.h"
 #include "my_kernel.h"
@@ -22,7 +22,7 @@ static void AddOrtCustomOpDomainToContainer(Ort::CustomOpDomain &&domain) {
 
 OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
                                           const OrtApiBase *api_base) {
-  Ort::InitApi(api_base->GetApi(ORT_API_VERSION_ALLOWED));
+  Ort::InitApi(api_base->GetApi(ORT_API_VERSION_SUPPORTED));
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
@@ -37,7 +37,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, false);
 
-#if ORT_API_VERSION_ALLOWED >= 16
+#if ORT_API_VERSION_SUPPORTED >= 16
   static ortops::DynamicQuantizeLinearOp
       c_dql(
           ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
@@ -57,7 +57,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     domain.Add(&c_CustomOpAttr);
     domain.Add(&c_CustomGemmFloat);
     domain.Add(&c_CustomGemmFloat16);
-#if ORT_API_VERSION_ALLOWED >= 16
+#if ORT_API_VERSION_SUPPORTED >= 16
     domain.Add(&c_dql);
     domain.Add(&c_CustomGemmFloat8E4M3FN);
 #endif

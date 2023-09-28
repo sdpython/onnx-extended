@@ -4,6 +4,7 @@ Change Logs
 0.2.2
 +++++
 
+* :pr:`87`: update the quantization tools to use a simplified dynamic linear quantization into float 8
 * :pr:`85`: add load_model, save_model to help saving with/without external data
 * :pr:`82`: fixes benchmark on multiple versions of onnxruntime
 
