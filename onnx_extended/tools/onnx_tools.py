@@ -25,8 +25,8 @@ def load_model(
     :return: ModelProto
     """
     if isinstance(model, onnx.ModelProto):
-        if external:
-            if base_dir is None or not os.path.exists(base_dir):
+        if base_dir is not None and external:
+            if not os.path.exists(base_dir):
                 raise FileNotFoundError(f"Unable to find folder {base_dir!r}.")
             onnx.load_external_data_for_model(model, base_dir)
         return model
