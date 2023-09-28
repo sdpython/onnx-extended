@@ -2,7 +2,7 @@ import os
 from typing import Dict, Generator, Iterator, Optional, Set, Tuple, Union
 import onnx
 
-_rev_type = {
+_rev_type: Dict[int, str] = {
     getattr(onnx.TensorProto, k): k
     for k in dir(onnx.TensorProto)
     if isinstance(getattr(onnx.TensorProto, k), int)
@@ -26,7 +26,7 @@ def load_model(
     """
     if isinstance(model, onnx.ModelProto):
         if external:
-            if base_dir is not None and not os.path.exists(base_dir):
+            if base_dir is None or not os.path.exists(base_dir):
                 raise FileNotFoundError(f"Unable to find folder {base_dir!r}.")
             onnx.load_external_data_for_model(model, base_dir)
         return model
@@ -121,11 +121,11 @@ def save_model(
 
 
 def _info_type(
-    typ: Union[onnx.TensorProto, onnx.TypeProto]
-) -> Dict[str, Union[str, float]]:
+    typ: Union[onnx.TensorProto, onnx.TypeProto, onnx.SparseTensorProto]
+) -> Dict[str, str]:
     if typ is None:
         return {}
-    if isinstance(typ, onnx.TensorProto):
+    if isinstance(typ, (onnx.TensorProto, onnx.SparseTensorProto)):
         shape = [str(i) for i in typ.dims]
         return dict(
             type="tensor", elem_type=_rev_type[typ.data_type], shape="x".join(shape)

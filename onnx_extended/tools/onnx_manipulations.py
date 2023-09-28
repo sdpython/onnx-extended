@@ -81,7 +81,7 @@ def _apply_optimisation_on_graph(
     fct: Callable,
     onnx_model: Union[ModelProto, GraphProto, FunctionProto],
     recursive: bool = True,
-    debug_info: Optional[str] = None,
+    debug_info: Optional[List[str]] = None,
     **kwargs: Dict[str, Any],
 ) -> Union[ModelProto, GraphProto, FunctionProto]:
     """
@@ -293,7 +293,7 @@ def _guess_proto_dtype(dtype) -> int:
 
 def get_tensor_shape(
     obj: Union[ValueInfoProto, TypeProto, TensorProto]
-) -> List[Union[int, str]]:
+) -> Optional[List[Union[int, str, None]]]:
     """
     Returns the shape if that makes sense for this object.
     """
@@ -354,18 +354,18 @@ def enumerate_model_node_outputs(
         raise TypeError(f"Parameter model is not an ONNX model but {type(model)}")
     if order:
         edges = []
-        order = {}
+        dorder = {}
         node_names = {}
         for inp in model.graph.input:
-            order[0, inp.name] = 0
+            dorder[0, inp.name] = 0
         for node in model.graph.node:
-            order[1, node.name] = 0
+            dorder[1, node.name] = 0
             for i in node.input:
                 edges.append(("in", i, node.name))
             for o in node.output:
                 edges.append(("out", o, node.name))
                 node_names[o] = node
-                order[0, o] = 0
+                dorder[0, o] = 0
 
         modif = 1
         n_iter = 0
@@ -374,17 +374,17 @@ def enumerate_model_node_outputs(
             n_iter += 1
             for kind, data_name, node_name in edges:
                 if kind == "in":
-                    if (0, data_name) not in order:
+                    if (0, data_name) not in dorder:
                         continue
-                    if order[0, data_name] + 1 > order[1, node_name]:
+                    if dorder[0, data_name] + 1 > dorder[1, node_name]:
                         modif += 1
-                        order[1, node_name] = order[0, data_name] + 1
+                        dorder[1, node_name] = dorder[0, data_name] + 1
                 else:
-                    if order[1, node_name] + 1 > order[0, data_name]:
+                    if dorder[1, node_name] + 1 > dorder[0, data_name]:
                         modif += 1
-                        order[0, data_name] = order[1, node_name] + 1
+                        dorder[0, data_name] = dorder[1, node_name] + 1
 
-        orders = [(v, k) for k, v in order.items()]
+        orders = [(v, k) for k, v in dorder.items()]
         orders.sort()
 
         for _, k in orders:

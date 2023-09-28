@@ -1,8 +1,8 @@
 import os
 import platform
-from typing import List
+from typing import Dict, List
 
-_ort_ext_libs_pathes = {}
+_ort_ext_libs_pathes: Dict[str, List[str]] = {}
 
 
 def _get_ort_ext_libs(path: str) -> List[str]:

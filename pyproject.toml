@@ -128,6 +128,101 @@ skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy*"
 [tool.cython-lint]
 max-line-length = 88
 
+[tool.mypy]
+ignore_missing_imports = true
+packages = ["onnx_extended"]
+exclude = [
+    "^_doc/examples",  # skips examples in the documentation
+    "^_unittests",  # skips unit tests
+    "^build",  # skips build
+    "^dist",  # skips dist
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.ext_test_case"]
+disable_error_code = ["override", "index"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended._command_lines"]
+disable_error_code = ["attr-defined", "operator", "arg-type", "assignment", "var-annotated", "return-value"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.ortops.optim.optimize"]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.reference.c_reference_backend"]
+disable_error_code = ["override", "union-attr", "misc"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.reference.c_reference_evaluator"]
+disable_error_code = ["arg-type", "attr-defined", "var-annotated", "assignment", "index"]
+
+[[tool.mypy.overrides]]
+module = [
+    "onnx_extended.reference.c_ops.*",
+    "onnx_extended.reference.c_custom_ops.*",
+    "onnx_extended.tools.graph.onnx_custom_ops",
+]
+disable_error_code = ["assignment", "operator", "call-overload", "no-redef", "attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "onnx_extended.tools.graph.onnx_graph_struct",
+    "onnx_extended.tools.graph.onnx_graph_transformer",
+]
+disable_error_code = [
+    "attr-defined",
+    "arg-type",
+    "list-item",
+    "union-attr",
+    "var-annotated",
+    "index",
+    "assignment",
+    "operator",
+    "call-overload",
+    "return-value",
+    "no-redef",
+    "valid-type",
+    "misc",
+    "annotation-unchecked",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.js_profile"]
+disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.onnx_tools"]
+disable_error_code = ["union-attr", "attr-defined", "arg-type", "assignment"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.onnx_manipulations"]
+disable_error_code = [
+    "operator",
+    "union-attr",
+    "index",
+    "arg-type",
+    "assignment",
+    "misc",
+    "return-value",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.ort_debug"]
+disable_error_code = ["union-attr"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.run_onnx"]
+disable_error_code = [
+    "arg-type",
+    "union-attr",
+    "assignment",
+    "valid-type",
+    "attr-defined",
+    "return-value",
+]
+
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
 line-length = 88

@@ -114,7 +114,7 @@ def render_node(node: NodeProto) -> str:
         "zs",
     ]
 
-    sub_graphs_names = {}
+    sub_graphs_names: Dict[str, str] = {}
 
     def _get_subgraph_name(idg):
         if idg in sub_graphs_names:
