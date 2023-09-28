@@ -53,7 +53,7 @@ const char *TreeEnsembleClassifier::GetExecutionProviderType() const {
 size_t TreeEnsembleClassifier::GetInputTypeCount() const { return 1; };
 
 ONNXTensorElementDataType
-TreeEnsembleClassifier::GetInputType(std::size_t index) const {
+TreeEnsembleClassifier::GetInputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 

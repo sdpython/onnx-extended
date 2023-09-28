@@ -323,6 +323,7 @@ def cmd_quantize(
     verbose: int = 0,
     index_transpose: int = 2,
     exceptions: Optional[List[Dict[str, str]]] = None,
+    options: Optional["QuantizeOptions"] = None,  # noqa: F821
 ):
     """
     Quantizes a model
@@ -339,8 +340,13 @@ def cmd_quantize(
     :param exceptions: exclude nodes from the quantization,
         `[{"name": "node_name1"}, {"name": "node_name2"}]` will exclude
         these two node names from the quantization
+    :param options: quantization options, see class
+        :class:`QuantizeOptions <onnx_extended.tools.graph.QuantizeOptions>`
     """
-    from .tools.graph import Graph
+    from .tools.graph import Graph, QuantizeOptions
+
+    if options is None:
+        options = QuantizeOptions.NONE
 
     if isinstance(model, str):
         if not os.path.exists(model):
@@ -372,6 +378,7 @@ def cmd_quantize(
             version=scenario,
             index_transpose=index_transpose,
             exceptions=exceptions,
+            quantize_options=options,
         )
         if new_graph is None:
             logger.warning("No node was quantized.")

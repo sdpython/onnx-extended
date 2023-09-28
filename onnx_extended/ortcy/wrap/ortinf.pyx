@@ -46,6 +46,8 @@ cdef extern from "<vector>" namespace "std":
 
 cdef extern from "ortapi.h" namespace "ortapi":
 
+    cdef int ort_c_api_supported_version()
+
     cdef cppclass OrtShape:
         OrtShape()
         void init(size_t)
@@ -106,6 +108,13 @@ def ort_get_available_providers():
     """
     r = _ort_get_available_providers()
     return r
+
+
+def get_ort_c_api_supported_version():
+    """
+    Returns the supported version of onnxruntime C API.
+    """
+    return ort_c_api_supported_version()
 
 
 cdef class OrtSession:

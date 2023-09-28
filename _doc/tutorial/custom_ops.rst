@@ -21,6 +21,15 @@ onnxruntime use them.
         "<model_name_or_bytes>", opts, providers=[..., "CPUExecutionProvider"]
     )
 
+It supports any onnxruntime C API greater than version:
+
+.. runpython::
+    :showcode:
+
+    from onnx_extended.ortcy.wrap.ortinf import get_ort_c_api_supported_version
+    
+    print(get_ort_c_api_supported_version())
+
 Next section introduces the list of operators and assemblies this package
 implements.
 

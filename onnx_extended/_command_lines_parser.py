@@ -265,6 +265,14 @@ def get_parser_quantize() -> ArgumentParser:
         help="to avoid quantizing nodes if their names belongs "
         "to that list (comma separated)",
     )
+    parser.add_argument(
+        "-p",
+        "--options",
+        type=str,
+        default="NONE",
+        help="options to use for quantization, NONE (default) or OPTIMIZE, "
+        "several values can be passed separated by a comma",
+    )
     return parser
 
 
@@ -400,12 +408,32 @@ def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
     return [dict(name=n) for n in names]
 
 
+def _process_options(text: Optional[str]) -> "QuantizeOptions":  # noqa: F821
+    from .tools.graph import QuantizeOptions
+
+    if text is None:
+        return QuantizeOptions.NONE
+    names = text.split(",")
+    value = QuantizeOptions.NONE
+    for name in names:
+        name = name.upper()
+        if hasattr(QuantizeOptions, name):
+            value |= getattr(QuantizeOptions, name)
+        else:
+            raise ValueError(
+                f"Unable to parse option name among {dir(QuantizeOptions)}."
+            )
+
+    return value
+
+
 def _cmd_quantize(argv):
     from ._command_lines import cmd_quantize
 
     parser = get_parser_quantize()
     args = parser.parse_args(argv[1:])
     processed_exceptions = _process_exceptions(args.exclude)
+    processed_options = _process_options(args.options)
     cmd_quantize(
         model=args.input,
         output=args.output,
@@ -416,6 +444,7 @@ def _cmd_quantize(argv):
         quiet=args.quiet,
         index_transpose=args.transpose,
         exceptions=processed_exceptions,
+        options=processed_options,
     )
 
 
