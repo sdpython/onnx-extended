@@ -135,6 +135,14 @@ def get_parser_display() -> ArgumentParser:
         default=12,
         help="column size when printed on standard output",
     )
+    parser.add_argument(
+        "-e",
+        "--external",
+        type=int,
+        required=False,
+        default=1,
+        help="load external data?",
+    )
     return parser
 
 
@@ -165,6 +173,14 @@ def get_parser_print() -> ArgumentParser:
         choices=["raw", "nodes"],
         default="raw",
         help="format ot use to display the graph",
+    )
+    parser.add_argument(
+        "-e",
+        "--external",
+        type=int,
+        required=False,
+        default=1,
+        help="load external data?",
     )
     return parser
 
@@ -364,7 +380,9 @@ def _cmd_display(argv):
 
     parser = get_parser_display()
     args = parser.parse_args(argv[1:])
-    display_intermediate_results(model=args.model, save=args.save, tab=args.tab)
+    display_intermediate_results(
+        model=args.model, save=args.save, tab=args.tab, external=args.external
+    )
 
 
 def _cmd_print(argv):
@@ -372,7 +390,7 @@ def _cmd_print(argv):
 
     parser = get_parser_print()
     args = parser.parse_args(argv[1:])
-    print_proto(proto=args.input, fmt=args.format)
+    print_proto(proto=args.input, fmt=args.format, external=args.external)
 
 
 def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
@@ -457,7 +475,8 @@ def get_parser_plot() -> ArgumentParser:
         prog="plot",
         description=dedent(
             """
-        Plots a graph reprsenting the data loaded from a filename.
+        Plots a graph representing the data loaded from a
+        profiling stored in a filename.
         """
         ),
         epilog="Plots a graph",

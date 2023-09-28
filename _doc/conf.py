@@ -123,6 +123,7 @@ epkg_dictionary = {
     "eigen": "https://eigen.tuxfamily.org/",
     "gcc": "https://gcc.gnu.org/",
     "JIT": "https://en.wikipedia.org/wiki/Just-in-time_compilation",
+    "Llama": "https://ai.meta.com/blog/large-language-model-llama-meta-ai/",
     "nccl": "https://developer.nvidia.com/nccl",
     "numpy": "https://numpy.org/",
     "numba": "https://numba.pydata.org/",
