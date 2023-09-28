@@ -15,10 +15,7 @@ from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
 
 try:
-    from onnx_extended.ortcy.wrap.ortinf import (
-        OrtSession,
-        get_ort_c_api_supported_version,
-    )
+    from onnx_extended.ortcy.wrap.ortinf import OrtSession
 except ImportError as e:
     msg = "libonnxruntime.so.1.16.0: cannot open shared object file"
     if msg in str(e):
@@ -33,6 +30,8 @@ except ImportError as e:
         here = os.path.dirname(__file__)
     else:
         OrtSession = "OrtSession is not initialized"
+
+from onnx_extended.ortcy.wrap.ortinf import get_ort_c_api_supported_version
 
 
 class TestOrtCy(ExtTestCase):

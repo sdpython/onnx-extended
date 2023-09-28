@@ -137,5 +137,6 @@ results in a dataframe.
 
 ::
 
-    python -m onnx_extended display --external=0 -s types_shapes.xlsx \
-                                    -m ./Llama-2-Onnx/7B_FT_float16/ONNX/LlamaV2_7B_FT_float16.onnx
+    python -m onnx_extended display \
+        --external=0 -s types_shapes.xlsx \
+        -m ./Llama-2-Onnx/7B_FT_float16/ONNX/LlamaV2_7B_FT_float16.onnx
