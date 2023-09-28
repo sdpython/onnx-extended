@@ -40,6 +40,7 @@ from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
 from onnx_extended.tools.graph.onnx_graph_transformer import (
     quantize_float8,
+    QuantizeOptions,
 )
 from onnx_extended.tools.graph.onnx_custom_ops import GemmFloat8
 from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs as get_ort_ext_libs_cpu
@@ -117,6 +118,38 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqualArray(expected, got1)
 
         new_graph = quantize_float8(graph)
+        onx2 = new_graph.to_onnx()
+        try:
+            check_model(onx2)
+        except ValidationError as e:
+            if (
+                "Bad node spec for node. Name: dql8_X OpType: DynamicQuantizeLinear"
+                in str(e)
+            ):
+                # onnx not recent enough
+                return
+            raise e
+
+        ref2 = CReferenceEvaluator(onx2, new_ops=[GemmFloat8])
+        got2 = ref2.run(None, feeds)[0]
+        self.assertEqualArray(expected, got2, rtol=0.05)
+
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    def test_quantize_f8_onnx_optimize(self):
+        x = np.arange(12).reshape((4, 3)).astype(np.float32)
+        feeds = {"X": x}
+        model = self._get_model_32()
+        ref = CReferenceEvaluator(model)
+        expected = ref.run(None, feeds)[0]
+
+        graph = Graph(model)
+        onx1 = graph.to_onnx()
+        check_model(onx1)
+        ref1 = CReferenceEvaluator(onx1)
+        got1 = ref1.run(None, feeds)[0]
+        self.assertEqualArray(expected, got1)
+
+        new_graph = quantize_float8(graph, quantize_options=QuantizeOptions.OPTIMIZE)
         onx2 = new_graph.to_onnx()
         try:
             check_model(onx2)
@@ -580,5 +613,5 @@ if __name__ == "__main__":
     for name in ["onnx-extended", "skl2onnx"]:
         log = logging.getLogger(name)
         log.setLevel(logging.ERROR)
-    # TestOnnxToolsGraph().test_quantize_f8_onnx_onnxruntime()
+    TestOnnxToolsGraph().test_quantize_f8_onnx_optimize()
     unittest.main(verbosity=2)

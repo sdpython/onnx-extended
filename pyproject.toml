@@ -140,7 +140,19 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended._command_lines"]
-disable_error_code = ["attr-defined", "operator", "arg-type", "assignment", "var-annotated", "return-value"]
+disable_error_code = [
+    "attr-defined",
+    "operator",
+    "arg-type",
+    "assignment",
+    "var-annotated",
+    "return-value",
+    "name-defined",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended._command_lines_parser"]
+disable_error_code = ["name-defined"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.ext_test_case"]

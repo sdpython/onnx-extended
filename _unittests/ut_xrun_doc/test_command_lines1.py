@@ -308,6 +308,45 @@ class TestCommandLines1(ExtTestCase):
                 ],
             )
 
+    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
+    def test_command_quantize_model_optimize(self):
+        onnx_model = self._get_model_32()
+        with tempfile.TemporaryDirectory() as fold:
+            model_file = os.path.join(fold, "model.onnx")
+            with open(model_file, "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            model_out = os.path.join(fold, "out.onnx")
+
+            st = StringIO()
+            with redirect_stdout(st):
+                args = [
+                    "quantize",
+                    "-i",
+                    model_file,
+                    "-o",
+                    model_out,
+                    "-k",
+                    "fp8",
+                    "-p",
+                    "optimize",
+                ]
+                main(args)
+            text = st.getvalue()
+            self.assertEqual(text, "")
+            self.assertExists(model_out)
+            with open(model_out, "rb") as f:
+                content = load(f)
+            types = [n.op_type for n in content.graph.node]
+            self.assertEqual(
+                types,
+                [
+                    "DynamicQuantizeLinearE4M3FN",
+                    "Constant",
+                    "Constant",
+                    "GemmFloat8",
+                ],
+            )
+
     def test_command_quantize_model_local(self):
         onnx_model = self._get_model_32()
         with tempfile.TemporaryDirectory() as fold:

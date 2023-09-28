@@ -26,6 +26,7 @@ from ...helper import (
     make_dynamic_quantize_linear_function_proto,
     make_matmul_reshape_transpose_back_function_proto,
     make_matmul_reshape_transpose_function_proto,
+    make_simple_dynamic_quantize_linear_function_proto,
 )
 from ...reference import from_array_extended
 from ...validation.cython.fp8 import cast_float32_to_e4m3fn
@@ -301,33 +302,48 @@ class _QuantizeState:
         zero_point = node.parent.generate_name(f"{name}_zp")
 
         if self.quantize_options == QuantizeOptions.NONE:
-            proto = make_node(
+            fname, fmake = (
                 "DynamicQuantizeLinear",
-                [temp_name],
-                [new_name, scale, zero_point],
-                to=elem_type,
-                domain=self.main_state.domain_dq,
-                name=node.parent.generate_node_name("DQL"),
+                make_dynamic_quantize_linear_function_proto,
             )
-            dql = Node(None, node.parent, proto, NodeKind.NODE)
-            self.added.extend([dql.proto])
-            self.input_names.append(dql.outputs)
-            if (
-                self.main_state.domain_dq == "local.quant.domain"
-                and (self.main_state.domain_dq, "DynamicQuantizeLinear")
-                not in self.main_state.local_functions
-            ):
-                # use local functions
-                self.main_state.local_functions[
-                    self.main_state.domain_dq, "DynamicQuantizeLinear"
-                ] = make_dynamic_quantize_linear_function_proto(
-                    domain=self.main_state.domain_dq, opset=self.main_state.opset
-                )
         elif self.quantize_options == QuantizeOptions.OPTIMIZE:
-            raise NotImplementedError()
+            suffix = {
+                TensorProto.FLOAT8E4M3FN: "E4M3FN",
+                TensorProto.FLOAT8E4M3FNUZ: "E4M3FNUZ",
+                TensorProto.FLOAT8E5M2: "E5M2",
+                TensorProto.FLOAT8E5M2FNUZ: "E5M2FNUZ",
+            }
+            fname, fmake = (
+                f"DynamicQuantizeLinear{suffix[elem_type]}",
+                lambda domain=None, opset=None: (
+                    make_simple_dynamic_quantize_linear_function_proto(
+                        domain=domain, opset=opset, to=elem_type
+                    )
+                ),
+            )
         else:
             raise RuntimeError(
                 f"Unexpected value {self.quantize_options!r} for quantize_options."
+            )
+        proto = make_node(
+            fname,
+            [temp_name],
+            [new_name, scale, zero_point],
+            to=elem_type,
+            domain=self.main_state.domain_dq,
+            name=node.parent.generate_node_name("DQL"),
+        )
+        dql = Node(None, node.parent, proto, NodeKind.NODE)
+        self.added.extend([dql.proto])
+        self.input_names.append(dql.outputs)
+        if (
+            self.main_state.domain_dq == "local.quant.domain"
+            and (self.main_state.domain_dq, fname)
+            not in self.main_state.local_functions
+        ):
+            # use local functions
+            self.main_state.local_functions[self.main_state.domain_dq, fname] = fmake(
+                domain=self.main_state.domain_dq, opset=self.main_state.opset
             )
 
     def finalize(self, node, name, output_type):
