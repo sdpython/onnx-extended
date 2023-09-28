@@ -1,5 +1,5 @@
 import os
-from typing import Iterator, Optional, Set, Tuple, Union
+from typing import Optional, Set, Union
 import onnx
 
 
@@ -57,25 +57,6 @@ def load_external(
             tensor.data_location = onnx.TensorProto.DEFAULT
             # and remove external data
             del tensor.external_data[:]
-
-
-def enumerate_model_tensors(
-    model: onnx.ModelProto,
-) -> Iterator[Tuple[onnx.TensorProto, bool]]:
-    """
-    Enumerates all tensors in a model.
-
-    :param model: model to process
-    :return: iterator on a couple (TensorProto, bool),
-        the boolean indicates if the data is external
-    """
-    from onnx.external_data_helper import (
-        _get_all_tensors,
-        uses_external_data,
-    )
-
-    for tensor in _get_all_tensors(model):
-        yield tensor, uses_external_data(tensor)
 
 
 def save_model(

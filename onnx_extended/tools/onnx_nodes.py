@@ -1,17 +1,28 @@
 import logging
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Set, Union
-import onnx
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 from onnx import (
     AttributeProto,
     FunctionProto,
     GraphProto,
     ModelProto,
     NodeProto,
-    ValueInfoProto,
+    SparseTensorProto,
     TensorProto,
     TypeProto,
-    shape_inference,
+    ValueInfoProto,
 )
+from onnx.compose import merge_models
 from onnx.helper import (
     make_attribute,
     make_graph,
@@ -21,14 +32,15 @@ from onnx.helper import (
     np_dtype_to_tensor_dtype,
     set_model_props,
 )
+from onnx.shape_inference import infer_shapes
 from .onnx_io import load_model
 
 logger = logging.getLogger("onnx-extended")
 
 _rev_type: Dict[int, str] = {
-    getattr(onnx.TensorProto, k): k
-    for k in dir(onnx.TensorProto)
-    if isinstance(getattr(onnx.TensorProto, k), int)
+    getattr(TensorProto, k): k
+    for k in dir(TensorProto)
+    if isinstance(getattr(TensorProto, k), int)
 }
 
 
@@ -521,7 +533,7 @@ def select_model_inputs_outputs(
 
     known_shapes = {}
     if infer_shapes:
-        shapes = shape_inference.infer_shapes(model)
+        shapes = infer_shapes(model)
         for shape in shapes.graph.value_info:
             known_shapes[shape.name] = shape.type
         for shape in shapes.graph.input:
@@ -618,12 +630,10 @@ def select_model_inputs_outputs(
     return onnx_model
 
 
-def _info_type(
-    typ: Union[onnx.TensorProto, onnx.TypeProto, onnx.SparseTensorProto]
-) -> Dict[str, str]:
+def _info_type(typ: Union[TensorProto, TypeProto, SparseTensorProto]) -> Dict[str, str]:
     if typ is None:
         return {}
-    if isinstance(typ, (onnx.TensorProto, onnx.SparseTensorProto)):
+    if isinstance(typ, (TensorProto, SparseTensorProto)):
         shape = [str(i) for i in typ.dims]
         return dict(
             type="tensor", elem_type=_rev_type[typ.data_type], shape="x".join(shape)
@@ -643,9 +653,9 @@ def _info_type(
 
 
 def enumerate_onnx_node_types(
-    model: Union[str, onnx.ModelProto, onnx.GraphProto],
+    model: Union[str, ModelProto, GraphProto],
     level: int = 0,
-    shapes: Optional[Dict[str, onnx.TypeProto]] = None,
+    shapes: Optional[Dict[str, TypeProto]] = None,
     external: bool = True,
 ) -> Generator[Dict[str, Union[str, float]], None, None]:
     """
@@ -659,8 +669,8 @@ def enumerate_onnx_node_types(
     :return: a list of dictionary which can be turned into a dataframe.
     """
     proto = load_model(model, external=external)
-    if shapes is None and isinstance(proto, onnx.ModelProto):
-        p2 = onnx.shape_inference.infer_shapes(proto)
+    if shapes is None and isinstance(proto, ModelProto):
+        p2 = infer_shapes(proto)
         values = p2.graph.value_info
         shapes = {}
         for value in values:
@@ -669,13 +679,13 @@ def enumerate_onnx_node_types(
             if o.name not in shapes:
                 shapes[o.name] = o.type
 
-    if isinstance(proto, onnx.ModelProto):
+    if isinstance(proto, ModelProto):
         if shapes is None:
             raise RuntimeError("shape inference has failed.")
         for item in enumerate_onnx_node_types(proto.graph, level=level, shapes=shapes):
             yield item
 
-    elif isinstance(model, onnx.FunctionProto):
+    elif isinstance(model, FunctionProto):
         raise NotImplementedError(f"Not implemented for type {type(proto)}.")
 
     else:
@@ -715,7 +725,7 @@ def enumerate_onnx_node_types(
             yield obs
 
             for att in node.attribute:
-                if att.type == onnx.AttributeProto.GRAPH:
+                if att.type == AttributeProto.GRAPH:
                     obs = dict(name=att.name, kind="attribute", level=level + 1)
                     yield obs
                     for item in enumerate_onnx_node_types(
@@ -732,3 +742,37 @@ def enumerate_onnx_node_types(
             obs = dict(level=level, name=out.name, kind="output")
             obs.update(_info_type(out.type))
             yield obs
+
+
+def enumerate_model_tensors(
+    model: ModelProto,
+) -> Iterable[Tuple[TensorProto, bool]]:
+    """
+    Enumerates all tensors in a model.
+
+    :param model: model to process
+    :return: iterator on a couple (TensorProto, bool),
+        the boolean indicates if the data is external
+    """
+    from onnx.external_data_helper import (
+        _get_all_tensors,
+        uses_external_data,
+    )
+
+    for tensor in _get_all_tensors(model):
+        yield tensor, uses_external_data(tensor)
+
+
+def onnx_merge_models(
+    m1: ModelProto, m2: ModelProto, io_map: List[Tuple[str, str]]
+) -> ModelProto:
+    """
+    Merges two models.
+
+    :param m1: first model
+    :param m2: second model
+    :param io_map: mapping between outputs of the first model and
+        and the input of the second one
+    :return: new model
+    """
+    return merge_models(m1, m2, io_map=io_map)

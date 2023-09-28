@@ -18,25 +18,28 @@ def get_main_parser() -> ArgumentParser:
             "store",
             "check",
             "display",
+            "external",
+            "merge",
+            "plot",
             "print",
             "quantize",
             "select",
-            "external",
-            "plot",
+            "store",
         ],
         help=dedent(
             """
-        Select a command.
+        Selects a command.
         
-        'store' executes a model with class CReferenceEvaluator and stores every
-        intermediate results on disk with a short onnx to execute the node.
-        'check' checks a runtime on stored intermediate results.
+        'check' checks a runtime on stored intermediate results,
         'display' displays the shapes inferences results,
+        'external' saves the coefficients in a different files for an onnx model,
+        'merge' merges two models,
         'print' prints out a model or a protobuf file on the standard output,
+        'plot' plots a graph like a profiling,
         'quantize' quantizes an onnx model in simple ways,
         'select' selects a subgraph inside a bigger models,
-        'external' saves the coefficients in a different files for an onnx model,
-        'plot' plots a graph like a profiling
+        'store' executes a model with class CReferenceEvaluator and stores every
+        intermediate results on disk with a short onnx to execute the node.
         """
         ),
     )
@@ -585,6 +588,58 @@ def _cmd_plot(argv):
     )
 
 
+def _cmd_merge(argv):
+    from .tools.onnx_nodes import onnx_merge_models
+    from .tools.onnx_io import load_model, save_model
+
+    parser = get_parser_merge()
+    args = parser.parse_args(argv[1:])
+    m1 = load_model(args.m1)
+    m2 = load_model(args.m2)
+    spl = args.iomap.split(";")
+    iomap = [tuple(v.split(",")) for v in spl]
+    merged = onnx_merge_models(m1, m2, iomap)
+    save_model(merged, args.output)
+
+
+def get_parser_merge() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="merge",
+        description=dedent(
+            """
+        Merges two models.
+        """
+        ),
+    )
+    parser.add_argument(
+        "--m1",
+        type=str,
+        required=True,
+        help="first onnx model",
+    )
+    parser.add_argument(
+        "--m2",
+        type=str,
+        required=True,
+        help="second onnx model",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        required=False,
+        help="output name",
+    )
+    parser.add_argument(
+        "-m",
+        "--iomap",
+        type=str,
+        required=False,
+        help="list of ; separated values, example: a1,b1;a2,b2",
+    )
+    return parser
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -594,13 +649,14 @@ def main(argv: Optional[List[Any]] = None):
             parser.parse_args(argv)
         else:
             parsers = dict(
-                store=get_parser_store,
-                print=get_parser_print,
                 display=get_parser_display,
+                external=get_parser_external,
+                merge=get_parser_merge,
+                plot=get_parser_plot,
+                print=get_parser_print,
                 quantize=get_parser_quantize,
                 select=get_parser_select,
-                external=get_parser_external,
-                plot=get_parser_plot,
+                store=get_parser_store,
             )
             cmd = argv[0]
             if cmd not in parsers:
@@ -613,13 +669,14 @@ def main(argv: Optional[List[Any]] = None):
 
     cmd = argv[0]
     fcts = dict(
-        store=_cmd_store,
         display=_cmd_display,
+        external=_cmd_external,
+        merge=_cmd_merge,
+        plot=_cmd_plot,
         print=_cmd_print,
         quantize=_cmd_quantize,
         select=_cmd_select,
-        external=_cmd_external,
-        plot=_cmd_plot,
+        store=_cmd_store,
     )
     if cmd in fcts:
         fcts[cmd](argv)

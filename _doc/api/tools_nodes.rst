@@ -13,6 +13,11 @@ get_hidden_inputs
 
 .. autofunction:: onnx_extended.tools.onnx_nodes.get_hidden_inputs
 
+onnx_merge_models
+=================
+
+.. autofunction:: onnx_extended.tools.onnx_nodes.onnx_merge_models
+
 onnx_remove_node_unused
 =======================
 
