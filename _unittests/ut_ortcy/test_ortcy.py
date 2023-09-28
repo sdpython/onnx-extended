@@ -15,7 +15,10 @@ from onnx.checker import check_model
 from onnx_extended.ext_test_case import ExtTestCase
 
 try:
-    from onnx_extended.ortcy.wrap.ortinf import OrtSession
+    from onnx_extended.ortcy.wrap.ortinf import (
+        OrtSession,
+        get_ort_c_api_supported_version,
+    )
 except ImportError as e:
     msg = "libonnxruntime.so.1.16.0: cannot open shared object file"
     if msg in str(e):
@@ -33,6 +36,10 @@ except ImportError as e:
 
 
 class TestOrtCy(ExtTestCase):
+    def test_get_ort_c_api_supported_version(self):
+        v = get_ort_c_api_supported_version()
+        self.assertGreaterEqual(v, 16)
+
     @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
     def test_ort_get_available_providers(self):
         from onnx_extended.ortcy.wrap.ortinf import ort_get_available_providers

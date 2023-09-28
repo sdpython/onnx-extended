@@ -9,6 +9,8 @@
 
 namespace ortapi {
 
+inline int ort_c_api_supported_version() { return ORT_API_VERSION_SUPPORTED; }
+
 inline std::size_t ElementSize(ONNXTensorElementDataType elem_type) {
   switch (elem_type) {
   case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
