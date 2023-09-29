@@ -1,16 +1,28 @@
 import logging
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 from onnx import (
     AttributeProto,
     FunctionProto,
     GraphProto,
     ModelProto,
     NodeProto,
-    ValueInfoProto,
+    SparseTensorProto,
     TensorProto,
     TypeProto,
-    shape_inference,
+    ValueInfoProto,
 )
+from onnx.compose import merge_models
 from onnx.helper import (
     make_attribute,
     make_graph,
@@ -20,8 +32,17 @@ from onnx.helper import (
     np_dtype_to_tensor_dtype,
     set_model_props,
 )
+from onnx.shape_inference import infer_shapes as onnx_infer_shapes
+from onnx.version_converter import convert_version
+from .onnx_io import load_model
 
 logger = logging.getLogger("onnx-extended")
+
+_rev_type: Dict[int, str] = {
+    getattr(TensorProto, k): k
+    for k in dir(TensorProto)
+    if isinstance(getattr(TensorProto, k), int)
+}
 
 
 def _make_att_graph(name: str, new_body: GraphProto) -> AttributeProto:
@@ -433,7 +454,7 @@ def select_model_inputs_outputs(
     ::
 
         import onnx
-        from onnx_extended.tools.onnx_manipulations import select_model_inputs_outputs
+        from onnx_extended.tools.onnx_nodes import select_model_inputs_outputs
 
         onx = onnx.load(path)
         onx2 = select_model_inputs_outputs(
@@ -442,6 +463,8 @@ def select_model_inputs_outputs(
             overwrite={'a': (numpy.int32, None), 'b': (numpy.int64, None)})
         onnx.save(onx2, path2)
     """
+    if not isinstance(model, ModelProto):
+        raise TypeError(f"Unexpected type {type(model)} for model.")
     if inputs is not None and not isinstance(inputs, list):
         inputs = [inputs]
     if outputs is not None and not isinstance(outputs, list):
@@ -513,7 +536,7 @@ def select_model_inputs_outputs(
 
     known_shapes = {}
     if infer_shapes:
-        shapes = shape_inference.infer_shapes(model)
+        shapes = onnx_infer_shapes(model)
         for shape in shapes.graph.value_info:
             known_shapes[shape.name] = shape.type
         for shape in shapes.graph.input:
@@ -608,3 +631,190 @@ def select_model_inputs_outputs(
         onnx_model = onnx_remove_node_unused(onnx_model, recursive=False)
 
     return onnx_model
+
+
+def _info_type(typ: Union[TensorProto, TypeProto, SparseTensorProto]) -> Dict[str, str]:
+    if typ is None:
+        return {}
+    if isinstance(typ, (TensorProto, SparseTensorProto)):
+        shape = [str(i) for i in typ.dims]
+        return dict(
+            type="tensor", elem_type=_rev_type[typ.data_type], shape="x".join(shape)
+        )
+    if typ.tensor_type:
+        ret = dict(type="tensor", elem_type=_rev_type[typ.tensor_type.elem_type])
+        shape = []
+        for d in typ.tensor_type.shape.dim:
+            if d.dim_value:
+                shape.append(str(d.dim_value))
+            else:
+                shape.append(d.dim_param or "?")
+        ret["shape"] = "x".join(shape)
+        return ret
+
+    return dict(kind=str(type(typ)))
+
+
+def enumerate_onnx_node_types(
+    model: Union[str, ModelProto, GraphProto],
+    level: int = 0,
+    shapes: Optional[Dict[str, TypeProto]] = None,
+    external: bool = True,
+) -> Generator[Dict[str, Union[str, float]], None, None]:
+    """
+    Looks into types for every node in a model.
+
+    :param model: a string or a proto
+    :param level: level (recursivity level)
+    :param shapes: known shapes,
+        returned by :func:onnx.shape_inference.infer_shapes`
+    :param external: loads the external data if the model is loaded
+    :return: a list of dictionary which can be turned into a dataframe.
+    """
+    proto = load_model(model, external=external)
+    if shapes is None and isinstance(proto, ModelProto):
+        p2 = onnx_infer_shapes(proto)
+        values = p2.graph.value_info
+        shapes = {}
+        for value in values:
+            shapes[value.name] = value.type
+        for o in proto.graph.output:
+            if o.name not in shapes:
+                shapes[o.name] = o.type
+
+    if isinstance(proto, ModelProto):
+        if shapes is None:
+            raise RuntimeError("shape inference has failed.")
+        for item in enumerate_onnx_node_types(proto.graph, level=level, shapes=shapes):
+            yield item
+
+    elif isinstance(model, FunctionProto):
+        raise NotImplementedError(f"Not implemented for type {type(proto)}.")
+
+    else:
+        for inp in proto.input:
+            obs = dict(level=level, name=inp.name, kind="input")
+            obs.update(_info_type(inp.type))
+            yield obs
+
+        for init in proto.initializer:
+            obs = dict(level=level, name=init.name, kind="initializer")
+            obs.update(_info_type(init))
+            yield obs
+
+        for init in proto.sparse_initializer:
+            obs = dict(level=level, name=init.name, kind="sparse_initializer")
+            obs.update(_info_type(init))
+            yield obs
+
+        for node in proto.node:
+            obs = dict(
+                level=level,
+                name=node.name,
+                kind="Op",
+                domain=node.domain,
+                type=node.op_type,
+                inputs=",".join(node.input),
+                outputs=",".join(node.output),
+                input_types=",".join(
+                    _info_type(shapes.get(i, None)).get("elem_type", "")
+                    for i in node.input
+                ),
+                output_types=",".join(
+                    _info_type(shapes.get(i, None)).get("elem_type", "")
+                    for i in node.output
+                ),
+            )
+            yield obs
+
+            for att in node.attribute:
+                if att.type == AttributeProto.GRAPH:
+                    obs = dict(name=att.name, kind="attribute", level=level + 1)
+                    yield obs
+                    for item in enumerate_onnx_node_types(
+                        att.g, level=level + 1, shapes=shapes
+                    ):
+                        yield item
+
+            for out in node.output:
+                obs = dict(name=out, kind="result", level=level)
+                obs.update(_info_type(shapes.get(out, None)))
+                yield obs
+
+        for out in proto.output:
+            obs = dict(level=level, name=out.name, kind="output")
+            obs.update(_info_type(out.type))
+            yield obs
+
+
+def enumerate_model_tensors(
+    model: ModelProto,
+) -> Iterable[Tuple[TensorProto, bool]]:
+    """
+    Enumerates all tensors in a model.
+
+    :param model: model to process
+    :return: iterator on a couple (TensorProto, bool),
+        the boolean indicates if the data is external
+    """
+    from onnx.external_data_helper import (
+        _get_all_tensors,
+        uses_external_data,
+    )
+
+    for tensor in _get_all_tensors(model):
+        yield tensor, uses_external_data(tensor)
+
+
+def onnx_merge_models(
+    m1: ModelProto, m2: ModelProto, io_map: List[Tuple[str, str]], verbose: int = 0
+) -> ModelProto:
+    """
+    Merges two models. The functions also checks that the model
+    have the same defined opsets (except for function).
+    If not, the most recent opset is selected.
+
+    :param m1: first model
+    :param m2: second model
+    :param io_map: mapping between outputs of the first model and
+        and the input of the second one
+    :param verbose: display some information if one of the model was updated
+    :return: new model
+    """
+    opsets1 = {o.domain: o.version for o in m1.opset_import}
+    opsets2 = {o.domain: o.version for o in m2.opset_import}
+    update = {}
+    for k, v2 in opsets2.items():
+        if k not in opsets1:
+            continue
+        v1 = opsets1[k]
+        if v1 == v2:
+            continue
+        update[k] = max(v1, v2)
+    if len(update) > 0 and verbose > 0:
+        print(f"[onnx_merge_models] selected opsets: {update}")
+    if "" in update:
+        if opsets1[""] != update[""]:
+            if verbose:
+                print(
+                    f"[onnx_merge_models] update model 1 from "
+                    f"{opsets1['']} to {update['']}"
+                )
+            m1 = convert_version(m1, update[""])
+        if opsets2[""] != update[""]:
+            if verbose:
+                print(
+                    f"[onnx_merge_models] update model 2 from "
+                    f"{opsets2['']} to {update['']}"
+                )
+            m2 = convert_version(m2, update[""])
+    if m1.ir_version != m2.ir_version:
+        new_ir = max(m1.ir_version, m2.ir_version)
+        m1.ir_version = new_ir
+        m2.ir_version = new_ir
+    if verbose:
+        for k, v in update.items():
+            if k == "":
+                continue
+            print(f"[onnx_merge_models] no update implemented for domain {k!r} to {v}")
+    return merge_models(m1, m2, io_map=io_map)

@@ -196,7 +196,7 @@ def display_intermediate_results(
     :param external: loads the external data or not
     :param fprint: function to print
     """
-    from .tools.onnx_tools import enumerate_onnx_node_types
+    from .tools.onnx_nodes import enumerate_onnx_node_types
 
     if save is not None:
         ext = os.path.splitext(save)[-1]
@@ -298,6 +298,8 @@ def print_proto(proto: str, fmt: str = "raw", external: bool = True):
     else:
         proto_loaded = proto
 
+    if proto_loaded is None:
+        raise ValueError(f"Filename {proto!r} could not be loaded.")
     print(f"Type: {type(proto_loaded)}")
     if fmt == "raw":
         print(proto_loaded)
@@ -309,8 +311,17 @@ def print_proto(proto: str, fmt: str = "raw", external: bool = True):
         graph = Graph(proto_loaded)
         for node in graph:
             print(str(node).replace("<parent>, ", ""))
+    elif fmt == "opsets":
+        print(f"IR_VERSION={proto_loaded.ir_version}")
+        opsets = proto_loaded.opset_import
+        for op in opsets:
+            print(f"{op.domain or 'ai.onnx'}: {op.version}")
+        for f in proto_loaded.functions:
+            print(f"Function: {f.name}")
+            for op in f.opset_import:
+                print(f"  {op.domain or 'ai.onnx'}: {op.version}")
     else:
-        raise ValueError(f"Unexpected value for fmt={fmt!r}.")
+        raise ValueError(f"Unexpected value {fmt!r} for fmt.")
 
 
 def cmd_quantize(
@@ -432,7 +443,7 @@ def cmd_select(
     :param outputs: list of outputs or empty to keep the original outputs
     :param verbose: verbosity level
     """
-    from .tools.onnx_manipulations import select_model_inputs_outputs
+    from .tools.onnx_nodes import select_model_inputs_outputs
 
     if isinstance(model, str):
         if not os.path.exists(model):

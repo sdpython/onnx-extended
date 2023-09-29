@@ -111,7 +111,7 @@ to extract the first layers.
     import os
     import onnx
     from onnx_extended.tools import load_model, save_model, load_external
-    from onnx_extended.tools.onnx_manipulations import select_model_inputs_outputs
+    from onnx_extended.tools.onnx_nodes import select_model_inputs_outputs
 
     llama = (
         "Llama-2-Onnx/7B_FT_float16/ONNX/LlamaV2_7B_FT_float16.onnx"

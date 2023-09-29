@@ -23,7 +23,7 @@ from onnx_extended.tools import (
     load_external,
 )
 from onnx_extended._command_lines import print_proto, display_intermediate_results
-from onnx_extended.tools.onnx_manipulations import select_model_inputs_outputs
+from onnx_extended.tools.onnx_nodes import select_model_inputs_outputs
 
 
 class TestSimple(ExtTestCase):
@@ -90,12 +90,29 @@ class TestSimple(ExtTestCase):
                 list(sorted(os.listdir(root))),
                 ["model_ext.onnx", "model_ext.onnx.data"],
             )
-            st = StringIO()
-            with redirect_stdout(st):
-                print_proto(name, external=False)
-            text = st.getvalue()
-            self.assertIn('value: "model_ext.onnx.data"', text)
-            self.assertIn('key: "offset"', text)
+
+            with self.subTest(fmt="raw"):
+                st = StringIO()
+                with redirect_stdout(st):
+                    print_proto(name, external=False, fmt="raw")
+                text = st.getvalue()
+                self.assertIn('value: "model_ext.onnx.data"', text)
+                self.assertIn('key: "offset"', text)
+
+            with self.subTest(fmt="nodes"):
+                st = StringIO()
+                with redirect_stdout(st):
+                    print_proto(name, external=False, fmt="nodes")
+                text = st.getvalue()
+                self.assertIn("Node(0,", text)
+
+            with self.subTest(fmt="opsets"):
+                st = StringIO()
+                with redirect_stdout(st):
+                    print_proto(name, external=False, fmt="opsets")
+                text = st.getvalue()
+                self.assertIn("IR_VERSION", text)
+                self.assertIn("ai.onnx:", text)
 
     def test_display_intermediate_results(self):
         model = self._get_model()

@@ -1,6 +1,11 @@
 Change Logs
 ===========
 
+0.2.3
++++++
+
+* :pr:`89`: add a function to merge models and update them if both have different opsets
+
 0.2.2
 +++++
 
