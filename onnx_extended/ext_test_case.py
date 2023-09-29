@@ -50,7 +50,7 @@ def measure_time(
     warmup: int = 1,
     div_by_number: bool = True,
     max_time: Optional[float] = None,
-) -> Dict[str, Any]:
+) -> Dict[str, float]:
     """
     Measures a statement and returns the results as a dictionary.
 
@@ -69,11 +69,12 @@ def measure_time(
     .. runpython::
         :showcode:
 
-        from onnx_extended.ext_test_case import measure_time
+        from pprint import pprint
         from math import cos
+        from onnx_extended.ext_test_case import measure_time
 
         res = measure_time(lambda: cos(0.5))
-        print(res)
+        pprint(res)
 
     See `Timer.repeat <https://docs.python.org/3/library/
     timeit.html?timeit.Timer.repeat>`_
