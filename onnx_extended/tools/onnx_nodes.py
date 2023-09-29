@@ -32,7 +32,8 @@ from onnx.helper import (
     np_dtype_to_tensor_dtype,
     set_model_props,
 )
-from onnx.shape_inference import infer_shapes
+from onnx.shape_inference import infer_shapes as onnx_infer_shapes
+from onnx.version_converter import convert_version
 from .onnx_io import load_model
 
 logger = logging.getLogger("onnx-extended")
@@ -462,6 +463,8 @@ def select_model_inputs_outputs(
             overwrite={'a': (numpy.int32, None), 'b': (numpy.int64, None)})
         onnx.save(onx2, path2)
     """
+    if not isinstance(model, ModelProto):
+        raise TypeError(f"Unexpected type {type(model)} for model.")
     if inputs is not None and not isinstance(inputs, list):
         inputs = [inputs]
     if outputs is not None and not isinstance(outputs, list):
@@ -533,7 +536,7 @@ def select_model_inputs_outputs(
 
     known_shapes = {}
     if infer_shapes:
-        shapes = infer_shapes(model)
+        shapes = onnx_infer_shapes(model)
         for shape in shapes.graph.value_info:
             known_shapes[shape.name] = shape.type
         for shape in shapes.graph.input:
@@ -670,7 +673,7 @@ def enumerate_onnx_node_types(
     """
     proto = load_model(model, external=external)
     if shapes is None and isinstance(proto, ModelProto):
-        p2 = infer_shapes(proto)
+        p2 = onnx_infer_shapes(proto)
         values = p2.graph.value_info
         shapes = {}
         for value in values:
@@ -764,15 +767,54 @@ def enumerate_model_tensors(
 
 
 def onnx_merge_models(
-    m1: ModelProto, m2: ModelProto, io_map: List[Tuple[str, str]]
+    m1: ModelProto, m2: ModelProto, io_map: List[Tuple[str, str]], verbose: int = 0
 ) -> ModelProto:
     """
-    Merges two models.
+    Merges two models. The functions also checks that the model
+    have the same defined opsets (except for function).
+    If not, the most recent opset is selected.
 
     :param m1: first model
     :param m2: second model
     :param io_map: mapping between outputs of the first model and
         and the input of the second one
+    :param verbose: display some information if one of the model was updated
     :return: new model
     """
+    opsets1 = {o.domain: o.version for o in m1.opset_import}
+    opsets2 = {o.domain: o.version for o in m2.opset_import}
+    update = {}
+    for k, v2 in opsets2.items():
+        if k not in opsets1:
+            continue
+        v1 = opsets1[k]
+        if v1 == v2:
+            continue
+        update[k] = max(v1, v2)
+    if len(update) > 0 and verbose > 0:
+        print(f"[onnx_merge_models] selected opsets: {update}")
+    if "" in update:
+        if opsets1[""] != update[""]:
+            if verbose:
+                print(
+                    f"[onnx_merge_models] update model 1 from "
+                    f"{opsets1['']} to {update['']}"
+                )
+            m1 = convert_version(m1, update[""])
+        if opsets2[""] != update[""]:
+            if verbose:
+                print(
+                    f"[onnx_merge_models] update model 2 from "
+                    f"{opsets2['']} to {update['']}"
+                )
+            m2 = convert_version(m2, update[""])
+    if m1.ir_version != m2.ir_version:
+        new_ir = max(m1.ir_version, m2.ir_version)
+        m1.ir_version = new_ir
+        m2.ir_version = new_ir
+    if verbose:
+        for k, v in update.items():
+            if k == "":
+                continue
+            print(f"[onnx_merge_models] no update implemented for domain {k!r} to {v}")
     return merge_models(m1, m2, io_map=io_map)

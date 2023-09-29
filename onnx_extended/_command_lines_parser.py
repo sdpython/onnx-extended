@@ -173,9 +173,11 @@ def get_parser_print() -> ArgumentParser:
     parser.add_argument(
         "-f",
         "--format",
-        choices=["raw", "nodes"],
+        choices=["raw", "nodes", "opsets"],
         default="raw",
-        help="format ot use to display the graph",
+        help="format to use to display the graph, 'raw' means the json-like format, "
+        "'nodes' shows all the nodes, input and outputs in the main graph, "
+        "'opsets' shows the opsets and ir_version",
     )
     parser.add_argument(
         "-e",
@@ -598,7 +600,7 @@ def _cmd_merge(argv):
     m2 = load_model(args.m2)
     spl = args.iomap.split(";")
     iomap = [tuple(v.split(",")) for v in spl]
-    merged = onnx_merge_models(m1, m2, iomap)
+    merged = onnx_merge_models(m1, m2, iomap, verbose=args.verbose)
     save_model(merged, args.output)
 
 
@@ -627,15 +629,21 @@ def get_parser_merge() -> ArgumentParser:
         "-o",
         "--output",
         type=str,
-        required=False,
+        required=True,
         help="output name",
     )
     parser.add_argument(
         "-m",
         "--iomap",
         type=str,
-        required=False,
+        required=True,
         help="list of ; separated values, example: a1,b1;a2,b2",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
     )
     return parser
 

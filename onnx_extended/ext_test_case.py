@@ -242,7 +242,13 @@ class ExtTestCase(unittest.TestCase):
         serr = StringIO()
         with redirect_stdout(sout):
             with redirect_stderr(serr):
-                res = fct()
+                try:
+                    res = fct()
+                except Exception as e:
+                    raise AssertionError(
+                        f"function {fct} failed, stdout="
+                        f"\n{sout.getvalue()}\n---\nstderr=\n{serr.getvalue()}"
+                    ) from e
         return res, sout.getvalue(), serr.getvalue()
 
 
