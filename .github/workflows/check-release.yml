@@ -26,6 +26,7 @@ jobs:
           git config core.sparsecheckout true
           echo _unittests/ >> .git/info/sparse-checkout
           echo _doc/examples/ >> .git/info/sparse-checkout
+          echo pyproject.toml >> .git/info/sparse-checkout
           echo requirements-dev.txt >> .git/info/sparse-checkout
           git pull origin main
           VERSION=$(python -c "import onnx_extended;print(onnx_extended.__version__)")
