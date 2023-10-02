@@ -1,0 +1,29 @@
+name: Check Release
+on:
+  workflow_dispatch:
+  schedule:
+    # every first day of the month
+    - cron:  '0 0 1 * *'
+jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: git checkout 
+        run: |
+          git init
+          git remote add -f origin https://github.com/sdpython/onnx-extended.git
+          git config core.sparsecheckout true
+          echo _unittests/ >> .git/info/sparse-checkout
+          echo requirements-dev.txt >> .git/info/sparse-checkout
+          git pull origin main
+      - name: ls
+        run: ls .
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install onnx-extended
+        run: pip install onnx-extended
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      - name: Run pytest
+        run: pytest _unittests --ignore-glob=**LONG*.py
