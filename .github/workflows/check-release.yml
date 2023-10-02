@@ -15,6 +15,7 @@ jobs:
           git remote add -f origin https://github.com/sdpython/onnx-extended.git
           git config core.sparsecheckout true
           echo _unittests/ >> .git/info/sparse-checkout
+          echo _doc/examples/ >> .git/info/sparse-checkout
           echo requirements-dev.txt >> .git/info/sparse-checkout
           git pull origin main
       - name: ls
