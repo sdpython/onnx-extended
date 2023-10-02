@@ -4,8 +4,9 @@ on:
   schedule:
     # every first day of the month
     - cron:  '0 0 1 * *'
+  push:
 jobs:
-  mypy:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: git checkout 
@@ -23,6 +24,8 @@ jobs:
           python-version: '3.11'
       - name: Install onnx-extended
         run: pip install onnx-extended
+      - name: Check installation
+        run: python -c "import onnx_extended;print(onnx_extended.__version__,onnx_extended.__file__)"
       - name: Install
         run: pip install -r requirements-dev.txt
       - name: Run pytest
