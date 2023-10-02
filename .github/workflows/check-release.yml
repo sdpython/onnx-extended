@@ -1,5 +1,6 @@
 name: Check Release
 on:
+  workflow_dispatch:
   schedule:
     # every first day of the month
     - cron:  '0 0 1 * *'
