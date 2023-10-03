@@ -5,13 +5,14 @@ on:
     # every first day of the month
     - cron:  '0 0 1 * *'
   push:
+
 jobs:
-  release:
+
+  release-linux-mac:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest]
-        python-version: ['3.11']  # 3.10 does not work on ubuntu
-        # python-version: ['3.11', '3.10']
+        python-version: ['3.11', '3.10']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-python@v4
@@ -36,6 +37,41 @@ jobs:
           git pull origin main
           VERSION=$(python -c "import onnx_extended;print(onnx_extended.__version__)")
           git checkout tags/${VERSION} -b thistag
+      - name: ls
+        run: ls .
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+      - name: Run pytest
+        run: pytest _unittests --ignore-glob=**LONG*.py
+
+  release-windows:
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python-version: ['3.11', '3.10']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install onnx-extended
+        run: pip install onnx-extended
+      - name: Version
+        run: |
+          python -c "import onnx_extended;print(onnx_extended.__version__)"
+      - name: Installation path
+        run: python -c "import onnx_extended;print(onnx_extended.__file__)"
+      - name: git checkout
+        run: |
+          git init
+          git remote add -f origin https://github.com/sdpython/onnx-extended.git
+          git config core.sparsecheckout true
+          echo _unittests/ >> .git\info\sparse-checkout
+          echo _doc/examples/ >> .git\info\sparse-checkout
+          echo pyproject.toml >> .git\info\sparse-checkout
+          echo requirements-dev.txt >> .git/info/sparse-checkout
+          git pull origin main
+          git checkout tags/0.2.2 -b thistag
       - name: ls
         run: ls .
       - name: Install requirements
