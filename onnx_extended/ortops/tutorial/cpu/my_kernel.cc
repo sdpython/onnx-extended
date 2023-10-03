@@ -2,7 +2,7 @@
 
 namespace ortops {
 
-MyCustomKernel::MyCustomKernel(const OrtApi &api, const OrtKernelInfo *info) {}
+MyCustomKernel::MyCustomKernel(const OrtApi & /* api */, const OrtKernelInfo * /* info */) {}
 
 void MyCustomKernel::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
@@ -18,10 +18,10 @@ void MyCustomKernel::Compute(OrtKernelContext *context) {
   Ort::UnownedValue output = ctx.GetOutput(0, dimensions);
   float *out = output.GetTensorMutableData<float>();
 
-  const size_t size = output.GetTensorTypeAndShapeInfo().GetElementCount();
+  const std::size_t size = output.GetTensorTypeAndShapeInfo().GetElementCount();
 
   // Do computation
-  for (size_t i = 0; i < size; i++) {
+  for (std::size_t i = 0; i < size; i++) {
     out[i] = X[i] + Y[i];
   }
 }
@@ -39,13 +39,13 @@ const char *MyCustomOp::GetExecutionProviderType() const {
 
 size_t MyCustomOp::GetInputTypeCount() const { return 2; };
 
-ONNXTensorElementDataType MyCustomOp::GetInputType(size_t index) const {
+ONNXTensorElementDataType MyCustomOp::GetInputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 }
 
 size_t MyCustomOp::GetOutputTypeCount() const { return 1; };
 
-ONNXTensorElementDataType MyCustomOp::GetOutputType(size_t index) const {
+ONNXTensorElementDataType MyCustomOp::GetOutputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 }
 

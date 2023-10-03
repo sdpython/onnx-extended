@@ -12,7 +12,7 @@ class Conv(OpRun):
         self, onnx_node: NodeProto, run_params: Dict[str, Any], schema: Any = None
     ):
         OpRun.__init__(self, onnx_node, run_params, schema)
-        self.cache_ = {}
+        self.cache_: Dict[type, Any] = {}
 
     def _run(
         self,

@@ -46,6 +46,8 @@ cdef extern from "<vector>" namespace "std":
 
 cdef extern from "ortapi.h" namespace "ortapi":
 
+    cdef int ort_c_api_supported_version()
+
     cdef cppclass OrtShape:
         OrtShape()
         void init(size_t)
@@ -108,6 +110,13 @@ def ort_get_available_providers():
     return r
 
 
+def get_ort_c_api_supported_version():
+    """
+    Returns the supported version of onnxruntime C API.
+    """
+    return ort_c_api_supported_version()
+
+
 cdef class OrtSession:
     """
     Wrapper around :epkg:`onnxruntime C API` based on :epkg:`cython`.
@@ -125,6 +134,8 @@ cdef class OrtSession:
         the execution of the graph
     :param intra_op_num_threads: number of threads used to parallelize
         the execution within nodes
+
+    .. versionadded:: 0.2.0
     """
 
     # see https://github.com/onnx/onnx/blob/main/onnx/onnx.proto3#L485

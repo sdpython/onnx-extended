@@ -145,8 +145,11 @@ class CReferenceEvaluator(ReferenceEvaluator):
         new_cls = ReferenceEvaluatorBackend[NewRef]
         backend = create_reference_backend(new_cls, path_to_test=root)
         beckend.run()
+
+    .. versionadded:: 0.2.0
     """
 
+    @staticmethod
     def default_ops():
         from onnx_extended.reference.c_ops.c_op_conv import Conv
         from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (

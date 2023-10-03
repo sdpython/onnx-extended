@@ -2,7 +2,7 @@ import os
 import sys
 import unittest
 import warnings
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from timeit import Timer
@@ -50,7 +50,7 @@ def measure_time(
     warmup: int = 1,
     div_by_number: bool = True,
     max_time: Optional[float] = None,
-) -> Dict[str, Any]:
+) -> Dict[str, float]:
     """
     Measures a statement and returns the results as a dictionary.
 
@@ -69,11 +69,12 @@ def measure_time(
     .. runpython::
         :showcode:
 
-        from onnx_extended.ext_test_case import measure_time
+        from pprint import pprint
         from math import cos
+        from onnx_extended.ext_test_case import measure_time
 
         res = measure_time(lambda: cos(0.5))
-        print(res)
+        pprint(res)
 
     See `Timer.repeat <https://docs.python.org/3/library/
     timeit.html?timeit.Timer.repeat>`_
@@ -107,7 +108,7 @@ def measure_time(
                 "div_by_number must be set to True of max_time is defined."
             )
         i = 1
-        total_time = 0
+        total_time = 0.0
         results = []
         while True:
             for j in (1, 2):
@@ -168,7 +169,7 @@ def measure_time(
 
 
 class ExtTestCase(unittest.TestCase):
-    _warns = []
+    _warns: List[Tuple[str, int, Warning]] = []
 
     def assertExists(self, name):
         if not os.path.exists(name):
@@ -198,7 +199,7 @@ class ExtTestCase(unittest.TestCase):
             value = numpy.array(value).astype(expected.dtype)
         self.assertEqualArray(expected, value, atol=atol, rtol=rtol)
 
-    def assertRaise(self, fct: Callable, exc_type: Exception):
+    def assertRaise(self, fct: Callable, exc_type: type[Exception]):
         try:
             fct()
         except exc_type as e:
@@ -241,7 +242,13 @@ class ExtTestCase(unittest.TestCase):
         serr = StringIO()
         with redirect_stdout(sout):
             with redirect_stderr(serr):
-                res = fct()
+                try:
+                    res = fct()
+                except Exception as e:
+                    raise AssertionError(
+                        f"function {fct} failed, stdout="
+                        f"\n{sout.getvalue()}\n---\nstderr=\n{serr.getvalue()}"
+                    ) from e
         return res, sout.getvalue(), serr.getvalue()
 
 
@@ -257,7 +264,7 @@ def get_parsed_args(
     tries: int = 2,
     expose: Optional[str] = None,
     **kwargs: Dict[str, Tuple[Union[int, str, float], str]],
-) -> ArgumentParser:
+) -> Namespace:
     """
     Returns parsed arguments for examples in this package.
 

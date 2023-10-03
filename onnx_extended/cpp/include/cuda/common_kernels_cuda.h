@@ -7,7 +7,7 @@
 
 namespace ortops {
 
-inline const char *is_aligned(const void *ptr, size_t byte_count = 16) {
+inline const char *is_aligned(const void *ptr, std::size_t byte_count = 16) {
   if (ptr == nullptr)
     return "N";
   return (uintptr_t)ptr % byte_count == 0 ? "A" : "-";
@@ -111,11 +111,11 @@ inline cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
 #endif
   default:
 #if defined(CUDA_VERSION)
-    EXT_THROW("(ToCudaDataType) Unexpected element_type=", element_type,
+    EXT_THROW("(ToCudaDataType) Unexpected element_type=", (int64_t)element_type,
               " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION,
               ".");
 #else
-    EXT_THROW("(ToCudaDataType) Unexpected element_type=", element_type,
+    EXT_THROW("(ToCudaDataType) Unexpected element_type=", (int64_t)element_type,
               " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
 #endif
   }
@@ -140,7 +140,7 @@ inline int32_t TypeSize(ONNXTensorElementDataType element_type) {
               " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION,
               ".");
 #else
-    EXT_THROW("(TypeSize) Unexpected element_type=", element_type,
+    EXT_THROW("(TypeSize) Unexpected element_type=", (int64_t)element_type,
               " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
 #endif
   }
@@ -161,10 +161,9 @@ template <typename T>
 void _check_cuda(T err, const char *const func, const char *const file,
                  const int line) {
   if (err != cudaSuccess) {
-    std::stringstream strstr;
-    strstr << "CUDA error at: " << file << ":" << line << std::endl;
-    strstr << cudaGetErrorString(err) << " " << func << std::endl;
-    throw strstr.str();
+    throw std::runtime_error(onnx_extended_helpers::MakeString(
+        "CUDA error at: ", file, ":", line, "\n", cudaGetErrorString(err), " ",
+        func, "\n"));
   }
 }
 

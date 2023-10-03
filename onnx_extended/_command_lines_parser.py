@@ -18,25 +18,28 @@ def get_main_parser() -> ArgumentParser:
             "store",
             "check",
             "display",
+            "external",
+            "merge",
+            "plot",
             "print",
             "quantize",
             "select",
-            "external",
-            "plot",
+            "store",
         ],
         help=dedent(
             """
-        Select a command.
+        Selects a command.
         
-        'store' executes a model with class CReferenceEvaluator and stores every
-        intermediate results on disk with a short onnx to execute the node.
-        'check' checks a runtime on stored intermediate results.
+        'check' checks a runtime on stored intermediate results,
         'display' displays the shapes inferences results,
+        'external' saves the coefficients in a different files for an onnx model,
+        'merge' merges two models,
         'print' prints out a model or a protobuf file on the standard output,
+        'plot' plots a graph like a profiling,
         'quantize' quantizes an onnx model in simple ways,
         'select' selects a subgraph inside a bigger models,
-        'external' saves the coefficients in a different files for an onnx model,
-        'plot' plots a graph like a profiling
+        'store' executes a model with class CReferenceEvaluator and stores every
+        intermediate results on disk with a short onnx to execute the node.
         """
         ),
     )
@@ -135,6 +138,14 @@ def get_parser_display() -> ArgumentParser:
         default=12,
         help="column size when printed on standard output",
     )
+    parser.add_argument(
+        "-e",
+        "--external",
+        type=int,
+        required=False,
+        default=1,
+        help="load external data?",
+    )
     return parser
 
 
@@ -162,9 +173,19 @@ def get_parser_print() -> ArgumentParser:
     parser.add_argument(
         "-f",
         "--format",
-        choices=["raw", "nodes"],
+        choices=["raw", "nodes", "opsets"],
         default="raw",
-        help="format ot use to display the graph",
+        help="format to use to display the graph, 'raw' means the json-like format, "
+        "'nodes' shows all the nodes, input and outputs in the main graph, "
+        "'opsets' shows the opsets and ir_version",
+    )
+    parser.add_argument(
+        "-e",
+        "--external",
+        type=int,
+        required=False,
+        default=1,
+        help="load external data?",
     )
     return parser
 
@@ -248,6 +269,14 @@ def get_parser_quantize() -> ArgumentParser:
         type=str,
         help="to avoid quantizing nodes if their names belongs "
         "to that list (comma separated)",
+    )
+    parser.add_argument(
+        "-p",
+        "--options",
+        type=str,
+        default="NONE",
+        help="options to use for quantization, NONE (default) or OPTIMIZE, "
+        "several values can be passed separated by a comma",
     )
     return parser
 
@@ -364,7 +393,9 @@ def _cmd_display(argv):
 
     parser = get_parser_display()
     args = parser.parse_args(argv[1:])
-    display_intermediate_results(model=args.model, save=args.save, tab=args.tab)
+    display_intermediate_results(
+        model=args.model, save=args.save, tab=args.tab, external=args.external
+    )
 
 
 def _cmd_print(argv):
@@ -372,7 +403,7 @@ def _cmd_print(argv):
 
     parser = get_parser_print()
     args = parser.parse_args(argv[1:])
-    print_proto(proto=args.input, fmt=args.format)
+    print_proto(proto=args.input, fmt=args.format, external=args.external)
 
 
 def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
@@ -382,12 +413,32 @@ def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
     return [dict(name=n) for n in names]
 
 
+def _process_options(text: Optional[str]) -> "QuantizeOptions":  # noqa: F821
+    from .tools.graph import QuantizeOptions
+
+    if text is None:
+        return QuantizeOptions.NONE
+    names = text.split(",")
+    value = QuantizeOptions.NONE
+    for name in names:
+        name = name.upper()
+        if hasattr(QuantizeOptions, name):
+            value |= getattr(QuantizeOptions, name)
+        else:
+            raise ValueError(
+                f"Unable to parse option name among {dir(QuantizeOptions)}."
+            )
+
+    return value
+
+
 def _cmd_quantize(argv):
     from ._command_lines import cmd_quantize
 
     parser = get_parser_quantize()
     args = parser.parse_args(argv[1:])
     processed_exceptions = _process_exceptions(args.exclude)
+    processed_options = _process_options(args.options)
     cmd_quantize(
         model=args.input,
         output=args.output,
@@ -398,6 +449,7 @@ def _cmd_quantize(argv):
         quiet=args.quiet,
         index_transpose=args.transpose,
         exceptions=processed_exceptions,
+        options=processed_options,
     )
 
 
@@ -457,7 +509,8 @@ def get_parser_plot() -> ArgumentParser:
         prog="plot",
         description=dedent(
             """
-        Plots a graph reprsenting the data loaded from a filename.
+        Plots a graph representing the data loaded from a
+        profiling stored in a filename.
         """
         ),
         epilog="Plots a graph",
@@ -537,6 +590,64 @@ def _cmd_plot(argv):
     )
 
 
+def _cmd_merge(argv):
+    from .tools.onnx_nodes import onnx_merge_models
+    from .tools.onnx_io import load_model, save_model
+
+    parser = get_parser_merge()
+    args = parser.parse_args(argv[1:])
+    m1 = load_model(args.m1)
+    m2 = load_model(args.m2)
+    spl = args.iomap.split(";")
+    iomap = [tuple(v.split(",")) for v in spl]
+    merged = onnx_merge_models(m1, m2, iomap, verbose=args.verbose)
+    save_model(merged, args.output)
+
+
+def get_parser_merge() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="merge",
+        description=dedent(
+            """
+        Merges two models.
+        """
+        ),
+    )
+    parser.add_argument(
+        "--m1",
+        type=str,
+        required=True,
+        help="first onnx model",
+    )
+    parser.add_argument(
+        "--m2",
+        type=str,
+        required=True,
+        help="second onnx model",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        required=True,
+        help="output name",
+    )
+    parser.add_argument(
+        "-m",
+        "--iomap",
+        type=str,
+        required=True,
+        help="list of ; separated values, example: a1,b1;a2,b2",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
+    )
+    return parser
+
+
 def main(argv: Optional[List[Any]] = None):
     if argv is None:
         argv = sys.argv[1:]
@@ -546,13 +657,14 @@ def main(argv: Optional[List[Any]] = None):
             parser.parse_args(argv)
         else:
             parsers = dict(
-                store=get_parser_store,
-                print=get_parser_print,
                 display=get_parser_display,
+                external=get_parser_external,
+                merge=get_parser_merge,
+                plot=get_parser_plot,
+                print=get_parser_print,
                 quantize=get_parser_quantize,
                 select=get_parser_select,
-                external=get_parser_external,
-                plot=get_parser_plot,
+                store=get_parser_store,
             )
             cmd = argv[0]
             if cmd not in parsers:
@@ -565,13 +677,14 @@ def main(argv: Optional[List[Any]] = None):
 
     cmd = argv[0]
     fcts = dict(
-        store=_cmd_store,
         display=_cmd_display,
+        external=_cmd_external,
+        merge=_cmd_merge,
+        plot=_cmd_plot,
         print=_cmd_print,
         quantize=_cmd_quantize,
         select=_cmd_select,
-        external=_cmd_external,
-        plot=_cmd_plot,
+        store=_cmd_store,
     )
     if cmd in fcts:
         fcts[cmd](argv)

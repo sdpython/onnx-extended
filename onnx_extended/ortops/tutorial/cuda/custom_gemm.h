@@ -70,15 +70,15 @@ struct CustomGemmOp : Ort::CustomOpBase<CustomGemmOp, CustomGemmKernel> {
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
 
-  size_t GetInputTypeCount() const;
-  ONNXTensorElementDataType GetInputType(size_t index) const;
+  std::size_t GetInputTypeCount() const;
+  ONNXTensorElementDataType GetInputType(std::size_t index) const;
   OrtCustomOpInputOutputCharacteristic
-  GetInputCharacteristic(size_t index) const;
+  GetInputCharacteristic(std::size_t index) const;
 
-  size_t GetOutputTypeCount() const;
-  ONNXTensorElementDataType GetOutputType(size_t index) const;
+  std::size_t GetOutputTypeCount() const;
+  ONNXTensorElementDataType GetOutputType(std::size_t index) const;
   OrtCustomOpInputOutputCharacteristic
-  GetOutputCharacteristic(size_t index) const;
+  GetOutputCharacteristic(std::size_t index) const;
 
 private:
   const char *op_name_;

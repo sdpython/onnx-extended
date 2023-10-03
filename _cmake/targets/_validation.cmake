@@ -8,6 +8,7 @@ add_library(lib_validation_cpp STATIC
   ../onnx_extended/validation/cpu/murmur_hash3_sklearn.cpp
   ../onnx_extended/validation/cpu/speed_metrics.cpp
   ../onnx_extended/validation/cpu/vector_function.cpp)
+target_compile_definitions(lib_validation_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 set_property(TARGET lib_validation_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 local_pybind11_add_module(
@@ -18,11 +19,17 @@ message(STATUS "    LINK _validation <- lib_validation_cpp")
 target_link_libraries(_validation PRIVATE lib_validation_cpp)
 
 add_executable(test_validation_cpp ../_unittests/ut_validation/test_vector_sum.cpp)
+target_compile_definitions(test_validation_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(
   test_validation_cpp
   PRIVATE
   "${ROOT_PROJECT_PATH}"
+  "${ROOT_INCLUDE_PATH}"
   "${ROOT_UNITTEST_PATH}")
 message(STATUS "    LINK test_validation_cpp <- lib_validation_cpp")
-target_link_libraries(test_validation_cpp PRIVATE lib_validation_cpp)
+target_link_libraries(
+  test_validation_cpp
+  PRIVATE
+  lib_validation_cpp
+  common)
 add_test(NAME test_validation_cpp COMMAND test_validation_cpp)

@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include "ortapi_version.h"
 #include "custom_gemm.h"
 #include "ort_tutorial_cuda_lib.h"
 
@@ -18,7 +19,7 @@ static void AddOrtCustomOpDomainToContainer(Ort::CustomOpDomain &&domain) {
 
 OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
                                           const OrtApiBase *api_base) {
-  Ort::InitApi(api_base->GetApi(ORT_API_VERSION));
+  Ort::InitApi(api_base->GetApi(ORT_API_VERSION_SUPPORTED));
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.

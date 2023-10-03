@@ -15,8 +15,10 @@ with two instructions:
 
 By default, *cmake* builds with CUDA if it is available. It can be disabled:
 
-* ``python setup.py build_ext --inplace --with-cuda=0``, the legacy way
-* ``pip install -e . --config-settings="--with-cuda=0"``, the new way (not fully working yet)
+* ``python setup.py build_ext -v --inplace --with-cuda=0``, the legacy way
+* ``pip install -e . -v --config-settings="--with-cuda=0"``, the new way (not fully working yet)
+* ``pip install -e . -v --global-option "--with-cuda=0"``, the deprecated way
+* ``USE_CUDA=0 pip install -e . -v``, the run around way
 
 In case there are multiple versions of CUDA installed, option `cuda-version`
 can be specified:

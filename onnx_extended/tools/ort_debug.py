@@ -3,7 +3,7 @@ import numpy as np
 from onnx import AttributeProto, ModelProto, NodeProto, load
 from onnx.reference.op_run import to_array_extended
 from onnxruntime import InferenceSession
-from .onnx_manipulations import select_model_inputs_outputs
+from .onnx_nodes import select_model_inputs_outputs
 
 
 def render_node(node: NodeProto) -> str:
@@ -114,7 +114,7 @@ def render_node(node: NodeProto) -> str:
         "zs",
     ]
 
-    sub_graphs_names = {}
+    sub_graphs_names: Dict[str, str] = {}
 
     def _get_subgraph_name(idg):
         if idg in sub_graphs_names:

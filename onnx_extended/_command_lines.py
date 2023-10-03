@@ -20,7 +20,7 @@ from onnx.reference import ReferenceEvaluator
 
 def _type_shape(
     input_def: Union[str, ValueInfoProto]
-) -> Tuple[Any, Tuple[int, ...], str]:
+) -> Tuple[Any, Tuple[Union[int, str], ...], Any]:
     if isinstance(input_def, str):
         reg = re.compile(
             "([a-z][a-z0-9]*)?([(]([ a-zA-Z,0-9]+)[)])?(:([A-Z][A-Z0-9]*))?"
@@ -59,7 +59,7 @@ def _type_shape(
             else:
                 new_shape.append(d.dim_value)
         ndt = tensor_dtype_to_np_dtype(dt)
-        return ndt, tuple(new_shape)
+        return ndt, tuple(new_shape), None
 
     raise TypeError(f"Unexpected type {type(input_def)} for input_def.")
 
@@ -167,7 +167,7 @@ def store_intermediate_results(
             ty, shape, law = _type_shape(inp)
             if ty is None or shape is None:
                 if isinstance(inst, ReferenceEvaluator):
-                    ty, shape = _type_shape(inst.proto_.graph.input[i])
+                    ty, shape, _ = _type_shape(inst.proto_.graph.input[i])
                 else:
                     raise RuntimeError(
                         f"shape or dtype is unknown and cannot "
@@ -181,7 +181,11 @@ def store_intermediate_results(
 
 
 def display_intermediate_results(
-    model: str, save: Optional[str] = None, tab: int = 12, fprint: Callable = print
+    model: str,
+    save: Optional[str] = None,
+    tab: int = 12,
+    external: bool = True,
+    fprint: Callable = print,
 ):
     """
     Displays shape, type for a model.
@@ -189,9 +193,10 @@ def display_intermediate_results(
     :param model: a model
     :param save: save the results as a dataframe
     :param tab: column size for the output
+    :param external: loads the external data or not
     :param fprint: function to print
     """
-    from .tools.onnx_tools import enumerate_onnx_node_types
+    from .tools.onnx_nodes import enumerate_onnx_node_types
 
     if save is not None:
         ext = os.path.splitext(save)[-1]
@@ -211,7 +216,7 @@ def display_intermediate_results(
 
     n_rows = 0
     rows = []
-    for obs in enumerate_onnx_node_types(model):
+    for obs in enumerate_onnx_node_types(model, external=external):
         if "level" not in obs:
             raise RuntimeError(f"Unexpected value obs={obs!r}.")
         indent = " " * obs["level"] * tab
@@ -247,7 +252,7 @@ def display_intermediate_results(
         exts[ext](save, index=False)
 
 
-def print_proto(proto: str, fmt: str = "raw"):
+def print_proto(proto: str, fmt: str = "raw", external: bool = True):
     """
     Shows an onnx model or a protobuf string on stdout.
     Extension '.onnx' is considered a model,
@@ -257,6 +262,7 @@ def print_proto(proto: str, fmt: str = "raw"):
     :param fmt: format to use to print the model,
         `raw` prints out the string produced by `print(model)`,
         `nodes` only prints out the node name
+    :param external: loads with external data
     """
     if isinstance(proto, str):
         if not os.path.exists(proto):
@@ -264,7 +270,7 @@ def print_proto(proto: str, fmt: str = "raw"):
         ext = os.path.splitext(proto)[-1]
         if ext == ".onnx":
             with open(proto, "rb") as f:
-                proto_loaded = load(f)
+                proto_loaded = load(f, load_external_data=external)
         elif ext in (".pb", ".proto"):
             with open(proto, "rb") as f:
                 content = f.read()
@@ -292,17 +298,30 @@ def print_proto(proto: str, fmt: str = "raw"):
     else:
         proto_loaded = proto
 
+    if proto_loaded is None:
+        raise ValueError(f"Filename {proto!r} could not be loaded.")
     print(f"Type: {type(proto_loaded)}")
     if fmt == "raw":
         print(proto_loaded)
     elif fmt == "nodes":
         from .tools.graph.onnx_graph_struct import Graph
 
+        if proto_loaded is None:
+            raise ValueError(f"Unable to load {proto!r}.")
         graph = Graph(proto_loaded)
         for node in graph:
             print(str(node).replace("<parent>, ", ""))
+    elif fmt == "opsets":
+        print(f"IR_VERSION={proto_loaded.ir_version}")
+        opsets = proto_loaded.opset_import
+        for op in opsets:
+            print(f"{op.domain or 'ai.onnx'}: {op.version}")
+        for f in proto_loaded.functions:
+            print(f"Function: {f.name}")
+            for op in f.opset_import:
+                print(f"  {op.domain or 'ai.onnx'}: {op.version}")
     else:
-        raise ValueError(f"Unexpected value for fmt={fmt!r}.")
+        raise ValueError(f"Unexpected value {fmt!r} for fmt.")
 
 
 def cmd_quantize(
@@ -315,6 +334,7 @@ def cmd_quantize(
     verbose: int = 0,
     index_transpose: int = 2,
     exceptions: Optional[List[Dict[str, str]]] = None,
+    options: Optional["QuantizeOptions"] = None,  # noqa: F821
 ):
     """
     Quantizes a model
@@ -331,8 +351,13 @@ def cmd_quantize(
     :param exceptions: exclude nodes from the quantization,
         `[{"name": "node_name1"}, {"name": "node_name2"}]` will exclude
         these two node names from the quantization
+    :param options: quantization options, see class
+        :class:`QuantizeOptions <onnx_extended.tools.graph.QuantizeOptions>`
     """
-    from .tools.graph import Graph
+    from .tools.graph import Graph, QuantizeOptions
+
+    if options is None:
+        options = QuantizeOptions.NONE
 
     if isinstance(model, str):
         if not os.path.exists(model):
@@ -364,6 +389,7 @@ def cmd_quantize(
             version=scenario,
             index_transpose=index_transpose,
             exceptions=exceptions,
+            quantize_options=options,
         )
         if new_graph is None:
             logger.warning("No node was quantized.")
@@ -371,8 +397,9 @@ def cmd_quantize(
         onx2 = new_graph.to_onnx()
         seq = onx2.SerializeToString()
         logger.info("Model quantized size: %d", len(seq))
-        with open(output, "wb") as f:
-            f.write(seq)
+        if output is not None:
+            with open(output, "wb") as f:
+                f.write(seq)
         return
 
     if kind == "fp16":
@@ -392,8 +419,9 @@ def cmd_quantize(
         onx2 = new_graph.to_onnx()
         seq = onx2.SerializeToString()
         logger.info("Model reduced size: %d", len(seq))
-        with open(output, "wb") as f:
-            f.write(seq)
+        if output is not None:
+            with open(output, "wb") as f:
+                f.write(seq)
         return
 
     raise ValueError(f"Unexpected value {kind!r} for kind.")
@@ -415,7 +443,7 @@ def cmd_select(
     :param outputs: list of outputs or empty to keep the original outputs
     :param verbose: verbosity level
     """
-    from .tools.onnx_manipulations import select_model_inputs_outputs
+    from .tools.onnx_nodes import select_model_inputs_outputs
 
     if isinstance(model, str):
         if not os.path.exists(model):
@@ -449,8 +477,9 @@ def cmd_select(
     )
     seq = onx2.SerializeToString()
     logger.info("Selected model size: %d", len(seq))
-    with open(save, "wb") as f:
-        f.write(seq)
+    if save is not None:
+        with open(save, "wb") as f:
+            f.write(seq)
 
 
 def plot_profile(

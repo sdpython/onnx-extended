@@ -5,6 +5,8 @@ Technical Details
     :maxdepth: 1
     :caption: Maths
 
+    install_cuda_wsl
+    usefulcmd
     gemm
 
 .. toctree::

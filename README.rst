@@ -104,7 +104,7 @@ build with C++ functions (`pybind11 <https://github.com/pybind/pybind11>`_,
 with `openmp <https://www.openmp.org/>`_,
 `eigen <https://eigen.tuxfamily.org/index.php>`_
 with or without CUDA. It also shows how to create a custom operator
-for `onnxruntime <https://onnxruntime.ai/>`_ in C++.
+for *onnxruntime* in C++.
 
 The version released on `pypi/onnx-extended <https://pypi.org/project/onnx-extended/>`_
 only works on CPU. It needs to be manually built to enable
@@ -123,6 +123,9 @@ It is possible to use a specific version of CUDA:
     python setup.py build_ext --inplace --cuda-version=11.8
     # or (not working yet)
     # pip install -e . --config-settings="--cuda-version=11.8"
+    # pip install -e . --global-option="--cuda-version=11.8"
+    export USE_CUDA=11.8
+    pip install -e .
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_
 can be enabled with the following command:
@@ -131,7 +134,8 @@ can be enabled with the following command:
 
     python setup.py build_ext --inplace --use_nvtx 1
     # or (not working yet)
-    pip install -e . --config-settings="--use_nvtx=1"
+    # pip install -e . --config-settings="--use_nvtx=1"
+    pip install -e . --global-option "--use_nvtx=1"
 
 Experimental cython binding for onnxruntime
 +++++++++++++++++++++++++++++++++++++++++++

@@ -1,15 +1,12 @@
 #pragma once
 
-#define ORT_API_MANUAL_INIT
-#include "onnxruntime_c_api.h"
-#undef ORT_API_MANUAL_INIT
-
+#include "ortapi_version.h"
 #include "onnx_extended_helpers.h"
 
 namespace ortapi {
 
 inline static const OrtApi *GetOrtApi() {
-  const OrtApi *api_ = OrtGetApiBase()->GetApi(ORT_API_VERSION);
+  const OrtApi *api_ = OrtGetApiBase()->GetApi(ORT_API_VERSION_SUPPORTED);
   return api_;
 }
 

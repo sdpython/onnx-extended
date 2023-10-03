@@ -56,7 +56,7 @@ inline bool is_float8(ONNXTensorElementDataType type) {
 inline std::string KernelInfoGetInputName(const OrtApi &api,
                                           const OrtKernelInfo *info,
                                           int index) {
-  size_t size;
+  std::size_t size;
   OrtStatus *status = api.KernelInfo_GetInputName(info, index, nullptr, &size);
   if (status != nullptr) {
     OrtErrorCode code = api.GetErrorCode(status);
@@ -68,11 +68,11 @@ inline std::string KernelInfoGetInputName(const OrtApi &api,
     }
     api.ReleaseStatus(status);
   }
-  std::string out;
-  out.resize(size);
-  ThrowOnError(api, api.KernelInfo_GetInputName(info, index, &out[0], &size));
-  out.resize(size - 1); // remove the terminating character '\0'
-  return out;
+  std::string str_out;
+  str_out.resize(size);
+  ThrowOnError(api, api.KernelInfo_GetInputName(info, index, &str_out[0], &size));
+  str_out.resize(size - 1); // remove the terminating character '\0'
+  return str_out;
 }
 
 ////////////////////
@@ -82,8 +82,8 @@ inline std::string KernelInfoGetInputName(const OrtApi &api,
 inline std::string KernelInfoGetOptionalAttributeString(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
     const std::string &default_value) {
-  size_t size = 0;
-  std::string out;
+  std::size_t size = 0;
+  std::string str_out;
 
   OrtStatus *status =
       api.KernelInfoGetAttribute_string(info, name, nullptr, &size);
@@ -98,11 +98,11 @@ inline std::string KernelInfoGetOptionalAttributeString(
     }
     api.ReleaseStatus(status);
   }
-  out.resize(size);
+  str_out.resize(size);
   ThrowOnError(api,
-               api.KernelInfoGetAttribute_string(info, name, &out[0], &size));
-  out.resize(size - 1); // remove the terminating character '\0'
-  return out;
+               api.KernelInfoGetAttribute_string(info, name, &str_out[0], &size));
+  str_out.resize(size - 1); // remove the terminating character '\0'
+  return str_out;
 }
 
 template <typename T>
@@ -128,7 +128,7 @@ template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<float>>(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
     std::vector<float> &out) {
-  size_t size = 0;
+  std::size_t size = 0;
 
   // Feed nullptr for the data buffer to query the true size of the attribute
   OrtStatus *status =
@@ -147,7 +147,7 @@ template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
     std::vector<int64_t> &out) {
-  size_t size = 0;
+  std::size_t size = 0;
 
   // Feed nullptr for the data buffer to query the true size of the attribute
   OrtStatus *status =
@@ -163,8 +163,8 @@ inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
 
 template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<std::string>>(
-    const OrtApi &api, const OrtKernelInfo *info, const char *name,
-    std::vector<std::string> &output) {
+    const OrtApi & /* api */, const OrtKernelInfo * /* info */, const char * /* name */,
+    std::vector<std::string> & /* output */) {
   EXT_THROW("Unable to retrieve attribute as an array of strings. "
             "You should use a single comma separated string.");
 }

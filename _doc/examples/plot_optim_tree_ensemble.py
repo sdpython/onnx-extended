@@ -26,7 +26,30 @@ To change the training parameters:
         --n_trees=100
         --max_depth=10
         --n_features=50
-        --batch_size=100000 
+        --batch_size=100000
+    
+Another example with a full list of parameters:
+
+    python plot_optim_tree_ensemble.py
+        --n_trees=100
+        --max_depth=10
+        --n_features=50
+        --batch_size=100000
+        --tries=3
+        --scenario=CUSTOM
+        --parallel_tree=80,40
+        --parallel_tree_N=128,64
+        --parallel_N=50,25
+        --batch_size_tree=1,2
+        --batch_size_rows=1,2
+        --use_node3=0
+
+Another example:
+
+::
+
+    python plot_optim_tree_ensemble.py
+        --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
 """
 import os
 import timeit
@@ -68,6 +91,7 @@ script_args = get_parsed_args(
     batch_size_rows=("2,4,8", "values to try for batch_size_rows"),
     use_node3=("0,1", "values to try for use_node3"),
     expose="",
+    n_jobs=("-1", "number of jobs to train the RandomForestRegressor"),
 )
 
 
@@ -80,16 +104,19 @@ n_features = script_args.n_features
 n_trees = script_args.n_trees
 max_depth = script_args.max_depth
 
-filename = (
-    f"plot_optim_tree_ensemble_b{batch_size}-f{n_features}-"
-    f"t{n_trees}-d{max_depth}.onnx"
-)
+filename = f"plot_optim_tree_ensemble-f{n_features}-" f"t{n_trees}-d{max_depth}.onnx"
 if not os.path.exists(filename):
-    print(f"Training to get {filename!r}")
-    X, y = make_regression(batch_size * 2, n_features=n_features, n_targets=1)
+    X, y = make_regression(
+        batch_size + max(batch_size, 2 ** (max_depth + 1)),
+        n_features=n_features,
+        n_targets=1,
+    )
+    print(f"Training to get {filename!r} with X.shape={X.shape}")
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth, verbose=2)
-    model.fit(X[:batch_size], y[:batch_size])
+    model = RandomForestRegressor(
+        n_trees, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
+    )
+    model.fit(X[:-batch_size], y[:-batch_size])
     onx = to_onnx(model, X[:1])
     with open(filename, "wb") as f:
         f.write(onx.SerializeToString())
@@ -97,6 +124,7 @@ else:
     X, y = make_regression(batch_size, n_features=n_features, n_targets=1)
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
 
+Xb, yb = X[-batch_size:].copy(), y[-batch_size:].copy()
 
 #######################################
 # Rewrite the onnx file to use a different kernel
@@ -149,15 +177,15 @@ opts = SessionOptions()
 if r is not None:
     opts.register_custom_ops_library(r[0])
 
-print("Loading modified {filename!r}")
+print(f"Loading modified {filename!r}")
 sess_cus = InferenceSession(
     onx_modified.SerializeToString(), opts, providers=["CPUExecutionProvider"]
 )
 
-print(f"Running once with shape {X[-batch_size:].shape}.")
-base = sess_ort.run(None, {"X": X[-batch_size:]})[0]
-print(f"Running modified with shape {X[-batch_size:].shape}.")
-got = sess_cus.run(None, {"X": X[-batch_size:]})[0]
+print(f"Running once with shape {Xb.shape}.")
+base = sess_ort.run(None, {"X": Xb})[0]
+print(f"Running modified with shape {Xb.shape}.")
+got = sess_cus.run(None, {"X": Xb})[0]
 print("done.")
 
 #######################################
@@ -171,27 +199,29 @@ print(f"Discrepancies: {diff}")
 # +++++++++++++++++++
 #
 # Baseline with onnxruntime.
-t1 = timeit.timeit(lambda: sess_ort.run(None, {"X": X[-batch_size:]}), number=50)
+t1 = timeit.timeit(lambda: sess_ort.run(None, {"X": Xb}), number=50)
 print(f"baseline: {t1}")
 
 #################################
 # The custom implementation.
-t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": X[-batch_size:]}), number=50)
+t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": Xb}), number=50)
 print(f"new time: {t2}")
 
 #################################
 # The same implementation but ran from the onnx python backend.
 ref = CReferenceEvaluator(filename)
-ref.run(None, {"X": X[-batch_size:]})
-t3 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=50)
+ref.run(None, {"X": Xb})
+t3 = timeit.timeit(lambda: ref.run(None, {"X": Xb}), number=50)
 print(f"CReferenceEvaluator: {t3}")
 
 #################################
 # The python implementation but from the onnx python backend.
-ref = ReferenceEvaluator(filename)
-ref.run(None, {"X": X[-batch_size:]})
-t4 = timeit.timeit(lambda: ref.run(None, {"X": X[-batch_size:]}), number=5)
-print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
+if n_trees < 50:
+    # It is usully slow.
+    ref = ReferenceEvaluator(filename)
+    ref.run(None, {"X": Xb})
+    t4 = timeit.timeit(lambda: ref.run(None, {"X": Xb}), number=5)
+    print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
 
 
 #############################################
@@ -210,8 +240,8 @@ if unit_test_going():
         parallel_tree=[40],  # default is 80
         parallel_tree_N=[128],  # default is 128
         parallel_N=[50, 25],  # default is 50
-        batch_size_tree=[2],  # default is 2
-        batch_size_rows=[2],  # default is 2
+        batch_size_tree=[1],  # default is 1
+        batch_size_rows=[1],  # default is 1
         use_node3=[0],  # default is 0
     )
 elif script_args.scenario in (None, "SHORT"):
@@ -219,8 +249,8 @@ elif script_args.scenario in (None, "SHORT"):
         parallel_tree=[80, 40],  # default is 80
         parallel_tree_N=[128, 64],  # default is 128
         parallel_N=[50, 25],  # default is 50
-        batch_size_tree=[2],  # default is 2
-        batch_size_rows=[2],  # default is 2
+        batch_size_tree=[1],  # default is 1
+        batch_size_rows=[1],  # default is 1
         use_node3=[0],  # default is 0
     )
 elif script_args.scenario == "LONG":
@@ -228,8 +258,8 @@ elif script_args.scenario == "LONG":
         parallel_tree=[80, 160, 40],
         parallel_tree_N=[256, 128, 64],
         parallel_N=[100, 50, 25],
-        batch_size_tree=[2, 4, 8],
-        batch_size_rows=[2, 4, 8],
+        batch_size_tree=[1, 2, 4, 8],
+        batch_size_rows=[1, 2, 4, 8],
         use_node3=[0, 1],
     )
 elif script_args.scenario == "CUSTOM":
@@ -245,6 +275,12 @@ else:
     raise ValueError(
         f"Unknown scenario {script_args.scenario!r}, use --help to get them."
     )
+
+cmds = []
+for att, value in optim_params.items():
+    cmds.append(f"--{att}={','.join(map(str, value))}")
+print("Full list of optimization parameters:")
+print(" ".join(cmds))
 
 ##################################
 # Then the optimization.
@@ -263,7 +299,7 @@ def create_session(onx):
 
 res = optimize_model(
     onx,
-    feeds={"X": X[-batch_size:]},
+    feeds={"X": Xb},
     transform=transform_model,
     session=create_session,
     baseline=lambda onx: InferenceSession(
@@ -316,28 +352,45 @@ print(small_df.tail(n=10))
 # Plot
 # ++++
 
-dfi = df[["short_name", "average"]].sort_values("average").reset_index(drop=True)
-baseline = dfi[dfi.short_name.str.contains("baseline")]
-not_baseline = dfi[~dfi.short_name.str.contains("baseline")].reset_index(drop=True)
+dfm = (
+    df[["name", "average"]]
+    .groupby(["name"], as_index=False)
+    .agg(["mean", "min", "max"])
+    .copy()
+)
+if dfm.shape[1] == 3:
+    dfm = dfm.reset_index(drop=False)
+dfm.columns = ["name", "average", "min", "max"]
+dfi = (
+    dfm[["name", "average", "min", "max"]].sort_values("average").reset_index(drop=True)
+)
+baseline = dfi[dfi["name"].str.contains("baseline")]
+not_baseline = dfi[~dfi["name"].str.contains("baseline")].reset_index(drop=True)
 if not_baseline.shape[0] > 50:
     not_baseline = not_baseline[:50]
 merged = concat([baseline, not_baseline], axis=0)
-merged = merged.sort_values("average").reset_index(drop=True).set_index("short_name")
+merged = merged.sort_values("average").reset_index(drop=True).set_index("name")
 skeys = ",".join(optim_params.keys())
+print(merged.columns)
 
-fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 4))
-merged.plot.barh(
-    ax=ax, title=f"TreeEnsemble tuning, n_tries={script_args.tries}\n{skeys}"
+fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 2))
+err_min = merged["average"] - merged["min"]
+err_max = merged["max"] - merged["average"]
+merged[["average"]].plot.barh(
+    ax=ax,
+    title=f"TreeEnsemble tuning, n_tries={script_args.tries}"
+    f"\n{skeys}\nlower is better",
+    xerr=[err_min, err_max],
 )
-b = df.loc[0, "average"]
+b = df.loc[df["name"] == "baseline", "average"].mean()
 ax.plot([b, b], [0, df.shape[0]], "r--")
 ax.set_xlim(
     [
         (df["min_exec"].min() + df["average"].min()) / 2,
-        (df["max_exec"].max() + df["average"].max()) / 2,
+        (df["average"].max() + df["average"].max()) / 2,
     ]
 )
-ax.set_xscale("log")
+# ax.set_xscale("log")
 
 fig.tight_layout()
 fig.savefig("plot_optim_tree_ensemble.png")

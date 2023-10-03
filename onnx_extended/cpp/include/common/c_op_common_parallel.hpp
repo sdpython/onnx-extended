@@ -81,19 +81,14 @@ inline void TryBatchParallelFor(int64_t n_threads, int64_t batch_size,
     return;
   }
 
-  int64_t total_batch = total / batch_size;
+  int64_t num_batches = total / batch_size + (total % batch_size == 0 ? 1 : 0);
 
 #pragma omp parallel for
-  for (int64_t loop_batch = 0; loop_batch < total_batch; ++loop_batch) {
-    int64_t i = loop_batch * batch_size;
-    int64_t end = i + batch_size;
-    for (; i < end; ++i) {
+  for (int64_t batch_idx = 0; batch_idx < num_batches; ++batch_idx) {
+    WorkInfo work = PartitionWork(batch_idx, num_batches, total);
+    for (int64_t i = work.start ; i < work.end; ++i) {
       fn(i);
     }
-  }
-
-  for (int64_t i = total_batch * batch_size; i < total; ++i) {
-    fn(i);
   }
 }
 

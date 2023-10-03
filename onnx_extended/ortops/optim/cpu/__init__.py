@@ -23,7 +23,35 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
-    onnx_extented.ortops.option.cpu.RandomForestRegressor
+    onnx_extented.ortops.option.cpu.TreeEnsembleClassifier
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    It does the sum of two tensors.
+
+    **Provider**
+    
+    CPUExecutionProvider
+    
+    **Inputs**
+    
+    * X (T1): tensor of type T1
+
+    **Outputs**
+
+    * label (T3): labels of type T3
+    * Y (T2): probabilities of type T2
+
+    **Constraints**
+
+    * T1: float, double
+    * T2: float, double
+    * T3: int64
+
+    **Attributes**
+
+    """,
+                """
+    onnx_extented.ortops.option.cpu.TreeEnsembleRegressor
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It does the sum of two tensors.

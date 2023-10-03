@@ -12,7 +12,7 @@ from onnx.helper import (
 )
 from onnx.numpy_helper import from_array
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.tools.onnx_manipulations import (
+from onnx_extended.tools.onnx_nodes import (
     select_model_inputs_outputs,
     onnx_remove_node_unused,
 )

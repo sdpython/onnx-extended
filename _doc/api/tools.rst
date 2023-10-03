@@ -3,17 +3,11 @@
 tools
 =====
 
-enumerate_onnx_node_types
-=========================
-
-.. autofunction:: onnx_extended.tools.onnx_tools.enumerate_onnx_node_types
-
-Graphs
-======
-
 .. toctree::
+    :maxdepth: 2
 
+    tools_io
     tools_graph
     tools_transformer
-    tools_manipulations
+    tools_nodes
     tools_other

@@ -7,6 +7,12 @@ cast_constant
 
 .. autofunction:: onnx_extended.tools.graph.cast_constant
 
+QuantizeOptions
+===============
+
+.. autoclass:: onnx_extended.tools.graph.QuantizeOptions
+    :members:
+
 quantize_float8
 ===============
 

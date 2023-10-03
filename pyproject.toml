@@ -25,13 +25,13 @@ license = {file = "LICENSE.txt"}
 name = "onnx-extended"
 readme = "README.rst"
 requires-python = ">=3.9"
-version = "0.2.0"
+version = "0.2.3"
 
 [project.urls]
-homepage = "https://sdpython.github.io/doc/dev/onnx-extended/"
-documentation = "https://sdpython.github.io/doc/dev/onnx-extended/"
-repository = "https://github.com/sdpython/onnx-extended/dev/"
-changelog = "https://github.com/sdpython/onnx-extended/dev/CHANGELOGS.rst"
+homepage = "https://sdpython.github.io/doc/onnx-extended/dev/"
+documentation = "https://sdpython.github.io/doc/onnx-extended/dev/"
+repository = "https://github.com/sdpython/onnx-extended/"
+changelog = "https://github.com/sdpython/onnx-extended/CHANGELOGS.rst"
 
 [project.optional-dependencies]
 dev = [
@@ -69,6 +69,8 @@ dev = [
 
 [build-system]
 requires = [
+    "abi3audit; sys_platform == 'linux'",
+    "auditwheel-symbols; sys_platform == 'linux'",
     "Cython",
     "cmake",
     "numpy",
@@ -87,6 +89,7 @@ ignore_directives = [
     "gdot",
     "ifconfig",
     "image-sg",
+    "plot",
     "runpython",
 ]
 ignore_roles = ["epkg", "pr"]
@@ -105,20 +108,129 @@ manylinux-x86_64-image = "manylinux2014"
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* pypy* *musllinux*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* *musllinux*"
+manylinux-x86_64-image = "manylinux2014"
+before-build = "pip install auditwheel-symbols abi3audit"
+build-verbosity = 1
+repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
+# repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} || exit 0"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp310-* pypy* pp*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* pp*"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* pypy*"
+skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy*"
 
 [tool.cython-lint]
 max-line-length = 88
+
+[tool.mypy]
+ignore_missing_imports = true
+packages = ["onnx_extended"]
+exclude = [
+    "^_doc/examples",  # skips examples in the documentation
+    "^_unittests",  # skips unit tests
+    "^build",  # skips build
+    "^dist",  # skips dist
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended._command_lines"]
+disable_error_code = [
+    "attr-defined",
+    "operator",
+    "arg-type",
+    "assignment",
+    "var-annotated",
+    "return-value",
+    "name-defined",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended._command_lines_parser"]
+disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.ext_test_case"]
+disable_error_code = ["override", "index"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.ortops.optim.optimize"]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.reference.c_reference_backend"]
+disable_error_code = ["override", "union-attr", "misc"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.reference.c_reference_evaluator"]
+disable_error_code = ["arg-type", "attr-defined", "var-annotated", "assignment", "index"]
+
+[[tool.mypy.overrides]]
+module = [
+    "onnx_extended.reference.c_ops.*",
+    "onnx_extended.reference.c_custom_ops.*",
+    "onnx_extended.tools.graph.onnx_custom_ops",
+]
+disable_error_code = ["assignment", "operator", "call-overload", "no-redef", "attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "onnx_extended.tools.graph.onnx_graph_struct",
+    "onnx_extended.tools.graph.onnx_graph_transformer",
+]
+disable_error_code = [
+    "attr-defined",
+    "arg-type",
+    "list-item",
+    "union-attr",
+    "var-annotated",
+    "index",
+    "assignment",
+    "operator",
+    "call-overload",
+    "return-value",
+    "no-redef",
+    "valid-type",
+    "misc",
+    "annotation-unchecked",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.js_profile"]
+disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.onnx_nodes"]
+disable_error_code = [
+    "operator",
+    "union-attr",
+    "index",
+    "arg-type",
+    "assignment",
+    "misc",
+    "return-value",
+    "attr-defined",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.ort_debug"]
+disable_error_code = ["union-attr"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.run_onnx"]
+disable_error_code = [
+    "arg-type",
+    "union-attr",
+    "assignment",
+    "valid-type",
+    "attr-defined",
+    "return-value",
+]
 
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
@@ -130,5 +242,7 @@ max-complexity = 10
 [tool.ruff.per-file-ignores]
 "onnx_extended/helper/__init__.py" = ["F401"]
 "onnx_extended/reference/__init__.py" = ["F401"]
+"onnx_extended/tools/__init__.py" = ["F401"]
 "onnx_extended/tools/graph/__init__.py" = ["F401"]
 "onnx_extended/tools/js_profile.py" = ["F821"]
+"onnx_extended/tools/run_onnx_main.py" = ["E731"]

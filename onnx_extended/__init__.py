@@ -4,7 +4,7 @@ More operators for onnx reference implementation.
 Experimentation with openmp, CUDA.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.3"
 __author__ = "Xavier Dupré"
 
 
@@ -67,12 +67,8 @@ def get_cxx_flags() -> str:
 
 def get_stdcpp() -> int:
     """
-    Returns `CXX_FLAGS`.
+    Returns `CMAKE_CXX_STANDARD`.
     """
-    import re
+    from ._config import CMAKE_CXX_STANDARD
 
-    reg = re.compile("std[:=]c[+][+]([0-9]+)")
-    f = reg.findall(get_cxx_flags())
-    if len(f) == 0:
-        raise ValueError(f"Unable to extract c++ version from {get_cxx_flags()!r}.")
-    return int(f[0])
+    return CMAKE_CXX_STANDARD

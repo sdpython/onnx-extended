@@ -1,9 +1,23 @@
 Change Logs
 ===========
 
-0.2.0
+0.2.3
 +++++
 
+* :pr:`89`: add a function to merge models and update them if both have different opsets
+
+0.2.2
++++++
+
+* :pr:`87`: update the quantization tools to use a simplified dynamic linear quantization into float 8
+* :pr:`85`: add load_model, save_model to help saving with/without external data
+* :pr:`82`: fixes benchmark on multiple versions of onnxruntime
+
+0.2.1
++++++
+
+* :pr:`79`: update to onnxruntime v1.16.0
+* :pr:`77`: helpers to benchmark a model
 * :pr:`74`: add a function to enumerate all intermediate results with onnxruntime
 * :pr:`71`, :pr:`72`, :pr:`73`: add function to analyse a profile produce by onnxruntime
 * :pr:`68`, :pr:`69`, :pr:`70`: add CPU implementation for CustomGemmFloat8
@@ -14,7 +28,7 @@ Change Logs
 * :pr:`57`: add C implementation for DynamicQuantizeLinear (for experimentation)
 * :pr:`56`: add C implementation to cast a float into float 8
 * :pr:`55`, :pr:`58`: add basic functionality to transform a graph, starts with basic quantization
-* :pr:`51`: fix optmized TreeEnsembleRegressor and adds TreeEnsembleClassifier as custom ops
+* :pr:`51`: fix optimized TreeEnsembleRegressor and adds TreeEnsembleClassifier as custom ops
 * :pr:`50`: add command line store to store intermediate outputs
 * :pr:`49`: add option to save intermediate results in CReferenceEvaluator
 * :pr:`45`: add option cuda-link to setup.py to specify how to link with CUDA library

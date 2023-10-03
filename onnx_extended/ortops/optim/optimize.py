@@ -158,10 +158,10 @@ def change_onnx_operator_domain(
 def optimize_model(
     onx: ModelProto,
     feeds: Dict[str, numpy.ndarray],
-    transform: Callable[ModelProto, ModelProto],
-    session: Callable[ModelProto, Any],
+    transform: Callable[[ModelProto], ModelProto],
+    session: Callable[[ModelProto], Any],
     params: Dict[str, List[Any]],
-    baseline: Optional[Callable[ModelProto, Any]] = None,
+    baseline: Optional[Callable[[ModelProto], Any]] = None,
     verbose: bool = False,
     number: int = 10,
     repeat: int = 10,
@@ -216,7 +216,7 @@ def optimize_model(
         sess.run(None, feeds)
         if sleep > 0:
             time.sleep(sleep)
-        obs = measure_time(
+        obs: Dict[str, Any] = measure_time(
             lambda sess=sess: sess.run(None, feeds),
             number=number,
             repeat=repeat,
@@ -226,6 +226,7 @@ def optimize_model(
         obs["n_exp_name"] = "TRY=0,baseline"
         obs["short_name"] = "0,baseline"
         obs["TRY"] = 0
+        obs["name"] = "baseline"
         res.append(obs)
 
     for it, values in enumerate(loop):
@@ -240,33 +241,35 @@ def optimize_model(
         sess = session(onx_modified)
         if sleep > 0:
             time.sleep(sleep)
-        obs = measure_time(
+        obsl: Dict[str, Any] = measure_time(
             lambda sess=sess: sess.run(None, feeds),
             number=number,
             repeat=repeat,
             warmup=warmup,
         )
-        obs.update(kwargs)
-        obs["n_exp"] = it
-        obs["n_exp_name"] = ",".join(f"{k}={v}" for k, v in zip(keys, values))
-        obs["short_name"] = ",".join(f"{v}" for v in values)
-        res.append(obs)
+        obsl.update(kwargs)
+        obsl["n_exp"] = it
+        obsl["n_exp_name"] = ",".join(f"{k}={v}" for k, v in zip(keys, values))
+        obsl["short_name"] = ",".join(f"{v}" for v in values)
+        obsl["name"] = ",".join(f"{v}" for v in values[1:])
+        res.append(obsl)
 
     if baseline is not None:
         for n in range(1, n_tries):
             sess = baseline(onx)
             if sleep > 0:
                 time.sleep(sleep)
-            obs = measure_time(
+            obsf: Dict[str, Any] = measure_time(
                 lambda sess=sess: sess.run(None, feeds),
                 number=number,
                 repeat=repeat,
                 warmup=warmup,
             )
-            obs["n_exp"] = 0
-            obs["n_exp_name"] = f"TRY={n},baseline"
-            obs["short_name"] = f"{n},baseline"
-            obs["TRY"] = n
-            res.append(obs)
+            obsf["n_exp"] = 0
+            obsf["n_exp_name"] = f"TRY={n},baseline"
+            obsf["short_name"] = f"{n},baseline"
+            obsf["name"] = "baseline"
+            obsf["TRY"] = n
+            res.append(obsf)
 
     return res
