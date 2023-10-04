@@ -227,7 +227,7 @@ def render_node(node: NodeProto) -> str:
 
 def enumerate_ort_run(
     onx: Union[str, ModelProto], feeds: Dict[str, Any], verbose: int = 0
-) -> Iterator[Tuple[List[str], List[Any]]]:
+) -> Iterator[Tuple[List[str], List[Any], NodeProto]]:
     """
     Yields all the intermediate results produced by
     :epkg:`onnxruntime`.
@@ -235,7 +235,7 @@ def enumerate_ort_run(
     :param onx: model
     :param feeds: input tensors
     :param verbose: prints out a summary of the results
-    :return: intermediate results and names
+    :return: intermediate results, names, and node
     """
     if isinstance(onx, str):
         with open(onx, "rb") as f:
@@ -282,4 +282,4 @@ def enumerate_ort_run(
                 else:
                     print(" + %s: %s%s" % (name, value.dtype, value.shape))
                     print(value)
-        yield names, outputs
+        yield names, outputs, node

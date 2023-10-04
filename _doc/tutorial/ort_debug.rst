@@ -53,7 +53,7 @@ results of an original model.
         "Y": np.arange(4).reshape((2, 2)).astype(np.float32),
     }
 
-    for names, outs in enumerate_ort_run(model, feeds, verbose=2):
-        print(f"NEW RESULTS")
+    for names, outs, node in enumerate_ort_run(model, feeds, verbose=2):
+        print(f"node: {op_type}")
         for n, o in zip(names, outs):
             print(f"   {n}:{o.dtype}:{o.shape}")

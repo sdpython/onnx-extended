@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from contextlib import redirect_stdout
 from io import StringIO
-from onnx import TensorProto
+from onnx import NodeProto, TensorProto
 from onnx.helper import (
     make_model,
     make_node,
@@ -43,7 +43,8 @@ class TestOrtDebug(ExtTestCase):
             "Y": np.arange(4).reshape((2, 2)).astype(np.float32),
         }
         expected_names = [["z1"], ["z2"], ["Z"]]
-        for i, (names, outs) in enumerate(enumerate_ort_run(model, feeds)):
+        for i, (names, outs, node) in enumerate(enumerate_ort_run(model, feeds)):
+            self.assertIsInstance(node, NodeProto)
             self.assertIsInstance(names, list)
             self.assertIsInstance(outs, list)
             self.assertEqual(len(names), len(outs))
