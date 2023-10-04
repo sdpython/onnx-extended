@@ -6,10 +6,10 @@ on:
 #      - main
 #      - 'releases/**'
   pull_request:
-    types:
-      - closed
-    branches:
-      - main
+#    types:
+#      - closed
+#    branches:
+#      - main
 #on:
 #  push:
 #    branches:
@@ -25,7 +25,7 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v4
