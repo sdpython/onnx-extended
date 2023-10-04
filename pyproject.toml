@@ -104,6 +104,7 @@ namespaces = false
 [tool.cibuildwheel]
 build = "*"
 manylinux-x86_64-image = "manylinux2014"
+test-command = "python -c \"import onnx_extended;onnx_extended.check_installation()\""
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
@@ -114,7 +115,6 @@ before-build = "pip install auditwheel-symbols abi3audit"
 build-verbosity = 1
 repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
 # repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} || exit 0"
-test-command = "python -c \"import onnx_extended;onnx_extended.check_installation()\""
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
