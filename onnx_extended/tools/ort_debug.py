@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, List, Union, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Union, Tuple
 import numpy as np
 from onnx import AttributeProto, ModelProto, NodeProto, load
 from onnx.reference.op_run import to_array_extended
@@ -226,7 +226,11 @@ def render_node(node: NodeProto) -> str:
 
 
 def enumerate_ort_run(
-    onx: Union[str, ModelProto], feeds: Dict[str, Any], verbose: int = 0
+    onx: Union[str, ModelProto],
+    feeds: Dict[str, Any],
+    verbose: int = 0,
+    providers: Optional[List[str]] = None,
+    **kwargs: Dict[str, Any],
 ) -> Iterator[Tuple[List[str], List[Any], NodeProto]]:
     """
     Yields all the intermediate results produced by
@@ -235,8 +239,13 @@ def enumerate_ort_run(
     :param onx: model
     :param feeds: input tensors
     :param verbose: prints out a summary of the results
+    :param providers: if not specified, default is `["CPUExecutionProvider"]`
+    :param kwargs: additional parameter to give InferenceSession
+        when it is initialized
     :return: intermediate results, names, and node
     """
+    if providers is None:
+        providers = ["CPUExecutionProvider"]
     if isinstance(onx, str):
         with open(onx, "rb") as f:
             proto = load(f)
@@ -254,32 +263,80 @@ def enumerate_ort_run(
         for init in proto.graph.initializer:
             value = to_array_extended(init)
             if verbose <= 2:
-                print(" + %s: %s%s" % (init.name, value.dtype, value.shape))
+                print(" +C %s: %s%s" % (init.name, value.dtype, value.shape))
+            elif value.size < 10:
+                print(
+                    " +C %s: %s%s = %s"
+                    % (
+                        init.name,
+                        value.dtype,
+                        value.shape,
+                        str(value).replace("\n", ""),
+                    )
+                )
             else:
-                print(" + %s: %s" % (init.name, value))
+                print(
+                    " +C %s: %s%s ~ %s..."
+                    % (
+                        init.name,
+                        value.dtype,
+                        value.shape,
+                        str(value.ravel()[:8]).replace("\n", ""),
+                    )
+                )
         for i in onx.graph.input:
             if i.name not in feeds:
                 continue
             value = feeds[i.name]
             if verbose <= 2:
-                print(" + %s: %s%s" % (i.name, value.dtype, value.shape))
+                print(" +I %s: %s%s" % (i.name, value.dtype, value.shape))
+            elif value.size < 10:
+                print(
+                    " +I %s: %s%s = %s"
+                    % (
+                        i.name,
+                        value.dtype,
+                        value.shape,
+                        str(value).replace("\n", ""),
+                    )
+                )
             else:
-                print(" + %s: %s" % (i.name, value))
+                print(
+                    " +I %s: %s%s ~ %s..."
+                    % (
+                        i.name,
+                        value.dtype,
+                        value.shape,
+                        str(value.ravel()[:8]).replace("\n", ""),
+                    )
+                )
+
     for node in loop:
         names = list(node.output)
         if verbose > 1:
             print(render_node(node))
         subproto = select_model_inputs_outputs(proto, outputs=names, inputs=inputs)
-
         sess = InferenceSession(
-            subproto.SerializeToString(), providers=["CPUExecutionProvider"]
+            subproto.SerializeToString(), providers=providers, **kwargs
         )
         outputs = sess.run(None, feeds)
         if verbose > 1:
             for name, value in zip(node.output, outputs):
                 if isinstance(value, np.ndarray) and verbose <= 2:
                     print(" + %s: %s%s" % (name, value.dtype, value.shape))
+                elif value.size < 10:
+                    print(
+                        " + %s: %s%s = %s"
+                        % (name, value.dtype, value.shape, str(value).replace("\n", ""))
+                    )
                 else:
-                    print(" + %s: %s%s" % (name, value.dtype, value.shape))
-                    print(value)
+                    print(
+                        " + %s: %s%s ~ %s..."
+                        % (
+                            name,
+                            value.dtype,
+                            value.shape,
+                            str(value.ravel()[:8]).replace("\n", ""),
+                        )
+                    )
         yield names, outputs, node

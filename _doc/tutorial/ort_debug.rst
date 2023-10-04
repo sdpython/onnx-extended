@@ -54,6 +54,6 @@ results of an original model.
     }
 
     for names, outs, node in enumerate_ort_run(model, feeds, verbose=2):
-        print(f"node: {op_type}")
+        print(f"NODE: {node.op_type}")
         for n, o in zip(names, outs):
             print(f"   {n}:{o.dtype}:{o.shape}")

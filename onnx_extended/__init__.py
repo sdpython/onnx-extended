@@ -1,11 +1,60 @@
 # coding: utf-8
 """
-More operators for onnx reference implementation.
+More operators for onnx reference implementation and onnxruntime.
 Experimentation with openmp, CUDA.
 """
 
 __version__ = "0.2.3"
 __author__ = "Xavier Dupré"
+
+
+def check_installation():
+    """
+    Checks the installation works.
+    """
+    assert isinstance(get_cxx_flags(), str)
+    import warnings
+
+    with warnings.catch_warnings(record=False):
+        warnings.simplefilter("ignore")
+        import numpy
+        from onnx import TensorProto
+        from onnx.helper import (
+            make_model,
+            make_node,
+            make_graph,
+            make_tensor_value_info,
+            make_opsetid,
+        )
+        from onnx.checker import check_model
+        from onnxruntime import InferenceSession, SessionOptions
+        from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
+        node1 = make_node(
+            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+        )
+        graph = make_graph([node1], "lr", [X, A], [Y])
+        onnx_model = make_model(
+            graph,
+            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            ir_version=8,
+        )
+        check_model(onnx_model)
+
+        r = get_ort_ext_libs()
+        opts = SessionOptions()
+        opts.register_custom_ops_library(r[0])
+        sess = InferenceSession(
+            onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        a = numpy.random.randn(2, 2).astype(numpy.float32)
+        b = numpy.random.randn(2, 2).astype(numpy.float32)
+        feeds = {"X": a, "A": b}
+        got = sess.run(None, feeds)[0]
+        assert (a + b).shape == got.shape
 
 
 def has_cuda() -> bool:
