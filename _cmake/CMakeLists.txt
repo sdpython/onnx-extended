@@ -64,6 +64,7 @@ include("targets/c_op_tree_ensemble_py_.cmake")
 # new kernels for onnxruntime
 #
 
+message(STATUS "---------------------------------------------------")
 set(ORTOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortops")
 set(REFOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/reference/c_ops")
 message(STATUS "ROOT_INCLUDE_PATH=${ROOT_INCLUDE_PATH}")
@@ -84,7 +85,8 @@ include("finalize.cmake")
 # write version
 #
 
-message(STATUS "WRITE '${ROOT_PROJECT_PATH}/onnx_extended/_config.py'")
+message(STATUS "---------------------------------------------------")
+message(STATUS "WRITE _CONFIG: '${ROOT_PROJECT_PATH}/onnx_extended/_config.py'")
 message(STATUS "CONTENT\n ${config_content}")
 file(WRITE "${ROOT_PROJECT_PATH}/onnx_extended/_config.py" "${config_content}")
 
