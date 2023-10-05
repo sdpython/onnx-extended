@@ -259,7 +259,7 @@ class cmake_build_class_extension(Command):
         conf = os.path.join(thisdir, "onnx_extended", "_config.py")
         if not os.path.exists(conf):
             print("-- setup: add empty file 'onnx_extended/_config.py")
-            with open(conf, "r"):
+            with open(conf, "w"):
                 pass
 
     def initialize_options(self):
