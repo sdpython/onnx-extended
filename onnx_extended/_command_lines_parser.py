@@ -372,7 +372,7 @@ def get_parser_external() -> ArgumentParser:
     return parser
 
 
-def _cmd_store(argv):
+def _cmd_store(argv: List[Any]):
     from ._command_lines import store_intermediate_results
 
     parser = get_parser_store()
@@ -387,7 +387,7 @@ def _cmd_store(argv):
     )
 
 
-def _cmd_display(argv):
+def _cmd_display(argv: List[Any]):
     from ._command_lines import display_intermediate_results
 
     parser = get_parser_display()
@@ -397,7 +397,7 @@ def _cmd_display(argv):
     )
 
 
-def _cmd_print(argv):
+def _cmd_print(argv: List[Any]):
     from ._command_lines import print_proto
 
     parser = get_parser_print()
@@ -431,7 +431,7 @@ def _process_options(text: Optional[str]) -> "QuantizeOptions":  # noqa: F821
     return value
 
 
-def _cmd_quantize(argv):
+def _cmd_quantize(argv: List[Any]):
     from ._command_lines import cmd_quantize
 
     parser = get_parser_quantize()
@@ -452,7 +452,7 @@ def _cmd_quantize(argv):
     )
 
 
-def _cmd_select(argv):
+def _cmd_select(argv: List[Any]):
     from ._command_lines import cmd_select
 
     parser = get_parser_select()
@@ -466,7 +466,7 @@ def _cmd_select(argv):
     )
 
 
-def _cmd_external(argv):
+def _cmd_external(argv: List[Any]):
     from onnx import load
     from onnx.external_data_helper import (
         convert_model_to_external_data,
@@ -573,7 +573,7 @@ def get_parser_plot() -> ArgumentParser:
     return parser
 
 
-def _cmd_plot(argv):
+def _cmd_plot(argv: List[Any]):
     from ._command_lines import cmd_plot
 
     parser = get_parser_plot()
@@ -589,7 +589,7 @@ def _cmd_plot(argv):
     )
 
 
-def _cmd_merge(argv):
+def _cmd_merge(argv: List[Any]):
     from .tools.onnx_nodes import onnx_merge_models
     from .tools.onnx_io import load_model, save_model
 
@@ -665,7 +665,7 @@ def get_parser_check() -> ArgumentParser:
     return parser
 
 
-def _cmd_check(argv: Optional[List[Any]] = None):
+def _cmd_check(argv: List[Any]):
     "Executes :func:`check_installation <onnx_extended.check_installation>`."
     from . import check_installation
 
