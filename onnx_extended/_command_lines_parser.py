@@ -15,7 +15,6 @@ def get_main_parser() -> ArgumentParser:
     parser.add_argument(
         "cmd",
         choices=[
-            "store",
             "check",
             "display",
             "external",
@@ -648,10 +647,49 @@ def get_parser_merge() -> ArgumentParser:
     return parser
 
 
+def get_parser_check() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="check",
+        description=dedent(
+            """
+        Quickly checks the module is properly installed.
+        """
+        ),
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
+    )
+    return parser
+
+
+def _cmd_check(argv: Optional[List[Any]] = None):
+    "Executes :func:`check_installation <onnx_extended.check_installation>`."
+    from . import check_installation
+
+    parser = get_parser_check()
+    args = parser.parse_args(argv[1:])
+    check_installation(args.verbose)
+
+
 def main(argv: Optional[List[Any]] = None):
+    fcts = dict(
+        display=_cmd_display,
+        external=_cmd_external,
+        merge=_cmd_merge,
+        plot=_cmd_plot,
+        print=_cmd_print,
+        quantize=_cmd_quantize,
+        select=_cmd_select,
+        store=_cmd_store,
+        check=_cmd_check,
+    )
+
     if argv is None:
         argv = sys.argv[1:]
-    if len(argv) <= 1 or argv[-1] in ("--help", "-h"):
+    if (len(argv) <= 1 and argv[0] not in fcts) or argv[-1] in ("--help", "-h"):
         if len(argv) < 2:
             parser = get_main_parser()
             parser.parse_args(argv)
@@ -665,6 +703,7 @@ def main(argv: Optional[List[Any]] = None):
                 quantize=get_parser_quantize,
                 select=get_parser_select,
                 store=get_parser_store,
+                check=get_parser_check,
             )
             cmd = argv[0]
             if cmd not in parsers:
@@ -676,16 +715,6 @@ def main(argv: Optional[List[Any]] = None):
         raise RuntimeError("The programme should have exited before.")
 
     cmd = argv[0]
-    fcts = dict(
-        display=_cmd_display,
-        external=_cmd_external,
-        merge=_cmd_merge,
-        plot=_cmd_plot,
-        print=_cmd_print,
-        quantize=_cmd_quantize,
-        select=_cmd_select,
-        store=_cmd_store,
-    )
     if cmd in fcts:
         fcts[cmd](argv)
     else:

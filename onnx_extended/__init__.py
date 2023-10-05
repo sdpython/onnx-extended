@@ -8,7 +8,7 @@ __version__ = "0.2.3"
 __author__ = "Xavier Dupré"
 
 
-def check_installation():
+def check_installation(verbose: bool = False):
     """
     Checks the installation works.
     """
@@ -16,6 +16,8 @@ def check_installation():
     import warnings
 
     with warnings.catch_warnings(record=False):
+        if verbose:
+            print("[check_installation] import onnx")
         warnings.simplefilter("ignore")
         import numpy
         from onnx import TensorProto
@@ -27,8 +29,17 @@ def check_installation():
             make_opsetid,
         )
         from onnx.checker import check_model
+
+        if verbose:
+            print("[check_installation] import onnxruntime")
         from onnxruntime import InferenceSession, SessionOptions
+
+        if verbose:
+            print("[check_installation] import onnx-extended")
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+        if verbose:
+            print("[check_installation] create a simple onnx model")
 
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
@@ -45,16 +56,26 @@ def check_installation():
         check_model(onnx_model)
 
         r = get_ort_ext_libs()
+        if verbose:
+            print(f"[check_installation] get_ort_ext_libs()={get_ort_ext_libs()!r}")
         opts = SessionOptions()
         opts.register_custom_ops_library(r[0])
+        if verbose:
+            print("[check_installation] create session")
         sess = InferenceSession(
             onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
         )
         a = numpy.random.randn(2, 2).astype(numpy.float32)
         b = numpy.random.randn(2, 2).astype(numpy.float32)
         feeds = {"X": a, "A": b}
+        if verbose:
+            print("[check_installation] run session")
         got = sess.run(None, feeds)[0]
+        if verbose:
+            print("[check_installation] check shapes")
         assert (a + b).shape == got.shape
+        if verbose:
+            print("[check_installation] done")
 
 
 def has_cuda() -> bool:

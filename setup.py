@@ -397,6 +397,7 @@ class cmake_build_class_extension(Command):
             f"-DORT_VERSION={self.ort_version}",
             f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
             f"-DPYTHON_MANYLINUX={1 if is_manylinux else 0}",
+            f"-DCMAKE_VERBOSE_MAKEFILE={'ON' if self.verbose else 'OFF'}",
         ]
         if self.parallel is not None:
             cmake_args.append(f"-j{self.parallel}")
