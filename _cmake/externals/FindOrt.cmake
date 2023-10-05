@@ -95,9 +95,8 @@ endif()
 #
 # \arg:name target name
 # \arg:folder_copy where to copy the assembly
-# \arg:folder_copy_ort whenre to copy the dll for onnxruntime
 #
-function(ort_add_dependency name folder_copy folder_copy_ort)
+function(ort_add_dependency name folder_copy)
   get_target_property(target_output_directory ${name} BINARY_DIR)
   if(MSVC)
     set(destination_dir ${target_output_directory}/${CMAKE_BUILD_TYPE})
@@ -111,22 +110,29 @@ function(ort_add_dependency name folder_copy folder_copy_ort)
       TARGET ${name} POST_BUILD
       COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
     if(folder_copy)
-      message(STATUS "ort: copy ${file_i} to '${folder_copy}'")
+      message(STATUS "ort: copy '${file_i}' to '${ROOT_PROJECT_PATH}/${folder_copy}'")
+      if(CMAKE_VERBOSE_MAKEFILE)
+        add_custom_command(
+          TARGET ${name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} ARGS -E echo "ortlib: copy* '${file_i}' to '${ROOT_PROJECT_PATH}/${folder_copy}'")
+      endif()
       add_custom_command(
         TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
-    endif()
-    if(EXISTS folder_copy_ort)
-      message(STATUS "ort: copy ${file_i} to '${folder_copy_ort}'")
-      add_custom_command(
-        TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy_ort})
-    endif()
-    if(EXISTS SETUP_BUILD_LIB)
-      message(STATUS "ort: copy ${file_i} to '${SETUP_BUILD_LIB}'")
-      add_custom_command(
-        TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${SETUP_BUILD_LIB})
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${ROOT_PROJECT_PATH}/${folder_copy}")
+      if(EXISTS SETUP_BUILD_LIB)
+        message(STATUS "ort: copy '${file_i}' to '${SETUP_BUILD_LIB}/${folder_copy}'")
+        if(CMAKE_VERBOSE_MAKEFILE)
+          add_custom_command(
+            TARGET ${name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} ARGS -E echo "ortlib: copy* '${file_i}' to '${SETUP_BUILD_LIB}/${folder_copy}'")
+        endif()
+        add_custom_command(
+          TARGET ${name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} ARGS -E make_directory "${SETUP_BUILD_LIB}/${folder_copy}")
+        add_custom_command(
+          TARGET ${name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${SETUP_BUILD_LIB}/${folder_copy}")
+      endif()
     endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
