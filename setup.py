@@ -667,13 +667,13 @@ def get_package_data():
         "*.cpp",
         "*.cu",
         "*.cuh",
+        "*.dll",
         "*.dylib",
         "*.h",
         "*.hpp",
         "*.pyd",
         "*.pyx",
         "*.so*",
-        "*.dll",
     ]
     return {
         "onnx_extended": known_extensions,
