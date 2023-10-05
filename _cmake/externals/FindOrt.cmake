@@ -104,21 +104,29 @@ function(ort_add_dependency name folder_copy folder_copy_ort)
   else()
     set(destination_dir ${target_output_directory})
   endif()
-  message(STATUS "ort: copy ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}' "
-                 "to '${destination_dir}', '${folder_copy}', '${folder_copy_ort}' if it exists")
+  message(STATUS "ort: copy ${ORT_LIB_FILES_LENGTH} files from '${ONNXRUNTIME_LIB_DIR}'")
   foreach(file_i ${ORT_LIB_FILES})
+    message(STATUS "ort: copy ${file_i} to '${destination_dir}'")
     add_custom_command(
       TARGET ${name} POST_BUILD
       COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
     if(folder_copy)
+      message(STATUS "ort: copy ${file_i} to '${folder_copy}'")
       add_custom_command(
         TARGET ${name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy})
     endif()
     if(EXISTS folder_copy_ort)
+      message(STATUS "ort: copy ${file_i} to '${folder_copy_ort}'")
       add_custom_command(
         TARGET ${name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${folder_copy_ort})
+    endif()
+    if(EXISTS SETUP_BUILD_LIB)
+      message(STATUS "ort: copy ${file_i} to '${SETUP_BUILD_LIB}'")
+      add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${SETUP_BUILD_LIB})
     endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
@@ -187,6 +195,7 @@ function(ort_add_custom_op name provider folder)
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
+  message(STATUS "ort: copy* '${name}' to '${CMAKE_CURRENT_SOURCE_DIR}/${folder}'")
   add_custom_command(
     TARGET ${name} POST_BUILD
     COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE:${name}> ${CMAKE_CURRENT_SOURCE_DIR}/${folder})
