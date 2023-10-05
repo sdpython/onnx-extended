@@ -1,4 +1,5 @@
-recursive-include onnx_extended *.c *.cpp *.h *.pyx *.pxd *.pxi *.py _cmake *.cmake *.in *.txt *.sh
+recursive-include onnx_extended *.c *.cpp *.h *.pyx *.pxd *.pxi *.py
+recursive-include  _cmake *.cmake *.in *.txt *.sh *.in
 include pyproject.toml
 include MANIFEST.in
 include setup.cfg
@@ -6,3 +7,6 @@ prune _doc
 prune _unittests
 exclude *.yml
 exclude *.git*
+# cython files to exclude
+exclude onnx_extended/ortcy/ortinf.cpp
+exclude onnx_extended/validation/cython/fp8.cpp
