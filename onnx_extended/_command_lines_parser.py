@@ -657,6 +657,12 @@ def get_parser_check() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "-o",
+        "--ortcy",
+        action="store_true",
+        help="check OrtSession as well",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -671,7 +677,7 @@ def _cmd_check(argv: List[Any]):
 
     parser = get_parser_check()
     args = parser.parse_args(argv[1:])
-    check_installation(args.verbose)
+    check_installation(ortcy=args.ortcy, verbose=args.verbose)
 
 
 def main(argv: Optional[List[Any]] = None):

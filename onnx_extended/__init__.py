@@ -8,7 +8,7 @@ __version__ = "0.2.3"
 __author__ = "Xavier Dupré"
 
 
-def check_installation(verbose: bool = False):
+def check_installation(ortcy: bool = False, verbose: bool = False):
     """
     Checks the installation works.
     """
@@ -37,6 +37,7 @@ def check_installation(verbose: bool = False):
         if verbose:
             print("[check_installation] import onnx-extended")
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+        from onnx_extended.ortcy.wrap.ortinf import OrtSession
 
         if verbose:
             print("[check_installation] create a simple onnx model")
@@ -74,6 +75,18 @@ def check_installation(verbose: bool = False):
         if verbose:
             print("[check_installation] check shapes")
         assert (a + b).shape == got.shape
+        if ortcy:
+            if verbose:
+                print("[check_installation] create OrtSession")
+            session = OrtSession(
+                onnx_model.SerializeToString(), custom_libs=get_ort_ext_libs()
+            )
+            if verbose:
+                print("[check_installation] run OrtSession")
+            got = session.run([a, b])
+            if verbose:
+                print("[check_installation] check shapes")
+            assert (a + b).shape == got[0].shape
         if verbose:
             print("[check_installation] done")
 

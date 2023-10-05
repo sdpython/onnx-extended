@@ -111,28 +111,16 @@ function(ort_add_dependency name folder_copy)
       COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
     if(folder_copy)
       message(STATUS "ort: copy '${file_i}' to '${ROOT_PROJECT_PATH}/${folder_copy}'")
-      if(CMAKE_VERBOSE_MAKEFILE)
-        add_custom_command(
-          TARGET ${name} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} ARGS -E echo "ortlib: copy* '${file_i}' to '${ROOT_PROJECT_PATH}/${folder_copy}'")
-      endif()
       add_custom_command(
         TARGET ${name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${ROOT_PROJECT_PATH}/${folder_copy}")
-      if(EXISTS SETUP_BUILD_LIB)
-        message(STATUS "ort: copy '${file_i}' to '${SETUP_BUILD_LIB}/${folder_copy}'")
-        if(CMAKE_VERBOSE_MAKEFILE)
-          add_custom_command(
-            TARGET ${name} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} ARGS -E echo "ortlib: copy* '${file_i}' to '${SETUP_BUILD_LIB}/${folder_copy}'")
-        endif()
-        add_custom_command(
-          TARGET ${name} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} ARGS -E make_directory "${SETUP_BUILD_LIB}/${folder_copy}")
-        add_custom_command(
-          TARGET ${name} POST_BUILD
-          COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${SETUP_BUILD_LIB}/${folder_copy}")
-      endif()
+      message(STATUS "ort: copy '${file_i}' to '${SETUP_BUILD_LIB}/${folder_copy}'")
+      add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E make_directory "${SETUP_BUILD_LIB}/${folder_copy}")
+      add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${SETUP_BUILD_LIB}/${folder_copy}")
     endif()
   endforeach()
   # file(COPY ${ORT_LIB_FILES} DESTINATION ${target_output_directory})
@@ -202,20 +190,10 @@ function(ort_add_custom_op name provider folder)
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
   message(STATUS "ort: copy after build '$<TARGET_FILE:${name}>' to '${ROOT_PROJECT_PATH}/${folder}'")
-  if(CMAKE_VERBOSE_MAKEFILE)
-    add_custom_command(
-      TARGET ${name} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} ARGS -E echo "ort: copy* '$<TARGET_FILE:${name}>' into '${ROOT_PROJECT_PATH}/${folder}'")
-  endif()
   add_custom_command(
     TARGET ${name} POST_BUILD
     COMMAND ${CMAKE_COMMAND} ARGS -E copy "$<TARGET_FILE:${name}>" "${ROOT_PROJECT_PATH}/${folder}")
   message(STATUS "ort: copy after build '$<TARGET_FILE:${name}>' to '${SETUP_BUILD_LIB}//${folder}'")
-  if(CMAKE_VERBOSE_MAKEFILE)
-    add_custom_command(
-      TARGET ${name} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} ARGS -E echo "ort: copy* '$<TARGET_FILE:${name}>' into '${SETUP_BUILD_LIB}/${folder}'")
-  endif()
   add_custom_command(
     TARGET ${name} POST_BUILD
     COMMAND ${CMAKE_COMMAND} ARGS -E make_directory  "${SETUP_BUILD_LIB}/${folder}")
