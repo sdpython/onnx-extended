@@ -86,9 +86,11 @@ include("finalize.cmake")
 #
 
 message(STATUS "---------------------------------------------------")
-message(STATUS "WRITE _CONFIG: '${ROOT_PROJECT_PATH}/onnx_extended/_config.py'")
 message(STATUS "CONTENT\n ${config_content}")
+message(STATUS "WRITE _CONFIG: '${ROOT_PROJECT_PATH}/onnx_extended/_config.py'")
 file(WRITE "${ROOT_PROJECT_PATH}/onnx_extended/_config.py" "${config_content}")
+message(STATUS "WRITE _CONFIG: '${SETUP_BUILD_LIB}/onnx_extended/_config.py'")
+file(WRITE "${SETUP_BUILD_LIB}/onnx_extended/_config.py" "${config_content}")
 
 #
 # test
