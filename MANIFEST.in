@@ -1,6 +1,8 @@
+recursive-include onnx_extended *.c *.cpp *.h *.pyx *.pxd *.pxi *.py _cmake *.cmake *.in *.txt *.sh
+include pyproject.toml
+include MANIFEST.in
+include setup.cfg
 prune _doc
 prune _unittests
-recursive-include _cmake *.cmake *.in *.h *.txt *.sh
-exclude *.bat
 exclude *.yml
 exclude *.git*

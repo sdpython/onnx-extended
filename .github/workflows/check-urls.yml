@@ -16,7 +16,7 @@ on:
     - cron: '30 1 * * 0'
 
 jobs:
-  build:
+  check-urls:
     runs-on: ubuntu-latest
 
     steps:

@@ -64,8 +64,12 @@ include("targets/c_op_tree_ensemble_py_.cmake")
 # new kernels for onnxruntime
 #
 
+message(STATUS "---------------------------------------------------")
 set(ORTOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/ortops")
 set(REFOPS_INCLUDE_DIR "${ROOT_INCLUDE_PATH}/onnx_extended/reference/c_ops")
+message(STATUS "ROOT_INCLUDE_PATH=${ROOT_INCLUDE_PATH}")
+message(STATUS "ORTOPS_INCLUDE_DIR=${ORTOPS_INCLUDE_DIR}")
+message(STATUS "REFOPS_INCLUDE_DIR=${REFOPS_INCLUDE_DIR}")
 
 include("targets/ortops_tutorial_cpu.cmake")
 include("targets/ortops_tutorial_cuda.cmake")
@@ -81,7 +85,10 @@ include("finalize.cmake")
 # write version
 #
 
-file(WRITE "../onnx_extended/_config.py" "${config_content}")
+message(STATUS "---------------------------------------------------")
+message(STATUS "WRITE _CONFIG: '${ROOT_PROJECT_PATH}/onnx_extended/_config.py'")
+message(STATUS "CONTENT\n ${config_content}")
+file(WRITE "${ROOT_PROJECT_PATH}/onnx_extended/_config.py" "${config_content}")
 
 #
 # test

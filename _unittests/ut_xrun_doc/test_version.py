@@ -1,5 +1,5 @@
 import os
-from onnx_extended import __version__ as extversion
+from onnx_extended import __version__ as extversion, check_installation
 from onnx_extended.ext_test_case import ExtTestCase
 
 try:
@@ -21,6 +21,9 @@ class TestVersion(ExtTestCase):
             tom = toml.load(f)
         self.assertEqual("onnx-extended", tom["project"]["name"])
         self.assertEqual(extversion, tom["project"]["version"])
+
+    def test_check_installation(self):
+        check_installation()
 
 
 if __name__ == "__main__":

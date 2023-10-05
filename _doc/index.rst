@@ -45,7 +45,7 @@ Source are available on `github/onnx-extended
     CHANGELOGS
     license
 
-Use C++ a implementation of existing operators
+Use a C++ implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++
 
 .. runpython::

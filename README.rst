@@ -35,7 +35,7 @@ Documentation `onnx-extended
 Source are available on `github/onnx-extended
 <https://github.com/sdpython/onnx-extended/>`_.
 
-Use C++ a implementation of existing operators
+Use a C++ implementation of existing operators
 ++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: python

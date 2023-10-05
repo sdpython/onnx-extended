@@ -104,6 +104,7 @@ namespaces = false
 [tool.cibuildwheel]
 build = "*"
 manylinux-x86_64-image = "manylinux2014"
+test-command = "python -c \"import onnx_extended;onnx_extended.check_installation()\""
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
