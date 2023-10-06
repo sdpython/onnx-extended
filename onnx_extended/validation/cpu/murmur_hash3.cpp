@@ -7,7 +7,7 @@
 // compile and run any of them on any platform, but your performance with the
 // non-native version will be less than optimal.
 
-#include "murmur_hash3_sklearn.h"
+#include "murmur_hash3.h"
 
 #if defined(_MSC_VER)
 

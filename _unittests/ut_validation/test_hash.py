@@ -7,17 +7,14 @@ from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 
 class TestHash(ExtTestCase):
     def test_hash(self):
-        from onnx_extended.validation.cpu._validation import (
-            murmurhash3_bytes_s32_ort,
-            murmurhash3_bytes_s32_sklearn,
-        )
+        from onnx_extended.validation.cpu._validation import murmurhash3_bytes_s32
 
         values = ["a", "b", "d", "abd", "é"]
-        for v in values:
+        expected = [1009084850, -1780580861, 655955059, -1227084774, 269551495]
+        for v, e in zip(values, expected):
             with self.subTest(v=v):
-                o = murmurhash3_bytes_s32_ort(v)
-                s = murmurhash3_bytes_s32_sklearn(v)
-                self.assertEqual(o, s)
+                o = murmurhash3_bytes_s32(v)
+                self.assertEqual(e, o)
 
     @ignore_warnings(DeprecationWarning)
     def test_feature_hasher_int64(self):

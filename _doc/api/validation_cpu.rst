@@ -16,6 +16,8 @@ _validation
 
 .. autofunction:: onnx_extended.validation.cpu._validation.benchmark_cache_tree
 
+.. autofunction:: onnx_extended.validation.cpu._validation.murmurhash3_bytes_s32
+
 .. autofunction:: onnx_extended.validation.cpu._validation.vector_add
 
 .. autofunction:: onnx_extended.validation.cpu._validation.vector_sum
