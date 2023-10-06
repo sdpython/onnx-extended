@@ -3,6 +3,11 @@
 check
 =====
 
+check_installation
+==================
+
+.. autofunction:: onnx_extended.check_installation
+
 compiled_with_cuda
 ==================
 

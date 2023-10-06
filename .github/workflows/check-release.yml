@@ -4,7 +4,7 @@ on:
   schedule:
     # every first day of the month
     - cron:  '0 0 1 * *'
-  push:
+  # push:
 
 jobs:
 
