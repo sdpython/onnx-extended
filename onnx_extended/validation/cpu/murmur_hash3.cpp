@@ -36,9 +36,6 @@
 
 #endif
 
-namespace validation {
-namespace sklearn {
-
 inline uint32_t rotl32(uint32_t x, int8_t r) {
   return (x << r) | (x >> (32 - r));
 }
@@ -53,6 +50,9 @@ inline uint64_t rotl64(uint64_t x, int8_t r) {
 #define BIG_CONSTANT(x) (x##LLU)
 
 #endif // !defined(_MSC_VER)
+
+namespace validation {
+namespace sklearn {
 
 //-----------------------------------------------------------------------------
 // Block read - if your platform needs to do endian-swapping or can only
@@ -416,5 +416,5 @@ void MurmurHash3_x64_128(const void *key, const int len, const uint32_t seed,
 }
 
 //-----------------------------------------------------------------------------
-}
-}
+} // namespace sklearn
+} // namespace validation
