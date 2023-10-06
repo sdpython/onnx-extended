@@ -18,6 +18,7 @@ def check_installation(
     :param ortcy: checks that OrtSession is working (cython bindings of onnxruntime)
     :param val: checks that a couple of functions
         in submodule validation are working
+    :param verbose: prints out which verifications is being processed
     """
     assert isinstance(get_cxx_flags(), str)
     import datetime
