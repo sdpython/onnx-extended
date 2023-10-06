@@ -4,9 +4,10 @@
 #include <mutex>
 #include <vector>
 
-#include "ortapi_version.h"
 #include "ort_optim_cpu_lib.h"
+#include "ortapi_version.h"
 #include "tree_ensemble.h"
+#include "tree_ensemble.hpp"
 
 static const char *c_OpDomain = "onnx_extented.ortops.optim.cpu";
 
@@ -23,8 +24,10 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
-  static ortops::TreeEnsembleRegressor c_TreeEnsembleRegressor;
-  static ortops::TreeEnsembleClassifier c_TreeEnsembleClassifier;
+  static ortops::TreeEnsembleRegressor<float, float, float>
+      c_TreeEnsembleRegressor;
+  static ortops::TreeEnsembleClassifier<float, float, float>
+      c_TreeEnsembleClassifier;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};

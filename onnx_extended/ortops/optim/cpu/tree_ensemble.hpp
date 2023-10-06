@@ -8,59 +8,89 @@ namespace ortops {
 
 // Regressor
 
-void *TreeEnsembleRegressor::CreateKernel(const OrtApi &api,
-                                          const OrtKernelInfo *info) const {
-  return std::make_unique<TreeEnsembleKernel>(api, info).release();
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+void *TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::CreateKernel(
+    const OrtApi &api, const OrtKernelInfo *info) const {
+  return std::make_unique<TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>>(api, info)
+      .release();
 };
 
-const char *TreeEnsembleRegressor::GetName() const {
+template <>
+const char *TreeEnsembleRegressor<float, float, float>::GetName() const {
   return "TreeEnsembleRegressor";
 };
 
-const char *TreeEnsembleRegressor::GetExecutionProviderType() const {
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+const char *
+TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::GetExecutionProviderType() const {
   return "CPUExecutionProvider";
 };
 
-size_t TreeEnsembleRegressor::GetInputTypeCount() const { return 1; };
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+size_t TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::GetInputTypeCount() const {
+  return 1;
+};
 
+template <>
 ONNXTensorElementDataType
-TreeEnsembleRegressor::GetInputType(std::size_t /* index */) const {
+TreeEnsembleRegressor<float, float, float>::GetInputType(
+    std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
-size_t TreeEnsembleRegressor::GetOutputTypeCount() const { return 1; };
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+size_t TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
+  return 1;
+};
 
+template <>
 ONNXTensorElementDataType
-TreeEnsembleRegressor::GetOutputType(std::size_t /* index */) const {
+TreeEnsembleRegressor<float, float, float>::GetOutputType(
+    std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
 // Classifier
 
-void *TreeEnsembleClassifier::CreateKernel(const OrtApi &api,
-                                           const OrtKernelInfo *info) const {
-  return std::make_unique<TreeEnsembleKernel>(api, info).release();
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+void *TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::CreateKernel(
+    const OrtApi &api, const OrtKernelInfo *info) const {
+  return std::make_unique<TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>>(api, info)
+      .release();
 };
 
-const char *TreeEnsembleClassifier::GetName() const {
+template <>
+const char *TreeEnsembleClassifier<float, float, float>::GetName() const {
   return "TreeEnsembleClassifier";
 };
 
-const char *TreeEnsembleClassifier::GetExecutionProviderType() const {
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+const char *
+TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetExecutionProviderType() const {
   return "CPUExecutionProvider";
 };
 
-size_t TreeEnsembleClassifier::GetInputTypeCount() const { return 1; };
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+size_t TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetInputTypeCount() const {
+  return 1;
+};
 
+template <>
 ONNXTensorElementDataType
-TreeEnsembleClassifier::GetInputType(std::size_t /* index */) const {
+TreeEnsembleClassifier<float, float, float>::GetInputType(
+    std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
-size_t TreeEnsembleClassifier::GetOutputTypeCount() const { return 2; };
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+size_t TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
+  return 2;
+};
 
+template <>
 ONNXTensorElementDataType
-TreeEnsembleClassifier::GetOutputType(std::size_t index) const {
+TreeEnsembleClassifier<float, float, float>::GetOutputType(
+    std::size_t index) const {
   switch (index) {
   case 0:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
@@ -75,9 +105,10 @@ TreeEnsembleClassifier::GetOutputType(std::size_t index) const {
 // Kernel initialization
 ////////////////////////
 
-TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
-                                       const OrtKernelInfo *info) {
-  reg_float_float_float = nullptr;
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
+    const OrtApi &api, const OrtKernelInfo *info) {
+  reg_type_type_type = nullptr;
 
   std::string aggregate_function = KernelInfoGetOptionalAttributeString(
       api, info, "aggregate_function", "SUM");
@@ -155,10 +186,10 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
               ", nodes_modes=", nodes_modes_single, ".");
   EXT_ENFORCE(n_targets_or_classes > 0);
 
-  std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<float, float, float>> ptr(
-      new onnx_c_ops::TreeEnsembleCommon<float, float, float>());
-  reg_float_float_float.swap(ptr);
-  auto status = reg_float_float_float->Init(
+  std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<ITYPE, TTYPE, OTYPE>> ptr(
+      new onnx_c_ops::TreeEnsembleCommon<ITYPE, TTYPE, OTYPE>());
+  reg_type_type_type.swap(ptr);
+  auto status = reg_type_type_type->Init(
       aggregate_function, base_values, n_targets_or_classes, nodes_falsenodeids,
       nodes_featureids, nodes_hitrates, nodes_missing_value_tracks_true,
       nodes_modes, nodes_nodeids, nodes_treeids, nodes_truenodeids,
@@ -179,22 +210,25 @@ TreeEnsembleKernel::TreeEnsembleKernel(const OrtApi &api,
   int64_t use_node3 = KernelInfoGetOptionalAttribute(api, info, "use_node3",
                                                      static_cast<int64_t>(0));
 
-  reg_float_float_float->set(parallel_tree, parallel_tree_N, parallel_N,
-                             batch_size_tree, batch_size_rows, use_node3);
+  reg_type_type_type->set(parallel_tree, parallel_tree_N, parallel_N,
+                          batch_size_tree, batch_size_rows, use_node3);
 }
 
 ////////////////////////
 // Kernel Implementation
 ////////////////////////
 
-void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
+template <typename ITYPE, typename TTYPE, typename OTYPE>
+void TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::Compute(
+    OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_X = ctx.GetInput(0);
   std::vector<int64_t> dimensions_in =
       input_X.GetTensorTypeAndShapeInfo().GetShape();
   EXT_ENFORCE(dimensions_in.size() == 2, "TreeEnsemble only allows 2D inputs.");
   std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
-  Ort::UnownedValue output = ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
+  Ort::UnownedValue output =
+      ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
   int64_t *p_labels = nullptr;
   if (is_classifier) {
     std::vector<int64_t> dimensions_label{dimensions_in[0]};
@@ -202,11 +236,11 @@ void TreeEnsembleKernel::Compute(OrtKernelContext *context) {
     p_labels = labels.GetTensorMutableData<int64_t>();
   }
 
-  if (reg_float_float_float.get() != nullptr) {
-    const float *X = input_X.GetTensorData<float>();
-    float *out = output.GetTensorMutableData<float>();
-    reg_float_float_float->Compute(dimensions_in[0], dimensions_in[1], X, out,
-                                   p_labels);
+  if (reg_type_type_type.get() != nullptr) {
+    const ITYPE *X = input_X.GetTensorData<ITYPE>();
+    OTYPE *out = output.GetTensorMutableData<OTYPE>();
+    reg_type_type_type->Compute(dimensions_in[0], dimensions_in[1], X, out,
+                                p_labels);
   } else {
     EXT_ENFORCE("No implementation yet for input type=",
                 (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
