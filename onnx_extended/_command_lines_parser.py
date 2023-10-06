@@ -660,7 +660,19 @@ def get_parser_check() -> ArgumentParser:
         "-o",
         "--ortcy",
         action="store_true",
-        help="check OrtSession as well",
+        help="check OrtSession",
+    )
+    parser.add_argument(
+        "-a",
+        "--val",
+        action="store_true",
+        help="check submodule validation",
+    )
+    parser.add_argument(
+        "-r",
+        "--ortops",
+        action="store_true",
+        help="check custom operators with onnxruntime",
     )
     parser.add_argument(
         "-v",
