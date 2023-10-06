@@ -254,7 +254,16 @@ class cmake_build_class_extension(Command):
         ),
     ]
 
+    def add_missing_files(self):
+        thisdir = os.path.dirname(__file__)
+        conf = os.path.join(thisdir, "onnx_extended", "_config.py")
+        if not os.path.exists(conf):
+            print("-- setup: add empty file 'onnx_extended/_config.py")
+            with open(conf, "w"):
+                pass
+
     def initialize_options(self):
+        self.add_missing_files()
         self.use_nvtx = None
         self.use_cuda = None
         self.cuda_version = None
@@ -327,7 +336,10 @@ class cmake_build_class_extension(Command):
         for na in keys:
             opt = options[na]
             name = opt[0].replace("-", "_").strip("=")
-            print(f"-- setup: option {name}={getattr(self, name, None)}")
+            v = getattr(self, name, None)
+            if v is None:
+                continue
+            print(f"-- setup: option {name}={v}")
 
     def get_cmake_args(self, cfg: str) -> List[str]:
         """
@@ -385,6 +397,7 @@ class cmake_build_class_extension(Command):
             f"-DORT_VERSION={self.ort_version}",
             f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
             f"-DPYTHON_MANYLINUX={1 if is_manylinux else 0}",
+            f"-DCMAKE_VERBOSE_MAKEFILE={'ON' if self.verbose else 'OFF'}",
         ]
         if self.parallel is not None:
             cmake_args.append(f"-j{self.parallel}")
@@ -478,6 +491,14 @@ class cmake_build_class_extension(Command):
         print("-- setup: done.")
         return build_path, build_lib
 
+    def final_verifications(self):
+        thisdir = os.path.dirname(__file__)
+        files = ["_config.py"]
+        for name in files:
+            full = os.path.join(thisdir, "onnx_extended", name)
+            if not os.path.exists(full):
+                raise FileNotFoundError(f"Unable to find {full!r}.")
+
     def process_extensions(self, cfg: str, build_path: str, build_lib: str):
         """
         Copies the python extensions built by cmake into python subfolders.
@@ -535,6 +556,8 @@ class cmake_build_class_extension(Command):
             self.process_extensions(cfg, build_path, build_lib)
         else:
             print("-- skip process_extensions")
+        print("-- final verifications")
+        self.final_verifications()
         print("-- done")
 
 
@@ -667,13 +690,13 @@ def get_package_data():
         "*.cpp",
         "*.cu",
         "*.cuh",
+        "*.dll",
         "*.dylib",
         "*.h",
         "*.hpp",
         "*.pyd",
         "*.pyx",
         "*.so*",
-        "*.dll",
     ]
     return {
         "onnx_extended": known_extensions,

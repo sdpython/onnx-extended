@@ -104,7 +104,7 @@ namespaces = false
 [tool.cibuildwheel]
 build = "*"
 manylinux-x86_64-image = "manylinux2014"
-test-command = "python -c \"import onnx_extended;onnx_extended.check_installation()\""
+test-command = "python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation()\""
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
@@ -153,7 +153,7 @@ disable_error_code = [
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended._command_lines_parser"]
-disable_error_code = ["name-defined"]
+disable_error_code = ["arg-type", "name-defined"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.ext_test_case"]
