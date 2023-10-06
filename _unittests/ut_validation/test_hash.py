@@ -1,7 +1,13 @@
 # coding: utf-8
 import unittest
+import packaging.version as pv
 import numpy
 from sklearn.feature_extraction import FeatureHasher
+
+try:
+    from onnxruntime import __version__ as ort_version
+except ImportError:
+    ort_version = "0.0"
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 
 
@@ -49,6 +55,10 @@ class TestHash(ExtTestCase):
         self.assertEqualArray(expected, got[0])
 
     @ignore_warnings(DeprecationWarning)
+    @unittest.skipIf(
+        pv.Version(ort_version) < pv.Version("1.17.0"),
+        reason="failure in the converter and onnxruntime",
+    )
     def test_feature_hasher_float32(self):
         from onnxruntime import InferenceSession
         from skl2onnx import to_onnx
