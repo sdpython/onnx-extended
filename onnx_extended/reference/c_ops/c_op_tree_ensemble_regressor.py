@@ -2,6 +2,7 @@ from typing import Any, Dict
 import numpy
 from onnx import NodeProto
 from onnx.reference.op_run import OpRun
+from ..._common import pick
 from .cpu.c_op_tree_ensemble_py_ import (
     RuntimeTreeEnsembleRegressorFloat,
     RuntimeTreeEnsembleRegressorDouble,
@@ -61,24 +62,32 @@ class TreeEnsembleRegressorCommon(OpRun):
 
         empty_f = numpy.array([], dtype=dtype)
         base_values = numpy.array(
-            kwargs.get("base_values", None)
-            or kwargs.get("base_values_as_tensor", None)
-            or empty_f
+            pick(
+                kwargs.get("base_values", None),
+                kwargs.get("base_values_as_tensor", None),
+                empty_f,
+            )
         )
         nodes_values = numpy.array(
-            kwargs.get("nodes_values", None)
-            or kwargs.get("nodes_values_as_tensor", None)
-            or empty_f
+            pick(
+                kwargs.get("nodes_values", None),
+                kwargs.get("nodes_values_as_tensor", None),
+                empty_f,
+            )
         )
         nodes_hitrates = numpy.array(
-            kwargs.get("nodes_hitrates", None)
-            or kwargs.get("nodes_hitrates_as_tensor", None)
-            or empty_f
+            pick(
+                kwargs.get("nodes_hitrates", None),
+                kwargs.get("nodes_hitrates_as_tensor", None),
+                empty_f,
+            )
         )
         tw = numpy.array(
-            kwargs.get("target_weights", None)
-            or kwargs.get("target_weights", None)
-            or empty_f
+            pick(
+                kwargs.get("target_weights", None),
+                kwargs.get("target_weights", None),
+                empty_f,
+            )
         )
 
         self.rt_.init(

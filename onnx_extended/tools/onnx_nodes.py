@@ -25,9 +25,12 @@ from onnx import (
 from onnx.compose import merge_models
 from onnx.helper import (
     make_attribute,
+    make_node,
     make_graph,
     make_function,
     make_model,
+    make_opsetid,
+    make_tensor,
     make_tensor_value_info,
     np_dtype_to_tensor_dtype,
     set_model_props,
@@ -120,21 +123,25 @@ def _apply_optimisation_on_graph(
         if debug_info is None:
             debug_info = []
         graph = fct(onnx_model.graph, debug_info=debug_info + ["GRAPH"], **kwargs)
-        new_model = make_model(graph, functions=onnx_model.functions)
+        functions = [
+            fct(f, debug_info=debug_info + [f"FUNCTION {f.name}"], **kwargs)
+            for f in onnx_model.functions
+        ]
+        if hasattr(onnx_model, "value_info"):
+            graph.value_info.extend(onnx_model.value_info)
+        new_model = make_model(
+            graph,
+            opset_imports=[
+                make_opsetid(d.domain, d.version) for d in onnx_model.opset_import
+            ],
+            functions=functions,
+        )
         new_model.ir_version = onnx_model.ir_version
         new_model.producer_name = onnx_model.producer_name
         new_model.producer_version = onnx_model.producer_version
         new_model.domain = onnx_model.domain
         new_model.model_version = onnx_model.model_version
         new_model.doc_string = onnx_model.doc_string
-        if hasattr(onnx_model, "value_info"):
-            graph.value_info.extend(onnx_model.value_info)
-        while len(new_model.opset_import) > 0:
-            new_model.opset_import.pop()
-        for oimp in onnx_model.opset_import:
-            op_set = new_model.opset_import.add()
-            op_set.domain = oimp.domain
-            op_set.version = oimp.version
         return new_model
     raise TypeError(
         f"This function only works on 'ModelProto' anod not not on {type(onnx_model)}."
@@ -818,3 +825,194 @@ def onnx_merge_models(
                 continue
             print(f"[onnx_merge_models] no update implemented for domain {k!r} to {v}")
     return merge_models(m1, m2, io_map=io_map)
+
+
+def tree_ensemble_use_as_tensor_attributes(node: NodeProto) -> NodeProto:
+    """
+    Uses only attributes suffixed with `_as_tensor` for tree ensemble operators.
+
+    :param node: node to update
+    :return: modified node
+    """
+    if node.op_type in {"TreeEnsembleRegressor", "TreeEnsembleClassifier"}:
+        atts = {
+            "base_values",
+            "nodes_hitrates",
+            "nodes_values",
+            "target_weights",
+            "class_weights",
+        }
+        attributes = []
+        modified = False
+        for att in node.attribute:
+            if att.name not in atts:
+                attributes.append(att)
+                continue
+            floats = list(att.floats)
+            tensor = make_tensor(att.name, TensorProto.FLOAT, [len(floats)], floats)
+            att = make_attribute(att.name + "_as_tensor", tensor)
+            attributes.append(att)
+            modified = True
+        if not modified:
+            return node
+        new_node = make_node(
+            node.op_type, node.input, node.output, name=node.name, domain=node.domain
+        )
+        new_node.attribute.extend(attributes)
+        return new_node
+
+    raise NotImplementedError(
+        f"Unable to apply tree_ensemble_use_as_tensor_attributes "
+        f"on operator type {node.op_type}."
+    )
+
+
+def convert_onnx_model(
+    onnx_model: Union[ModelProto, GraphProto, NodeProto, FunctionProto],
+    opsets: Dict[str, int],
+    recursive: bool = True,
+    use_as_tensor_attributes: bool = True,
+    verbose: int = 0,
+    _from_opset: Optional[Dict[str, int]] = None,
+    debug_info: Optional[List[str]] = None,
+) -> Union[ModelProto, GraphProto, NodeProto, FunctionProto]:
+    """
+    Upgrades a model to the latest opsets.
+
+    :param onnx_model: proto
+    :param opsets: list of opsets to update
+    :param recursive: looks into subgraphs
+    :param use_as_tensor_attributes: use attributes siffixed with `as_tensor` for trees
+    :param verbose: verbosity
+    :param _from_opset: tells which opset a node belongs too, only used when
+        onnx_model is a NodeProto
+    :param debug_info: unused
+    :return: new proto
+    """
+
+    def _change_opsets(proto):
+        old_opsets = {d.domain: d.version for d in proto.opset_import}
+        old_opsets.update(opsets)
+        del proto.opset_import[:]
+        for k, v in old_opsets.items():
+            d = proto.opset_import.add()
+            d.domain = k
+            d.version = v
+
+    if isinstance(onnx_model, ModelProto):
+        if _from_opset is not None:
+            raise RuntimeError("_from_opset must be None for ModelProto.")
+        old_opsets = {d.domain: d.version for d in onnx_model.opset_import}
+        if verbose > 0:
+            print(
+                f"[convert_onnx_model] upgrade ModelProto from opset "
+                f"{old_opsets} to {opsets}"
+            )
+        new_opset = opsets.get("", old_opsets.get("", None))
+        if new_opset != old_opsets.get("", None):
+            onnx_model = convert_version(onnx_model, opsets)
+        new_onnx = _apply_optimisation_on_graph(
+            convert_onnx_model,
+            onnx_model,
+            recursive=recursive,
+            verbose=verbose,
+            opsets=opsets,
+            use_as_tensor_attributes=use_as_tensor_attributes,
+            _from_opset=old_opsets,
+        )
+        _change_opsets(new_onnx)
+        return new_onnx
+
+    is_function = isinstance(onnx_model, FunctionProto)
+    if not is_function and not isinstance(_from_opset, dict):
+        raise TypeError(f"_from_opset must a dictionary not {_from_opset!r}.")
+
+    if isinstance(onnx_model, NodeProto):
+        node = onnx_model
+        if verbose > 1:
+            print(
+                f"[convert_onnx_model] upgrade node {node.op_type!r} from opset "
+                f"{_from_opset.get(node.domain, 0)} to {opsets.get(node.domain, 0)}"
+            )
+
+        if (
+            _from_opset.get(node.domain, 0) == 0
+            or node.domain != "ai.onnx.ml"
+            or opsets.get(node.domain) is None
+        ):
+            return node
+        if _from_opset[node.domain] != opsets[node.domain]:
+            if node.op_type in {"TreeEnsembleRegressor", "TreeEnsembleClassifier"}:
+                # nothing to do
+                pass
+            else:
+                raise NotImplementedError(
+                    f"No upgrade is available from {_from_opset} to "
+                    f"{opsets[node.domain]} for operator type "
+                    f"{node.domain}.{node.op_type}."
+                )
+        if node.op_type in {"TreeEnsembleRegressor", "TreeEnsembleClassifier"}:
+            if use_as_tensor_attributes:
+                if _from_opset[node.domain] < 3 and opsets.get(node.domain, 0) < 3:
+                    raise RuntimeError(
+                        "Opset 3 is required when use_as_tensor_attributes is True."
+                    )
+                new_node = tree_ensemble_use_as_tensor_attributes(node)
+                if verbose > 2:
+                    atts = ", ".join(a.name for a in new_node.attribute)
+                    print(f"[convert_onnx_model] {node.op_type}: attributes={atts!r}")
+
+                return new_node
+        return node
+
+    if is_function:
+        old_opsets = {d.domain: d.version for d in onnx_model.opset_import}
+    else:
+        old_opsets = _from_opset
+
+    if verbose > 1:
+        print(
+            f"[convert_onnx_model] upgrade {type(onnx_model)} from opset "
+            f"{old_opsets} to {opsets}"
+        )
+
+    nodes = onnx_model.node
+    new_nodes = []
+    for node in nodes:
+        new_nodes.append(
+            convert_onnx_model(
+                node,
+                recursive=recursive,
+                verbose=verbose,
+                opsets=opsets,
+                use_as_tensor_attributes=use_as_tensor_attributes,
+                _from_opset=_from_opset,
+            )
+        )
+
+    # Finally create the new graph.
+    nodes = list(filter(lambda n: n is not None, new_nodes))
+    if is_function:
+        onx = make_function(
+            onnx_model.domain,
+            onnx_model.name,
+            onnx_model.input,
+            onnx_model.output,
+            new_nodes,
+            opset_imports=onnx_model.opset_import,  # opsets should have been updated
+            attributes=onnx_model.attribute,
+            doc_string=onnx_model.doc_string,
+        )
+        _change_opsets(onx)
+        return onx
+
+    graph = make_graph(
+        new_nodes,
+        onnx_model.name,
+        onnx_model.input,
+        onnx_model.output,
+        onnx_model.initializer,
+        sparse_initializer=onnx_model.sparse_initializer,
+    )
+    graph.value_info.extend(onnx_model.value_info)
+    return graph

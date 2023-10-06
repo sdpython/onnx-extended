@@ -2,7 +2,6 @@ import unittest
 import numpy
 from sklearn.datasets import make_regression, make_classification
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from skl2onnx import to_onnx
 from onnx_extended.ortops.tutorial.cpu import documentation
 from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
@@ -10,6 +9,7 @@ from onnx_extended.ortops.optim.optimize import (
     optimize_model,
 )
 from onnx_extended.reference import CReferenceEvaluator
+from onnx_extended.tools.onnx_nodes import convert_onnx_model
 from onnx_extended.ext_test_case import ExtTestCase
 
 try:
@@ -36,6 +36,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_random_forest_regressor(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+        from skl2onnx import to_onnx
 
         X, y = make_regression(100, 2, n_informative=1, random_state=32)
         X = X.astype(numpy.float32)
@@ -90,6 +91,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_tree_run_optimize_model(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+        from skl2onnx import to_onnx
 
         X, y = make_regression(100, 2, n_informative=1, random_state=32)
         X = X.astype(numpy.float32)
@@ -163,6 +165,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
             "S:NN-P:TN",
         """
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+        from skl2onnx import to_onnx
 
         X, y = make_regression(100, 2, n_informative=1, random_state=32)
         X = X.astype(numpy.float32)
@@ -246,6 +249,7 @@ class TestOrtOpOptimCpu(ExtTestCase):
             "M:NNB-P:TN",
         """
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+        from skl2onnx import to_onnx
 
         X, y = make_classification(
             100,
@@ -322,6 +326,83 @@ class TestOrtOpOptimCpu(ExtTestCase):
             got = sess.run(None, feeds)[1]
             self.assertEqualArray(expected, got, atol=1e-4)
 
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    def test_random_forest_regressor_as_tensor(self):
+        from skl2onnx import to_onnx
+        from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+
+        X, y = make_regression(100, 2, n_informative=1, random_state=32)
+        X = X.astype(numpy.float32)
+        y = y.astype(numpy.float32)
+
+        rf = RandomForestRegressor(3, max_depth=2, random_state=32, n_jobs=-1)
+        rf.fit(X[:80], y[:80])
+        expected = rf.predict(X[80:]).astype(numpy.float32).reshape((-1, 1))
+        onx = to_onnx(rf, X[:1], target_opset={"ai.onnx.ml": 3, "": 18})
+        onx = convert_onnx_model(
+            onx,
+            opsets={"": 18, "ai.onnx.ml": 3},
+            use_as_tensor_attributes=True,
+            verbose=0,
+        )
+        if "as_tensor" not in str(onx):
+            try:
+                from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
+            except ImportError:
+                onnx_simple_text_plot = str
+            raise AssertionError(
+                f"Unable to find as_tensor in\n{onnx_simple_text_plot(onx)}."
+            )
+
+        feeds = {"X": X[80:]}
+
+        # check with onnxruntime
+        sess = InferenceSession(
+            onx.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        got = sess.run(None, feeds)[0]
+        self.assertEqualArray(expected, got, atol=1e-5)
+
+        # check with CReferenceEvaluator
+        ref = CReferenceEvaluator(onx)
+        got = ref.run(None, feeds)[0]
+        self.assertEqualArray(expected, got.reshape((-1, 1)), atol=1e-5)
+
+        # transformation
+        att = get_node_attribute(onx.graph.node[0], "nodes_modes")
+        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+        onx2 = change_onnx_operator_domain(
+            onx,
+            op_type="TreeEnsembleRegressor",
+            op_domain="ai.onnx.ml",
+            new_op_domain="onnx_extented.ortops.optim.cpu",
+            nodes_modes=modes,
+        )
+        self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+
+        # check with CReferenceEvaluator
+        ref = CReferenceEvaluator(onx2)
+        got = ref.run(None, feeds)[0]
+        self.assertEqualArray(expected, got.reshape((-1, 1)), atol=1e-5)
+
+        # check with onnxruntime + custom op
+        r = get_ort_ext_libs()
+        self.assertExists(r[0])
+        opts = SessionOptions()
+        opts.register_custom_ops_library(r[0])
+        sess = InferenceSession(
+            onx2.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        got = sess.run(None, feeds)[0]
+        self.assertEqualArray(expected, got, atol=1e-5)
+
 
 if __name__ == "__main__":
+    import logging
+
+    logger = logging.getLogger("skl2onnx")
+    logger.setLevel(logging.ERROR)
+
+    TestOrtOpOptimCpu().test_random_forest_regressor_as_tensor()
+
     unittest.main(verbosity=2)

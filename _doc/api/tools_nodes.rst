@@ -3,6 +3,11 @@
 tools.onnx_nodes
 ================
 
+convert_onnx_model
+==================
+
+.. autofunction:: onnx_extended.tools.onnx_nodes.convert_onnx_model
+
 enumerate_onnx_node_types
 =========================
 
