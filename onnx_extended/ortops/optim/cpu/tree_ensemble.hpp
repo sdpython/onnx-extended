@@ -181,17 +181,37 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   if (base_values.size() == 0) {
     ThrowOnError(api, KernelInfoGetAttributeApi(
                           api, info, "base_values_as_tensor", ort_value));
+    EXT_ENFORCE(CTypeToOnnxType<OTYPE>().onnx_type() == ort_value.elem_type,
+               "Type mismatch for base_values_as_tensor.");
     base_values.resize(ort_value.shape[0]);
     memcpy(base_values.data(), ort_value.bytes.data(),
            base_values.size() * sizeof(TTYPE));
   }
   if (nodes_values.size() == 0) {
+    ThrowOnError(api, KernelInfoGetAttributeApi(
+                          api, info, "nodes_values_as_tensor", ort_value));
+    EXT_ENFORCE(CTypeToOnnxType<TTYPE>().onnx_type() == ort_value.elem_type,
+               "Type mismatch for nodes_values_as_tensor.");
+    nodes_values.resize(ort_value.shape[0]);
+    memcpy(nodes_values.data(), ort_value.bytes.data(),
+           nodes_values.size() * sizeof(TTYPE));
   }
-  // if (nodes_hitrates.size() == 0) {
-  // }
-  if (target_weights.size() == 0 && target_class_nodeids.empty()) {
-  }
-  if (class_weights.size() == 0 && !target_class_nodeids.empty()) {
+  // skip nodes_hitrates.size() == 0 as it is unused
+  if (target_class_weights.size() == 0) {
+    if (target_class_nodeids.empty()) {
+      ThrowOnError(api, KernelInfoGetAttributeApi(
+                            api, info, "target_weights_as_tensor", ort_value));
+      EXT_ENFORCE(CTypeToOnnxType<OTYPE>().onnx_type() == ort_value.elem_type,
+                 "Type mismatch for target_weights_as_tensor.");
+    } else {
+      ThrowOnError(api, KernelInfoGetAttributeApi(
+                            api, info, "class_weights_as_tensor", ort_value));
+      EXT_ENFORCE(CTypeToOnnxType<OTYPE>().onnx_type() == ort_value.elem_type,
+                 "Type mismatch for class_weights_as_tensor.");
+    }
+    target_class_weights.resize(ort_value.shape[0]);
+    memcpy(target_class_weights.data(), ort_value.bytes.data(),
+           target_class_weights.size() * sizeof(TTYPE));
   }
 
   std::vector<std::string> nodes_modes = SplitString(nodes_modes_single, ',');

@@ -82,7 +82,7 @@ inline std::string KernelInfoGetInputName(const OrtApi &api,
 
 class AttOrtValue {
 public:
-  int onnx_type;
+  ONNXTensorElementDataType elem_type;
   std::vector<int64_t> shape;
   std::vector<uint8_t> bytes;
 };
@@ -169,31 +169,59 @@ inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
   return status;
 }
 
+inline std::size_t ElementSize(ONNXTensorElementDataType elem_type) {
+  switch (elem_type) {
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+    return 8;
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32:
+    return 4;
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16:
+    return 2;
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8:
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8:
+    return 2;
+  default:
+    throw std::runtime_error("One element type is not implemented in function "
+                             "`ortops::ElementSize()`.");
+  }
+}
+
 template <>
 inline OrtStatus *
 KernelInfoGetAttributeApi<AttOrtValue>(const OrtApi &api,
                                        const OrtKernelInfo *info,
                                        const char *name, AttOrtValue &out) {
-  std::size_t size = 0;
-
-  // Feed nullptr for the data buffer to query the true size of the attribute
+  OrtAllocator *cpu_allocator;
+  ThrowOnError(api, api.GetAllocatorWithDefaultOptions(&cpu_allocator));
   OrtValue *value_tensor = nullptr;
-  OrtAllocator *cpu_allocator = nullptr;
-  ThrowOnError(api,
-               api.CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault,
-                                       &cpu_memory_info));
-  ThrowOnError(api,
-               api.CreateAllocator(sess_, cpu_memory_info_, &cpu_allocator));
-  OrtStatus *status = api.KernelInfoGetAttributeArray_float(
-      info, name, cpu_allocator, &value_tensor);
-  api.ReleaseAllocator(cpu_allocator);
-  api.ReleaseMemoryInfo(cpu_memory_info_);
-  //
-  throw std::runtime_error("Not implemented yet.");
-  //
+  ThrowOnError(api, api.KernelInfoGetAttribute_tensor(info, name, cpu_allocator,
+                                                      &value_tensor));
+  OrtTensorTypeAndShapeInfo *shape_info;
+  ThrowOnError(api, api.GetTensorTypeAndShape(value_tensor, &shape_info));
+  ThrowOnError(api, api.GetTensorElementType(shape_info, &out.elem_type));
+  std::size_t n_dims;
+  ThrowOnError(api, api.GetDimensionsCount(shape_info, &n_dims));
+  out.shape.resize(n_dims);
+  ThrowOnError(api, api.GetDimensions(shape_info, out.shape.data(), n_dims));
+  std::size_t size_tensor;
+  ThrowOnError(api, api.GetTensorShapeElementCount(shape_info, &size_tensor));
+  void *data;
+  std::size_t size_elem = ElementSize(out.elem_type);
+  ThrowOnError(api, api.GetTensorMutableData(value_tensor, &data));
+
+  out.bytes.resize(size_tensor * size_elem);
+  memcpy(out.bytes.data(), data, out.bytes.size());
+
   if (value_tensor != nullptr)
     api.ReleaseValue(value_tensor);
-  return status;
+  return nullptr;
 }
 
 template <>
@@ -233,19 +261,25 @@ inline bool KernelInfoGetOptionalAttributeInt64AsBool(const OrtApi &api,
 }
 
 template <typename T> struct CTypeToOnnxType {
-  int onnx_type() const;
+  ONNXTensorElementDataType onnx_type() const;
 };
 
 template <> struct CTypeToOnnxType<float> {
-  inline int onnx_type() const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT; }
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  }
 };
 
 template <> struct CTypeToOnnxType<int64_t> {
-  inline int onnx_type() const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64; }
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
+  }
 };
 
 template <> struct CTypeToOnnxType<double> {
-  inline int onnx_type() const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE; }
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
+  }
 };
 
 } // namespace ortops
