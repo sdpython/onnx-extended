@@ -2,6 +2,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "murmur_hash3.h"
 #include "speed_metrics.h"
 #include "vector_sum.h"
 
@@ -124,4 +125,20 @@ It assumes both vectors have the same dimensions (no broadcast).).
 :param v2: second vector
 :return: new vector
 )pbdoc");
+
+  m.def(
+      "murmurhash3_bytes_s32",
+      [](const std::string &key, uint32_t seed) -> int32_t {
+        int32_t out;
+        sklearn::MurmurHash3_x86_32(key.data(), key.size(), seed, &out);
+        return out;
+      },
+      py::arg("key"), py::arg("seed") = 0,
+      R"pbdoc(Calls murmurhash3_bytes_s32 from scikit-learn.
+
+:param key: string
+:param seed: unsigned integer
+:return: hash
+)pbdoc");
+
 }
