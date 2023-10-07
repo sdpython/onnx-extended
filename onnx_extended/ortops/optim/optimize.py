@@ -39,7 +39,7 @@ def change_onnx_operator_domain(
     op_domain: str = "",
     new_op_type: Optional[str] = None,
     new_op_domain: Optional[str] = None,
-    new_opset: int = 1,
+    new_opset: Optional[int] = None,
     **kwargs: Dict[str, Any],
 ) -> Union[ModelProto, GraphProto, FunctionProto]:
     """
@@ -52,7 +52,7 @@ def change_onnx_operator_domain(
     :param new_op_type: new operator name or None for the same name
     :param new_op_domain: new domain name or None the for the same domain
     :param new_opset: new opset for the new domain, if not specified,
-        it is 1
+        it is 1 for any opset other than ""
     :param kwargs: modified parameters, set it to None to remove them
     :return: same type as the input
 
@@ -135,7 +135,7 @@ def change_onnx_operator_domain(
         new_op_domain = op_domain
     if new_op_domain == op_domain and new_opset is not None:
         raise ValueError(
-            f"If new_op_domain==domain=={new_op_domain!r}, "
+            f"If new_op_domain=={new_op_domain!r}, "
             f"new_opset must be None not {new_opset}."
         )
     opsets = list(onx.opset_import)

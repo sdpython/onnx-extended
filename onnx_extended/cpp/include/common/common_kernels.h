@@ -70,7 +70,8 @@ inline std::string KernelInfoGetInputName(const OrtApi &api,
   }
   std::string str_out;
   str_out.resize(size);
-  ThrowOnError(api, api.KernelInfo_GetInputName(info, index, &str_out[0], &size));
+  ThrowOnError(api,
+               api.KernelInfo_GetInputName(info, index, &str_out[0], &size));
   str_out.resize(size - 1); // remove the terminating character '\0'
   return str_out;
 }
@@ -78,6 +79,13 @@ inline std::string KernelInfoGetInputName(const OrtApi &api,
 ////////////////////
 // kernel attributes
 ////////////////////
+
+class AttOrtValue {
+public:
+  int onnx_type;
+  std::vector<int64_t> shape;
+  std::vector<uint8_t> bytes;
+};
 
 inline std::string KernelInfoGetOptionalAttributeString(
     const OrtApi &api, const OrtKernelInfo *info, const char *name,
@@ -99,8 +107,8 @@ inline std::string KernelInfoGetOptionalAttributeString(
     api.ReleaseStatus(status);
   }
   str_out.resize(size);
-  ThrowOnError(api,
-               api.KernelInfoGetAttribute_string(info, name, &str_out[0], &size));
+  ThrowOnError(
+      api, api.KernelInfoGetAttribute_string(info, name, &str_out[0], &size));
   str_out.resize(size - 1); // remove the terminating character '\0'
   return str_out;
 }
@@ -162,9 +170,36 @@ inline OrtStatus *KernelInfoGetAttributeApi<std::vector<int64_t>>(
 }
 
 template <>
+inline OrtStatus *
+KernelInfoGetAttributeApi<AttOrtValue>(const OrtApi &api,
+                                       const OrtKernelInfo *info,
+                                       const char *name, AttOrtValue &out) {
+  std::size_t size = 0;
+
+  // Feed nullptr for the data buffer to query the true size of the attribute
+  OrtValue *value_tensor = nullptr;
+  OrtAllocator *cpu_allocator = nullptr;
+  ThrowOnError(api,
+               api.CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault,
+                                       &cpu_memory_info));
+  ThrowOnError(api,
+               api.CreateAllocator(sess_, cpu_memory_info_, &cpu_allocator));
+  OrtStatus *status = api.KernelInfoGetAttributeArray_float(
+      info, name, cpu_allocator, &value_tensor);
+  api.ReleaseAllocator(cpu_allocator);
+  api.ReleaseMemoryInfo(cpu_memory_info_);
+  //
+  throw std::runtime_error("Not implemented yet.");
+  //
+  if (value_tensor != nullptr)
+    api.ReleaseValue(value_tensor);
+  return status;
+}
+
+template <>
 inline OrtStatus *KernelInfoGetAttributeApi<std::vector<std::string>>(
-    const OrtApi & /* api */, const OrtKernelInfo * /* info */, const char * /* name */,
-    std::vector<std::string> & /* output */) {
+    const OrtApi & /* api */, const OrtKernelInfo * /* info */,
+    const char * /* name */, std::vector<std::string> & /* output */) {
   EXT_THROW("Unable to retrieve attribute as an array of strings. "
             "You should use a single comma separated string.");
 }
@@ -196,5 +231,21 @@ inline bool KernelInfoGetOptionalAttributeInt64AsBool(const OrtApi &api,
       api, info, name, default_value ? 1 : 0);
   return value == 1;
 }
+
+template <typename T> struct CTypeToOnnxType {
+  int onnx_type() const;
+};
+
+template <> struct CTypeToOnnxType<float> {
+  inline int onnx_type() const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT; }
+};
+
+template <> struct CTypeToOnnxType<int64_t> {
+  inline int onnx_type() const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64; }
+};
+
+template <> struct CTypeToOnnxType<double> {
+  inline int onnx_type() const { return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE; }
+};
 
 } // namespace ortops

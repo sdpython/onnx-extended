@@ -75,11 +75,11 @@ size_t TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetInputTypeCount() const {
   return 1;
 };
 
-template <>
+template <typename ITYPE, typename TTYPE, typename OTYPE>
 ONNXTensorElementDataType
-TreeEnsembleClassifier<float, float, float>::GetInputType(
+TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetInputType(
     std::size_t /* index */) const {
-  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  return CTypeToOnnxType<ITYPE>().onnx_type();
 };
 
 template <typename ITYPE, typename TTYPE, typename OTYPE>
@@ -87,15 +87,15 @@ size_t TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
   return 2;
 };
 
-template <>
+template <typename ITYPE, typename TTYPE, typename OTYPE>
 ONNXTensorElementDataType
-TreeEnsembleClassifier<float, float, float>::GetOutputType(
+TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetOutputType(
     std::size_t index) const {
   switch (index) {
   case 0:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
   case 1:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+    return CTypeToOnnxType<OTYPE>().onnx_type();
   default:
     EXT_THROW("Unexpected output index: ", (uint64_t)index, ".");
   }
@@ -143,6 +143,7 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   std::vector<int64_t> target_class_ids;
   std::vector<int64_t> target_class_treeids;
   std::vector<float> target_class_weights;
+
   if (target_class_nodeids.empty()) {
     // A classifier.
     target_class_nodeids = KernelInfoGetOptionalAttribute(
@@ -174,6 +175,23 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
     target_class_weights = KernelInfoGetOptionalAttribute(
         api, info, "target_weights", std::vector<float>());
     is_classifier = false;
+  }
+
+  AttOrtValue ort_value;
+  if (base_values.size() == 0) {
+    ThrowOnError(api, KernelInfoGetAttributeApi(
+                          api, info, "base_values_as_tensor", ort_value));
+    base_values.resize(ort_value.shape[0]);
+    memcpy(base_values.data(), ort_value.bytes.data(),
+           base_values.size() * sizeof(TTYPE));
+  }
+  if (nodes_values.size() == 0) {
+  }
+  // if (nodes_hitrates.size() == 0) {
+  // }
+  if (target_weights.size() == 0 && target_class_nodeids.empty()) {
+  }
+  if (class_weights.size() == 0 && !target_class_nodeids.empty()) {
   }
 
   std::vector<std::string> nodes_modes = SplitString(nodes_modes_single, ',');
