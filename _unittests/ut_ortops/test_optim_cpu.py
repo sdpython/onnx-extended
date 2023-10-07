@@ -356,6 +356,11 @@ class TestOrtOpOptimCpu(ExtTestCase):
 
         feeds = {"X": X[80:]}
 
+        # check with CReferenceEvaluator
+        ref = CReferenceEvaluator(onx)
+        got = ref.run(None, feeds)[0]
+        self.assertEqualArray(expected, got.reshape((-1, 1)), atol=1e-5)
+
         # check with onnxruntime
         sess = InferenceSession(
             onx.SerializeToString(), providers=["CPUExecutionProvider"]
@@ -363,12 +368,9 @@ class TestOrtOpOptimCpu(ExtTestCase):
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(expected, got, atol=1e-5)
 
-        # check with CReferenceEvaluator
-        ref = CReferenceEvaluator(onx)
-        got = ref.run(None, feeds)[0]
-        self.assertEqualArray(expected, got.reshape((-1, 1)), atol=1e-5)
-
         # transformation
+        opsets = {d.domain: d.version for d in onx.opset_import}
+        self.assertEqual({"ai.onnx.ml": 3, "": 18}, opsets)
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
         modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
         onx2 = change_onnx_operator_domain(
@@ -377,8 +379,13 @@ class TestOrtOpOptimCpu(ExtTestCase):
             op_domain="ai.onnx.ml",
             new_op_domain="onnx_extented.ortops.optim.cpu",
             nodes_modes=modes,
+            new_opset=3,
         )
         self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+        opsets = {d.domain: d.version for d in onx2.opset_import}
+        self.assertEqual(
+            {"ai.onnx.ml": 3, "": 18, "onnx_extented.ortops.optim.cpu": 3}, opsets
+        )
 
         # check with CReferenceEvaluator
         ref = CReferenceEvaluator(onx2)

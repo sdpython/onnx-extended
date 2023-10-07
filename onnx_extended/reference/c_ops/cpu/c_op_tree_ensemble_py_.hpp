@@ -111,7 +111,7 @@ public:
            ttarget_class_treeids, // 18
            ttarget_class_weights  // 19
     );
-  }
+}
 
   void init_c(const std::string &aggregate_function,          // only classifier
               const std::vector<NTYPE> &base_values,          // 4

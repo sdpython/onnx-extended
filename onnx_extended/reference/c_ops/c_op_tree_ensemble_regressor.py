@@ -85,7 +85,7 @@ class TreeEnsembleRegressorCommon(OpRun):
         tw = numpy.array(
             pick(
                 kwargs.get("target_weights", None),
-                kwargs.get("target_weights", None),
+                kwargs.get("target_weights_as_tensor", None),
                 empty_f,
             )
         )

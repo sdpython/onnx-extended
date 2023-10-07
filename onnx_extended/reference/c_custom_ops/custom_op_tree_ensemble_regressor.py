@@ -86,7 +86,7 @@ class TreeEnsembleRegressorCommon(OpRun):
         tw = numpy.array(
             pick(
                 kwargs.get("target_weights", None),
-                kwargs.get("target_weights", None),
+                kwargs.get("target_weights_as_tensor", None),
                 empty_f,
             )
         )
@@ -124,9 +124,9 @@ class TreeEnsembleRegressorCommon(OpRun):
         return (pred,)
 
 
-def _make_schema():
+def _make_schema(opset):
     attributes = []
-    sch = get_schema("TreeEnsembleRegressor", 1, "ai.onnx.ml")
+    sch = get_schema("TreeEnsembleRegressor", opset, "ai.onnx.ml")
     for att in sch.attributes.values():
         if att.name == "nodes_modes":
             attributes.append(
@@ -154,7 +154,7 @@ def _make_schema():
 
 
 class TreeEnsembleRegressor_1(TreeEnsembleRegressorCommon):
-    op_schema = _make_schema()
+    op_schema = _make_schema(1)
 
     def _run(
         self,
@@ -196,4 +196,58 @@ class TreeEnsembleRegressor_1(TreeEnsembleRegressorCommon):
             target_nodeids=target_nodeids,
             target_treeids=target_treeids,
             target_weights=target_weights,
+        )
+
+
+class TreeEnsembleRegressor_3(TreeEnsembleRegressorCommon):
+    op_schema = _make_schema(3)
+
+    def _run(
+        self,
+        x,
+        aggregate_function=None,
+        base_values=None,
+        base_values_as_tensor=None,
+        n_targets=None,
+        nodes_falsenodeids=None,
+        nodes_featureids=None,
+        nodes_hitrates=None,
+        nodes_hitrates_as_tensor=None,
+        nodes_missing_value_tracks_true=None,
+        nodes_modes=None,
+        nodes_nodeids=None,
+        nodes_treeids=None,
+        nodes_truenodeids=None,
+        nodes_values=None,
+        nodes_values_as_tensor=None,
+        post_transform=None,
+        target_ids=None,
+        target_nodeids=None,
+        target_treeids=None,
+        target_weights=None,
+        target_weights_as_tensor=None,
+    ):
+        return TreeEnsembleRegressorCommon._run(
+            self,
+            x,
+            base_values=base_values,
+            base_values_as_tensor=base_values_as_tensor,
+            n_targets=n_targets,
+            nodes_falsenodeids=nodes_falsenodeids,
+            nodes_featureids=nodes_featureids,
+            nodes_hitrates=nodes_hitrates,
+            nodes_hitrates_as_tensor=nodes_hitrates_as_tensor,
+            nodes_missing_value_tracks_true=nodes_missing_value_tracks_true,
+            nodes_modes=nodes_modes,
+            nodes_nodeids=nodes_nodeids,
+            nodes_treeids=nodes_treeids,
+            nodes_truenodeids=nodes_truenodeids,
+            nodes_values=nodes_values,
+            nodes_values_as_tensor=nodes_values_as_tensor,
+            post_transform=post_transform,
+            target_ids=target_ids,
+            target_nodeids=target_nodeids,
+            target_treeids=target_treeids,
+            target_weights=target_weights,
+            target_weights_as_tensor=target_weights_as_tensor,
         )
