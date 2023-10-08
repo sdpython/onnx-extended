@@ -18,6 +18,11 @@ get_hidden_inputs
 
 .. autofunction:: onnx_extended.tools.onnx_nodes.get_hidden_inputs
 
+multiply_tree
+=============
+
+.. autofunction:: onnx_extended.tools.onnx_nodes.multiply_tree
+
 onnx_merge_models
 =================
 

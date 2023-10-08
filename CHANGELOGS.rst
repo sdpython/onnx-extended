@@ -4,7 +4,8 @@ Change Logs
 0.2.3
 +++++
 
-* :pr:`96`: implements a fonction to convert a ModelProto into string (not bytes)
+* :pr:`96`: implements a fonction to convert a ModelProto into string (not bytes),
+  add a function to multiply the number of trees in a TreeEnsemble
 * :pr:`75`: add an implementation of murmurhash3 to validate some options
 * :pr:`93`: validates the wheels in CI
 * :pr:`89`: add a function to merge models and update them if both have different opsets
