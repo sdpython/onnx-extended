@@ -1,4 +1,5 @@
 import os
+import sys
 from onnx_extended import __version__ as extversion, check_installation
 from onnx_extended.ext_test_case import ExtTestCase
 
@@ -23,8 +24,8 @@ class TestVersion(ExtTestCase):
         self.assertEqual(extversion, tom["project"]["version"])
 
     def test_check_installation(self):
-        # It seems using both ortops and ortcy lead to munmap_chunk(): invalid pointer
-        check_installation(ortops=True, val=True, ortcy=True)
+        # It seems using both ortops and ortcy lead to munmap_chunk(): invalid pointer on Linux
+        check_installation(val=True, ortcy=True, ortops=sys.platform != "inux")
 
 
 if __name__ == "__main__":
