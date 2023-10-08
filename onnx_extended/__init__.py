@@ -8,8 +8,111 @@ __version__ = "0.2.3"
 __author__ = "Xavier Dupré"
 
 
+def _check_installation_ortcy(onnx_model, verbose):
+    import datetime
+
+    def local_print(msg):
+        t = datetime.datetime.now().time()
+        print(
+            msg.replace("[check_installation_ortcy]", f"[check_installation_ortcy] {t}")
+        )
+
+    if verbose:
+        local_print("[check_installation_ortcy] --begin")
+    import gc
+    import numpy
+
+    a = numpy.random.randn(2, 2).astype(numpy.float32)
+    b = numpy.random.randn(2, 2).astype(numpy.float32)
+
+    if verbose:
+        local_print("[check_installation_ortcy] import onnx-extended")
+    from onnx_extended.ortcy.wrap.ortinf import OrtSession
+    from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+    r = get_ort_ext_libs()
+    if verbose:
+        local_print(
+            f"[check_installation_ortcy] get_ort_ext_libs()={get_ort_ext_libs()!r}"
+        )
+    if verbose:
+        local_print("[check_installation_ortcy] create OrtSession")
+    session = OrtSession(onnx_model.SerializeToString(), custom_libs=r)
+    if verbose:
+        local_print("[check_installation_ortcy] run OrtSession")
+    got = session.run([a, b])
+    if verbose:
+        local_print("[check_installation_ortcy] second run")
+    got = session.run([a, b])
+    if verbose:
+        local_print("[check_installation_ortcy] check shapes")
+    assert (a + b).shape == got[0].shape
+    if verbose:
+        local_print("[check_installation_ortcy] gc")
+    gc.collect()
+    if verbose:
+        local_print("[check_installation_ortcy] --done")
+
+
+def _check_installation_ortops(onnx_model, verbose):
+    import datetime
+
+    def local_print(msg):
+        t = datetime.datetime.now().time()
+        print(
+            msg.replace(
+                "[check_installation_ortops]", f"[check_installation_ortops] {t}"
+            )
+        )
+
+    if verbose:
+        local_print("[check_installation_ortops] --begin")
+
+    import gc
+    import numpy
+
+    a = numpy.random.randn(2, 2).astype(numpy.float32)
+    b = numpy.random.randn(2, 2).astype(numpy.float32)
+    feeds = {"X": a, "A": b}
+
+    if verbose:
+        local_print("[check_installation_ortops] import onnxruntime")
+    from onnxruntime import InferenceSession, SessionOptions
+
+    if verbose:
+        local_print("[check_installation_ortops] import onnx-extended")
+    from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
+
+    r = get_ort_ext_libs()
+    if verbose:
+        local_print(
+            f"[check_installation_ortops] get_ort_ext_libs()={get_ort_ext_libs()!r}"
+        )
+    opts = SessionOptions()
+    opts.register_custom_ops_library(r[0])
+    if verbose:
+        local_print("[check_installation_ortops] create session")
+    sess = InferenceSession(
+        onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+    )
+    if verbose:
+        local_print("[check_installation_ortops] run session")
+    if verbose:
+        local_print("[check_installation_ortops] second run")
+    got = sess.run(None, feeds)[0]
+    got = sess.run(None, feeds)[0]
+    if verbose:
+        local_print("[check_installation_ortops] check shapes")
+    assert (a + b).shape == got.shape
+    if verbose:
+        local_print("[check_installation_ortcy] gc")
+    gc.collect()
+    if verbose:
+        local_print("[check_installation_ortops] --done")
+
+
 def check_installation(
-    ortops: bool = True, ortcy: bool = False, val: bool = True, verbose: bool = False
+    ortops: bool = False, ortcy: bool = False, val: bool = False, verbose: bool = False
 ):
     """
     Quickly checks the installation works.
@@ -20,16 +123,20 @@ def check_installation(
         in submodule validation are working
     :param verbose: prints out which verifications is being processed
     """
-    assert isinstance(get_cxx_flags(), str)
     import datetime
-    import warnings
 
     def local_print(msg):
         t = datetime.datetime.now().time()
         print(msg.replace("[check_installation]", f"[check_installation] {t}"))
 
+    if verbose:
+        local_print("[check_installation] --begin")
+    assert isinstance(get_cxx_flags(), str)
+    import warnings
+
     if val:
         if verbose:
+            local_print("[check_installation] --val")
             local_print("[check_installation] import numpy")
         import numpy
 
@@ -42,6 +149,8 @@ def check_installation(
             local_print("[check_installation] cast_float32_to_e4m3fn")
         f8 = cast_float32_to_e4m3fn(a)
         assert a.shape == f8.shape
+        if verbose:
+            local_print("[check_installation] --done")
 
     with warnings.catch_warnings(record=False):
         if verbose:
@@ -74,61 +183,15 @@ def check_installation(
             ir_version=8,
         )
         check_model(onnx_model)
-        a = numpy.random.randn(2, 2).astype(numpy.float32)
-        b = numpy.random.randn(2, 2).astype(numpy.float32)
-        feeds = {"X": a, "A": b}
-
-        if ortops:
-            if verbose:
-                local_print("[check_installation] import onnxruntime")
-            from onnxruntime import InferenceSession, SessionOptions
-
-            if verbose:
-                local_print("[check_installation] import onnx-extended")
-            from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
-
-            r = get_ort_ext_libs()
-            if verbose:
-                local_print(
-                    f"[check_installation] get_ort_ext_libs()={get_ort_ext_libs()!r}"
-                )
-            opts = SessionOptions()
-            opts.register_custom_ops_library(r[0])
-            if verbose:
-                local_print("[check_installation] create session")
-            sess = InferenceSession(
-                onnx_model.SerializeToString(), opts, providers=["CPUExecutionProvider"]
-            )
-            if verbose:
-                local_print("[check_installation] run session")
-            got = sess.run(None, feeds)[0]
-            if verbose:
-                local_print("[check_installation] check shapes")
-            assert (a + b).shape == got.shape
 
         if ortcy:
-            if verbose:
-                local_print("[check_installation] import onnx-extended")
-            from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
-            from onnx_extended.ortcy.wrap.ortinf import OrtSession
+            _check_installation_ortcy(onnx_model, verbose)
 
-            r = get_ort_ext_libs()
-            if verbose:
-                local_print(
-                    f"[check_installation] get_ort_ext_libs()={get_ort_ext_libs()!r}"
-                )
-            if verbose:
-                local_print("[check_installation] create OrtSession")
-            session = OrtSession(onnx_model.SerializeToString(), custom_libs=r)
-            if verbose:
-                local_print("[check_installation] run OrtSession")
-            got = session.run([a, b])
-            if verbose:
-                local_print("[check_installation] check shapes")
-            assert (a + b).shape == got[0].shape
+        if ortops:
+            _check_installation_ortops(onnx_model, verbose)
 
         if verbose:
-            local_print("[check_installation] done")
+            local_print("[check_installation] --done")
 
 
 def has_cuda() -> bool:

@@ -689,7 +689,9 @@ def _cmd_check(argv: List[Any]):
 
     parser = get_parser_check()
     args = parser.parse_args(argv[1:])
-    check_installation(ortcy=args.ortcy, verbose=args.verbose)
+    check_installation(
+        ortcy=args.ortcy, ortops=args.ortops, val=args.val, verbose=args.verbose
+    )
 
 
 def main(argv: Optional[List[Any]] = None):

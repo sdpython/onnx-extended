@@ -23,7 +23,8 @@ class TestVersion(ExtTestCase):
         self.assertEqual(extversion, tom["project"]["version"])
 
     def test_check_installation(self):
-        check_installation()
+        # It seems using both ortops and ortcy lead to munmap_chunk(): invalid pointer
+        check_installation(ortops=True, val=True, ortcy=True)
 
 
 if __name__ == "__main__":
