@@ -24,7 +24,8 @@ class TestVersion(ExtTestCase):
         self.assertEqual(extversion, tom["project"]["version"])
 
     def test_check_installation(self):
-        # It seems using both ortops and ortcy lead to munmap_chunk(): invalid pointer on Linux
+        # It seems using both ortops and ortcy and customops lead to
+        # munmap_chunk(): invalid pointer on Linux
         check_installation(val=True, ortcy=True, ortops=sys.platform != "inux")
 
 
