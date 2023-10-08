@@ -180,13 +180,13 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   AttOrtValue ort_value;
   if (base_values.size() == 0) {
     AttOrtValue ort_value = KernelInfoGetOptionalAttribute(
-                          api, info, "base_values_as_tensor", AttOrtValue());
+        api, info, "base_values_as_tensor", AttOrtValue());
     if (!ort_value.empty()) {
       EXT_ENFORCE(CTypeToOnnxType<OTYPE>().onnx_type() == ort_value.elem_type,
                   "Type mismatch for base_values_as_tensor.");
       base_values.resize(ort_value.shape[0]);
       memcpy(base_values.data(), ort_value.bytes.data(),
-             base_values.size() * sizeof(TTYPE));
+             base_values.size() * sizeof(OTYPE));
     }
   }
   if (nodes_values.size() == 0) {
@@ -201,19 +201,21 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   // skip nodes_hitrates.size() == 0 as it is unused
   if (target_class_weights.size() == 0) {
     if (target_class_nodeids.empty()) {
-      ThrowOnError(api, KernelInfoGetAttributeApi(
-                            api, info, "target_weights_as_tensor", ort_value));
-      EXT_ENFORCE(CTypeToOnnxType<OTYPE>().onnx_type() == ort_value.elem_type,
-                  "Type mismatch for target_weights_as_tensor.");
-    } else {
+      // A classifier.
       ThrowOnError(api, KernelInfoGetAttributeApi(
                             api, info, "class_weights_as_tensor", ort_value));
       EXT_ENFORCE(CTypeToOnnxType<OTYPE>().onnx_type() == ort_value.elem_type,
                   "Type mismatch for class_weights_as_tensor.");
+    } else {
+      // A regressor.
+      ThrowOnError(api, KernelInfoGetAttributeApi(
+                            api, info, "target_weights_as_tensor", ort_value));
+      EXT_ENFORCE(CTypeToOnnxType<OTYPE>().onnx_type() == ort_value.elem_type,
+                  "Type mismatch for target_weights_as_tensor.");
     }
     target_class_weights.resize(ort_value.shape[0]);
     memcpy(target_class_weights.data(), ort_value.bytes.data(),
-           target_class_weights.size() * sizeof(TTYPE));
+           target_class_weights.size() * sizeof(OTYPE));
   }
 
   std::vector<std::string> nodes_modes = SplitString(nodes_modes_single, ',');

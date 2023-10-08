@@ -229,8 +229,11 @@ KernelInfoGetAttributeApi<AttOrtValue>(const OrtApi &api,
   OrtAllocator *cpu_allocator;
   ThrowOnError(api, api.GetAllocatorWithDefaultOptions(&cpu_allocator));
   OrtValue *value_tensor = nullptr;
-  ThrowOnError(api, api.KernelInfoGetAttribute_tensor(info, name, cpu_allocator,
-                                                      &value_tensor));
+  OrtStatus *status = api.KernelInfoGetAttribute_tensor(
+      info, name, cpu_allocator, &value_tensor);
+  if (status != nullptr) {
+    return status;
+  }
   OrtTensorTypeAndShapeInfo *shape_info;
   ThrowOnError(api, api.GetTensorTypeAndShape(value_tensor, &shape_info));
   ThrowOnError(api, api.GetTensorElementType(shape_info, &out.elem_type));
