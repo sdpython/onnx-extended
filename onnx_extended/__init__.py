@@ -27,7 +27,17 @@ def _check_installation_ortcy(onnx_model, verbose):
 
     if verbose:
         local_print("[check_installation_ortcy] import onnx-extended")
-    from onnx_extended.ortcy.wrap.ortinf import OrtSession
+    try:
+        from onnx_extended.ortcy.wrap.ortinf import OrtSession
+    except ImportError as e:
+        import os
+        from onnx_extended.ortcy import __file__ as cyfile
+
+        this = os.path.dirname(cyfile)
+        raise ImportError(
+            f"Unable to import OrtSession, "
+            f"content in onnx_extended.ortcy is {os.listdir(this)}."
+        ) from e
     from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
     r = get_ort_ext_libs()
