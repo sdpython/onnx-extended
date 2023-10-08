@@ -24,7 +24,7 @@ load_model
 onnx2string
 ===========
 
-.. autofunction:: onnx_extended.tools.onnx2string
+.. autofunction:: onnx_extended.tools.onnx_io.onnx2string
 
 save_model
 ==========
@@ -34,5 +34,5 @@ save_model
 string2onnx
 ===========
 
-.. autofunction:: onnx_extended.tools.string2onnx
+.. autofunction:: onnx_extended.tools.onnx_io.string2onnx
 

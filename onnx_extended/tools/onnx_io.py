@@ -1,5 +1,6 @@
 import base64
 import os
+import textwrap
 from typing import Optional, Set, Union
 import onnx
 
@@ -96,16 +97,40 @@ def save_model(
         f.write(proto.SerializeToString())
 
 
-def onnx2string(proto: onnx.ModelProto) -> str:
+def onnx2string(proto: onnx.ModelProto, as_code: bool = False) -> str:
     """
     Takes a model and returns a string pluggagle in
     a python script. It uses module `base64`.
 
     :param proto: model proto
+    :param as_code: if true, returns the model as a piece of code
     :return: string
     """
     text = proto.SerializeToString()
-    return base64.b64encode(text).decode("ascii")
+    content = base64.b64encode(text).decode("ascii")
+    if not as_code:
+        return content
+    lines = []
+    while content:
+        if len(content) > 64:
+            lines.append(content[:64])
+            content = content[64:]
+        else:
+            lines.append(content)
+            break
+    lines = "\n".join([f'    "{li}"' for li in lines])
+    template = textwrap.dedent(
+        """
+    import textwrap
+    from onnx_extended.tools.onnx_io import string2onnx
+    
+    text = (
+    {model}
+    )
+    model = string2onnx(text)
+    """
+    )
+    return template.format(model=lines)
 
 
 def string2onnx(text: str) -> onnx.ModelProto:

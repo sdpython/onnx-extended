@@ -304,6 +304,8 @@ class TestOnnxTools(ExtTestCase):
             [n.op_type for n in model.graph.node],
             [n.op_type for n in model2.graph.node],
         )
+        code = onnx2string(model, as_code=True)
+        self.assertIn("model = string2onnx(text)", code)
 
 
 if __name__ == "__main__":
