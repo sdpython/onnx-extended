@@ -1,5 +1,8 @@
 import unittest
+from io import StringIO
+from contextlib import redirect_stdout
 from typing import Callable, List, Optional, Tuple
+import numpy
 from onnx import GraphProto, ModelProto, TensorProto
 from onnx.checker import check_model
 from onnx.helper import (
@@ -9,9 +12,15 @@ from onnx.helper import (
     make_tensor_value_info,
     make_opsetid,
 )
+from sklearn.datasets import make_regression
+from sklearn.ensemble import RandomForestRegressor
 from onnx.parser import parse_model
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.tools.onnx_nodes import enumerate_onnx_node_types, onnx_merge_models
+from onnx_extended.tools.onnx_nodes import (
+    enumerate_onnx_node_types,
+    onnx_merge_models,
+    convert_onnx_model,
+)
 
 
 class TestOnnxTools(ExtTestCase):
@@ -257,6 +266,28 @@ class TestOnnxTools(ExtTestCase):
 
         io_map = [("B00", "B01"), ("B10", "B11"), ("B20", "B21")]
         self._test_merge_models(M1_DEF, M2_DEF, io_map, check_expectations)
+
+    def test_random_forest_regressor_as_tensor(self):
+        from skl2onnx import to_onnx
+
+        X, y = make_regression(100, 2, n_informative=1, random_state=32)
+        X = X.astype(numpy.float32)
+        y = y.astype(numpy.float32)
+
+        rf = RandomForestRegressor(3, max_depth=2, random_state=32, n_jobs=-1)
+        rf.fit(X[:80], y[:80])
+        onx = to_onnx(rf, X[:1], target_opset={"ai.onnx.ml": 3, "": 18})
+        st = StringIO()
+        with redirect_stdout(st):
+            new_onx = convert_onnx_model(
+                onx,
+                opsets={"": 18, "ai.onnx.ml": 3},
+                use_as_tensor_attributes=True,
+                verbose=3,
+            )
+        text = st.getvalue()
+        self.assertIn("TreeEnsembleRegressor", text)
+        self.assertIn("_as_tensor", str(new_onx))
 
 
 if __name__ == "__main__":

@@ -2,7 +2,6 @@ from typing import Any, Dict, Iterator, List, Optional, Union, Tuple
 import numpy as np
 from onnx import AttributeProto, ModelProto, NodeProto, load
 from onnx.reference.op_run import to_array_extended
-from onnxruntime import InferenceSession
 from .onnx_nodes import select_model_inputs_outputs
 
 
@@ -244,6 +243,8 @@ def enumerate_ort_run(
         when it is initialized
     :return: intermediate results, names, and node
     """
+    from onnxruntime import InferenceSession
+
     if providers is None:
         providers = ["CPUExecutionProvider"]
     if isinstance(onx, str):

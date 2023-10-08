@@ -210,6 +210,11 @@ class cmake_build_class_extension(Command):
     user_options = [
         *build_ext.user_options,
         (
+            "noverbose=",
+            None,
+            "Disables verbosity.",
+        ),
+        (
             "use-cuda=",
             None,
             "If cuda is available, CUDA is "
@@ -272,13 +277,14 @@ class cmake_build_class_extension(Command):
         self.ort_version = DEFAULT_ORT_VERSION
         self.cuda_build = "DEFAULT"
         self.cuda_link = "STATIC"
+        self.noverbose = None
 
         self._parent.initialize_options(self)
 
         # boolean
         b_values = {0, 1, "1", "0", True, False}
         t_values = {1, "1", True}
-        for att in ["use_nvtx", "use_cuda", "manylinux"]:
+        for att in ["use_nvtx", "use_cuda", "manylinux", "noverbose"]:
             v = getattr(self, att)
             if v is not None:
                 continue
@@ -306,6 +312,8 @@ class cmake_build_class_extension(Command):
             self.use_nvtx = False
         if self.manylinux is None:
             self.manylinux = False
+        if self.noverbose is None:
+            self.noverbose = False
 
     def finalize_options(self):
         self._parent.finalize_options(self)
@@ -321,6 +329,7 @@ class cmake_build_class_extension(Command):
         self.use_nvtx = self.use_nvtx in {1, "1", True, "True"}
         self.use_cuda = self.use_cuda in {1, "1", True, "True"}
         self.manylinux = self.manylinux in {1, "1", True, "True"}
+        self.noverbose = self.noverbose in {1, "1", True, "True"}
 
         if self.cuda_version in (None, ""):
             self.cuda_version = None
@@ -397,8 +406,11 @@ class cmake_build_class_extension(Command):
             f"-DORT_VERSION={self.ort_version}",
             f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
             f"-DPYTHON_MANYLINUX={1 if is_manylinux else 0}",
-            f"-DCMAKE_VERBOSE_MAKEFILE={'ON' if self.verbose else 'OFF'}",
         ]
+        if self.noverbose:
+            cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=OFF")
+        elif self.verbose:
+            cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=ON")
         if self.parallel is not None:
             cmake_args.append(f"-j{self.parallel}")
 

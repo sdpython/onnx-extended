@@ -15,9 +15,11 @@
 // #define DEBUG_STEP
 
 #if defined(DEBUG_CHECK)
-#define DEBUG_PRINT(...)
-// #define DEBUG_PRINT(...) printf("%s", MakeString("*", __FILE__, ":",
-// __LINE__, ":", MakeString(__VA_ARGS__), "\n").c_str());
+// #define DEBUG_PRINT(...)
+#define DEBUG_PRINT(...)                                                       \
+  printf("%s", MakeString("*", __FILE__, ":", __LINE__, ":",                   \
+                          MakeString(__VA_ARGS__), "\n")                       \
+                   .c_str());
 #define DEBUG_INDEX(index, total, ...)                                         \
   {                                                                            \
     if (index >= total)                                                        \
@@ -197,7 +199,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     const std::vector<ThresholdType> &base_values, int64_t n_targets_or_classes,
     const std::vector<int64_t> &nodes_falsenodeids,
     const std::vector<int64_t> &nodes_featureids,
-    const std::vector<ThresholdType> &/* nodes_hitrates */,
+    const std::vector<ThresholdType> & /* nodes_hitrates */,
     const std::vector<int64_t> &nodes_missing_value_tracks_true,
     const std::vector<std::string> &nodes_modes,
     const std::vector<int64_t> &nodes_nodeids,
@@ -210,7 +212,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
     const std::vector<int64_t> &target_class_treeids,
     const std::vector<ThresholdType> &target_class_weights) {
 
-  DEBUG_PRINT("Init")
+  DEBUG_PRINT("Init:Check")
   EXT_ENFORCE(n_targets_or_classes > 0);
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_featureids.size());
   EXT_ENFORCE(nodes_falsenodeids.size() == nodes_modes.size(),
@@ -223,6 +225,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
   EXT_ENFORCE(target_class_ids.size() == target_class_nodeids.size());
   EXT_ENFORCE(target_class_ids.size() == target_class_treeids.size());
   EXT_ENFORCE(target_class_ids.size() == target_class_treeids.size());
+  EXT_ENFORCE(target_class_weights.size() > 0);
 
   aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);
   post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
@@ -421,8 +424,10 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
 
   if (use_node3_) {
     // Use optimized implementation with bigger nodes.
+    DEBUG_PRINT("Init:Tree3")
     ConvertTreeIntoTree3();
   }
+  DEBUG_PRINT("Init:End")
   return Status::OK();
 }
 

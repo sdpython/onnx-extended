@@ -162,6 +162,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
         )
         from onnx_extended.reference.c_custom_ops.custom_op_tree_ensemble_regressor import (  # noqa: E501
             TreeEnsembleRegressor_1 as TreeEnsembleRegressor_1_Float,
+            TreeEnsembleRegressor_3 as TreeEnsembleRegressor_3_Float,
         )
 
         return [
@@ -171,6 +172,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
             TreeEnsembleRegressor_1,
             TreeEnsembleRegressor_3,
             TreeEnsembleRegressor_1_Float,
+            TreeEnsembleRegressor_3_Float,
         ]
 
     @staticmethod

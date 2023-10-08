@@ -2,6 +2,7 @@ from typing import Any, Dict
 import numpy
 from onnx import NodeProto
 from onnx.reference.op_run import OpRun
+from ..._common import pick
 from ._op_classifier_common import _ClassifierCommon
 from .cpu.c_op_tree_ensemble_py_ import (
     RuntimeTreeEnsembleClassifierFloat,
@@ -59,30 +60,30 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
             cls = RuntimeTreeEnsembleClassifierDouble
 
         empty_f = numpy.array([], dtype=dtype)
-        base_values = (
-            kwargs.get("base_values", None)
-            or kwargs.get("base_values_as_tensor", None)
-            or empty_f
+        base_values = pick(
+            kwargs.get("base_values", None),
+            kwargs.get("base_values_as_tensor", None),
+            empty_f,
         )
-        nodes_values = (
-            kwargs.get("nodes_values", None)
-            or kwargs.get("nodes_values_as_tensor", None)
-            or empty_f
+        nodes_values = pick(
+            kwargs.get("nodes_values", None),
+            kwargs.get("nodes_values_as_tensor", None),
+            empty_f,
         )
-        nodes_hitrates = (
-            kwargs.get("nodes_hitrates", None)
-            or kwargs.get("nodes_hitrates_as_tensor", None)
-            or empty_f
+        nodes_hitrates = pick(
+            kwargs.get("nodes_hitrates", None),
+            kwargs.get("nodes_hitrates_as_tensor", None),
+            empty_f,
         )
-        base_values = (
-            kwargs.get("base_values", None)
-            or kwargs.get("base_values_as_tensor", None)
-            or empty_f
+        base_values = pick(
+            kwargs.get("base_values", None),
+            kwargs.get("base_values_as_tensor", None),
+            empty_f,
         )
-        cw = (
-            kwargs.get("class_weights", None)
-            or kwargs.get("class_weights_as_tensor", None)
-            or empty_f
+        cw = pick(
+            kwargs.get("class_weights", None),
+            kwargs.get("class_weights_as_tensor", None),
+            empty_f,
         )
         ncl = max(
             len(kwargs.get("classlabels_int64s", None) or []),
