@@ -34,9 +34,17 @@ def _check_installation_ortcy(onnx_model, verbose):
         from onnx_extended.ortcy.wrap import __file__ as cyfile
 
         this = os.path.dirname(cyfile)
+        files = os.listdir(this)
+        if "libonnxruntime.so.1.16.0" in files:
+            if verbose:
+                local_print(
+                    "[check_installation_ortcy] weird issue as the "
+                    f"so is in onnx_extended.ortcy.wrap: {files}."
+                )
+            return
         raise ImportError(
             f"Unable to import OrtSession, "
-            f"content in onnx_extended.ortcy.wrap is {os.listdir(this)}."
+            f"content in onnx_extended.ortcy.wrap is {files}."
         ) from e
     from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
