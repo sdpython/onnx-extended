@@ -21,7 +21,18 @@ load_model
 
 .. autofunction:: onnx_extended.tools.load_model
 
+onnx2string
+===========
+
+.. autofunction:: onnx_extended.tools.onnx2string
+
 save_model
 ==========
 
 .. autofunction:: onnx_extended.tools.save_model
+
+string2onnx
+===========
+
+.. autofunction:: onnx_extended.tools.string2onnx
+

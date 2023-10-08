@@ -21,6 +21,7 @@ from onnx_extended.tools.onnx_nodes import (
     onnx_merge_models,
     convert_onnx_model,
 )
+from onnx_extended.tools.onnx_io import onnx2string, string2onnx
 
 
 class TestOnnxTools(ExtTestCase):
@@ -147,7 +148,7 @@ class TestOnnxTools(ExtTestCase):
         if stdout:
             self.assertIn("[onnx_merge_models]", stdout)
 
-    def _test_merge(self):
+    def test_merge(self):
         M1_DEF = """
             <
                 ir_version: 7,
@@ -288,6 +289,21 @@ class TestOnnxTools(ExtTestCase):
         text = st.getvalue()
         self.assertIn("TreeEnsembleRegressor", text)
         self.assertIn("_as_tensor", str(new_onx))
+
+    def test_model2string(self):
+        model = self._get_model()[0]
+        s = onnx2string(model)
+        expected = (
+            "CAg6WgoPCgFYCgFZEgJ6MSIDQWRkCg8KAVgKAnoxEgFaIg"
+            "NNdWwSA2FkZFoPCgFYEgoKCAgBEgQKAAoAWg8KAVkSCgo"
+            "ICAESBAoACgBiDwoBWhIKCggIARIECgAKAEIECgAQEg=="
+        )
+        self.assertEqual(expected, s)
+        model2 = string2onnx(s)
+        self.assertEqual(
+            [n.op_type for n in model.graph.node],
+            [n.op_type for n in model2.graph.node],
+        )
 
 
 if __name__ == "__main__":

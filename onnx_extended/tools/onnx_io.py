@@ -1,3 +1,4 @@
+import base64
 import os
 from typing import Optional, Set, Union
 import onnx
@@ -93,3 +94,29 @@ def save_model(
     proto = onnx.write_external_data_tensors(proto, dirname)
     with open(filename, "wb") as f:
         f.write(proto.SerializeToString())
+
+
+def onnx2string(proto: onnx.ModelProto) -> str:
+    """
+    Takes a model and returns a string pluggagle in
+    a python script. It uses module `base64`.
+
+    :param proto: model proto
+    :return: string
+    """
+    text = proto.SerializeToString()
+    return base64.b64encode(text).decode("ascii")
+
+
+def string2onnx(text: str) -> onnx.ModelProto:
+    """
+    Restores a model saved with
+    :func:`onnx2string <onnx_extended.tools.onnx_io.onnx2string>`.
+
+    :param proto: model proto
+    :return: string
+    """
+    b = base64.b64decode(text.encode("ascii"))
+    model = onnx.ModelProto()
+    model.ParseFromString(b)
+    return model
