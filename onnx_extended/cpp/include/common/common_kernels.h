@@ -214,7 +214,7 @@ inline std::size_t ElementSize(ONNXTensorElementDataType elem_type) {
     return 2;
   case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8:
   case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8:
-    return 2;
+    return 1;
   default:
     throw std::runtime_error("One element type is not implemented in function "
                              "`ortops::ElementSize()`.");

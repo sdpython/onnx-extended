@@ -236,7 +236,7 @@ Status TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
   n_targets_or_classes_ = n_targets_or_classes;
   max_tree_depth_ = 1000;
   EXT_ENFORCE(nodes_modes.size() < std::numeric_limits<uint32_t>::max());
-  
+
   // additional members
   std::size_t limit;
   uint32_t i;
