@@ -13,6 +13,28 @@ namespace ortops {
 // errors and exceptions
 ////////////////////////
 
+template <typename T> struct CTypeToOnnxType {
+  ONNXTensorElementDataType onnx_type() const;
+};
+
+template <> struct CTypeToOnnxType<float> {
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+  }
+};
+
+template <> struct CTypeToOnnxType<int64_t> {
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
+  }
+};
+
+template <> struct CTypeToOnnxType<double> {
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
+  }
+};
+
 inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
                            int line, const OrtApi &api) {
   if (ort_status) {
@@ -85,6 +107,12 @@ public:
   ONNXTensorElementDataType elem_type;
   std::vector<int64_t> shape;
   std::vector<uint8_t> bytes;
+  inline void clear() {
+    bytes.clear();
+    shape.clear();
+    elem_type = ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+  }
+  inline bool empty() const { return bytes.empty(); }
 };
 
 inline std::string KernelInfoGetOptionalAttributeString(
@@ -259,27 +287,5 @@ inline bool KernelInfoGetOptionalAttributeInt64AsBool(const OrtApi &api,
       api, info, name, default_value ? 1 : 0);
   return value == 1;
 }
-
-template <typename T> struct CTypeToOnnxType {
-  ONNXTensorElementDataType onnx_type() const;
-};
-
-template <> struct CTypeToOnnxType<float> {
-  inline ONNXTensorElementDataType onnx_type() const {
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-  }
-};
-
-template <> struct CTypeToOnnxType<int64_t> {
-  inline ONNXTensorElementDataType onnx_type() const {
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
-  }
-};
-
-template <> struct CTypeToOnnxType<double> {
-  inline ONNXTensorElementDataType onnx_type() const {
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
-  }
-};
 
 } // namespace ortops
