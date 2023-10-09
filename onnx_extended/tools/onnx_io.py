@@ -138,8 +138,9 @@ def string2onnx(text: str) -> onnx.ModelProto:
     Restores a model saved with
     :func:`onnx2string <onnx_extended.tools.onnx_io.onnx2string>`.
 
-    :param proto: model proto
-    :return: string
+    :param text: string produces by
+        :func:`onnx2string <onnx_extended.tools.onnx_io.onnx2string>`
+    :return: ModelProto
     """
     b = base64.b64decode(text.encode("ascii"))
     model = onnx.ModelProto()
