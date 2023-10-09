@@ -30,6 +30,19 @@ See example :ref:`l-example-bench-cpu`.
 
 :param size: array size
 :return: average time per move
+
+The function measures the time spent in this loop.
+
+::
+
+    for (int64_t i = 0; i < arr_size; ++i) {
+        // index k will jump forth and back, to generate cache misses
+        int64_t k = (i / 2) + (i % 2) * arr_size / 2;
+        arr_b[k] = arr_a[k] + 1;
+     }
+
+The code is `benchmark_cache
+<https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/validation/cpu/speed_metrics.cpp#L17>`_.
 )pbdoc");
 
   py::class_<ElementTime> clf(m, "ElementTime");
@@ -54,7 +67,10 @@ See example :ref:`l-example-bench-cpu`.
 :param tree_size: size of a tree (= number of nodes * sizeof(node) / sizeof(float))
 :param max_depth: depth of a tree
 :param search_step: evaluate every...
-:return: array of time take for every row 
+:return: array of time take for every row
+
+The code is `benchmark_cache_tree
+<https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/validation/cpu/speed_metrics.cpp#L50>`_
 )pbdoc");
 
   m.def("vector_sum", &vector_sum, py::arg("n_columns"), py::arg("values"),

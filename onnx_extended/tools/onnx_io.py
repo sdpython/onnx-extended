@@ -118,7 +118,7 @@ def onnx2string(proto: onnx.ModelProto, as_code: bool = False) -> str:
         else:
             lines.append(content)
             break
-    lines = "\n".join([f'    "{li}"' for li in lines])
+    slines = "\n".join([f'    "{li}"' for li in lines])
     template = textwrap.dedent(
         """
     import textwrap
@@ -130,7 +130,7 @@ def onnx2string(proto: onnx.ModelProto, as_code: bool = False) -> str:
     model = string2onnx(text)
     """
     )
-    return template.format(model=lines)
+    return template.format(model=slines)
 
 
 def string2onnx(text: str) -> onnx.ModelProto:
