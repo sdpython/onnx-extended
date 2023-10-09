@@ -57,9 +57,9 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
     :param onx: the model
     :param feeds: the inputs
     :return: an instance of :class:`Engine`
-    
+
     Possible choices:
-    
+
     * `onnxruntime`: simple onnxruntime.InferenceSession
     * `onnxruntime-customop`: onnxruntime.InferenceSession
       with a custom implementation for the trees
@@ -89,13 +89,30 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
             warnings.simplefilter("ignore")
             from onnxruntime import InferenceSession, SessionOptions
         from ..ortops.optim.cpu import get_ort_ext_libs
+        from ..ortops.optim.optimize import (
+            change_onnx_operator_domain,
+            get_node_attribute,
+        )
+
+        onx2 = change_onnx_operator_domain(
+            onx,
+            op_type="TreeEnsembleRegressor",
+            op_domain="ai.onnx.ml",
+            new_op_domain="onnx_extented.ortops.optim.cpu",
+            nodes_modes=",".join(
+                map(
+                    lambda s: s.decode("ascii"),
+                    get_node_attribute(onx.graph.node[0], "nodes_modes").strings,
+                )
+            ),
+        )
 
         so = SessionOptions()
         so.register_custom_ops_library(get_ort_ext_libs()[0])
         eng = Engine(
             name,
             InferenceSession(
-                onx.SerializeToString(), so, providers=["CPUExecutionProvider"]
+                onx2.SerializeToString(), so, providers=["CPUExecutionProvider"]
             ),
         )
 
@@ -107,9 +124,25 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
     elif name == "cython-customops":
         from ..ortcy.wrap.ortinf import OrtSession
         from ..ortops.optim.cpu import get_ort_ext_libs
+        from ..ortops.optim.optimize import (
+            change_onnx_operator_domain,
+            get_node_attribute,
+        )
 
+        onx2 = change_onnx_operator_domain(
+            onx,
+            op_type="TreeEnsembleRegressor",
+            op_domain="ai.onnx.ml",
+            new_op_domain="onnx_extented.ortops.optim.cpu",
+            nodes_modes=",".join(
+                map(
+                    lambda s: s.decode("ascii"),
+                    get_node_attribute(onx.graph.node[0], "nodes_modes").strings,
+                )
+            ),
+        )
         eng = EngineCython(
-            name, OrtSession(onx.SerializeToString(), custom_libs=get_ort_ext_libs())
+            name, OrtSession(onx2.SerializeToString(), custom_libs=get_ort_ext_libs())
         )
     else:
         raise NotImplementedError(f"Unable to create engin for name={name!r}.")
@@ -130,7 +163,7 @@ def bench_trees(
 ) -> List[Dict[str, Any]]:
     """
     Measures the performances of the different implements of the TreeEnsemble.
-    
+
     :param max_depth: depth of tree
     :param n_estimators: number of trees in the forest
     :param n_features: number of features
@@ -141,9 +174,9 @@ def bench_trees(
     :param engine_names: see below
     :param repeat: number of times to repeat the measure
     :return: list of observations
-    
+
     Possible choices:
-    
+
     * `onnxruntime`: simple onnxruntime.InferenceSession
     * `onnxruntime-customop`: onnxruntime.InferenceSession
       with a custom implementation for the trees
