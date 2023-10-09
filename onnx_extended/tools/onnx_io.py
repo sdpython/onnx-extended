@@ -142,7 +142,7 @@ def string2onnx(text: str) -> onnx.ModelProto:
         :func:`onnx2string <onnx_extended.tools.onnx_io.onnx2string>`
     :return: ModelProto
     """
-    b = base64.b64decode(text.engicode("ascii"))
+    b = base64.b64decode(text.encode("ascii"))
     model = onnx.ModelProto()
     model.ParseFromString(b)
     return model
