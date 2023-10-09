@@ -51,10 +51,12 @@ Another example:
     python plot_optim_tree_ensemble.py
         --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
 """
+import logging
 import os
 import timeit
 import numpy
 import onnx
+from onnx.helper import make_graph, make_model
 from onnx.reference import ReferenceEvaluator
 import matplotlib.pyplot as plt
 from pandas import DataFrame, concat
@@ -70,7 +72,10 @@ from onnx_extended.ortops.optim.optimize import (
     get_node_attribute,
     optimize_model,
 )
+from onnx_extended.tools.onnx_nodes import multiply_tree
 from onnx_extended.ext_test_case import get_parsed_args, unit_test_going
+
+logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 
 script_args = get_parsed_args(
     "plot_optim_tree_ensemble",
@@ -113,11 +118,21 @@ if not os.path.exists(filename):
     )
     print(f"Training to get {filename!r} with X.shape={X.shape}")
     X, y = X.astype(numpy.float32), y.astype(numpy.float32)
+    # To be faster, we train only 1 tree.
     model = RandomForestRegressor(
-        n_trees, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
+        1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
     )
     model.fit(X[:-batch_size], y[:-batch_size])
     onx = to_onnx(model, X[:1])
+
+    # And wd multiply the trees.
+    node = multiply_tree(onx.graph.node[0], n_trees)
+    onx = make_model(
+        make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
+        domain=onx.domain,
+        opset_imports=onx.opset_import,
+    )
+
     with open(filename, "wb") as f:
         f.write(onx.SerializeToString())
 else:

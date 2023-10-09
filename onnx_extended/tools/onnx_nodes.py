@@ -11,6 +11,7 @@ from typing import (
     Tuple,
     Union,
 )
+import numpy as np
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -35,6 +36,7 @@ from onnx.helper import (
     np_dtype_to_tensor_dtype,
     set_model_props,
 )
+from onnx.numpy_helper import from_array, to_array
 from onnx.shape_inference import infer_shapes as onnx_infer_shapes
 from onnx.version_converter import convert_version
 from .onnx_io import load_model
@@ -1016,3 +1018,76 @@ def convert_onnx_model(
     )
     graph.value_info.extend(onnx_model.value_info)
     return graph
+
+
+def multiply_tree(node: NodeProto, n: int) -> NodeProto:
+    """
+    Multiplies the number of trees in TreeEnsemble operator.
+    It replicates the existing trees.
+
+    :param node: tree ensemble operator
+    :param n: number of times the existing trees must be multiplied
+    :return: the new trees
+    """
+    if not isinstance(node, NodeProto):
+        raise TypeError(f"node is not a NodeProto but {type(node)}.")
+    if not node.op_type.startswith("TreeEnsemble"):
+        raise ValueError(f"Unexpected node type {node.op_type!r}.")
+    args = [node.op_type, node.input, node.output]
+    kwargs = {"domain": node.domain}
+    for att in node.attribute:
+        if att.name in {"aggregate_function", "post_transform"}:
+            kwargs[att.name] = att.s
+        elif att.name in {"n_targets"}:
+            kwargs[att.name] = att.i
+        elif att.name == "classlabels_int64s":
+            ints = att.ints
+            if len(ints) > 0:
+                kwargs[att.name] = list(ints)
+        elif att.name == "classlabels_strings":
+            vals = att.strings
+            if len(vals) > 0:
+                kwargs[att.name] = list(vals)
+        elif att.name == "base_values":
+            fs = list(att.floats)
+            if len(fs) > 0:
+                kwargs.att[att.name] = fs
+        elif att.name.endswith("_as_tensor"):
+            v = to_array(att.t)
+            if att.name == "base_values_as_tensor":
+                if len(v.shape) > 0:
+                    kwargs[att.name] = from_array(v)
+            else:
+                kwargs[att.name] = from_array(np.repeat(v, n))
+        elif att.name in {
+            "class_ids",
+            "class_nodeids",
+            "nodes_falsenodeids",
+            "nodes_featureids",
+            "nodes_missing_value_tracks_true",
+            "nodes_nodeids",
+            "nodes_truenodeids",
+            "target_ids",
+            "target_nodeids",
+        }:
+            kwargs[att.name] = list(att.ints) * n
+        elif att.name in {"class_treeids", "nodes_treeids", "target_treeids"}:
+            ints = []
+            arr = np.array(att.ints, dtype=np.int64)
+            for i in range(n):
+                ints.extend(arr.tolist())
+                arr += 1
+            kwargs[att.name] = ints
+        elif att.name in {"nodes_modes"}:
+            kwargs[att.name] = list(att.strings) * n
+        elif att.name in {
+            "nodes_hitrates",
+            "nodes_values",
+            "target_weights",
+            "class_weights",
+        }:
+            fs = list(att.floats)
+            if len(fs) > 0:
+                kwargs[att.name] = fs * n
+
+    return make_node(*args, **kwargs)

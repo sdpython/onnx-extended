@@ -14,13 +14,16 @@ from onnx.helper import (
 )
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
 from onnx.parser import parse_model
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.tools.onnx_nodes import (
     enumerate_onnx_node_types,
     onnx_merge_models,
     convert_onnx_model,
+    multiply_tree,
 )
+from onnx_extended.tools.onnx_io import onnx2string, string2onnx
 
 
 class TestOnnxTools(ExtTestCase):
@@ -147,7 +150,7 @@ class TestOnnxTools(ExtTestCase):
         if stdout:
             self.assertIn("[onnx_merge_models]", stdout)
 
-    def _test_merge(self):
+    def test_merge(self):
         M1_DEF = """
             <
                 ir_version: 7,
@@ -288,6 +291,48 @@ class TestOnnxTools(ExtTestCase):
         text = st.getvalue()
         self.assertIn("TreeEnsembleRegressor", text)
         self.assertIn("_as_tensor", str(new_onx))
+
+    def test_model2string(self):
+        model = self._get_model()[0]
+        s = onnx2string(model)
+        expected = (
+            "CAg6WgoPCgFYCgFZEgJ6MSIDQWRkCg8KAVgKAnoxEgFaIg"
+            "NNdWwSA2FkZFoPCgFYEgoKCAgBEgQKAAoAWg8KAVkSCgo"
+            "ICAESBAoACgBiDwoBWhIKCggIARIECgAKAEIECgAQEg=="
+        )
+        self.assertEqual(expected, s)
+        model2 = string2onnx(s)
+        self.assertEqual(
+            [n.op_type for n in model.graph.node],
+            [n.op_type for n in model2.graph.node],
+        )
+        code = onnx2string(model, as_code=True)
+        self.assertIn("model = string2onnx(text)", code)
+
+    def test_multiply_trees(self):
+        from skl2onnx import to_onnx
+        from onnx_extended.reference import CReferenceEvaluator
+
+        X, y = make_regression(2048, n_features=4, n_targets=1)
+        X, y = X.astype(numpy.float32), y.astype(numpy.float32)
+        batch_size = 1024
+        model = DecisionTreeRegressor(max_depth=2)
+        model.fit(X[:-batch_size], y[:-batch_size])
+        onx = to_onnx(model, X[:1])
+        self.assertRaise(lambda: multiply_tree(onx, 2), TypeError)
+        onx2 = multiply_tree(onx.graph.node[0], 2)
+
+        new_model = make_model(
+            make_graph([onx2], onx.graph.name, onx.graph.input, onx.graph.output),
+            domain=onx.domain,
+            opset_imports=onx.opset_import,
+        )
+        sess = CReferenceEvaluator(onx)
+        sess2 = CReferenceEvaluator(new_model)
+        feeds = {"X": X[:2]}
+        got = sess.run(None, feeds)[0]
+        got2 = sess2.run(None, feeds)[0]
+        self.assertEqualArray(got * 2, got2)
 
 
 if __name__ == "__main__":

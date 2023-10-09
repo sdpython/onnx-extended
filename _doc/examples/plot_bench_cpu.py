@@ -21,6 +21,10 @@ from onnx_extended.validation.cpu._validation import (
     benchmark_cache_tree,
 )
 
+##############################################
+# Code of `benchmark_cache
+# <https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/validation/cpu/speed_metrics.cpp#L17>`_.
+
 obs = []
 step = 2**12
 for i in tqdm(range(step, 2**20 + step, step)):
@@ -77,7 +81,10 @@ fig.savefig("plot_benchmark_cpu_array.png")
 #
 # We simulate the computation of a TreeEnsemble
 # of 50 features, 100 trees and depth of 10
-# (so :math:`2^10` nodes.)
+# (so :math:`2^{10}` nodes.)
+# The code of `benchmark_cache_tree
+# <https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/validation/cpu/speed_metrics.cpp#L50>`_
+#
 
 dfs = []
 cols = []

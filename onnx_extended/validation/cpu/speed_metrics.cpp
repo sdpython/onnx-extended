@@ -56,8 +56,8 @@ benchmark_cache_tree(int64_t n_rows, int64_t n_features, int64_t n_trees,
     X[i] = (float)i / (float)X.size();
 
   std::vector<float> T(n_trees * tree_size);
-  for (int64_t i = 0; i < static_cast<int64_t>(T.size()); ++i)
-    T[i] = (float)i / (float)T.size();
+  for (int64_t il = 0; il < static_cast<int64_t>(T.size()); ++il)
+    T[il] = (float)il / (float)T.size();
 
   std::vector<float> res(n_trees * n_rows, 0);
 
@@ -74,11 +74,11 @@ benchmark_cache_tree(int64_t n_rows, int64_t n_features, int64_t n_trees,
 #pragma omp parallel for
       for (int64_t t = 0; t < n_trees; ++t) {
         int64_t end = batch + step < n_rows ? batch + step : n_rows;
-        for (int64_t i = batch; i < end; ++i) {
+        for (int64_t b = batch; b < end; ++b) {
           for (int64_t mx = 0; mx < max_depth; ++mx) {
-            fi = i * n_features + ((seed * (t + mx)) % n_features);
-            ti = t * tree_size + ((seed * (i + mx)) % tree_size);
-            res[i * n_trees + t] += X[fi] - T[ti];
+            fi = b * n_features + ((seed * (t + mx)) % n_features);
+            ti = t * tree_size + ((seed * (b + mx)) % tree_size);
+            res[b * n_trees + t] += X[fi] - T[ti];
           }
         }
       }
