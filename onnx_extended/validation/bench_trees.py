@@ -84,7 +84,7 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
         from ..reference import CReferenceEvaluator
 
         eng = Engine(name, CReferenceEvaluator(onx))
-    elif name == "onnxruntime-customop":
+    elif name == "onnxruntime-customops":
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             from onnxruntime import InferenceSession, SessionOptions

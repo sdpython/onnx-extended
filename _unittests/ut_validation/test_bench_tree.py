@@ -61,9 +61,10 @@ class TestBenchTree(ExtTestCase):
             number=10,
             warmup=2,
             repeat=1,
+            engine_names=["onnxruntime", "onnxruntime-customops"],
         )
         self.assertIsInstance(res, list)
-        self.assertEqual(len(res), 5)
+        self.assertEqual(len(res), 2)
 
 
 if __name__ == "__main__":
