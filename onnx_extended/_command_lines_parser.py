@@ -15,6 +15,7 @@ def get_main_parser() -> ArgumentParser:
     parser.add_argument(
         "cmd",
         choices=[
+            "bench",
             "check",
             "display",
             "external",
@@ -29,6 +30,7 @@ def get_main_parser() -> ArgumentParser:
             """
         Selects a command.
         
+        'bench' runs a benchmark,
         'check' checks a runtime on stored intermediate results,
         'display' displays the shapes inferences results,
         'external' saves the coefficients in a different files for an onnx model,
@@ -694,8 +696,114 @@ def _cmd_check(argv: List[Any]):
     )
 
 
+def get_parser_bench() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="bench",
+        description=dedent(
+            """
+        Benchmarks kernel executions.
+        """
+        ),
+    )
+    parser.add_argument(
+        "-d",
+        "--max_depth",
+        default=14,
+        help="max_depth for all trees",
+    )
+    parser.add_argument(
+        "-t",
+        "--n_estimators",
+        default=100,
+        help="number of trees in the forest",
+    )
+    parser.add_argument(
+        "-f",
+        "--n_features",
+        default=100,
+        help="number of features",
+    )
+    parser.add_argument(
+        "-b",
+        "--batch_size",
+        default=10000,
+        help="batch size",
+    )
+    parser.add_argument(
+        "-n",
+        "--number",
+        default=10000,
+        help="number of calls to measure",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        default=2,
+        help="warmup calls before starting to measure",
+    )
+    parser.add_argument(
+        "-r",
+        "--repeat",
+        default=2,
+        help="number of measures to repeat",
+    )
+    parser.add_argument(
+        "-e",
+        "--engine",
+        default="onnxruntime,onnxruntime-customops,CReferenceEvaluator",
+        help="implementation to checks, comma separated list, possible values "
+        "onnxruntime,onnxruntime-customops,CReferenceEvaluator,cython,cython-customops",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
+    )
+    parser.add_argument(
+        "-p",
+        "--profile",
+        action="store_true",
+        help="run a profiling",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="",
+        help="output file to write",
+    )
+    return parser
+
+
+def _cmd_bench(argv: List[Any]):
+    from pandas import DataFrame
+    from .validation.bench_trees import bench_trees
+
+    parser = get_parser_bench()
+    args = parser.parse_args(argv[1:])
+    res = bench_trees(
+        max_depth=int(args.max_depth),
+        n_estimators=int(args.n_estimators),
+        n_features=int(args.n_features),
+        batch_size=int(args.batch_size),
+        number=int(args.number),
+        warmup=int(args.warmup),
+        verbose=2 if args.verbose else 0,
+        engine_names=args.engine.split(","),
+        repeat=int(args.repeat),
+        profile=args.profile,
+    )
+
+    df = DataFrame(res)
+    if args.output:
+        df.to_csv(args.output, index=False)
+    if args.verbose:
+        print(df)
+
+
 def main(argv: Optional[List[Any]] = None):
     fcts = dict(
+        bench=_cmd_bench,
         display=_cmd_display,
         external=_cmd_external,
         merge=_cmd_merge,
@@ -715,6 +823,8 @@ def main(argv: Optional[List[Any]] = None):
             parser.parse_args(argv)
         else:
             parsers = dict(
+                bench=get_parser_bench,
+                check=get_parser_check,
                 display=get_parser_display,
                 external=get_parser_external,
                 merge=get_parser_merge,
@@ -723,7 +833,6 @@ def main(argv: Optional[List[Any]] = None):
                 quantize=get_parser_quantize,
                 select=get_parser_select,
                 store=get_parser_store,
-                check=get_parser_check,
             )
             cmd = argv[0]
             if cmd not in parsers:

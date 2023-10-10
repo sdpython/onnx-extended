@@ -121,7 +121,6 @@ def onnx2string(proto: onnx.ModelProto, as_code: bool = False) -> str:
     slines = "\n".join([f'    "{li}"' for li in lines])
     template = textwrap.dedent(
         """
-    import textwrap
     from onnx_extended.tools.onnx_io import string2onnx
     
     text = (

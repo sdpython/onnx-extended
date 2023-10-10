@@ -233,6 +233,10 @@ disable_error_code = [
     "return-value",
 ]
 
+[[tool.mypy.overrides]]
+module = ["onnx_extended.validation.bench_trees"]
+disable_error_code = ["arg-type"]
+
 [tool.ruff]
 exclude = [".eggs", ".git", "build", "dist"]
 line-length = 88

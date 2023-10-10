@@ -638,6 +638,8 @@ void TreeEnsembleCommon<InputType, ThresholdType, OutputType>::ComputeAgg(
   DEBUG_PRINT("n_targets_or_classes_=", n_targets_or_classes_, " N=", N,
               " agg.kind()=", agg.kind())
 
+  // printf("n_targets_or_classes_=%d N=%d n_trees_=%d parallel_tree_=%d parallel_N_=%d max_n_threads=%d\n",
+  //   n_targets_or_classes_, N, n_trees_, parallel_tree_, parallel_N_, max_n_threads);
   if (n_targets_or_classes_ == 1) {
     DEBUG_PRINT()
     if (N == 1) {
