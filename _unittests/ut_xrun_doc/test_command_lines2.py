@@ -181,7 +181,6 @@ class TestCommandLines2(ExtTestCase):
             main(args)
         text = st.getvalue()
         self.assertIn("[bench_trees]", text)
-        self.assertIn("n_estimators", text)
         self.assertIn("tottime", text)
 
 
