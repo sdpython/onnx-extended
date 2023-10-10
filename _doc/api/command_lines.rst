@@ -83,7 +83,7 @@ can be used by the package.
     from onnx_extended._command_lines_parser import get_parser_check
     get_parser_check().print_help()
 
-.. autofunction:: onnx_extended.check
+.. autofunction:: onnx_extended.check_installation
 
 display
 =======

@@ -174,7 +174,7 @@ def bench_trees(
     :param batch_size: batch size
     :param number: number of calls to measure
     :param warmup: number of calls before starting the measure
-    :param verbosity: verbosity
+    :param verbose: verbosity
     :param engine_names: see below
     :param repeat: number of times to repeat the measure
     :param profile: run a profiler as well
