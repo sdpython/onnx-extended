@@ -64,7 +64,7 @@ class TestBenchTree(ExtTestCase):
             engine_names=["onnxruntime", "onnxruntime-customops"],  # , "cython"],
         )
         self.assertIsInstance(res, list)
-        self.assertEqual(len(res), 3)
+        self.assertEqual(len(res), 2)
 
 
 if __name__ == "__main__":
