@@ -20,6 +20,12 @@ try:
         get_ort_c_api_supported_version,
     )
 except ImportError as e:
+    try:
+        import onnx_extended.ortcy.wrap.ortinf
+
+        path = onnx_extended.ortcy.wrap.ortinf.__file__
+    except ImportError as e:
+        path = str(e)
     msg = "libonnxruntime.so.1.16.0: cannot open shared object file"
     if msg in str(e):
         from onnx_extended.ortcy.wrap import __file__ as loc
@@ -27,7 +33,7 @@ except ImportError as e:
         all_files = os.listdir(os.path.dirname(loc))
         warnings.warn(
             f"Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
-            f"{all_files}."
+            f"{all_files}, path={path!r}."
         )
         OrtSession = None
         get_ort_c_api_supported_version = None
