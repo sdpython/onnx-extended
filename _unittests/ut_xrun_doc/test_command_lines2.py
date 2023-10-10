@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 import unittest
@@ -17,6 +18,7 @@ from onnx.parser import parse_model
 from onnxruntime import InferenceSession, SessionOptions
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended._command_lines_parser import (
+    get_parser_bench,
     get_parser_merge,
     get_parser_plot,
     main,
@@ -147,6 +149,44 @@ class TestCommandLines2(ExtTestCase):
             m3 = load_model(name3)
             self.assertNotEmpty(m3)
 
+    def test_parser_bench(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_bench().print_help()
+        text = st.getvalue()
+        self.assertIn("output", text)
+        self.assertIn("verbose", text)
+
+    def test_bench(self):
+        args = [
+            "bench",
+            "-f",
+            "4",
+            "-d",
+            "2",
+            "-v",
+            "-e",
+            "onnxruntime,CReferenceEvaluator",
+            "-t",
+            "10",
+            "-b",
+            "100",
+            "-n",
+            "100",
+            "-p",
+        ]
+        print(" ".join(args))
+        st = StringIO()
+        with redirect_stdout(st):
+            main(args)
+        text = st.getvalue()
+        self.assertIn("[bench_trees]", text)
+        self.assertIn("n_estimators", text)
+        self.assertIn("tottime", text)
+
 
 if __name__ == "__main__":
+    for log in ["matplotlib.font_manager", "PIL.PngImagePlugin", "matplotlib"]:
+        logging.getLogger(log).setLevel(logging.ERROR)
+
     unittest.main(verbosity=2)

@@ -1,5 +1,8 @@
+import cProfile
 import datetime
+import io
 import logging
+import pstats
 import time
 import warnings
 from typing import Any, Dict, List, Optional
@@ -160,6 +163,7 @@ def bench_trees(
     verbose: int = 0,
     engine_names: Optional[List[str]] = None,
     repeat: int = 2,
+    profile: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Measures the performances of the different implements of the TreeEnsemble.
@@ -173,6 +177,7 @@ def bench_trees(
     :param verbosity: verbosity
     :param engine_names: see below
     :param repeat: number of times to repeat the measure
+    :param profile: run a profiler as well
     :return: list of observations
 
     Possible choices:
@@ -189,20 +194,20 @@ def bench_trees(
 
     now = lambda: datetime.datetime.now().time()  # noqa: E731
 
-    if max_depth <= 3:
-        if verbose > 0:
-            print(f" [bench_trees] {now()} create tree")
-        tree = create_decision_tree(n_features=n_features, max_depth=max_depth)
-    elif n_features == 100 and max_depth == 14:
+    if n_features == 100 and max_depth == 14:
         if verbose > 0:
             print(f" [bench_trees] {now()} import tree")
         from ._tree_d14_f100 import tree_d14_f100
 
         tree = tree_d14_f100()
+    else:
+        if verbose > 0:
+            print(f" [bench_trees] {now()} create tree")
+        tree = create_decision_tree(n_features=n_features, max_depth=max_depth)
 
     if verbose > 0:
         print(f" [bench_trees] {now()} create forest with {n_estimators} trees")
-    onx2 = multiply_tree(tree.graph.node[0], 2)
+    onx2 = multiply_tree(tree.graph.node[0], n_estimators)
     new_tree = make_model(
         make_graph([onx2], tree.graph.name, tree.graph.input, tree.graph.output),
         domain=tree.domain,
@@ -210,6 +215,10 @@ def bench_trees(
     )
 
     if verbose > 0:
+        print(
+            f" [bench_trees] {now()} modelsize "
+            f"{float(len(new_tree.SerializeToString()))/2**10:1.3f} Kb"
+        )
         print(f" [bench_trees] {now()} create datasets")
 
     from sklearn.datasets import make_regression
@@ -238,6 +247,10 @@ def bench_trees(
     if verbose > 0:
         print(f" [bench_trees] {now()} benchmark")
 
+    if profile:
+        pr = cProfile.Profile()
+        pr.enable()
+
     results = []
     for r in range(repeat):
         for name, engine in engines.items():
@@ -252,6 +265,7 @@ def bench_trees(
 
             begin = time.perf_counter()
             for i in range(number):
+                feeds["X"] += feeds["X"] * np.float32(np.random.random() / 1000)
                 engine.run(None, feeds)
             duration = time.perf_counter() - begin
 
@@ -260,5 +274,23 @@ def bench_trees(
                     f" [bench_trees] {now()} test {name!r} "
                     f"duration={float(duration) / number}"
                 )
-            results.append(dict(name=name, repeat=r, duration=float(duration) / number))
+            results.append(
+                dict(
+                    name=name,
+                    repeat=r,
+                    duration=float(duration) / number,
+                    n_estimators=n_estimators,
+                    number=number,
+                    n_features=n_features,
+                    max_depth=max_depth,
+                    batch_size=batch_size,
+                )
+            )
+    if profile:
+        pr.disable()
+        s = io.StringIO()
+        sortby = pstats.SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
     return results

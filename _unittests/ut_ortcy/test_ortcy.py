@@ -24,8 +24,8 @@ except ImportError as e:
         import onnx_extended.ortcy.wrap.ortinf
 
         path = onnx_extended.ortcy.wrap.ortinf.__file__
-    except ImportError as e:
-        path = str(e)
+    except ImportError as ee:
+        path = str(ee)
     msg = "libonnxruntime.so.1.16.0: cannot open shared object file"
     if msg in str(e):
         from onnx_extended.ortcy.wrap import __file__ as loc

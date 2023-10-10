@@ -18,8 +18,8 @@ class TreeEnsembleRegressorCommon(OpRun):
         OpRun.__init__(self, onnx_node, run_params, schema=schema)
         self.parallel = None
         self.rt_ = None
-        # default is no parallelization
-        self.set_parallel(int(100e6), int(100e6), int(100e6), 1, 1, 0)
+        # default is parallelization
+        self.set_parallel(80, 150, 80, 1, 1, 0)
 
     def set_parallel(
         self,
