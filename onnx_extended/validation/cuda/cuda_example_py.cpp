@@ -176,30 +176,43 @@ of the same size with CUDA.
 :return: sum
 )pbdoc");
 
-  py::enum_<FpemuMode>(m, "FpemuMode")
+  py::enum_<FpemuMode>(
+      m, "FpemuMode", "Available option for parameter mode in function fpemu_cuda_forward.")
       .value("E4M3_RNE", FpemuMode::E4M3_RNE)
       .export_values();
 
   m.def(
       "fpemu_cuda_forward",
       [](py_array_float &input, FpemuMode mode, bool inplace, float scale,
-         bool block_norm, int block_size, int cuda_device) -> py_array_uint8_t {
-        float *ptr_in = reinterpret_cast<float *>(input.ptr());
-        uint8_t *ptr_out;
-        py_array_uint8_t output;
+         bool block_norm, int block_size, int cuda_device) -> py_array_float {
+        py::buffer_info br = input.request();
+        float *ptr_in = reinterpret_cast<float *>(br.ptr);
+
         if (inplace) {
-          ptr_out = reinterpret_cast<uint8_t *>(ptr_in);
+          fpemu_cuda_forward(input.size(), ptr_in, ptr_in, mode, inplace, scale,
+                             block_norm, block_size, cuda_device);
+          return input;
         } else {
-          output.resize({input.size()});
-          ptr_out = reinterpret_cast<uint8_t *>(output.ptr());
+          py_array_float output = py::array_t<float>({input.size()});
+          py::buffer_info bro = output.request();
+          float *ptr_out = reinterpret_cast<float *>(bro.ptr);
+          fpemu_cuda_forward(input.size(), ptr_in, ptr_out, mode, inplace,
+                             scale, block_norm, block_size, cuda_device);
+          return output;
         }
-        fpemu_cuda_forward(input.size(), ptr_in, ptr_out, mode, inplace, scale,
-                           block_norm, block_size, cuda_device);
-        return output;
       },
       py::arg("input"), py::arg("mode") = FpemuMode::E4M3_RNE,
       py::arg("inplace") = false, py::arg("scale") = 1.0,
       py::arg("block_norm") = false, py::arg("block_size") = 1,
-      py::arg("cuda_device") = 0,
-      R"pbdoc(Experiment)pbdoc");
+      py::arg("cuda_device") = 0, R"pbdoc(Experimental
+
+:param input: array
+:param mode: which quantization type
+:param inplace: modification inplace instead of a new outoput
+:param scale: scale
+:param block_norm: normalization accrocess blocks
+:param block_size: block size
+:param cuda_device: device id (if mulitple one)
+:return: forward pass
+      )pbdoc");
 }

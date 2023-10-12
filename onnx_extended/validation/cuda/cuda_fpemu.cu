@@ -293,6 +293,7 @@ void fpemu_cuda_forward(const int size, const float *input, float *output,
   const dim3 blocks((size + (threads - 1)) / threads);
 
   float *gpu_ptr;
+
   checkCudaErrors(cudaSetDevice(cuda_device));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
   checkCudaErrors(

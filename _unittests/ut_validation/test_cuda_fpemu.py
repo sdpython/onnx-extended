@@ -11,9 +11,17 @@ class TestCudaFpemu(ExtTestCase):
             fpemu_cuda_forward,
         )
 
-        values = np.array([-2, -1, 0, 1, 2, 3], dtype=np.float32)
+        values = np.array(
+            [-2, -1, 0, 1, 2, 3, 10, 100, 10000, 20000, 50000, 100000, -100000],
+            dtype=np.float32,
+        )
         res = fpemu_cuda_forward(values)
-        print(res)
+        expected = res.copy()
+        self.assertEqual(res.shape, values.shape)
+        res = fpemu_cuda_forward(values)
+        self.assertEqual(res.shape, values.shape)
+        fpemu_cuda_forward(values, inplace=True)
+        self.assertEqualArray(expected, values)
 
 
 if __name__ == "__main__":
