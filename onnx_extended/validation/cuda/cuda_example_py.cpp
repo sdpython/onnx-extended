@@ -1,17 +1,22 @@
 #include "cuda_example.cuh"
 #include "cuda_example_reduce.cuh"
+#include "cuda_fpemu.cuh"
 #include "cuda_gemm.cuh"
+
 #include "cuda_runtime.h"
-#include "cuda_fpemu.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
 using namespace cuda_example;
+using namespace cuda_fpemu;
 
 #define py_array_float                                                         \
   py::array_t<float, py::array::c_style | py::array::forcecast>
+
+#define py_array_uint8_t                                                       \
+  py::array_t<uint8_t, py::array::c_style | py::array::forcecast>
 
 PYBIND11_MODULE(cuda_example_py, m) {
   m.doc() =
@@ -171,23 +176,27 @@ of the same size with CUDA.
 :return: sum
 )pbdoc");
 
+  py::enum_<FpemuMode>(m, "FpemuMode")
+      .value("E4M3_RNE", FpemuMode::E4M3_RNE)
+      .export_values();
+
   m.def(
       "fpemu_cuda_forward",
-      [](py_array_float &input, const std::string &mode, bool inplace,
+      [](py_array_float &input, FpemuMode mode, bool inplace,
          float scale, bool block_norm, int block_size) -> py_array_uint8_t {
-        float *ptr_in = reinterpret_cast<float *>(input.ptr);
+        float *ptr_in = reinterpret_cast<float *>(input.ptr());
         uint8_t *ptr_out;
         py_array_uint8_t output;
         if (inplace) {
-          ptr_out = static_cast<uint8_t *>(ptr_in);
+          ptr_out = reinterpret_cast<uint8_t *>(ptr_in);
         } else {
-          output.resize(input.size());
-          ptr_out = reinterpret_cast<uint8_t *>(output.ptr);
+          output.resize({input.size()});
+          ptr_out = reinterpret_cast<uint8_t *>(output.ptr());
         }
-        fpemu_cuda_forward(input.size(), ptr_in, ptr_out, FpemuMode mode,
+        fpemu_cuda_forward(input.size(), ptr_in, ptr_out, mode,
                            inplace, scale, block_norm, block_size);
         return output;
       },
-      py::arg("mode"), py::arg("inplace"), py::arg("scale"),
+      py::arg("input"), py::arg("mode"), py::arg("inplace"), py::arg("scale"),
       py::arg("block_norm"), py::arg("block_size"), R"pbdoc(Experiment)pbdoc");
 }

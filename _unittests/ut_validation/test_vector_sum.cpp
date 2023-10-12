@@ -18,8 +18,12 @@ void test_vector_sum() {
     ASSERT_THROW(s1 == s2);
 }
 
+// from test_cpu_fpemu.cpp
+void test_cast();
 
 int main(int, char**) {
   testAssertTrue();
   test_vector_sum();
+  // from test_cpu_fpemu.cpp
+  test_cast();
 }

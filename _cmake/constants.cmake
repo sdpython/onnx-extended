@@ -145,12 +145,13 @@ configure_file(
 #
 
 # AVX instructions
+# Check with bash _cmake/intrin.sh <avx function name>
 if(MSVC)
   # disable warning for #pragma unroll
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX /arch:AVX2")
   add_compile_options(/wd4068)
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mf16c")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 

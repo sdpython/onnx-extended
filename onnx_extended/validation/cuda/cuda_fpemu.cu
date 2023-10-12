@@ -1,3 +1,7 @@
+// This file includes some pieces taken from
+// https://github.com/IntelLabs/FP8-Emulation-Toolkit/blob/main/mpemu/pytquant/cuda/fpemu_kernels.cu
+// with the following license.
+//
 /*----------------------------------------------------------------------------*
  * Copyright (c) 2023, Intel Corporation - All rights reserved.
  * This file is part of FP8-Emulation-Toolkit
@@ -6,17 +10,16 @@
  *----------------------------------------------------------------------------*
  * Naveen Mellempudi (Intel Corporation)
  *----------------------------------------------------------------------------*/
-// taken from
-// https://github.com/IntelLabs/FP8-Emulation-Toolkit/blob/main/mpemu/pytquant/cuda/fpemu_kernels.cu
 
-#include "cuda_fpemu.h"
+#include "cuda_fpemu.cuh"
+#include "cuda_utils.h"
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 
 #define CUBLOCK_SIZE 256
 
-namespace fpemu {
+namespace cuda_fpemu {
 
 enum ROUNDING_MODES {
   ROUND_RTZ = 0,
@@ -38,9 +41,127 @@ typedef union ufloat32 {
   float f;
 } __float_t;
 
-enum FpemuMode {
-  E4M3_RNE = 1,
-};
+/* This implementation of xoroshiro128++ PRNG is borrowed from here:
+ *  http://prng.di.unimi.it/xoshiro128plusplus.c
+ *  main page: http://prng.di.unimi.it/
+ */
+__device__ static uint32_t s1[4] = {1387366120, 279844183, 888998500,
+                                    1099633400};
+__device__ static uint32_t s2[4] = {2034269327, 2125325156, 1209715489,
+                                    193165672};
+__device__ static uint32_t s3[4] = {1555452618, 650181557, 883695203, 62767784};
+__device__ static uint32_t s4[4] = {419524804, 2146478152, 480059239,
+                                    1468956197};
+__device__ static uint32_t s5[4] = {1252084877, 500390994, 977516591,
+                                    1950666000};
+__device__ static uint32_t s6[4] = {393659750, 834151069, 1477014702,
+                                    734008143};
+__device__ static uint32_t s7[4] = {1983400973, 116410309, 2110188261,
+                                    2019272068};
+__device__ static uint32_t s8[4] = {187709636, 28336299, 419632041, 1774181187};
+__device__ static uint32_t s9[4] = {702309618, 407781555, 1512057936,
+                                    1868769368};
+__device__ static uint32_t s10[4] = {510001215, 966559856, 776583255,
+                                     147562106};
+__device__ static uint32_t s11[4] = {127180605, 1881312534, 478635452,
+                                     814821902};
+__device__ static uint32_t s12[4] = {733990058, 1889991804, 1108257970,
+                                     1093480892};
+__device__ static uint32_t s13[4] = {427374380, 416747337, 558000409,
+                                     1594848927};
+__device__ static uint32_t s14[4] = {444870959, 1595722866, 1064124488,
+                                     363710254};
+__device__ static uint32_t s15[4] = {703721499, 389640783, 1002360059,
+                                     1427395742};
+__device__ static uint32_t s16[4] = {1295231497, 1254972431, 1423497865,
+                                     861918264};
+
+__device__ static uint32_t *sptr[16] = {s1, s2,  s3,  s4,  s5,  s6,  s7,  s8,
+                                        s9, s10, s11, s12, s13, s14, s15, s16};
+
+__device__ __forceinline__ uint32_t rotl_(const uint32_t x, int k) {
+  return (x << k) | (x >> (32 - k));
+}
+
+__device__ __forceinline__ uint32_t
+_rand_xorshft128plus_with_seed(uint32_t *ps) {
+  const uint32_t result_plus = ps[0] + ps[3];
+  const uint32_t t = ps[1] << 9;
+
+  ps[2] ^= ps[0];
+  ps[3] ^= ps[1];
+  ps[1] ^= ps[2];
+  ps[0] ^= ps[3];
+
+  ps[2] ^= t;
+
+  ps[3] = rotl_(ps[3], 11);
+
+  return result_plus;
+}
+
+template <typename scalar_t>
+__device__ __forceinline__ void __half2anyfloat(__half h_, scalar_t *out) {
+  scalar_t f_;
+
+  if (std::is_same<scalar_t, double>::value) {
+    f_ = (scalar_t)__half2float((__half)h_);
+  } else if (std::is_same<scalar_t, float>::value) {
+    f_ = __half2float(h_);
+  } else if (std::is_same<scalar_t, __half>::value) {
+    f_ = h_;
+  }
+  *out = f_;
+}
+
+template <typename scalar_t>
+__device__ __forceinline__ unsigned short __anyfloat2half_rn(scalar_t f_) {
+  unsigned short h_;
+
+  if (std::is_same<scalar_t, double>::value) {
+    h_ = __float2half_rn(__double2float_rn(f_));
+  } else if (std::is_same<scalar_t, float>::value) {
+    h_ = __float2half_rn(f_);
+  } else if (std::is_same<scalar_t, __half>::value) {
+    unsigned short *ptrh_ = (unsigned short *)&f_;
+    h_ = *ptrh_;
+  }
+  return h_;
+}
+
+template <typename scalar_t>
+__device__ __forceinline__ float __anyfloat2float_rn(scalar_t a_) {
+  float f_;
+
+  if (std::is_same<scalar_t, double>::value) {
+    f_ = __double2float_rn(a_);
+  } else if (std::is_same<scalar_t, float>::value) {
+    f_ = a_;
+  } else if (std::is_same<scalar_t, __half>::value) {
+    f_ = __half2float((__half)a_);
+  }
+  return f_;
+}
+
+template <typename scalar_t>
+__device__ void absmax_block(const scalar_t *in, float *sdata, const int size) {
+  unsigned int tid = threadIdx.x;
+  unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+  sdata[tid] = 0.0f;
+
+  if (i < size) {
+    sdata[tid] = fmaxf(fabsf(sdata[tid]), fabsf(__anyfloat2float_rn(in[i])));
+  }
+  __syncthreads();
+
+  for (unsigned int s = 1; s < blockDim.x; s *= 2) {
+    if ((tid % (2 * s)) == 0) {
+      sdata[tid] = fmaxf(fabsf(sdata[tid]), fabsf(sdata[tid + s]));
+    }
+    __syncthreads();
+  }
+}
 
 template <typename scalar_in_t, typename scalar_out_t>
 __global__ void E4M3_Kernel(const scalar_in_t *in,
@@ -74,8 +195,8 @@ __global__ void E4M3_Kernel(const scalar_in_t *in,
   unsigned short grs_bitmask = 0x007F;
   unsigned short rne_tie = 0x00C0;
 
-  extern __shared__ float sdata[];
-  float scale = in_scale;
+  extern __shared__ scalar_in_t sdata[];
+  scalar_in_t scale = in_scale;
 
   if (block_norm == true) {
     absmax_block(in, sdata, size);
@@ -85,14 +206,13 @@ __global__ void E4M3_Kernel(const scalar_in_t *in,
     scale = 2 * f.f;
     scale /= 8.0;
   }
-  float scale_reciprocal = 1.0 / scale;
 
   for (int gid = (blockIdx.x * blockDim.x) + threadIdx.x; gid < size;
        gid += blockDim.x * gridDim.x) {
     __half_t h;
-    float inval = in[gid] * scale;
+    scalar_in_t inval = in[gid] * scale;
 
-    h.f = __anyfloat2half_rn(inval);
+    h.u = __anyfloat2half_rn(inval);
     short exp_h = (short)((h.u & 0x7C00) >> 10) - 15;
     short sign_h = (h.u & 0x8000);
     short mantissa_h = (h.u & 0x03FF);
@@ -145,12 +265,13 @@ __global__ void E4M3_Kernel(const scalar_in_t *in,
         mantissa_h += can_round * rnaz_mask * ((rnmask >= 0x0040) << lshift);
         /* round to nearest towards zero, if rntz_mask is enabled */
         mantissa_h += can_round * rntz_mask * ((rnmask > 0x0040) << lshift);
-        /* round to +INF, if rpinf_mask is enabled */
-        mantissa_h +=
-            can_round * rpinf_mask * (h.f > 0) * ((rnmask >= 0x0040) << lshift);
-        /* round to -INF, if rminf_mask is enabled */
-        mantissa_h +=
-            can_round * rminf_mask * (h.f < 0) * ((rnmask >= 0x0040) << lshift);
+        if (h.u & 0x8000 == 0 /* h.f > 0 */) {
+          /* round to +INF, if rpinf_mask is enabled */
+          mantissa_h += can_round * rpinf_mask * ((rnmask >= 0x0040) << lshift);
+        } else if (h.u & 0x8FFF != 0 /* h.f < 0 */) {
+          /* round to -INF, if rminf_mask is enabled */
+          mantissa_h += can_round * rminf_mask * ((rnmask >= 0x0040) << lshift);
+        }
       }
     }
     /* truncation */
@@ -158,7 +279,9 @@ __global__ void E4M3_Kernel(const scalar_in_t *in,
     mantissa_h += ((exp_h + 15) << 10);
     mantissa_h |= sign_h;
     h.u = mantissa_h;
-    __half2anyfloat(h.f * scale_reciprocal, &out[gid]);
+    scalar_in_t hf;
+    __half2anyfloat(h.f, &hf);
+    out[gid] = hf / scale;
   }
 }
 
@@ -178,14 +301,11 @@ void fpemu_cuda_forward(const int size, const float *input, uint8_t *output,
   }
   const dim3 blocks((size + (threads - 1)) / threads);
 
-  if (mode == FpemuMode.E4M3_RNE) {
-    AT_DISPATCH_FLOATING_TYPES_AND_HALF(
-        input, FpemuMode.E4M3_RNE, ([&] {
-          E4M3_Kernel<float><<<blocks, threads, sdata_size>>>(
-              input, output, size, scale, block_norm, 8, 4, ROUND_RNE);
-        }));
+  if (mode == FpemuMode::E4M3_RNE) {
+    E4M3_Kernel<float><<<blocks, threads, sdata_size>>>(
+        input, output, size, scale, block_norm, 8, 4, ROUND_RNE);
     checkCudaErrors(cudaDeviceSynchronize());
   }
 }
 
-} // namespace fpemu
+} // namespace cuda_fpemu
