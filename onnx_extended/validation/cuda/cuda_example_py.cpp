@@ -2,6 +2,7 @@
 #include "cuda_example_reduce.cuh"
 #include "cuda_gemm.cuh"
 #include "cuda_runtime.h"
+#include "cuda_fpemu.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -169,4 +170,24 @@ of the same size with CUDA.
 :param cuda_device: device id (if mulitple one)
 :return: sum
 )pbdoc");
+
+  m.def(
+      "fpemu_cuda_forward",
+      [](py_array_float &input, const std::string &mode, bool inplace,
+         float scale, bool block_norm, int block_size) -> py_array_uint8_t {
+        float *ptr_in = reinterpret_cast<float *>(input.ptr);
+        uint8_t *ptr_out;
+        py_array_uint8_t output;
+        if (inplace) {
+          ptr_out = static_cast<uint8_t *>(ptr_in);
+        } else {
+          output.resize(input.size());
+          ptr_out = reinterpret_cast<uint8_t *>(output.ptr);
+        }
+        fpemu_cuda_forward(input.size(), ptr_in, ptr_out, FpemuMode mode,
+                           inplace, scale, block_norm, block_size);
+        return output;
+      },
+      py::arg("mode"), py::arg("inplace"), py::arg("scale"),
+      py::arg("block_norm"), py::arg("block_size"), R"pbdoc(Experiment)pbdoc");
 }
