@@ -182,8 +182,8 @@ of the same size with CUDA.
 
   m.def(
       "fpemu_cuda_forward",
-      [](py_array_float &input, FpemuMode mode, bool inplace,
-         float scale, bool block_norm, int block_size) -> py_array_uint8_t {
+      [](py_array_float &input, FpemuMode mode, bool inplace, float scale,
+         bool block_norm, int block_size, int cuda_device) -> py_array_uint8_t {
         float *ptr_in = reinterpret_cast<float *>(input.ptr());
         uint8_t *ptr_out;
         py_array_uint8_t output;
@@ -193,10 +193,13 @@ of the same size with CUDA.
           output.resize({input.size()});
           ptr_out = reinterpret_cast<uint8_t *>(output.ptr());
         }
-        fpemu_cuda_forward(input.size(), ptr_in, ptr_out, mode,
-                           inplace, scale, block_norm, block_size);
+        fpemu_cuda_forward(input.size(), ptr_in, ptr_out, mode, inplace, scale,
+                           block_norm, block_size, cuda_device);
         return output;
       },
-      py::arg("input"), py::arg("mode"), py::arg("inplace"), py::arg("scale"),
-      py::arg("block_norm"), py::arg("block_size"), R"pbdoc(Experiment)pbdoc");
+      py::arg("input"), py::arg("mode") = FpemuMode::E4M3_RNE,
+      py::arg("inplace") = false, py::arg("scale") = 1.0,
+      py::arg("block_norm") = false, py::arg("block_size") = 1,
+      py::arg("cuda_device") = 0,
+      R"pbdoc(Experiment)pbdoc");
 }

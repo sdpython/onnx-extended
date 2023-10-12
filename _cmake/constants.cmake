@@ -148,10 +148,13 @@ configure_file(
 # Check with bash _cmake/intrin.sh <avx function name>
 if(MSVC)
   # disable warning for #pragma unroll
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX /arch:AVX2")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
   add_compile_options(/wd4068)
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mf16c")
+  # Other possible flags
+  # "-mavx512f", "-mavx512bw", "-mavx512dq", "-mavx512vl", "-mlzcnt"
+  # See https://gcc.gnu.org/onlinedocs/gcc/x86-Built-in-Functions.html
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mf16c")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 

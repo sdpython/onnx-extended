@@ -158,14 +158,14 @@ It assumes both vectors have the same dimensions (no broadcast).).
 :return: hash
 )pbdoc");
 
-  m.def("__double2float_rn", &cpu_fpemu::__double2float_rn, py::arg("d"),
+  m.def("double2float_rn", &cpu_fpemu::__double2float_rn, py::arg("d"),
         R"pbdoc(Converts a double into float.)pbdoc");
 
   m.def(
-      "__float2half_rn", &cpu_fpemu::__float2half_rn, py::arg("d"),
+      "float2half_rn", &cpu_fpemu::__float2half_rn, py::arg("d"),
       R"pbdoc(Converts a float into half represented as an unsigned short.)pbdoc");
 
   m.def(
-      "__half2float", &cpu_fpemu::__half2float, py::arg("d"),
+      "half2float", &cpu_fpemu::__half2float, py::arg("d"),
       R"pbdoc(Converts a half represented as an unsigned short into float.)pbdoc");
 }

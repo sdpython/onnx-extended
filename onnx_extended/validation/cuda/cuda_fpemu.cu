@@ -163,11 +163,10 @@ __device__ void absmax_block(const scalar_t *in, float *sdata, const int size) {
   }
 }
 
-template <typename scalar_in_t, typename scalar_out_t>
-__global__ void E4M3_Kernel(const scalar_in_t *in,
-                            scalar_out_t *__restrict__ out, const int size,
-                            const scalar_in_t in_scale, bool block_norm,
-                            int mbits, int exp_bits, int rmode) {
+template <typename scalar_t>
+__global__ void E4M3_Kernel(scalar_t *__restrict__ in_out, const int size,
+                            const scalar_t in_scale, bool block_norm, int mbits,
+                            int exp_bits, int rmode) {
   int non_mant_bits = exp_bits + 1; /* exponent + sign */
   int lshift = 10 - (mbits - non_mant_bits);
 
@@ -195,11 +194,11 @@ __global__ void E4M3_Kernel(const scalar_in_t *in,
   unsigned short grs_bitmask = 0x007F;
   unsigned short rne_tie = 0x00C0;
 
-  extern __shared__ scalar_in_t sdata[];
-  scalar_in_t scale = in_scale;
+  extern __shared__ scalar_t sdata[];
+  scalar_t scale = in_scale;
 
-  if (block_norm == true) {
-    absmax_block(in, sdata, size);
+  if (block_norm) {
+    absmax_block(in_out, sdata, size);
     __float_t f;
     f.f = sdata[0];
     f.u = (f.u & 0x7F800000);
@@ -209,8 +208,9 @@ __global__ void E4M3_Kernel(const scalar_in_t *in,
 
   for (int gid = (blockIdx.x * blockDim.x) + threadIdx.x; gid < size;
        gid += blockDim.x * gridDim.x) {
+
     __half_t h;
-    scalar_in_t inval = in[gid] * scale;
+    scalar_t inval = in_out[gid] * scale;
 
     h.u = __anyfloat2half_rn(inval);
     short exp_h = (short)((h.u & 0x7C00) >> 10) - 15;
@@ -279,33 +279,37 @@ __global__ void E4M3_Kernel(const scalar_in_t *in,
     mantissa_h += ((exp_h + 15) << 10);
     mantissa_h |= sign_h;
     h.u = mantissa_h;
-    scalar_in_t hf;
+    scalar_t hf;
     __half2anyfloat(h.f, &hf);
-    out[gid] = hf / scale;
+    in_out[gid] = hf / scale;
   }
 }
 
-void fpemu_cuda_forward(const int size, const float *input, uint8_t *output,
+void fpemu_cuda_forward(const int size, const float *input, float *output,
                         FpemuMode mode, bool inplace, float scale,
-                        bool block_norm, int block_size) {
+                        bool block_norm, int block_size, int cuda_device) {
 
-  int sdata_size = 0;
   int threads = CUBLOCK_SIZE;
-  if (block_norm == true && block_size != size) {
-    if (size % block_size) {
-      block_norm = false;
-    } else {
-      threads = block_size;
-      sdata_size = threads * sizeof(float);
-    }
-  }
   const dim3 blocks((size + (threads - 1)) / threads);
 
+  float *gpu_ptr;
+  checkCudaErrors(cudaSetDevice(cuda_device));
+  checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
+  checkCudaErrors(
+      cudaMemcpy(gpu_ptr, input, size * sizeof(float), cudaMemcpyHostToDevice));
+
   if (mode == FpemuMode::E4M3_RNE) {
-    E4M3_Kernel<float><<<blocks, threads, sdata_size>>>(
-        input, output, size, scale, block_norm, 8, 4, ROUND_RNE);
+    E4M3_Kernel<float><<<blocks, threads>>>(gpu_ptr, size, scale, block_norm, 8,
+                                            4, ROUND_RNE);
     checkCudaErrors(cudaDeviceSynchronize());
+  } else {
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString(
+                          "Unsupported mode ", mode, " for this function."));
   }
+  checkCudaErrors(cudaMemcpy(output, gpu_ptr, size * sizeof(float),
+                             cudaMemcpyDeviceToHost));
+
+  checkCudaErrors(cudaFree(gpu_ptr));
 }
 
 } // namespace cuda_fpemu
