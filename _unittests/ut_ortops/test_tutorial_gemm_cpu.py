@@ -499,7 +499,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     @unittest.skipIf(
-        Version(ort_version) < Version("1.16.1"), reason="type inference failed"
+        Version(ort_version) < Version("1.16.2"), reason="type inference failed"
     )
     def test_custom_gemm_float8(self):
         self.common_test_custom_gemm(
@@ -511,7 +511,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     @unittest.skipIf(
-        Version(ort_version) < Version("1.16.1"), reason="type inference failed"
+        Version(ort_version) < Version("1.16.2"), reason="type inference failed"
     )
     def test_custom_gemm_float8_not_square(self):
         self.common_test_custom_gemm(
@@ -723,7 +723,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         return onnx_model
 
     @unittest.skipIf(
-        Version(ort_version) < Version("1.16.1"), reason="type inference failed"
+        Version(ort_version) < Version("1.16.2"), reason="type inference failed"
     )
     def test_custom_gemm_local_function(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs

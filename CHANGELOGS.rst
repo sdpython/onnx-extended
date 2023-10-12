@@ -4,6 +4,7 @@ Change Logs
 0.2.3
 +++++
 
+* :pr:`99`: use onnxruntime==1.16.1 as default
 * :pr:`96`: implements a fonction to convert a ModelProto into string (not bytes),
   add a function to multiply the number of trees in a TreeEnsemble
 * :pr:`75`: add an implementation of murmurhash3 to validate some options
