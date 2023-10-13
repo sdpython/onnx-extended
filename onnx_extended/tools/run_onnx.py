@@ -393,11 +393,11 @@ def bench_virtual(
     if modules is None:
         # ext = "https://github.com/sdpython/onnx-extended.git"
         modules = [
-            {"onnxruntime": "1.16.1", "onnx": None, "onnx-extended": "0.2.2"},
+            {"onnxruntime": "1.16.1", "onnx": None, "onnx-extended": "0.2.3"},
             {
                 "onnxruntime": "1.15.1",
                 "onnx": None,
-                "onnx-extended": "0.2.2",  # f"git+{ext}"},
+                "onnx-extended": "0.2.3",  # f"git+{ext}"},
             },
         ]
     if isinstance(runtimes, str):
