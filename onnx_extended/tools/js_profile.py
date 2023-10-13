@@ -212,7 +212,7 @@ def plot_ort_profile(
     if ax0 is None:
         import matplotlib as plt
 
-        ax0 = plt.gca()  # pragma: no cover
+        ax0 = plt.gca()
 
     if "args_provider" in df.columns:
         # Aggregation by operator
