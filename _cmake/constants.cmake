@@ -59,6 +59,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")  # -DNDEBUG
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")  # -DNDEBUG
+if(APPLE)
+  # set(DEFAULT_OSX_DEPLOYMENT_TARGET "12.0")  # work for compilation but OrtSession fails
+  set(DEFAULT_OSX_DEPLOYMENT_TARGET "10.15")
+endif()
 
 #
 # C++ 14 or C++ 17 or...
@@ -70,7 +74,8 @@ if (PYTHON_MANYLINUX EQUAL "1")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -Wextra")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unknown-pragmas -Wextra")
   if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
+    # see https://github.com/conan-io/conan/issues/14656
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "${DEFAULT_OSX_DEPLOYMENT_TARGET}")
   elseif(MSVC)
     # nothing
   else()
@@ -85,7 +90,7 @@ else()
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
     set(CMAKE_CXX_STANDARD 17)
   elseif(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "${DEFAULT_OSX_DEPLOYMENT_TARGET}")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -Wextra")
@@ -191,6 +196,13 @@ message(STATUS "CPPFLAGS=${CPPFLAGS}")
 message(STATUS "DLL_EXT=${DLL_EXT}")
 message(STATUS "TEST_FOLDER=${TEST_FOLDER}")
 message(STATUS "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}")
+if(APPLE)
+  message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  if (CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
+    message(ERROR "CMAKE_OSX_DEPLOYMENT_TARGET cannot be empty, "
+                  "DEFAULT_OSX_DEPLOYMENT_TARGET='${DEFAULT_OSX_DEPLOYMENT_TARGET}'")
+  endif()
+endif()
 message(STATUS "**********************************")
 message(STATUS "**********************************")
 message(STATUS "**********************************")
