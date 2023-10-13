@@ -2,6 +2,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "cpu_fpemu.hpp"
 #include "murmur_hash3.h"
 #include "speed_metrics.h"
 #include "vector_sum.h"
@@ -157,4 +158,14 @@ It assumes both vectors have the same dimensions (no broadcast).).
 :return: hash
 )pbdoc");
 
+  m.def("double2float_rn", &cpu_fpemu::__double2float_rn, py::arg("d"),
+        R"pbdoc(Converts a double into float.)pbdoc");
+
+  m.def(
+      "float2half_rn", &cpu_fpemu::__float2half_rn, py::arg("d"),
+      R"pbdoc(Converts a float into half represented as an unsigned short.)pbdoc");
+
+  m.def(
+      "half2float", &cpu_fpemu::__half2float, py::arg("d"),
+      R"pbdoc(Converts a half represented as an unsigned short into float.)pbdoc");
 }
