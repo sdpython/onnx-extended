@@ -1,6 +1,11 @@
 Change Logs
 ===========
 
+0.2.4
++++++
+
+* :pr:`103`: add methods to compute statistics on TreeEnsemble
+
 0.2.3
 +++++
 
