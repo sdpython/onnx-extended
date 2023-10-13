@@ -1,6 +1,7 @@
 import unittest
 import warnings
 import os
+import sys
 import numpy
 from onnx import TensorProto
 from onnx.helper import (
@@ -108,6 +109,9 @@ class TestOrtCy(ExtTestCase):
         self.assertEqualArray(got[0], x + y)
 
     @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
+    @unittest.skipIf(
+        sys.platform == "darwin", reason="Compilation settings fails on darwin"
+    )
     def test_my_custom_ops_cy(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
@@ -138,6 +142,9 @@ class TestOrtCy(ExtTestCase):
         self.assertEqualArray(x + y, got)
 
     @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
+    @unittest.skipIf(
+        sys.platform == "darwin", reason="Compilation settings fails on darwin"
+    )
     def test_my_custom_ops_with_attributes(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs

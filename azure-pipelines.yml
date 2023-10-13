@@ -256,7 +256,7 @@ jobs:
     displayName: 'build wheel'
   - script: |
       source activate myEnvironment
-      python -m pytest _unittests --durations=10
+      python -m pytest _unittests --durations=10 -v
     displayName: 'Runs Unit Tests'
   - script: |
       python -u setup.py build

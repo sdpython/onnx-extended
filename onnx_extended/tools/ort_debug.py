@@ -160,7 +160,7 @@ def render_node(node: NodeProto) -> str:
                     try:
                         val = str(to_array_extended(att.t).tolist())
                     except TypeError as e:
-                        raise TypeError(  # pragma: no cover
+                        raise TypeError(
                             "Unable to display tensor type %r.\n%s"
                             % (att.type, str(att))
                         ) from e

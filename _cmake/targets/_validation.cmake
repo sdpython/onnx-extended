@@ -17,7 +17,10 @@ local_pybind11_add_module(
 message(STATUS "    LINK _validation <- lib_validation_cpp")
 target_link_libraries(_validation PRIVATE lib_validation_cpp)
 
-add_executable(test_validation_cpp ../_unittests/ut_validation/test_vector_sum.cpp)
+add_executable(
+  test_validation_cpp
+  ../_unittests/ut_validation/test_vector_sum.cpp
+  ../_unittests/ut_validation/test_cpu_fpemu.cpp)
 target_compile_definitions(test_validation_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(
   test_validation_cpp
