@@ -35,9 +35,8 @@ See :ref:`l-example-gemm-f8`.
 The script checks the speed of :epkg:`cublasLtMatmul`
 for various types and dimensions on square matricies. The code is implementation
 in C++ and does not involve *onnxruntime*. It checks configurations implemented
-in :epkg:`cuda_gemm.cu`.
-
-.. autofunction:: onnx_extended.validation.cuda.cuda_example_py.gemm_benchmark_test
+in :epkg:`cuda_gemm.cu`. See function `gemm_benchmark_test` in
+`onnx_extended.validation.cuda.cuda_example_py`.
 
 plot_bench_gemm_ort
 +++++++++++++++++++
