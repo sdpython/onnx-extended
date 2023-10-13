@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, Optional, Tuple, Union
 from onnx import FunctionProto, GraphProto, ModelProto, NodeProto
 
 
