@@ -64,7 +64,9 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")  # -DNDEBUG
 # C++ 14 or C++ 17 or...
 #
 if (PYTHON_MANYLINUX EQUAL "1")
-  set(OSX_DEPLOYMENT_TARGET "13.0")
+  if(APPLE)
+    set(DEFAULT_OSX_DEPLOYMENT_TARGET "13.0")
+  endif()
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
   set(CMAKE_CXX_STANDARD 17)
@@ -72,7 +74,7 @@ if (PYTHON_MANYLINUX EQUAL "1")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unknown-pragmas -Wextra")
   if(APPLE)
     # see https://github.com/conan-io/conan/issues/14656
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "${OSX_DEPLOYMENT_TARGET}")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "${DEFAULT_OSX_DEPLOYMENT_TARGET}")
   elseif(MSVC)
     # nothing
   else()
@@ -87,7 +89,7 @@ else()
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
     set(CMAKE_CXX_STANDARD 17)
   elseif(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "${OSX_DEPLOYMENT_TARGET}")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "${DEFAULT_OSX_DEPLOYMENT_TARGET}")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -Wextra")
