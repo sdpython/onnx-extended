@@ -19,6 +19,7 @@ through command lines.
     external_data
     onnx_manipulations
     quantize
+    statistics
 
 The second series is used to investigate C++ implementations
 in :epkg:`onnxruntime`.
