@@ -9,7 +9,7 @@ C API
 cuda_example_py
 +++++++++++++++
 
-.. ifconfig:: DOC_HAS_CUDA in ("1", )
+.. ifconfig:: DOC_HAS_CUDA in ('1', 'True')
 
     .. autoclass:: onnx_extended.validation.cuda.cuda_example_py.FpemuMode
         :members:
@@ -24,7 +24,7 @@ cuda_example_py
 
     .. autofunction:: onnx_extended.validation.cuda.cuda_example_py.vector_sum6
 
-.. ifconfig:: DOC_HAS_CUDA in ("0", )
+.. ifconfig:: DOC_HAS_CUDA in ('0', 'False')
 
     The documentation was not compiled with CUDA enabled and cannot
     expose the CUDA functions.
