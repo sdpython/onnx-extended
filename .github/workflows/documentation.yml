@@ -70,6 +70,9 @@ jobs:
           cp LICENSE* ./_doc
           cp CHANGELOGS* ./_doc
 
+      - name: HAS_CUDA?
+        run: python -c "import onnx_extended;print('has_cuda:',onnx_extended.has_cuda())"
+
       - name: Documentation
         run: python -m sphinx ./_doc ./dist/html -n -w doc.txt
 

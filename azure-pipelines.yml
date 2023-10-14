@@ -151,6 +151,9 @@ jobs:
       ls -l
     displayName: 'current folder'
   - script: |
+      run: python -c "import onnx_extended;print('has_cuda:',onnx_extended.has_cuda())"
+    displayName: 'has_cuda?'
+  - script: |
       python -m sphinx _doc dist/html
     displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0
