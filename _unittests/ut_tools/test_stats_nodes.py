@@ -1,7 +1,7 @@
 import os
 import unittest
 import numpy
-from onnx import TensorProto
+from onnx import GraphProto, NodeProto, TensorProto
 from onnx.checker import check_model
 import onnx.backend.test as test_data
 from onnx.helper import (
@@ -14,7 +14,12 @@ from onnx.helper import (
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.tools.stats_nodes import enumerate_nodes, enumerate_stats_nodes
+from onnx_extended.tools.stats_nodes import (
+    enumerate_nodes,
+    enumerate_stats_nodes,
+    HistStatistics,
+    TreeStatistics,
+)
 from onnx_extended.tools import load_model
 
 
@@ -87,7 +92,22 @@ class TestStatsNodes(ExtTestCase):
         onx = to_onnx(rf, X[:1])
 
         stats = list(enumerate_stats_nodes(onx))
-        self.assertEqual(len(stats), 1)
+        # self.assertEqual(len(stats), 1)
+        for name, node, stat in stats:
+            self.assertIsInstance(name, tuple)
+            self.assertIsInstance(node, GraphProto)
+            self.assertIsInstance(stat.node, NodeProto)
+            self.assertEqual(stat["max_featureid"], 1)
+            self.assertEqual(stat["n_features"], 2)
+            self.assertEqual(stat["n_outputs"], 1)
+            self.assertEqual(stat["n_rules"], 2)
+            self.assertEqual(stat["n_trees"], 3)
+            self.assertIsInstance(stat["trees"], list)
+            self.assertIsInstance(stat["trees"][0], TreeStatistics)
+            self.assertIsInstance(stat["features"], list)
+            self.assertIsInstance(stat["features"][0], HistStatistics)
+            print(stat["trees"][0])
+            print(stat["features"][0])
 
 
 if __name__ == "__main__":

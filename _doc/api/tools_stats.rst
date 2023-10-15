@@ -13,6 +13,12 @@ enumerate_stats_nodes
 
 .. autofunction:: onnx_extended.tools.stats_nodes.enumerate_stats_nodes
 
+HistStatistics
+==============
+
+.. autoclass:: onnx_extended.tools.stats_nodes.HistStatistics
+    :members:
+
 NodeStatistics
 ==============
 
