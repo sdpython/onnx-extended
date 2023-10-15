@@ -4,7 +4,7 @@ More operators for onnx reference implementation and onnxruntime.
 Experimentation with openmp, CUDA.
 """
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 __author__ = "Xavier Dupré"
 
 
@@ -276,3 +276,27 @@ def get_stdcpp() -> int:
     from ._config import CMAKE_CXX_STANDARD
 
     return CMAKE_CXX_STANDARD
+
+
+def ort_version() -> str:
+    """
+    Tells which version of onnxruntime it was built with.
+    """
+    from ._config import ORT_VERSION
+
+    return ORT_VERSION
+
+
+def ort_version_int() -> tuple:
+    """
+    Tells which version of onnxruntime was used to build
+    the onnxruntime extensions. It returns `(0, 0)`
+    if onnxruntime is not present.
+    """
+    from ._config import ORT_VERSION
+
+    if not isinstance(ORT_VERSION, str):
+        return tuple()
+
+    spl = ORT_VERSION.split(".")
+    return tuple(map(int, spl))
