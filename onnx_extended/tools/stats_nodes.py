@@ -1,5 +1,7 @@
-from typing import Callable, Dict, Iterable, Optional, Tuple, Union
-from onnx import FunctionProto, GraphProto, ModelProto, NodeProto
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
+import numpy as np
+from onnx import AttributeProto, FunctionProto, GraphProto, ModelProto, NodeProto
+from onnx.reference.op_run import to_array_extended
 
 
 def enumerate_nodes(
@@ -31,17 +33,110 @@ def enumerate_nodes(
                             yield (f"{n}/{att.name}",) + c, parent, node
 
 
-class NodeStatistics:
+def extract_attributes(node: NodeProto) -> Dict[str, Tuple[AttributeProto, Any]]:
+    """
+    Extracts all atributes of a node.
+
+    :param node: node proto
+    :return: dictionary
+    """
+    atts = {}
+    for att in node.attribute:
+        if hasattr(att, "ref_attr_name") and att.ref_attr_name:
+            atts[att.name] = (att, None)
+            continue
+        if att.type == AttributeProto.INT:
+            atts[att.name] = (att, att.i)
+            continue
+        if att.type == AttributeProto.BOOL:
+            atts[att.name] = (att, att.i)
+            continue
+        if att.type == AttributeProto.FLOAT:
+            atts[att.name] = (att, att.f)
+            continue
+        if att.type == AttributeProto.INTS:
+            atts[att.name] = (att, np.array([att.ints]))
+            continue
+        if att.type == AttributeProto.FLOATS:
+            atts[att.name] = (att, np.array([att.floats], dtype=np.float32))
+            continue
+        if att.type == AttributeProto.GRAPH and hasattr(att, "g") and att.g is not None:
+            atts[att.name] = (att, None)
+            continue
+        if att.type == AttributeProto.SPARSE_TENSORS:
+            atts[att.name] = (att, to_array_extended(att.t))
+            continue
+        if att.type == AttributeProto.TENSOR:
+            atts[att.name] = (att, to_array_extended(att.sp))
+            continue
+        if att.type == AttributeProto.TENSORS:
+            atts[att.name] = (att, [to_array_extended(t) for t in att.tensors])
+            continue
+        if att.type == AttributeProto.SPARSE_TENSORS:
+            atts[att.name] = (att, [to_array_extended(t) for t in att.sparse_tensors])
+            continue
+        if att.type == AttributeProto.STRING:
+            atts[att.name] = (att, att.s)
+            continue
+        if att.type == AttributeProto.STRINGS:
+            atts[att.name] = (att, list(att.strings))
+            continue
+    return atts
+
+
+class _Statistics:
+    """
+    Common class to statistics classes.
+    """
+
+    def __init__(self):
+        self._statistics: Dict[str, Any] = {}
+
+    def __len__(self) -> int:
+        "Returns the number of statistics"
+        return len(self._statistics)
+
+    def add(self, name: str, value: Any):
+        "Adds one statictics."
+        if name in self._statistics:
+            raise ValueError(f"Statistics {name!r} was already added.")
+        self._statistics[name] = value
+
+    def __iter__(self) -> Iterable[str, Any]:
+        for it in self._statistics.items():
+            yield it
+
+    def __getitem__(self, name: str) -> Any:
+        "Returns one statistics."
+        return self._statistics[name]
+
+
+class NodeStatistics(_Statistics):
     """
     Stores many statistics for NodeProto.
     """
 
     def __init__(self, parent: Union[GraphProto, FunctionProto], node: NodeProto):
+        _Statistics.__init__(self)
         self.parent = parent
         self.node = node
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(<{self.parent.name}>, <{self.node.op_type}>)"
+
+
+class TreeStatistics(_Statistics):
+    """
+    Stores many statistics on a tree extracted from TreeEnsemble* operators.
+    """
+
+    def __init__(self, node: NodeProto, tree_id: int):
+        _Statistics.__init__(self)
+        self.node = node
+        self.tree_id = tree_id
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(<{self.node.op_type}>, {self.tree_id})"
 
 
 def stats_tree_ensemble(
@@ -54,7 +149,21 @@ def stats_tree_ensemble(
     :param node: node
     :return: instance of NodeStatistics
     """
-    raise NotImplementedError()
+    stats = NodeStatistics(parent, node)
+    atts = extract_attributes(node)
+    unique = set(atts["nodes_treeids"])
+    stats.add("kind", "Regressor" if "n_targets" in atts else "Classifier")
+    stats.add("n_trees", len(unique))
+    stats.add(
+        "n_outputs",
+        atts["n_targets"] if "n_targets" in atts else len(atts["class_ids"]),
+    )
+    tree_stats = []
+    for treeid in sorted(unique):
+        tr = TreeStatistics()
+        tree_stats.append(tr)
+    stats.add("trees", tree_stats)
+    return stats
 
 
 def enumerate_stats_nodes(

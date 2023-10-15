@@ -23,3 +23,9 @@ stats_tree_ensemble
 ===================
 
 .. autofunction:: onnx_extended.tools.stats_nodes.stats_tree_ensemble
+
+TreeStatistics
+==============
+
+.. autoclass:: onnx_extended.tools.stats_nodes.TreeStatistics
+    :members:
