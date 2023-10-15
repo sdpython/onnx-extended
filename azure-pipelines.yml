@@ -154,6 +154,10 @@ jobs:
       python -c "import onnx_extended;print('has_cuda:',onnx_extended.has_cuda())"
     displayName: 'has_cuda?'
   - script: |
+      cp LICENSE* ./_doc
+      cp CHANGELOGS* ./_doc
+    displayName: 'Copy license, changelogs'
+  - script: |
       python -m sphinx _doc dist/html
     displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0
