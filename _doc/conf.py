@@ -48,7 +48,7 @@ issues_github_path = "sdpython/onnx-extended"
 
 
 def setup(app):
-    app.add_config_value("HAS_CUDA", "1" if has_cuda() else "0", "env")
+    app.add_config_value("DOC_HAS_CUDA", "1" if has_cuda() else "0", "env")
 
 
 html_theme = "furo"
@@ -57,7 +57,7 @@ html_theme_options = {}
 html_static_path = ["_static"]
 html_sourcelink_suffix = ""
 
-# The following is used by sphinx.ext.linkcode to provide links to github
+# The following is used by sphinx.ext.linkcode to provide links to github.
 linkcode_resolve = make_linkcode_resolve(
     "onnx-extended",
     (

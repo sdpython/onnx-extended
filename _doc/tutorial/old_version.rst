@@ -15,6 +15,7 @@ be evaluated on. This is done with function :func:`save_for_benchmark_or_test
 
 .. runpython::
     :showcode:
+    :process:
 
     import os
     import numpy as np
@@ -22,30 +23,55 @@ be evaluated on. This is done with function :func:`save_for_benchmark_or_test
     from sklearn.ensemble import RandomForestRegressor
     from skl2onnx import to_onnx
     from onnx_extended.tools.run_onnx import save_for_benchmark_or_test
+    from onnx_extended.ext_test_case import get_parsed_args
 
     # The dimension of the problem.
-    batch_size = 100
-    n_features = 10
-    n_trees = 2
-    max_depth = 3
+
+    args = get_parsed_args(
+        "create_bench",
+        **dict(
+            batch_size=(10, "batch size"),
+            n_features=(10, "number of features"),
+            n_trees=(10, "number of trees"),
+            max_depth=(3, "max detph"),
+        ),
+    )
+
+    batch_size = args.batch_size
+    n_features = args.n_features
+    n_trees = args.n_trees
+    max_depth = args.max_depth
 
     # Let's create model.
-    X, y = make_regression(batch_size * 2, n_features=n_features, n_targets=1)
+    X, y = make_regression(
+        batch_size + 2**max_depth * 2, n_features=n_features, n_targets=1
+    )
     X, y = X.astype(np.float32), y.astype(np.float32)
-    model = RandomForestRegressor(n_trees, max_depth=max_depth, n_jobs=-1)
-    model.fit(X[:batch_size], y[:batch_size])
+
+    print(
+        f"train RandomForestRegressor n_trees={n_trees} "
+        f"n_features={n_features} batch_size={batch_size} "
+        f"max_depth={max_depth}"
+    )
+    model = RandomForestRegressor(n_trees, max_depth=max_depth, n_jobs=-1, verbose=1)
+    model.fit(X[:-batch_size], y[:-batch_size])
 
     # target_opset is used to select opset an old version of onnxruntime can process.
+    print("conversion to onnx")
     onx = to_onnx(model, X[:1], target_opset=17)
 
+    print(f"size: {len(onx.SerializeToString())}")
+
     # Let's save the model and the inputs on disk.
-    folder = "test_ort_version"
+    folder = f"test_ort_version-F{n_features}-T{n_trees}-D{max_depth}-B{batch_size}"
     if not os.path.exists(folder):
         os.mkdir(folder)
 
-    inputs = [X]
+    print("create the benchmark")
+    inputs = [X[:batch_size]]
     save_for_benchmark_or_test(folder, "rf", onx, inputs)
 
+    print("end")
     # Let's see what was saved.
     for r, d, f in os.walk(folder):
         for name in f:
@@ -63,37 +89,62 @@ It calls function :func:`bench_virtual <onnx_extended.tools.run_onnx.bench_virtu
 .. code-block:: python
 
     import os
+    import platform
+    import psutil
     from onnx_extended.tools.run_onnx import bench_virtual
+    from onnx_extended.ext_test_case import get_parsed_args
 
-    folder = os.path.abspath("test_ort_version/rf")
+    args = get_parsed_args(
+        "run_bench",
+        **dict(
+            test_name=(
+                "test_ort_version-F10-T10-D3-B10",
+                "folder containing the benchmark to run",
+            ),
+        ),
+    )
+
+    name = args.test_name
+    folder = os.path.abspath(f"{name}/rf")
+    if not os.path.exists(folder):
+        raise FileNotFoundError(f"Unable to find {folder!r}.")
     virtual_env = os.path.abspath("venv")
 
-    runtimes = ["ReferenceEvaluator", "CReferenceEvaluator", "onnxruntime"]
+    runtimes = ["onnxruntime"]
     modules = [
-        {"onnx-extended": "0.2.1", "onnx": "1.14.1", "onnxruntime": "1.16.0"},
-        {"onnx-extended": "0.2.1", "onnx": "1.14.1", "onnxruntime": "1.15.1"},
-        {"onnx-extended": "0.2.1", "onnx": "1.14.1", "onnxruntime": "1.14.1"},
-        {"onnx-extended": "0.2.1", "onnx": "1.14.1", "onnxruntime": "1.13.1"},
-        {"onnx-extended": "0.2.1", "onnx": "1.14.1", "onnxruntime": "1.12.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.16.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.16.0"},
+        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.15.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.14.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.13.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.12.1"},
     ]
-    filter_fct = (
-        lambda rt, modules: rt == "onnxruntime" or modules["onnxruntime"] == "1.16.0"
-    )
 
-    df = bench_virtual(
-        folder,
-        virtual_env,
-        verbose=1,
-        modules=modules,
-        runtimes=runtimes,
-        warmup=5,
-        repeat=10,
-        save_as_dataframe="results.csv",
-        filter_fct=filter_fct,
-    )
+    print("--------------------------")
+    print(platform.machine(), platform.version(), platform.platform())
+    print(platform.processor())
+    print(f"RAM: {psutil.virtual_memory().total / (1024.0 **3):1.3f} GB")
+    print("Physical cores:", psutil.cpu_count(logical=False))
+    print("Total cores:", psutil.cpu_count(logical=True))
+    print("--------------------------")
+    print(name)
+    for t in range(3):
+        print("--------------------------")
+        df = bench_virtual(
+            folder,
+            virtual_env,
+            verbose=1,
+            modules=modules,
+            runtimes=runtimes,
+            warmup=5,
+            repeat=10,
+            save_as_dataframe=f"result-{name}.t{t}.csv",
+            filter_fct=lambda rt, modules: True,
+        )
 
-    columns = ["runtime", "b_avg_time", "runtime", "v_onnxruntime"]
-    print(df[columns])
+        columns = ["runtime", "b_avg_time", "runtime", "v_onnxruntime"]
+        df[columns].to_csv(f"summary-{name}.t{t}.csv")
+        print(df[columns])
 
 The output would look like:
 

@@ -44,7 +44,10 @@ jobs:
             ${{ runner.os }}-
 
       - name: Build
-        run: python setup.py build_ext --inplace
+        run: python setup.py build_ext --inplace --use-cuda=0
+
+      - name: cat _config.py
+        run: cat onnx_extended/_config.py
 
       - name: Generate coverage report
         run: |
@@ -61,6 +64,9 @@ jobs:
 
       - name: Install
         run: python setup.py install
+
+      - name: HAS_CUDA?
+        run: python -c "import onnx_extended;print('has_cuda:',onnx_extended.has_cuda())"
 
       - name: Copy license, changelogs
         run: |

@@ -63,12 +63,13 @@ PYBIND11_MODULE(cuda_example_py, m) {
       },
       py::arg("device_id") = 0, "Returns the device properties.");
 
-  m.def("gemm_benchmark_test", &gemm_benchmark_test, py::arg("test") = 0,
+  m.def("gemm_benchmark_test", &gemm_benchmark_test, py::arg("test_id") = 0,
         py::arg("N") = 10, py::arg("m") = 16, py::arg("n") = 16,
         py::arg("k") = 16, py::arg("lda") = 16, py::arg("ldb") = 16,
         py::arg("ldd") = 16,
-        R"pbdoc(Benchmark Gemm on CUDA:param vect: array
-:param test: a test configuration (int)
+        R"pbdoc(Benchmark Gemm on CUDA
+        
+:param test_id: a test configuration (int)
 :param N: number of repetitions
 :param m: dimensions of the matrices
 :param n: dimensions of the matrices
