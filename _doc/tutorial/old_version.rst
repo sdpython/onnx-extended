@@ -15,6 +15,7 @@ be evaluated on. This is done with function :func:`save_for_benchmark_or_test
 
 .. runpython::
     :showcode:
+    :process:
 
     import os
     import numpy as np
@@ -40,7 +41,6 @@ be evaluated on. This is done with function :func:`save_for_benchmark_or_test
     n_features = args.n_features
     n_trees = args.n_trees
     max_depth = args.max_depth
-
 
     # Let's create model.
     X, y = make_regression(

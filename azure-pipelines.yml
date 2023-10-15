@@ -158,7 +158,7 @@ jobs:
       cp CHANGELOGS* ./_doc
     displayName: 'Copy license, changelogs'
   - script: |
-      python -m sphinx _doc dist/html
+      python -m sphinx _doc dist/html -v
     displayName: 'Builds Documentation'
   - task: PublishPipelineArtifact@0
     inputs:
