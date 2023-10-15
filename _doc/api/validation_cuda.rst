@@ -28,22 +28,23 @@ cuda_example_py
         "vector_sum0",
         "vector_sum6",
     ]
-    classes = {"FpemuMode"}
     names.sort()
+    classes = {"FpemuMode"}
+    noindex = {"gemm_benchmark_test"}
+
+    prefix = "onnx_extended.validation.cuda.cuda_example_py."
     if has_cuda():
-        fct_template = ".. autofunction:: onnx_extended.validation.cuda.cuda_example_py.%s"
-        cls_template = (
-            ".. autoclass:: onnx_extended.validation.cuda.cuda_example_py.%s\n    :members:"
-        )
+        fct_template = f".. autofunction:: {prefix}%s"
+        fct_template_no = f".. autofunction:: {prefix}%s\n    :noindex:"
+        cls_template = f".. autoclass:: {prefix}%s\n    :members:"
     else:
-        fct_template = (
-            "Unable to document function `onnx_extended.validation.cuda.cuda_example_py.%s`"
-        )
-        cls_template = (
-            "Unable to document class `onnx_extended.validation.cuda.cuda_example_py.%s`"
-        )
+        fct_template = f"Unable to document function `{prefix}%s`"
+        fct_template_no = fct_template
+        cls_template = f"Unable to document class `{prefix}%s`"
 
     for name in names:
-        tpl = cls_template if name in classes else fct_template
+        tpl = cls_template if name in classes else (
+            fct_template_no if name in noindex else fct_template
+        )
         print(tpl % name)
         print()
