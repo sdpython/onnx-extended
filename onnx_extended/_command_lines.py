@@ -584,7 +584,7 @@ def cmd_stat(input_model: str, verbose: int = 0) -> Iterable[Dict[str, Any]]:
     """
     Produces statistics on initializer and tree ensemble operators.
 
-    :param input_mode: model to load
+    :param input_model: model to load
     :param verbose: verbosity level
     """
     from .tools.onnx_io import load_model

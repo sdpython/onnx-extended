@@ -5,6 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 import numpy as np
+import pandas
 from onnx import TensorProto
 from onnx.checker import check_model
 from onnx.helper import (
@@ -20,6 +21,7 @@ from onnxruntime import InferenceSession, SessionOptions
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended._command_lines_parser import (
     get_parser_bench,
+    get_parser_cvt,
     get_parser_merge,
     get_parser_plot,
     get_parser_stat,
@@ -232,6 +234,50 @@ class TestCommandLines2(ExtTestCase):
             text = st.getvalue()
             self.assertIn("[cmd_stat]", text)
             self.assertIn("[cmd_stat] prints out", text)
+
+    def test_parser_cvt(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_cvt().print_help()
+        text = st.getvalue()
+        self.assertIn("input", text)
+        self.assertIn("verbose", text)
+
+    def test_cvt(self):
+        df = pandas.DataFrame([dict(a=1, b=2, c="s")])
+        with tempfile.TemporaryDirectory() as root:
+            m = os.path.join(root, "m.csv")
+            df.to_csv(m, index=False)
+            o = os.path.join(root, "stat.xlsx")
+            args = [
+                "cvt",
+                "--input",
+                m,
+                "--output",
+                o,
+                "-v",
+            ]
+            st = StringIO()
+            with redirect_stdout(st):
+                main(args)
+            text = st.getvalue()
+            self.assertIn("[cvt]", text)
+            self.assertIn("pandas", text)
+
+            args = [
+                "cvt",
+                "--input",
+                o,
+                "--output",
+                m,
+                "-v",
+            ]
+            st = StringIO()
+            with redirect_stdout(st):
+                main(args)
+            text = st.getvalue()
+            self.assertIn("[cvt]", text)
+            self.assertIn("pandas", text)
 
 
 if __name__ == "__main__":

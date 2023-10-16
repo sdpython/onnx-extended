@@ -277,9 +277,9 @@ class HistStatistics(_Statistics):
         hist = self["hist"]
         if hist[0].size > 0 and len(hist[0].shape) > 0:
             for i, v in enumerate(hist[0]):
-                obs[f"hist_x_{i}"] = v
-            for i, v in enumerate(hist[1]):
                 obs[f"hist_y_{i}"] = v
+            for i, v in enumerate(hist[1]):
+                obs[f"hist_x_{i}"] = v
         return obs
 
     @property

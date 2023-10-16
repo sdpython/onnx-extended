@@ -85,6 +85,17 @@ can be used by the package.
 
 See :func:`onnx_extended.check_installation`.
 
+cvt
+===
+
+Conversion of a file into another format, usually a csv file
+into an excel file.
+
+.. runpython::
+
+    from onnx_extended._command_lines_parser import get_parser_cvt
+    get_parser_cvt().print_help()
+
 display
 =======
 
