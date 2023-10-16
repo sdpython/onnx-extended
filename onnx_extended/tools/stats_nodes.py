@@ -2,7 +2,7 @@ import pprint
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 import numpy as np
 from onnx import AttributeProto, FunctionProto, GraphProto, ModelProto, NodeProto
-from onnx.reference.op_run import to_array_extended
+from onnx_extended.reference.op_run import to_array_extended
 
 
 def enumerate_nodes(
@@ -41,7 +41,7 @@ def extract_attributes(node: NodeProto) -> Dict[str, Tuple[AttributeProto, Any]]
     :param node: node proto
     :return: dictionary
     """
-    atts = {}
+    atts: Dict[str, Tuple[AttributeProto, Any]] = {}
     for att in node.attribute:
         if hasattr(att, "ref_attr_name") and att.ref_attr_name:
             atts[att.name] = (att, None)
@@ -62,10 +62,10 @@ def extract_attributes(node: NodeProto) -> Dict[str, Tuple[AttributeProto, Any]]
             atts[att.name] = (att, None)
             continue
         if att.type == AttributeProto.SPARSE_TENSORS:
-            atts[att.name] = (att, to_array_extended(att.t))
+            atts[att.name] = (att, to_array_extended(att.sparse_tensor))
             continue
         if att.type == AttributeProto.TENSOR:
-            atts[att.name] = (att, to_array_extended(att.sp))
+            atts[att.name] = (att, to_array_extended(att.t))
             continue
         if att.type == AttributeProto.TENSORS:
             atts[att.name] = (att, [to_array_extended(t) for t in att.tensors])
