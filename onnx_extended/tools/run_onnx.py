@@ -490,6 +490,9 @@ def bench_virtual(
             out = _run_cmd(cmd)
             if "Traceback" in out:
                 raise RuntimeError(out)
+            out = "\n".join(
+                line for line in out.split("\n") if "[W:onnxruntime:" not in line
+            )
             try:
                 js = json.loads(out)
             except json.decoder.JSONDecodeError as e:
