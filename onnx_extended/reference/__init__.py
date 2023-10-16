@@ -20,4 +20,13 @@ def to_array_extended(
         shape = tuple(d for d in tensor.dims)
         indices = onnx_to_array_extended(tensor.indices)
         values = onnx_to_array_extended(tensor.values)
-        return sp.coo_matrix(values, indices, shape=shape)
+        if len(indices.shape) == 1:
+            t = sp.csr_matrix(
+                (values, indices, np.array([0, len(indices)], dtype=np.int64)),
+                shape=(1, np.prod(shape)),
+            )
+            return t.reshape(shape)
+        if len(indices.shape) == 2:
+            t = sp.coo_matrix((values, (indices[:, 0], indices[:, 1])), shape=shape)
+            return t
+        raise RuntimeError(f"Unexpected indices shape: {indices.shape}.")
