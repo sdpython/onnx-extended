@@ -160,6 +160,19 @@ Extracts a subpart of an existing model.
 
 .. autofunction:: onnx_extended._command_lines.cmd_select
 
+stat
+====
+
+Produces statistics on initiliazers and tree ensemble in an onnx model.
+See :func:`onnx_extended.tools.stats_nodes.enumerate_stats_nodes`
+
+.. runpython::
+
+    from onnx_extended._command_lines_parser import get_parser_stat
+    get_parser_stat().print_help()
+
+.. autofunction:: onnx_extended._command_lines.cmd_stat
+
 store
 =====
 

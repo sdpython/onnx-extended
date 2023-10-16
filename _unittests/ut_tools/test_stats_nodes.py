@@ -69,13 +69,13 @@ class TestStatsNodes(ExtTestCase):
             ("test_loop16_seq_none", "#0/body", "#2"),
             ("test_loop16_seq_none", "#0/body", "#3"),
             ("test_loop16_seq_none", "#0/body", "#3/else_branch", "#0"),
-            ("test_loop16_seq_none", "#0/body", "#3/then_branch", "#0"),
+            ("test_loop16_seq_none", "#0/body", "#3/then_branch", "constant_in"),
             ("test_loop16_seq_none", "#0/body", "#3/then_branch", "#1"),
-            ("test_loop16_seq_none", "#0/body", "#4"),
-            ("test_loop16_seq_none", "#0/body", "#5"),
-            ("test_loop16_seq_none", "#0/body", "#6"),
+            ("test_loop16_seq_none", "#0/body", "x"),
+            ("test_loop16_seq_none", "#0/body", "one"),
+            ("test_loop16_seq_none", "#0/body", "slice_start"),
             ("test_loop16_seq_none", "#0/body", "#7"),
-            ("test_loop16_seq_none", "#0/body", "#8"),
+            ("test_loop16_seq_none", "#0/body", "axes"),
             ("test_loop16_seq_none", "#0/body", "#9"),
             ("test_loop16_seq_none", "#0/body", "#10"),
             ("test_loop16_seq_none", "#0/body", "#11"),
@@ -108,6 +108,8 @@ class TestStatsNodes(ExtTestCase):
             self.assertIsInstance(stat["trees"][0], TreeStatistics)
             self.assertIsInstance(stat["features"], list)
             self.assertIsInstance(stat["features"][0], HistTreeStatistics)
+            self.assertIn("TreeStatistics", str(stat["trees"][0]))
+            self.assertIn("HistTreeStatistics", str(stat["features"][0]))
 
     def _get_model_init(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
@@ -141,6 +143,50 @@ class TestStatsNodes(ExtTestCase):
             self.assertEqual(stat["shape"], (2, 2))
             self.assertEqual(stat["dtype"], numpy.float32)
             self.assertEqual(stat["sparse"], 0)
+            self.assertIn("HistStatistics", str(stat))
+            n += 1
+        self.assertEqual(n, 1)
+
+    def _get_model_constant(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node(
+                    "Constant",
+                    [],
+                    ["Y"],
+                    value=from_array(
+                        numpy.array([[2, 3], [4, 5]], dtype=numpy.float32), name="Y"
+                    ),
+                ),
+                make_node("Add", ["X", "Y"], ["z1"], name="A"),
+                make_node("Mul", ["X", "z1"], ["Z"], name="M"),
+            ],
+            "add",
+            [X],
+            [Z],
+        )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    def test_stats_cst_nodes(self):
+        onx = self._get_model_constant()
+
+        stats = list(enumerate_stats_nodes(onx))
+        # self.assertEqual(len(stats), 1)
+        n = 0
+        for name, parent, stat in stats:
+            self.assertEqual(("add", "Y"), name)
+            self.assertIsInstance(parent, GraphProto)
+            self.assertIsInstance(stat, HistStatistics)
+            self.assertEqual(stat["shape"], (2, 2))
+            self.assertEqual(stat["dtype"], numpy.float32)
+            self.assertEqual(stat["sparse"], 0)
+            self.assertIn("HistStatistics", str(stat))
             n += 1
         self.assertEqual(n, 1)
 

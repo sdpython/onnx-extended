@@ -24,6 +24,7 @@ def get_main_parser() -> ArgumentParser:
             "print",
             "quantize",
             "select",
+            "stat",
             "store",
         ],
         help=dedent(
@@ -39,6 +40,7 @@ def get_main_parser() -> ArgumentParser:
         'plot' plots a graph like a profiling,
         'quantize' quantizes an onnx model in simple ways,
         'select' selects a subgraph inside a bigger models,
+        'stat' produces statistics on the graph (initializer, tree ensemble),
         'store' executes a model with class CReferenceEvaluator and stores every
         intermediate results on disk with a short onnx to execute the node.
         """
@@ -801,9 +803,56 @@ def _cmd_bench(argv: List[Any]):
         print(df)
 
 
+def get_parser_stat() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="stat",
+        description=dedent(
+            """
+        Computes statistics on initiliazer and tree ensemble nodes.
+        """
+        ),
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        required=True,
+        help="onnx model file name",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="file name, contains a csv file",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
+    )
+    return parser
+
+
+def _cmd_stat(argv: List[Any]):
+    from pandas import DataFrame
+    from ._command_lines import cmd_stat
+
+    parser = get_parser_stat()
+    args = parser.parse_args(argv[1:])
+    res = cmd_stat(args.input, verbose=args.verbose)
+    df = DataFrame(res)
+    if args.output:
+        if args.verbose:
+            print(f"[cmd_stat] prints out {args.output}")
+        df.to_csv(args.output, index=False)
+    if args.verbose:
+        print(df)
+
+
 def main(argv: Optional[List[Any]] = None):
     fcts = dict(
         bench=_cmd_bench,
+        check=_cmd_check,
         display=_cmd_display,
         external=_cmd_external,
         merge=_cmd_merge,
@@ -811,8 +860,8 @@ def main(argv: Optional[List[Any]] = None):
         print=_cmd_print,
         quantize=_cmd_quantize,
         select=_cmd_select,
+        stat=_cmd_stat,
         store=_cmd_store,
-        check=_cmd_check,
     )
 
     if argv is None:
@@ -832,6 +881,7 @@ def main(argv: Optional[List[Any]] = None):
                 print=get_parser_print,
                 quantize=get_parser_quantize,
                 select=get_parser_select,
+                stat=get_parser_stat,
                 store=get_parser_store,
             )
             cmd = argv[0]

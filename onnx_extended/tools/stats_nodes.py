@@ -45,7 +45,10 @@ def enumerate_nodes(
         for i, node in enumerate(onx.node):
             if not isinstance(node, NodeProto):
                 raise TypeError(f"A NodeProto is expected not {type(node)}.")
-            yield (node.name or f"#{i}",), onx, node
+            if node.op_type == "Constant":
+                yield (node.output[0],), onx, node
+            else:
+                yield (node.name or f"#{i}",), onx, node
             if recursive:
                 for att in node.attribute:
                     if att.g:
@@ -137,9 +140,19 @@ class _Statistics:
         "Returns one statistics."
         return self._statistics[name]
 
-    def __str__(self):
+    def __str__(self) -> str:
         "Usual"
         return f"{self.__class__.__name__}(\n{pprint.pformat(self._statistics)})"
+
+    @property
+    def dict_values(self) -> Dict[str, Any]:
+        """
+        Converts the statistics the class holds into a single rows in order
+        to build a dataframe.
+        """
+        raise NotImplementedError(
+            f"Property 'dict_values' not implemented for class {type(self)}."
+        )
 
 
 class NodeStatistics(_Statistics):
@@ -191,14 +204,14 @@ class HistTreeStatistics(_Statistics):
         self.add("max", values.max())
         self.add("mean", values.mean())
         self.add("median", np.median(values))
-        self.add("n", len(values))
+        self.add("size", len(values))
         n_distinct = len(set(values))
         self.add("n_distinct", n_distinct)
         self.add("hist", np.histogram(values, bins))
         if n_distinct <= 50:
             self.add("v_distinct", set(values))
 
-    def __str__(self):
+    def __str__(self) -> str:
         "Usual"
         return (
             f"{self.__class__.__name__}(<{self.node.op_type}>, {self.featureid},\n"
@@ -222,7 +235,7 @@ class HistStatistics(_Statistics):
         self.node = node
         values = self.values
 
-        self.add("sparse", 1 if isinstance(self.node, SparseTensorProto) else 0)
+        self.add("sparse", 1 if self.is_sparse else 0)
         self.add("shape", values.shape)
         self.add("dtype", values.dtype)
         self.add("min", values.min())
@@ -230,14 +243,60 @@ class HistStatistics(_Statistics):
         self.add("mean", values.mean())
         self.add("median", np.median(values))
         flat = values.ravel()
-        self.add("n", values.size)
+        self.add("size", values.size)
         n_distinct = len(flat)
         self.add("n_distinct", n_distinct)
-        self.add("hist", np.histogram(values, bins))
+        if values.size > 1:
+            try:
+                self.add("hist", np.histogram(values, bins))
+            except IndexError as e:
+                raise RuntimeError(
+                    f"Unable to process values with shape={values.shape}, "
+                    f"dtype={values.dtype}, {values}."
+                ) from e
+        else:
+            self.add("hist", (values, np.array([1], dtype=np.int64)))
         if n_distinct <= 50:
             self.add("v_distinct", set(flat))
 
-    def __str__(self):
+    @property
+    def dict_values(self) -> Dict[str, Any]:
+        "Returns the statistics as a dictionary."
+        obs = {}
+        for k in [
+            "size",
+            "shape",
+            "dtype",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "n_distinct",
+        ]:
+            obs[k] = self[k]
+        hist = self["hist"]
+        if hist[0].size > 0 and len(hist[0].shape) > 0:
+            for i, v in enumerate(hist[0]):
+                obs[f"hist_x_{i}"] = v
+            for i, v in enumerate(hist[1]):
+                obs[f"hist_y_{i}"] = v
+        return obs
+
+    @property
+    def is_sparse(self) -> bool:
+        "Tells if the tensor is sparse."
+        return isinstance(self.node, SparseTensorProto)
+
+    @property
+    def name(self) -> str:
+        "Returns the name of the tensor."
+        if isinstance(self.node, SparseTensorProto):
+            return self.node.indices.name or self.node.values.name
+        if isinstance(self.node, NodeProto):
+            return self.node.output[0]
+        return self.node.name
+
+    def __str__(self) -> str:
         "Usual"
         if isinstance(self.node, NodeProto):
             return (
@@ -246,7 +305,7 @@ class HistStatistics(_Statistics):
                 f"{pprint.pformat(self._statistics)})"
             )
         return (
-            f"{self.__class__.__name__}(<{self.parent.name}>, <{self.node.name}>,\n"
+            f"{self.__class__.__name__}(<{self.parent.name}>, <{self.name}>,\n"
             f"{pprint.pformat(self._statistics)})"
         )
 
@@ -370,4 +429,7 @@ def enumerate_stats_nodes(
                 yield name, parent, stat
         elif ("", "Constant") in stats_fcts:
             stati = stats_fcts["", "Constant"](parent, node)
+            if stati["dtype"] in (np.int64, np.int32) and stati["size"] < 10:
+                # This is probably a shape. It is skipped.
+                continue
             yield name, parent, stati

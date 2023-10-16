@@ -14,6 +14,7 @@ from onnx.helper import (
     make_opsetid,
     make_tensor_value_info,
 )
+from onnx.numpy_helper import from_array
 from onnx.parser import parse_model
 from onnxruntime import InferenceSession, SessionOptions
 from onnx_extended.ext_test_case import ExtTestCase
@@ -21,6 +22,7 @@ from onnx_extended._command_lines_parser import (
     get_parser_bench,
     get_parser_merge,
     get_parser_plot,
+    get_parser_stat,
     main,
 )
 from onnx_extended.tools.onnx_io import save_model, load_model
@@ -175,13 +177,61 @@ class TestCommandLines2(ExtTestCase):
             "100",
             "-p",
         ]
-        print(" ".join(args))
         st = StringIO()
         with redirect_stdout(st):
             main(args)
         text = st.getvalue()
         self.assertIn("[bench_trees]", text)
         self.assertIn("tottime", text)
+
+    def test_parser_stat(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_stat().print_help()
+        text = st.getvalue()
+        self.assertIn("input", text)
+        self.assertIn("verbose", text)
+
+    def _get_model_init(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node("Add", ["X", "Y"], ["z1"], name="A"),
+                make_node("Mul", ["X", "z1"], ["Z"], name="M"),
+            ],
+            "add",
+            [X],
+            [Z],
+            [from_array(np.array([[2, 3], [4, 5]], dtype=np.float32), name="Y")],
+        )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    def test_stat(self):
+        onx = self._get_model_init()
+        with tempfile.TemporaryDirectory() as root:
+            m = os.path.join(root, "m.onnx")
+            with open(m, "wb") as f:
+                f.write(onx.SerializeToString())
+            o = os.path.join(root, "stat.scsv")
+            args = [
+                "stat",
+                "--input",
+                m,
+                "--output",
+                o,
+                "-v",
+            ]
+            st = StringIO()
+            with redirect_stdout(st):
+                main(args)
+            text = st.getvalue()
+            self.assertIn("[cmd_stat]", text)
+            self.assertIn("[cmd_stat] prints out", text)
 
 
 if __name__ == "__main__":
