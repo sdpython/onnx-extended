@@ -30,3 +30,4 @@ def to_array_extended(
             t = sp.coo_matrix((values, (indices[:, 0], indices[:, 1])), shape=shape)
             return t
         raise RuntimeError(f"Unexpected indices shape: {indices.shape}.")
+    raise TypeError(f"Unexpected type {type(tensor)}.")

@@ -2,7 +2,7 @@ import pprint
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 import numpy as np
 from onnx import AttributeProto, FunctionProto, GraphProto, ModelProto, NodeProto
-from onnx_extended.reference.op_run import to_array_extended
+from onnx_extended.reference import to_array_extended
 
 
 def enumerate_nodes(
@@ -197,6 +197,7 @@ def stats_tree_ensemble(
     stats.add("max_featureid", max(atts["nodes_featureids"]))
     stats.add("n_features", len(set(atts["nodes_featureids"])))
     stats.add("n_rules", len(set(atts["nodes_modes"])))
+    stats.add("rules", set(atts["nodes_modes"]))
 
     features = []
     for fid in sorted(set(atts["nodes_featureids"])):
