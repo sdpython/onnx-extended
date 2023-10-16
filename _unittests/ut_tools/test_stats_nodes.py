@@ -3,6 +3,7 @@ import unittest
 import numpy
 from onnx import GraphProto, NodeProto, TensorProto
 from onnx.checker import check_model
+from onnx.numpy_helper import from_array
 import onnx.backend.test as test_data
 from onnx.helper import (
     make_model,
@@ -18,6 +19,7 @@ from onnx_extended.tools.stats_nodes import (
     enumerate_nodes,
     enumerate_stats_nodes,
     HistStatistics,
+    HistTreeStatistics,
     TreeStatistics,
 )
 from onnx_extended.tools import load_model
@@ -105,9 +107,42 @@ class TestStatsNodes(ExtTestCase):
             self.assertIsInstance(stat["trees"], list)
             self.assertIsInstance(stat["trees"][0], TreeStatistics)
             self.assertIsInstance(stat["features"], list)
-            self.assertIsInstance(stat["features"][0], HistStatistics)
-            print(stat["trees"][0])
-            print(stat["features"][0])
+            self.assertIsInstance(stat["features"][0], HistTreeStatistics)
+
+    def _get_model_init(self):
+        X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
+        Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
+        graph = make_graph(
+            [
+                make_node("Add", ["X", "Y"], ["z1"], name="A"),
+                make_node("Mul", ["X", "z1"], ["Z"], name="M"),
+            ],
+            "add",
+            [X],
+            [Z],
+            [from_array(numpy.array([[2, 3], [4, 5]], dtype=numpy.float32), name="Y")],
+        )
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=8
+        )
+        check_model(onnx_model)
+        return onnx_model
+
+    def test_stats_inits_nodes(self):
+        onx = self._get_model_init()
+
+        stats = list(enumerate_stats_nodes(onx))
+        # self.assertEqual(len(stats), 1)
+        n = 0
+        for name, parent, stat in stats:
+            self.assertEqual(("add", "Y"), name)
+            self.assertIsInstance(parent, GraphProto)
+            self.assertIsInstance(stat, HistStatistics)
+            self.assertEqual(stat["shape"], (2, 2))
+            self.assertEqual(stat["dtype"], numpy.float32)
+            self.assertEqual(stat["sparse"], 0)
+            n += 1
+        self.assertEqual(n, 1)
 
 
 if __name__ == "__main__":

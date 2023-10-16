@@ -294,14 +294,16 @@ class TestRun:
 
         stats["repeat"] = repeat
         stats["avg_time"] = float(np.array(ts).mean())
+        stats["std_time"] = float(np.array(ts).std())
         stats["min_time"] = float(np.array(ts).min())
         stats["max_time"] = float(np.array(ts).max())
 
         ts.sort()
         if repeat > 4:
+            stats["avg1_time"] = float(np.array(ts[1:-1]).mean())
+            stats["std1_time"] = float(np.array(ts[1:-1]).std())
             stats["max1_time"] = ts[-2]
             stats["min1_time"] = ts[1]
-            stats["avg1_time"] = float(np.array(ts[1:-1]).mean())
         return stats
 
 
@@ -493,13 +495,18 @@ def bench_virtual(
             out = "\n".join(
                 line for line in out.split("\n") if "[W:onnxruntime:" not in line
             )
-            try:
-                js = json.loads(out)
-            except json.decoder.JSONDecodeError as e:
-                raise RuntimeError(f"Unable to decode {out!r}") from e
-            if verbose > 2:
-                print("[bench_virtual] final results")
-                print(js)
+            if out.startswith("The requested API version [") or out.startswith(
+                "The given version ["
+            ):
+                js = {}
+            else:
+                try:
+                    js = json.loads(out)
+                except json.decoder.JSONDecodeError as e:
+                    raise RuntimeError(f"Unable to decode {out!r}") from e
+                if verbose > 2:
+                    print("[bench_virtual] final results")
+                    print(js)
             js["conf"] = confs
             js["conf_dict"] = conf
             js["cmd"] = " ".join(cmd)

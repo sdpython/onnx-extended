@@ -239,7 +239,7 @@ disable_error_code = [
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.tools.stats_nodes"]
-disable_error_code = ["annotation-unchecked"]
+disable_error_code = ["annotation-unchecked", "dict-item"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.validation.bench_trees"]

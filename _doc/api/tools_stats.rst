@@ -19,6 +19,12 @@ HistStatistics
 .. autoclass:: onnx_extended.tools.stats_nodes.HistStatistics
     :members:
 
+HistTreeStatistics
+==================
+
+.. autoclass:: onnx_extended.tools.stats_nodes.HistTreeStatistics
+    :members:
+
 NodeStatistics
 ==============
 

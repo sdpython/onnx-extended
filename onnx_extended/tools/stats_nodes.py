@@ -1,13 +1,28 @@
 import pprint
+from collections import Counter
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 import numpy as np
-from onnx import AttributeProto, FunctionProto, GraphProto, ModelProto, NodeProto
-from onnx_extended.reference import to_array_extended
+from onnx import (
+    AttributeProto,
+    FunctionProto,
+    GraphProto,
+    ModelProto,
+    NodeProto,
+    SparseTensorProto,
+    TensorProto,
+)
+from ..reference import CReferenceEvaluator, to_array_extended
 
 
 def enumerate_nodes(
     onx: Union[FunctionProto, GraphProto, ModelProto], recursive: bool = True
-) -> Iterable[Tuple[Tuple[str, ...], Union[GraphProto, FunctionProto], NodeProto]]:
+) -> Iterable[
+    Tuple[
+        Tuple[str, ...],
+        Union[GraphProto, FunctionProto],
+        Union[NodeProto, TensorProto, SparseTensorProto],
+    ]
+]:
     """
     Enumerates all nodes in a model.
 
@@ -22,7 +37,14 @@ def enumerate_nodes(
             for c, parent, node in enumerate_nodes(f, recursive=recursive):
                 yield (f.name,) + c, parent, node
     elif isinstance(onx, (GraphProto, FunctionProto)):
+        if isinstance(onx, GraphProto):
+            for init in onx.initializer:
+                yield (init.name,), onx, init
+            for initp in onx.sparse_initializer:
+                yield (initp.indices.name or initp.values.name,), onx, initp
         for i, node in enumerate(onx.node):
+            if not isinstance(node, NodeProto):
+                raise TypeError(f"A NodeProto is expected not {type(node)}.")
             yield (node.name or f"#{i}",), onx, node
             if recursive:
                 for att in node.attribute:
@@ -30,7 +52,14 @@ def enumerate_nodes(
                         for c, parent, node in enumerate_nodes(
                             att.g, recursive=recursive
                         ):
-                            n = node.name or f"#{i}"
+                            if isinstance(node, NodeProto):
+                                n = node.name or f"#{i}"
+                            elif isinstance(node, TensorProto):
+                                n = node.name
+                            elif isinstance(node, SparseTensorProto):
+                                n = node.indices.name or node.values.name
+                            else:
+                                raise TypeError(f"Unexpected type {type(node)}.")
                             yield (f"{n}/{att.name}",) + c, parent, node
 
 
@@ -147,12 +176,14 @@ class TreeStatistics(_Statistics):
         )
 
 
-class HistStatistics(_Statistics):
+class HistTreeStatistics(_Statistics):
     """
     Stores statistics on thresholds.
     """
 
-    def __init__(self, node, featureid, values, bins=20):
+    def __init__(
+        self, node: NodeProto, featureid: int, values: np.ndarray, bins: int = 20
+    ):
         _Statistics.__init__(self)
         self.node = node
         self.featureid = featureid
@@ -173,6 +204,59 @@ class HistStatistics(_Statistics):
             f"{self.__class__.__name__}(<{self.node.op_type}>, {self.featureid},\n"
             f"{pprint.pformat(self._statistics)})"
         )
+
+
+class HistStatistics(_Statistics):
+    """
+    Stores statistics on constants.
+    """
+
+    def __init__(
+        self,
+        parent: Union[GraphProto, FunctionProto],
+        node: Union[NodeProto, TensorProto, SparseTensorProto],
+        bins: int = 20,
+    ):
+        _Statistics.__init__(self)
+        self.parent = parent
+        self.node = node
+        values = self.values
+
+        self.add("sparse", 1 if isinstance(self.node, SparseTensorProto) else 0)
+        self.add("shape", values.shape)
+        self.add("dtype", values.dtype)
+        self.add("min", values.min())
+        self.add("max", values.max())
+        self.add("mean", values.mean())
+        self.add("median", np.median(values))
+        flat = values.ravel()
+        self.add("n", values.size)
+        n_distinct = len(flat)
+        self.add("n_distinct", n_distinct)
+        self.add("hist", np.histogram(values, bins))
+        if n_distinct <= 50:
+            self.add("v_distinct", set(flat))
+
+    def __str__(self):
+        "Usual"
+        if isinstance(self.node, NodeProto):
+            return (
+                f"{self.__class__.__name__}(<{self.parent.name}>, "
+                f"<{self.node.op_type}>,\n"
+                f"{pprint.pformat(self._statistics)})"
+            )
+        return (
+            f"{self.__class__.__name__}(<{self.parent.name}>, <{self.node.name}>,\n"
+            f"{pprint.pformat(self._statistics)})"
+        )
+
+    @property
+    def values(self):
+        "Returns the values as an array."
+        if isinstance(self.node, NodeProto):
+            model = CReferenceEvaluator(self.node)
+            return model.run(None, {})[0]
+        return to_array_extended(self.node)
 
 
 def stats_tree_ensemble(
@@ -198,11 +282,12 @@ def stats_tree_ensemble(
     stats.add("n_features", len(set(atts["nodes_featureids"])))
     stats.add("n_rules", len(set(atts["nodes_modes"])))
     stats.add("rules", set(atts["nodes_modes"]))
+    stats.add("hist_rules", Counter(atts["nodes_modes"]))
 
     features = []
     for fid in sorted(set(atts["nodes_featureids"])):
         indices = atts["nodes_featureids"] == fid
-        features.append(HistStatistics(node, fid, atts["nodes_values"][indices]))
+        features.append(HistTreeStatistics(node, fid, atts["nodes_values"][indices]))
     stats.add("features", features)
 
     atts_nodes = {k: v for k, v in atts.items() if k.startswith("nodes")}
@@ -216,10 +301,25 @@ def stats_tree_ensemble(
         tr.add("max_featureid", max(atts_tree["nodes_featureids"]))
         tr.add("n_features", len(set(atts_tree["nodes_featureids"])))
         tr.add("n_rules", len(set(atts_tree["nodes_modes"])))
+        tr.add("rules", set(atts_tree["nodes_modes"]))
+        tr.add("hist_rules", Counter(atts_tree["nodes_modes"]))
         tree_stats.append(tr)
     stats.add("trees", tree_stats)
-
     return stats
+
+
+def stats_constant(
+    parent: Union[GraphProto, FunctionProto],
+    node: Union[NodeProto, TensorProto, SparseTensorProto],
+) -> HistStatistics:
+    """
+    Computes basic statistics on constants.
+
+    :param parent: function or graph proto hosting the node
+    :param node: node
+    :return: instance of NodeStatistics
+    """
+    return HistStatistics(parent, node)
 
 
 def enumerate_stats_nodes(
@@ -228,10 +328,22 @@ def enumerate_stats_nodes(
     stats_fcts: Optional[
         Dict[
             Tuple[str, str],
-            Callable[[Union[GraphProto, FunctionProto], NodeProto], NodeStatistics],
+            Callable[
+                [
+                    Union[GraphProto, FunctionProto],
+                    Union[NodeProto, TensorProto, SparseTensorProto],
+                ],
+                Union[NodeStatistics, HistStatistics],
+            ],
         ]
     ] = None,
-) -> Iterable[Tuple[Tuple[str, ...], Union[GraphProto, FunctionProto], NodeStatistics]]:
+) -> Iterable[
+    Tuple[
+        Tuple[str, ...],
+        Union[GraphProto, FunctionProto],
+        Union[NodeStatistics, HistStatistics],
+    ]
+]:
     """
     Computes statistics of nodes functions.
 
@@ -249,8 +361,13 @@ def enumerate_stats_nodes(
             ("ai.onnx.ml", "TreeEnsembleClassifier"): stats_tree_ensemble,
             (dom_optim, "TreeEnsembleRegressor"): stats_tree_ensemble,
             (dom_optim, "TreeEnsembleClassifier"): stats_tree_ensemble,
+            ("", "Constant"): stats_constant,
         }
     for name, parent, node in enumerate_nodes(onx, recursive=recursive):
-        if (node.domain, node.op_type) in stats_fcts:
-            stat = stats_fcts[node.domain, node.op_type](parent, node)
-            yield name, parent, stat
+        if isinstance(node, NodeProto):
+            if (node.domain, node.op_type) in stats_fcts:
+                stat = stats_fcts[node.domain, node.op_type](parent, node)
+                yield name, parent, stat
+        elif ("", "Constant") in stats_fcts:
+            stati = stats_fcts["", "Constant"](parent, node)
+            yield name, parent, stati
