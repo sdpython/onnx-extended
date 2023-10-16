@@ -17,6 +17,7 @@ def get_main_parser() -> ArgumentParser:
         choices=[
             "bench",
             "check",
+            "cvt",
             "display",
             "external",
             "merge",
@@ -24,6 +25,7 @@ def get_main_parser() -> ArgumentParser:
             "print",
             "quantize",
             "select",
+            "stat",
             "store",
         ],
         help=dedent(
@@ -32,6 +34,7 @@ def get_main_parser() -> ArgumentParser:
         
         'bench' runs a benchmark,
         'check' checks a runtime on stored intermediate results,
+        'cvt' conversion into another format,
         'display' displays the shapes inferences results,
         'external' saves the coefficients in a different files for an onnx model,
         'merge' merges two models,
@@ -39,6 +42,7 @@ def get_main_parser() -> ArgumentParser:
         'plot' plots a graph like a profiling,
         'quantize' quantizes an onnx model in simple ways,
         'select' selects a subgraph inside a bigger models,
+        'stat' produces statistics on the graph (initializer, tree ensemble),
         'store' executes a model with class CReferenceEvaluator and stores every
         intermediate results on disk with a short onnx to execute the node.
         """
@@ -801,9 +805,124 @@ def _cmd_bench(argv: List[Any]):
         print(df)
 
 
+def get_parser_stat() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="stat",
+        description=dedent(
+            """
+        Computes statistics on initiliazer and tree ensemble nodes.
+        """
+        ),
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        required=True,
+        help="onnx model file name",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="file name, contains a csv file",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
+    )
+    return parser
+
+
+def _cmd_stat(argv: List[Any]):
+    from pandas import DataFrame
+    from ._command_lines import cmd_stat
+
+    parser = get_parser_stat()
+    args = parser.parse_args(argv[1:])
+    res = cmd_stat(args.input, verbose=args.verbose)
+    df = DataFrame(res)
+    if args.output:
+        if args.verbose:
+            print(f"[cmd_stat] prints out {args.output}")
+        df.to_csv(args.output, index=False)
+    if args.verbose:
+        print(df)
+
+
+def get_parser_cvt() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="stat",
+        description=dedent(
+            """
+        Converts a file into another format, usually a csv file into an excel file.
+        The extension defines the conversion.
+        """
+        ),
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        required=True,
+        help="input file",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="output file",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose, default is False",
+    )
+    return parser
+
+
+def _cmd_cvt(argv: List[Any]):
+    import numpy as np
+    import pandas
+
+    parser = get_parser_cvt()
+    args = parser.parse_args(argv[1:])
+    infile = args.input
+    outfile = args.output
+    extin = os.path.splitext(infile)[-1]
+    extout = os.path.splitext(outfile)[-1]
+    df: Any = None
+    if extin in {".csv", ".xlsx"}:
+        if args.verbose:
+            print(f"[cvt] load {infile!r} with pandas")
+        if extin == ".csv":
+            df = pandas.read_csv(infile)
+        elif extin == ".xlsx":
+            df = pandas.read_excel(infile)
+        else:
+            raise ValueError(f"Unexpected filename extension {infile!r}.")
+    if df is None:
+        raise ValueError(f"Unable to interpret input file {infile!r}.")
+    index = df.index.tolist() != list(np.arange(df.index.size).tolist())
+    if extout in {".csv", ".xlsx"}:
+        if args.verbose:
+            print(f"[cvt] save {outfile!r} with pandas")
+        if extout == ".csv":
+            df.to_csv(outfile, index=index)
+        elif extout == ".xlsx":
+            df.to_excel(outfile, index=index)
+        else:
+            raise ValueError(f"Unexpected filename extension {infile!r}.")
+    else:
+        raise ValueError(f"Unable to interpret output file {outfile!r}.")
+
+
 def main(argv: Optional[List[Any]] = None):
     fcts = dict(
         bench=_cmd_bench,
+        check=_cmd_check,
+        cvt=_cmd_cvt,
         display=_cmd_display,
         external=_cmd_external,
         merge=_cmd_merge,
@@ -811,8 +930,8 @@ def main(argv: Optional[List[Any]] = None):
         print=_cmd_print,
         quantize=_cmd_quantize,
         select=_cmd_select,
+        stat=_cmd_stat,
         store=_cmd_store,
-        check=_cmd_check,
     )
 
     if argv is None:
@@ -825,6 +944,7 @@ def main(argv: Optional[List[Any]] = None):
             parsers = dict(
                 bench=get_parser_bench,
                 check=get_parser_check,
+                cvt=get_parser_cvt,
                 display=get_parser_display,
                 external=get_parser_external,
                 merge=get_parser_merge,
@@ -832,6 +952,7 @@ def main(argv: Optional[List[Any]] = None):
                 print=get_parser_print,
                 quantize=get_parser_quantize,
                 select=get_parser_select,
+                stat=get_parser_stat,
                 store=get_parser_store,
             )
             cmd = argv[0]

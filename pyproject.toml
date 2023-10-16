@@ -164,6 +164,10 @@ module = ["onnx_extended.ortops.optim.optimize"]
 disable_error_code = ["arg-type"]
 
 [[tool.mypy.overrides]]
+module = ["onnx_extended.reference"]
+disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
 module = ["onnx_extended.reference.c_reference_backend"]
 disable_error_code = ["override", "union-attr", "misc"]
 
@@ -232,6 +236,10 @@ disable_error_code = [
     "attr-defined",
     "return-value",
 ]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.stats_nodes"]
+disable_error_code = ["annotation-unchecked", "dict-item"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.validation.bench_trees"]

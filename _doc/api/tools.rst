@@ -10,4 +10,5 @@ tools
     tools_graph
     tools_transformer
     tools_nodes
+    tools_stats
     tools_other

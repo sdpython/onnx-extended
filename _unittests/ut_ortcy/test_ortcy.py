@@ -65,6 +65,12 @@ class TestOrtCy(ExtTestCase):
         self.assertIn("CPUExecutionProvider", res)
 
     @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
+    @unittest.skipIf(
+        sys.platform == "darwin",
+        reason="The test is unstable and leads to a crash `Illegal instruction`. "
+        "It is probably due to the fact all machines used on CI are not the same. "
+        "Some old machines do not recognized newer instructions.",
+    )
     def test_session(self):
         from onnx_extended.ortcy.wrap.ortinf import OrtSession
 

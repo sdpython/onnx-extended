@@ -2,7 +2,7 @@ import os
 import re
 import io
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 from onnx import (
     FunctionProto,
@@ -578,3 +578,27 @@ def cmd_plot(
         plot_profile(filename, kind, out_csv, out_png, title=title, verbose=verbose)
     else:
         raise ValueError(f"Unexpected kind {kind:r}, it should be {allowed}.")
+
+
+def cmd_stat(input_model: str, verbose: int = 0) -> Iterable[Dict[str, Any]]:
+    """
+    Produces statistics on initializer and tree ensemble operators.
+
+    :param input_model: model to load
+    :param verbose: verbosity level
+    """
+    from .tools.onnx_io import load_model
+    from .tools.stats_nodes import enumerate_stats_nodes
+
+    if verbose > 0:
+        print(f"[cmd_stat] load model {input_model!r}")
+    onx = load_model(input_model, external=True)
+    for i, (name, parent, stat) in enumerate(enumerate_stats_nodes(onx)):
+        if verbose:
+            print(
+                f"[cmd_stat] object {i}: name={name!r} "
+                f"size={stat['size']} dtype={stat['dtype']}"
+            )
+        obs = dict(index=i, joined_name="|".join(name))
+        obs.update(stat.dict_values)
+        yield obs
