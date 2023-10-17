@@ -12,7 +12,7 @@ The custom implementation does not do any transpose.
 It uses parallelisation and SIMD optimization when the summation
 happens on the last axis of both matrices. It only implements
 matrix multiplication. We also measure the improvment made with
-function :func:`einsum <mlprodict.testing.einsum.einsum_fct.einsum>`.
+function :func:`einsum <onnx_extended.tools.einsum.einsum_fct.einsum>`.
 
 .. contents::
     :local:
@@ -259,7 +259,7 @@ def benchmark_equation(equation):
 #  .. gdot::
 #       :script:
 #
-#       from mlprodict.testing.einsum import decompose_einsum_equation
+#       from onnx_extended.tools.einsum import decompose_einsum_equation
 #       dec = decompose_einsum_equation(
 #           'bsnh,btnh->bnts', strategy='numpy', clean=True)
 #       print(dec.to_dot())
@@ -283,7 +283,7 @@ dfs.append(df)
 #  .. gdot::
 #       :script:
 #
-#       from mlprodict.testing.einsum import decompose_einsum_equation
+#       from onnx_extended.tools.einsum import decompose_einsum_equation
 #       dec = decompose_einsum_equation(
 #           'bshn,bthn->bnts', strategy='numpy', clean=True)
 #       print(dec.to_dot())
@@ -305,7 +305,7 @@ dfs.append(df)
 #  .. gdot::
 #       :script:
 #
-#       from mlprodict.testing.einsum import decompose_einsum_equation
+#       from onnx_extended.tools.einsum import decompose_einsum_equation
 #       dec = decompose_einsum_equation(
 #           'bhsn,bhtn->bnts', strategy='numpy', clean=True)
 #       print(dec.to_dot())
