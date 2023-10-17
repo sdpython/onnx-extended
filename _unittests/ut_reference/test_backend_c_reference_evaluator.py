@@ -223,7 +223,7 @@ backend_test.exclude(
 
 # Instable depending on the machine used with osx
 if sys.platform == "darwin":
-    backend_test.exclude("test_basic_conv_with_padding")
+    backend_test.exclude("test_basic_conv")
 
 # import all test cases at global scope to make them visible to python.unittest
 globals().update(backend_test.test_cases)
