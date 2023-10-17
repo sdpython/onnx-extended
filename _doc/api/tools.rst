@@ -12,3 +12,4 @@ tools
     tools_nodes
     tools_stats
     tools_other
+    tools_einsum
