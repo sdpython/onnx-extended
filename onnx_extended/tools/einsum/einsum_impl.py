@@ -86,7 +86,7 @@ def decompose_einsum_equation(
     verbose: bool = False,
 ) -> GraphEinsumSubOp:
     """
-    Decomposes an equation used in :epkg:`numpy:einsum` knowing
+    Decomposes an equation used in :func:`numpy.einsum` knowing
     the input shapes. It returns a sequence of operations
     to do to compute the results.
 
@@ -102,10 +102,10 @@ def decompose_einsum_equation(
 
     * `'simple'`: align all dimensions in the alphabetical order,
       some generic matrix multiplication remains implemented with
-      :epkg:`numpy:einsum` but only with two matrices aligned on
+      :func:`numpy.einsum` but only with two matrices aligned on
       the same dimension (see @see fn numpy_extended_dot)
     * `'numpy'`: same as `simple` but the decomposition does not use
-      :epkg:`numpy:einsum` anymore but only multiplication or
+      :func:`numpy.einsum` anymore but only multiplication or
       matrix multiplication merged into a single operator called
       *batch_dot* (see @see fn numpy_extended_dot_matrix)
 

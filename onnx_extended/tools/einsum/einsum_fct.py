@@ -608,7 +608,7 @@ def optimize_decompose_einsum_equation(
     verbose: Optional[bool] = None,
 ) -> CachedEinsum:
     """
-    Proposes a new implementation of :epkg:`numpy:einsum`.
+    Proposes a new implementation of :func:`numpy.einsum`.
     It does not allow expresion using `...` and expects
     a right member.
 
@@ -698,7 +698,7 @@ def einsum(
     verbose: Optional[bool] = None,
 ) -> numpy.ndarray:
     """
-    Proposes a new implementation of :epkg:`numpy:einsum`.
+    Proposes a new implementation of :func:`numpy.einsum`.
     It does not allow expresion using `...` and expects
     a right member.
 
@@ -740,7 +740,7 @@ def einsum(
 
     Further details are available in the documentation of function
     @see fn optimize_decompose_einsum_equation.
-    The function works the same way as :epkg:`numpy:einsum`:
+    The function works the same way as :func:`numpy.einsum`:
 
     .. runpython::
         :showcode:

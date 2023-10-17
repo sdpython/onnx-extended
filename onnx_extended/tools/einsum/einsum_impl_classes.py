@@ -739,7 +739,7 @@ class EinsumSubOp:
 
         Known additional paramaters:
 
-        * 'matmul_impl': if None calls :epkg:`numpy:einsum` through
+        * 'matmul_impl': if None calls :func:`numpy.einsum` through
           :func:`numpy_extended_dot` (default) or 'py' to call
           :func:`numpy_extended_dot_python` instead.
         """

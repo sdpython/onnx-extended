@@ -141,6 +141,7 @@ epkg_dictionary = {
         "model-optimizations/graph-optimizations.html"
     ),
     "openmp": "https://www.openmp.org/",
+    "opt-einsum": "https://optimized-einsum.readthedocs.io/en/stable/",
     "pandas": "https://pandas.pydata.org/",
     "protobuf": "https://github.com/protocolbuffers/protobuf",
     "pybind11": "https://github.com/pybind/pybind11",
@@ -152,6 +153,7 @@ epkg_dictionary = {
     "scipy": "https://scipy.org/",
     "sphinx-gallery": "https://github.com/sphinx-gallery/sphinx-gallery",
     "sklearn-onnx": "https://onnx.ai/sklearn-onnx/",
+    "tensorflow": "https://www.tensorflow.org/",
     "torch": "https://pytorch.org/docs/stable/torch.html",
     "tqdm": "https://tqdm.github.io/",
     "TreeEnsembleClassifier": "https://onnx.ai/onnx/operators/onnx_aionnxml_TreeEnsembleClassifier.html",

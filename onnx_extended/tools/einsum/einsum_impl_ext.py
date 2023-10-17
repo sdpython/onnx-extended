@@ -176,7 +176,7 @@ def numpy_extended_dot(
     verbose: bool = False,
 ) -> numpy.ndarray:
     """
-    Extended version of a matrix multiplication (:epkg:`numpy:dot`)
+    Extended version of a matrix multiplication (:func:`numpy.dot`)
     with two matrices *m1*, *m2* of the same dimensions.
     Loops over *left* axes for *m1* and *right* axes for *m2*,
     summation is done over *axes*.
@@ -263,7 +263,7 @@ def numpy_extended_dot(
         dot = numpy_extended_dot(m1, m2, [1], [0], [2], verbose=True)
         print(dot)
 
-    The current implementation still uses :epkg:`numpy:einsum`
+    The current implementation still uses :func:`numpy.einsum`
     but this should be replaced.
     """
     _common_check_numpy_extended_dot(m1, m2, axes, left, right)
@@ -471,7 +471,7 @@ def numpy_extended_dot_python(
     """
     Implementation of :func:`numpy_extended_dot` in pure python.
     This implementation is not efficient but shows how to
-    implement this operation without :epkg:`numpy:einsum`.
+    implement this operation without :func:`numpy.einsum`.
 
     .. runpython::
         :showcode:

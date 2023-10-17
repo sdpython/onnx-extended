@@ -4,7 +4,7 @@
 Compares implementations of Einsum
 ==================================
 
-This example compares different equations for function :epkg:`numpy:einsum`.
+This example compares different equations for function :func:`numpy.einsum`.
 It compares *numpy* implementation to a custom implementation,
 :epkg:`onnxruntime` implementation and :epkg:`opt-einsum` optimisation.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
