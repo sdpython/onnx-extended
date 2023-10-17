@@ -153,39 +153,35 @@ CustomGemmKernel::CustomGemmKernel(const OrtApi &api,
 #endif
 }
 
-void CustomGemmKernel::set(const std::vector<int64_t> &shape_A,
-                           const std::vector<int64_t> &shape_B, int &M, int &N,
-                           int &K, int &lda, int &ldb, int &ldd,
-                           int row_major) const {
+void CustomGemmKernel::SetParams(const std::vector<int64_t> &shape_A,
+                                 const std::vector<int64_t> &shape_B, int &M,
+                                 int &N, int &K, int &lda, int &ldb, int &ldd,
+                                 int row_major) const {
   constexpr int ir = 0;
   constexpr int ic = 1 - ir;
-  if (transA_ && !transB_) { // TN
-    M = shape_A[ic];
-    N = shape_B[ic];
-    K = shape_A[ir];
-    lda = shape_A[row_major ? ic : ir];
-    ldb = shape_B[row_major ? ic : ir];
+  lda = shape_A[row_major ? ic : ir];
+  ldb = shape_B[row_major ? ic : ir];
+  if (!transB_) {
+    if (transA_) { // TN
+      M = shape_A[ic];
+      N = shape_B[ic];
+      K = shape_A[ir];
+    } else { // NN
+      M = shape_A[ir];
+      N = shape_B[ic];
+      K = shape_A[ic];
+    }
     ldd = shape_B[row_major ? ic : ir];
-  } else if (!transA_ && !transB_) { // NN
-    M = shape_A[ir];
-    N = shape_B[ic];
-    K = shape_A[ic];
-    lda = shape_A[row_major ? ic : ir];
-    ldb = shape_B[row_major ? ic : ir];
-    ldd = shape_B[row_major ? ic : ir];
-  } else if (!transA_ && transB_) { // NT
-    M = shape_A[ir];
-    N = shape_B[ir];
-    K = shape_A[ic];
-    lda = shape_A[row_major ? ic : ir];
-    ldb = shape_B[row_major ? ic : ir];
-    ldd = shape_B[row_major ? ir : ic];
-  } else { // TT
-    M = shape_A[ic];
-    N = shape_B[ir];
-    K = shape_A[ir];
-    lda = shape_A[row_major ? ic : ir];
-    ldb = shape_B[row_major ? ic : ir];
+  } else {
+    if (transA_) { // NT
+      M = shape_A[ic];
+      N = shape_B[ir];
+      K = shape_A[ir];
+    } else { // TT
+      M = shape_A[ir];
+      N = shape_B[ir];
+      K = shape_A[ic];
+    }
     ldd = shape_B[row_major ? ir : ic];
   }
 }
@@ -243,7 +239,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
   bool has_scales_Y = n_inputs > 5;
   if (has_scales) {
     EXT_ENFORCE(n_inputs == 5 || n_inputs == 6,
-                "Number of inputs must be 5 or 6 but is ", (int64_t)n_inputs, ".");
+                "Number of inputs must be 5 or 6 but is ", (int64_t)n_inputs,
+                ".");
     scale_A = ctx.GetInput(3);
     scale_B = ctx.GetInput(4);
     check_device(scale_A, "scale_A");
@@ -253,7 +250,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       check_device(scale_Y, "scale_Y");
     }
   } else if (n_inputs != 2 && n_inputs != 3) {
-    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", (int64_t)n_inputs, ".");
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", (int64_t)n_inputs,
+              ".");
   }
 
   switch (rowMajor_) {
@@ -281,7 +279,7 @@ void CustomGemmKernel::ComputeRowMajor(
   dtype_B = GetTypeAndShape(input_B, shape_B);
 
   int M, N, K, lda, ldb, ldd;
-  set(shape_A, shape_B, M, N, K, lda, ldb, ldd, 1);
+  SetParams(shape_A, shape_B, M, N, K, lda, ldb, ldd, 1);
 
   std::vector<int64_t> dimensions{M, N};
   Ort::UnownedValue Y = ctx.GetOutput(0, dimensions);
@@ -311,7 +309,7 @@ void CustomGemmKernel::ComputeColMajor(
   dtype_B = GetTypeAndShape(input_B, shape_B);
 
   int M, N, K, lda, ldb, ldd;
-  set(shape_A, shape_B, M, N, K, lda, ldb, ldd, 1);
+  SetParams(shape_A, shape_B, M, N, K, lda, ldb, ldd, 1);
 
   std::swap(shape_A[0], shape_A[1]);
   std::swap(shape_B[0], shape_B[1]);
@@ -465,7 +463,8 @@ void CustomGemmKernel::ComputeGemm(
   // The workspace should be allocated once from OpKernelContext assuming
   // only one cuda function is running at a time (which is not necessarily true
   // with H100).
-  std::size_t workspaceSize = (std::size_t)(1 << 25); // suggested fixed value 32Mb
+  std::size_t workspaceSize =
+      (std::size_t)(1 << 25); // suggested fixed value 32Mb
   cublasLtMatmulPreference_t preference = nullptr;
   cublasLtMatmulPreferenceCreate(&preference);
   cublasLtMatmulPreferenceSetAttribute(preference,
