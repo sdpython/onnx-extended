@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 import numpy
 
 
@@ -39,8 +39,8 @@ def numpy_diagonal(m: numpy.ndarray, axis: int, axes: Tuple[int, ...]) -> numpy.
 
     # Extracts coefficients.
     output = numpy.empty(tuple(shape), dtype=m.dtype)
-    index_in = [slice(s) for s in m.shape]
-    index_out = [slice(s) for s in m.shape]
+    index_in: List[Union[int, slice]] = [slice(s) for s in m.shape]
+    index_out: List[Union[int, slice]] = [slice(s) for s in m.shape]
     for i in range(0, shape[axis]):
         for a in axes:
             index_in[a] = i
@@ -118,7 +118,7 @@ def _numpy_extended_dot_equation(
 
     l1 = [chr(i + 97) for i in range(m1_dim)]
     l2 = [chr(i + 97) for i in range(m1_dim)]
-    l3 = [chr(i + 97) for i in range(m1_dim)]
+    l3: List[Optional[str]] = [chr(i + 97) for i in range(m1_dim)]
     for a in left:
         l1[a] = l1[a].upper()
         l3[a] = l3[a].upper()
@@ -286,7 +286,7 @@ def numpy_extended_dot_ouput_shape(
     axes: Tuple[int, ...],
     left: Tuple[int, ...],
     right: Tuple[int, ...],
-) -> Tuple[int, ...]:
+) -> numpy.ndarray:
     """
     Computes the output shape of results produced by function
     :func:`numpy_extended_dot
@@ -317,10 +317,10 @@ def numpy_extended_dot_ouput_shape(
 
 def _numpy_extended_dot_python_l1l2l3(
     m1_dim: int, axes: Tuple[int, ...], left: Tuple[int, ...], right: Tuple[int, ...]
-) -> Tuple[str, str, str]:
+) -> Tuple[List[str], List[str], List[Optional[str]]]:
     l1 = [chr(i + 97) for i in range(m1_dim)]
     l2 = [chr(i + 97) for i in range(m1_dim)]
-    l3 = [chr(i + 97) for i in range(m1_dim)]
+    l3: List[Optional[str]] = [chr(i + 97) for i in range(m1_dim)]
     for a in left:
         l1[a] = l1[a].upper()
         l3[a] = l3[a].upper()
@@ -338,8 +338,14 @@ def _numpy_extended_dot_python_l1l2l3(
 
 
 def _numpy_extended_dot_python_intermediate(
-    m1_shape: Tuple[int, ...], m2_shape: Tuple[int, ...], l1: str, l2: str, l3: str
-) -> Tuple[List[str], numpy.ndarray, List[bool], List[bool], numpy.ndarray]:
+    m1_shape: Tuple[int, ...],
+    m2_shape: Tuple[int, ...],
+    l1: List[str],
+    l2: List[str],
+    l3: List[Optional[str]],
+) -> Tuple[
+    List[str], numpy.ndarray, Dict[str, int], List[bool], List[bool], numpy.ndarray
+]:
     names = list(sorted(set(l1 + l2)))
     kind = numpy.zeros(len(names), dtype=numpy.int64)
     cols = {}
@@ -371,16 +377,16 @@ def _numpy_extended_dot_python_update_broadcast(
     axes: Tuple[int, ...],
     left: Tuple[int, ...],
     right: Tuple[int, ...],
-    l1: str,
-    l2: str,
-    l3: str,
+    l1: List[str],
+    l2: List[str],
+    l3: List[Optional[str]],
     names: List[str],
     broadcast: List[bool],
     cols: Dict[str, int],
     kind: numpy.ndarray,
     common: List[bool],
     verbose: bool = False,
-) -> Tuple[str, str, str]:
+) -> Tuple[List[str], List[str], List[Optional[str]]]:
     def dispb(c):
         return "".join("o" if b else "." for b in c)
 
@@ -390,7 +396,7 @@ def _numpy_extended_dot_python_update_broadcast(
             % (
                 "".join(l1),
                 "".join(l2),
-                "".join(l3),
+                "".join([(s if s else "?") for s in l3]),
                 _numpy_extended_dot_equation(
                     len(m1.shape), len(m1.shape), axes, left, right
                 ),
@@ -423,6 +429,8 @@ def _numpy_extended_dot_python_update_broadcast(
             print(f"    B0 l1={l1!r}, l2={l2!r} l3={l3!r}")
         if (kind[i] & 4) > 0:
             # Summation axis is part of the output.
+            if let[inp] is None:
+                raise RuntimeError(f"Unexpected value for let[{inp}] in let={let}.")
             if let[inp].lower() == let[inp]:
                 let[inp] = let[inp].upper()
             else:
@@ -436,6 +444,8 @@ def _numpy_extended_dot_python_update_broadcast(
                 print(f"    B1 l1={l1!r}, l2={l2!r} l3={l3!r}")
         else:
             # Summation axis is not part of the output.
+            if let[inp] is None:
+                raise RuntimeError(f"Unexpected value for let[{inp}] in let={let}.")
             if let[inp].lower() == let[inp]:
                 let[inp] = let[inp].upper()
             else:
@@ -547,7 +557,7 @@ def numpy_extended_dot_python(
             % (
                 "".join(l1),
                 "".join(l2),
-                "".join(l3),
+                "".join([(s if s else "?") for s in l3]),
                 _numpy_extended_dot_equation(
                     len(m1.shape), len(m1.shape), axes, left, right
                 ),
@@ -814,14 +824,18 @@ def numpy_extended_dot_matrix(
                     len(m1.shape), len(m1.shape), axes, left, right
                 )
                 eq2 = _numpy_extended_dot_equation(
-                    len(m1.shape), len(m1.shape), new_axes, new_left, right
+                    len(m1.shape),
+                    len(m1.shape),
+                    tuple(new_axes),
+                    tuple(new_left),
+                    tuple(right),
                 )
                 print(
                     "[GENERICDOT] replace left %r by %r axes %r by %r, "
                     "eq %r by %r" % (left, new_left, axes, new_axes, eq1, eq2)
                 )
             return numpy_extended_dot_matrix(
-                m1, m2, new_axes, new_left, right, verbose=verbose
+                m1, m2, tuple(new_axes), tuple(new_left), tuple(right), verbose=verbose
             )
         raise RuntimeError(
             "shape1=%r shape2=%r axes=%r left=%r right=%r eq=%s."

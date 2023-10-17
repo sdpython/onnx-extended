@@ -16,7 +16,7 @@ from .einsum_impl_ext import (
 from ...validation.cython.blas_lapack import gemm_dot
 
 
-def single_axes(axes: Tuple[int, ...]) -> Tuple[int, ...]:
+def single_axes(axes: Tuple[int, ...]) -> Optional[List[int]]:
     """
     *axes* contains positive values, then it is the position
     of this axis in the original matrix, otherwise it is -1
@@ -75,7 +75,7 @@ class EinsumSubOp:
         self.name = name
         self.inputs = inputs
         self.kwargs = kwargs
-        self._info = {}
+        self._info: Dict[str, Any] = {}
         if name not in EinsumSubOp._allowed:
             raise ValueError(
                 f"Unexpected name {name!r}. It should be in {EinsumSubOp._allowed!r}."

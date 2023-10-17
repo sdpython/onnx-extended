@@ -184,6 +184,10 @@ module = [
 disable_error_code = ["assignment", "operator", "call-overload", "no-redef", "attr-defined"]
 
 [[tool.mypy.overrides]]
+module = ["onnx_extended.tools.einsum.einsum_impl_ext"]
+disable_error_code = ["assignment", "union-attr"]
+
+[[tool.mypy.overrides]]
 module = [
     "onnx_extended.tools.graph.onnx_graph_struct",
     "onnx_extended.tools.graph.onnx_graph_transformer",

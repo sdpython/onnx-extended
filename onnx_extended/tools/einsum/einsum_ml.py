@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Sequence, Tuple, Union
 import numpy
 
 
@@ -39,7 +39,7 @@ _ml_transpose_coefs: Dict[str, float] = {
 }
 
 
-def _edit_distance(mot1: str, mot2: str) -> float:
+def _edit_distance(mot1: Sequence, mot2: Sequence) -> float:
     dist = {(-1, -1): 0}
     if len(mot1) == 0:
         for j, d in enumerate(mot2):
@@ -125,8 +125,8 @@ def compute_transposition_features(
             dis_cont += 1
 
     middle = max(1, int(total / (end * begin)))
-    feat = dict(
-        size=total,
+    feat: Dict[str, Union[float, int]] = dict(
+        size=int(total),
         begin=begin,
         end=end,
         middle=middle,
@@ -141,7 +141,7 @@ def compute_transposition_features(
     for k in keys:
         if k in {"dim", "cpu", "size"}:
             continue
-        feat[f"r{k}"] = float(feat[k] / total)
+        feat[f"r{k}"] = float(feat[k]) / float(total)
 
     for c in [2, 4, 8, 16, 32, 64]:
         feat["iend%d" % c] = float(end >= c)
@@ -199,7 +199,7 @@ def predict_transposition_cost(
     if coefs is None:
         coefs = _ml_transpose_coefs
     feat = compute_transposition_features(shape, perm)
-    res = 0
+    res = 0.0
     for k, v in feat.items():
         res += v * coefs[k]
     return max(0.0, res / 1000)
