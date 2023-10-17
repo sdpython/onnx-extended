@@ -1,5 +1,3 @@
-from libc.stdio cimport printf
-
 import numpy
 cimport numpy
 cimport cython
@@ -15,7 +13,7 @@ cdef void c_dgemm_dot(double* pa, double* pb,
                       int transA, int transB,
                       double* pc) noexcept nogil:
     """
-    Wrapper for gemm.    
+    Wrapper for gemm.
     """
 
     cdef:
@@ -41,21 +39,20 @@ cdef void c_dgemm_dot(double* pa, double* pb,
                       &beta, pc, &ldc)
 
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def dgemm_dot(double [:, ::1] A, double [:, ::1] B, transA, transB, double [:, ::1] C):
     """
-    Wrapper for gemm.    
+    Wrapper for gemm.
     """
-    
+
     cdef:
         int ta = 1 if transA else 0
         int tb = 1 if transB else 0
         int M = A.shape[1 - ta]
         int N = B.shape[tb]
         int K = A.shape[ta]
-    
+
     c_dgemm_dot(&A[0, 0], &B[0, 0], M, N, K, ta, tb, &C[0, 0])
 
 
@@ -66,7 +63,7 @@ cdef void c_sgemm_dot(float* pa, float* pb,
                       int transA, int transB,
                       float* pc) noexcept nogil:
     """
-    Wrapper for gemm.    
+    Wrapper for gemm.
     """
 
     cdef:
@@ -83,12 +80,11 @@ cdef void c_sgemm_dot(float* pa, float* pb,
                       &beta, pc, &ldc)
 
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def sgemm_dot(float [:, ::1] A, float [:, ::1] B, transA, transB, float [:, ::1] C):
     """
-    Wrapper for gemm.    
+    Wrapper for gemm.
     """
 
     cdef:
