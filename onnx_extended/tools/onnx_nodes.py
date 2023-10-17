@@ -3,7 +3,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generator,
     Iterable,
     List,
     Optional,
@@ -369,7 +368,7 @@ def get_hidden_inputs(nodes: Iterable[NodeProto]) -> Set[str]:
 
 def enumerate_model_node_outputs(
     model: ModelProto, add_node: bool = False, order: bool = False
-) -> Iterable:
+) -> Iterable[Union[str, Tuple[str, NodeProto]]]:
     """
     Enumerates all the nodes of a model.
 
@@ -669,7 +668,7 @@ def enumerate_onnx_node_types(
     level: int = 0,
     shapes: Optional[Dict[str, TypeProto]] = None,
     external: bool = True,
-) -> Generator[Dict[str, Union[str, float]], None, None]:
+) -> Iterable[Dict[str, Union[str, float]]]:
     """
     Looks into types for every node in a model.
 

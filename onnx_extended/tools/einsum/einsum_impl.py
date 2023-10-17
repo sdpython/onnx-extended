@@ -1,11 +1,11 @@
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import numpy
 from .einsum_impl_classes import EinsumSubOp, GraphEinsumSubOp
 
 
 def analyse_einsum_equation(
     equation: str,
-) -> Tuple[str, numpy.ndarray, List[int], List[Dict[str, int]]]:
+) -> Tuple[str, numpy.ndarray, List[int], List[Optional[Dict[str, List[int]]]]]:
     """
     Analyses an einsum equation.
 
@@ -61,13 +61,13 @@ def analyse_einsum_equation(
     lengths.append(len(output))
 
     # Look for duplicates
-    duplicates = []
+    duplicates: List[Optional[Dict[str, List[int]]]] = []
     for inp in inputs + [output]:
         if len(inp) == len(set(inp)):
             duplicates.append(None)
             continue
         # There is some duplicates.
-        counts = {}
+        counts: Dict[str, List[int]] = {}
         for i, c in enumerate(inp):
             if c in counts:
                 counts[c].append(i)
@@ -149,6 +149,7 @@ def decompose_einsum_equation(
     # Last step: clean unused nodes.
     if clean:
         last_node = graph.last_added_op
+        assert isinstance(last_node, EinsumSubOp)
         graph.append(EinsumSubOp(last_node.full_dim, "id", last_node))
         graph.mark_last_node()
         graph.simplify_mm_nodes(verbose=verbose)
@@ -224,7 +225,9 @@ def _basic_verification(
             )
 
 
-def _apply_transpose_reshape(op: Union[int, EinsumSubOp], row: str) -> EinsumSubOp:
+def _apply_transpose_reshape(
+    op: Union[int, EinsumSubOp], row: str
+) -> Iterable[EinsumSubOp]:
     """
     Put all dimensions in the same order.
 

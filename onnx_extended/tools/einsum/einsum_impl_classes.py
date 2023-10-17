@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import numpy
-from onnx import helper, numpy_helper, ModelProto, NodeProto
+from onnx import helper, numpy_helper, ModelProto, NodeProto, TensorProto
 from .einsum_config import (
     DEFAULT_IR_VERSION,
     DEFAULT_OPSET,
@@ -155,7 +155,10 @@ class EinsumSubOp:
             )
 
     def _check_row_(
-        self, row: List["EinsumSubOp"], inp: bool = False, verbose: bool = False
+        self,
+        row: numpy.ndarray,
+        inp: bool = False,
+        verbose: bool = False,
     ):
         """
         Checks input or output is valid.
@@ -168,8 +171,8 @@ class EinsumSubOp:
 
     def _compute_output_row_id(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: numpy.ndarray,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -181,12 +184,13 @@ class EinsumSubOp:
 
     def _compute_output_row_transpose(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
         if ab:
+            assert row2 is not None
             self._compute_output_row_transpose(row2, verbose=verbose)
             return
         self._check_row_(row, True, verbose=verbose)
@@ -203,8 +207,8 @@ class EinsumSubOp:
 
     def _compute_output_row_transpose_mm(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -217,8 +221,8 @@ class EinsumSubOp:
 
     def _compute_output_row_expand_dims(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -242,8 +246,8 @@ class EinsumSubOp:
 
     def _compute_output_row_reduce_sum(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -257,8 +261,8 @@ class EinsumSubOp:
 
     def _compute_output_row_reduce_sum_mm(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -271,8 +275,8 @@ class EinsumSubOp:
 
     def _compute_output_row_squeeze(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -286,8 +290,8 @@ class EinsumSubOp:
 
     def _compute_output_row_diagonal(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -318,13 +322,15 @@ class EinsumSubOp:
 
     def _compute_output_row_matmul(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
         if not ab:
             raise RuntimeError("ab must be True.")
+        if row2 is None:
+            raise RuntimeError("row2 must be defined")
         self._check_row_(row, True, verbose=verbose)
         self._check_row_(row2, True, verbose=verbose)
         self._check_arg_("axes", tuple)
@@ -357,8 +363,8 @@ class EinsumSubOp:
 
     def _compute_output_row_batch_dot(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -401,8 +407,8 @@ class EinsumSubOp:
 
     def _compute_output_row_mul(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -419,8 +425,8 @@ class EinsumSubOp:
 
     def compute_output_row(
         self,
-        row: List["EinsumSubOp"],
-        row2: Optional[List["EinsumSubOp"]] = None,
+        row: numpy.ndarray,
+        row2: Optional[numpy.ndarray] = None,
         ab: bool = False,
         verbose: bool = False,
     ):
@@ -1236,12 +1242,12 @@ class GraphEinsumSubOp:
         lengths: List[int],
         duplicates: List[Dict[str, int]],
     ):
-        self._nodes = {}
-        self._mark = {}
-        self._ops = []
-        self._inputs = {}
-        self.last_op = None
-        self.last_added_op = None
+        self._nodes: Dict[int, Union[int, EinsumSubOp]] = {}
+        self._mark: Dict[int, Union[int, EinsumSubOp]] = {}
+        self._ops: List[EinsumSubOp] = []
+        self._inputs: Dict[int, Union[int, EinsumSubOp]] = {}
+        self.last_op: Optional[Union[int, EinsumSubOp]] = None
+        self.last_added_op: Optional[Union[int, EinsumSubOp]] = None
         self.metadata = dict(
             letters=letters,
             mat=mat,
@@ -1499,7 +1505,7 @@ class GraphEinsumSubOp:
         """
         Returns the forward nodes.
         """
-        forward = {}
+        forward: Dict[int, EinsumSubOp] = {}
         for op in self:
             if isinstance(op, int):
                 continue
@@ -1701,7 +1707,7 @@ class GraphEinsumSubOp:
         onx_inputs = []
         proto = guess_proto_dtype(numpy.float32 if dtype is None else dtype)
         lengths = self.metadata["lengths"]
-        names = {}
+        names: Dict[int, str] = {}
         for inp, le in zip(inputs, lengths):
             if isinstance(inp, tuple):
                 name, (typ, shape) = inp
@@ -1725,7 +1731,7 @@ class GraphEinsumSubOp:
 
         # nodes
         nodes = []
-        inits = []
+        inits: List[TensorProto] = []
         if "initializer" in kwargs:
             inits.extend(kwargs["initializer"])
         for op in self:

@@ -50,7 +50,7 @@ def measure_time(
     warmup: int = 1,
     div_by_number: bool = True,
     max_time: Optional[float] = None,
-) -> Dict[str, float]:
+) -> Dict[str, Union[str, int, float]]:
     """
     Measures a statement and returns the results as a dictionary.
 
@@ -81,9 +81,6 @@ def measure_time(
     for a better understanding of parameter *repeat* and *number*.
     The function returns a duration corresponding to
     *number* times the execution of the main statement.
-
-    .. versionchanged:: 0.4
-        Parameter *max_time* was added.
     """
     if not callable(stmt) and not isinstance(stmt, str):
         raise TypeError(

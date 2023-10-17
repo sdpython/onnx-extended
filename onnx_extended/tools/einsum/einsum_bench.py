@@ -113,7 +113,7 @@ def einsum_benchmark(
     number: int = 5,
     repeat: int = 5,
     opset=DEFAULT_OPSET,
-) -> Iterable[Dict[str, Union[str, int]]]:
+) -> Iterable[Dict[str, Union[str, float]]]:
     """
     Investigates whether or not the decomposing einsum is faster.
 
@@ -183,6 +183,8 @@ def einsum_benchmark(
             if dec == "einsum":
                 onx = _make_einsum_model(equation, opset=opset)
             else:
+                if seq is None:
+                    raise RuntimeError("seq cannot be None.")
                 onx = seq.to_onnx(
                     "Y", *["X%d" % i for i in range(len(inputs))], opset=opset
                 )
@@ -196,6 +198,8 @@ def einsum_benchmark(
             if dec == "einsum":
                 onx = _make_einsum_model(equation, opset=opset)
             else:
+                if seq is None:
+                    raise RuntimeError("seq must not be None.")
                 onx = seq.to_onnx(
                     "Y", *["X%d" % i for i in range(len(inputs))], opset=opset
                 )

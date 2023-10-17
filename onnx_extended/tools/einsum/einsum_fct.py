@@ -3,7 +3,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import time
 import math
 import numpy
-from onnx import helper, TensorProto
+from onnx import helper, ModelProto, TensorProto
 from ...reference import to_array_extended
 from ..stats_nodes import extract_attributes
 from .einsum_config import DEFAULT_OPSET, DEFAULT_IR_VERSION, guess_proto_dtype
@@ -329,7 +329,7 @@ class CachedEinsum:
             subset = tqdm(possible)
         else:
             subset = possible
-        best = []
+        best: List[Tuple[float, str]] = []
         confs = []
         very_best = None
         inputs = None
@@ -384,7 +384,7 @@ class CachedEinsum:
             subset = tqdm(possible)
         else:
             subset = possible
-        best = []
+        best: List[Tuple[float, str]] = []
         confs = []
         very_best = None
         inputs = None
@@ -440,7 +440,7 @@ class CachedEinsum:
         self.timed_permutations_ = confs
         return best[0][1]
 
-    def build_onnx_einsum(self, input_names: List[str]) -> str:
+    def build_onnx_einsum(self, input_names: List[str]) -> ModelProto:
         """
         Builds an ONNX graph with a single einsum operator.
         """
