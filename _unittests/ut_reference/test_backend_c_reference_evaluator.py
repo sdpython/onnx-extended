@@ -1,6 +1,7 @@
 import os
 import platform
 import unittest
+import sys
 from typing import Any
 import numpy
 import onnx.backend.base
@@ -220,6 +221,9 @@ backend_test.exclude(
     "|test_quantizelinear_e*)"
 )
 
+# Instable depending on the machine used with osx
+if sys.platform == "darwin":
+    backend_test.exclude("test_basic_conv_with_padding")
 
 # import all test cases at global scope to make them visible to python.unittest
 globals().update(backend_test.test_cases)

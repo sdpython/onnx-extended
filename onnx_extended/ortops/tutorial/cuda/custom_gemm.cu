@@ -161,18 +161,7 @@ void CustomGemmKernel::SetParams(const std::vector<int64_t> &shape_A,
   constexpr int ic = 1 - ir;
   lda = shape_A[row_major ? ic : ir];
   ldb = shape_B[row_major ? ic : ir];
-  if (!transB_) {
-    if (transA_) { // TN
-      M = shape_A[ic];
-      N = shape_B[ic];
-      K = shape_A[ir];
-    } else { // NN
-      M = shape_A[ir];
-      N = shape_B[ic];
-      K = shape_A[ic];
-    }
-    ldd = shape_B[row_major ? ic : ir];
-  } else {
+  if (transB_) {
     if (transA_) { // NT
       M = shape_A[ic];
       N = shape_B[ir];
@@ -183,6 +172,17 @@ void CustomGemmKernel::SetParams(const std::vector<int64_t> &shape_A,
       K = shape_A[ic];
     }
     ldd = shape_B[row_major ? ir : ic];
+  } else {
+    if (transA_) { // TN
+      M = shape_A[ic];
+      N = shape_B[ic];
+      K = shape_A[ir];
+    } else { // NN
+      M = shape_A[ir];
+      N = shape_B[ic];
+      K = shape_A[ic];
+    }
+    ldd = shape_B[row_major ? ic : ir];
   }
 }
 
