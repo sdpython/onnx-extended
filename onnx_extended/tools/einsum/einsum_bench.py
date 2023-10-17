@@ -200,7 +200,9 @@ def einsum_benchmark(
                     "Y", *["X%d" % i for i in range(len(inputs))], opset=opset
                 )
             oinf = ReferenceEvaluator(onx)
-            fct = lambda *x, oi=oinf: oi.run({"X%d" % i: v for i, v in enumerate(x)})
+            fct = lambda *x, oi=oinf: oi.run(
+                None, {"X%d" % i: v for i, v in enumerate(x)}
+            )
         else:
             raise ValueError(f"Unexpected runtime {rt!r}.")
 

@@ -28,9 +28,9 @@ class TestEinsumBug(ExtTestCase):
         a = numpy.random.rand(*list((2,) * dim1))
         b = numpy.random.rand(*list((2,) * dim2))
         oinf = CReferenceEvaluator(onx)
-        got = oinf.run({"X1": a, "X2": b})
+        got = oinf.run(None, {"X1": a, "X2": b})
         expected = numpy.einsum(equation, a, b)
-        self.assertEqualArray(expected, got["Y"])
+        self.assertEqualArray(expected, got[0], atol=1e-15)
 
         res = optimize_decompose_einsum_equation(
             equation,
@@ -49,8 +49,8 @@ class TestEinsumBug(ExtTestCase):
         with open(f"temp_{sequ}_B.onnx", "wb") as f:
             f.write(new_onx.SerializeToString())
         oinf = CReferenceEvaluator(new_onx)
-        got = oinf.run({"X0": a, "X1": b})
-        self.assertEqualArray(expected, got["Y"])
+        got = oinf.run(None, {"X0": a, "X1": b})
+        self.assertEqualArray(expected, got[0], atol=1e-15)
 
     def test_decompose_einsum_abc_cde_abde(self):
         self.common_test_equation("abc,cde->abde", 3, 3)
@@ -60,4 +60,8 @@ class TestEinsumBug(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import logging
+
+    logging.getLogger("skl2onnx").setLevel(logging.ERROR)
+    logging.getLogger("onnx-extended").setLevel(logging.ERROR)
+    unittest.main(verbosity=2)

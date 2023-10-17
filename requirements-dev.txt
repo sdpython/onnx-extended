@@ -14,6 +14,7 @@ onnx-array-api
 onnxmltools
 onnxruntime
 openpyxl
+opt_einsum
 packaging
 pandas
 psutil

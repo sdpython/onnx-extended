@@ -24,22 +24,27 @@ The code shows which optimisation is used for the custom
 implementation, *AVX* or *SSE* and the number of available processors,
 equal to the default number of used threads to parallelize.
 """
+import logging
 import numpy
 import pandas
 import matplotlib.pyplot as plt
+from onnx import TensorProto
+from onnx.helper import (
+    make_model,
+    make_graph,
+    make_node,
+    make_tensor_value_info,
+    make_opsetid,
+)
 from onnxruntime import InferenceSession
-from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.algebra.onnx_ops import OnnxEinsum
-from onnx_extended.ext_test_case import measure_time
+from onnx_extended.ext_test_case import measure_time, unit_test_going
 from tqdm import tqdm
 from opt_einsum import contract
-from mlprodict.testing.experimental_c_impl.experimental_c import (
-    custom_einsum_float,
-    code_optimisation,
-)
-from mlprodict.testing.einsum.einsum_fct import _einsum
+from onnx_extended.tools.einsum.einsum_fct import _einsum
 
-print(code_optimisation())
+logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+logging.getLogger("matplotlib.ticker").setLevel(logging.ERROR)
+logging.getLogger("onnx-extended").setLevel(logging.ERROR)
 
 ###################################
 # Einsum: common code
@@ -55,19 +60,24 @@ except ImportError:
     torch_einsum = None
 
 
-def build_ort_einsum(equation, op_version=14):  # opset=13, 14, ...
-    node = OnnxEinsum(
-        "x", "y", equation=equation, op_version=op_version, output_names=["z"]
+def build_ort_einsum(equation, op_version=18):  # opset=13, 14, ...
+    onx = make_model(
+        make_graph(
+            [make_node("Einsum", ["x", "y"], ["z"], equation=equation)],
+            equation,
+            [
+                make_tensor_value_info("x", TensorProto.FLOAT, None),
+                make_tensor_value_info("y", TensorProto.FLOAT, None),
+            ],
+            [make_tensor_value_info("z", TensorProto.FLOAT, None)],
+        ),
+        opset_imports=[make_opsetid("", op_version)],
     )
-    onx = node.to_onnx(
-        inputs=[("x", FloatTensorType()), ("y", FloatTensorType())],
-        target_opset=op_version,
-    )
-    sess = InferenceSession(onx.SerializeToString())
+    sess = InferenceSession(onx.SerializeToString(), providers=["CPUExecutionProvider"])
     return lambda x, y: sess.run(None, {"x": x, "y": y})
 
 
-def build_ort_decomposed(equation, op_version=14):  # opset=13, 14, ...
+def build_ort_decomposed(equation, op_version=18):  # opset=13, 14, ...
     cache = _einsum(
         equation,
         numpy.float32,
@@ -78,7 +88,9 @@ def build_ort_decomposed(equation, op_version=14):  # opset=13, 14, ...
     )
     if not hasattr(cache, "onnx_"):
         cache.build()
-    sess = InferenceSession(cache.onnx_.SerializeToString())
+    sess = InferenceSession(
+        cache.onnx_.SerializeToString(), providers=["CPUExecutionProvider"]
+    )
     return lambda x, y: sess.run(None, {"X0": x, "X1": y})
 
 
@@ -97,24 +109,14 @@ def loop_einsum(fct, xs, ys):
         fct(x, y)
 
 
-def custom_einsum_float_tr(eq, x, y):
-    if eq == "bshn,bthn->bnts":
-        x = x.transpose((0, 1, 3, 2))
-        y = y.transpose((0, 1, 3, 2))
-        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
-    if eq == "bhsn,bhtn->bnts":
-        x = x.transpose((0, 2, 3, 1))
-        y = y.transpose((0, 2, 3, 1))
-        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
-    return custom_einsum_float(eq, x, y, nthread=-1)
-
-
 def benchmark_equation(equation):
     # equations
     ort_einsum = build_ort_einsum(equation)
     ort_einsum_decomposed = build_ort_decomposed(equation)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200, 256, 500, 512]):
+        if unit_test_going() and dim > 64:
+            break
         xs = [numpy.random.rand(2, dim, 12, 64).astype(numpy.float32) for _ in range(5)]
         ys = [numpy.random.rand(2, dim, 12, 64).astype(numpy.float32) for _ in range(5)]
 
@@ -178,32 +180,6 @@ def benchmark_equation(equation):
         obs["fct"] = "ort_dec"
         res.append(obs)
 
-        # custom implementation
-        ctx["einsum"] = custom_einsum_float
-        obs = measure_time(
-            "loop_einsum_eq_th(einsum, equation, xs, ys)",
-            div_by_number=True,
-            context=ctx,
-            repeat=5,
-            number=1,
-        )
-        obs["dim"] = dim
-        obs["fct"] = "c_einsum"
-        res.append(obs)
-
-        # transpose + custom implementation
-        ctx["einsum"] = custom_einsum_float_tr
-        obs = measure_time(
-            "loop_einsum_eq(einsum, equation, xs, ys)",
-            div_by_number=True,
-            context=ctx,
-            repeat=5,
-            number=1,
-        )
-        obs["dim"] = dim
-        obs["fct"] = "c_einsum_tr"
-        res.append(obs)
-
         if tf_einsum is not None:
             # tensorflow
             ctx["einsum"] = tf_einsum
@@ -238,15 +214,12 @@ def benchmark_equation(equation):
 
     # Dataframes
     df = pandas.DataFrame(res)
-    piv = df.pivot("dim", "fct", "average")
+    piv = df.pivot(index="dim", columns="fct", values="average")
 
     rs = piv.copy()
-    rs["c_einsum"] = rs["numpy.einsum"] / rs["c_einsum"]
     rs["ort_einsum"] = rs["numpy.einsum"] / rs["ort_einsum"]
     rs["ort_dec"] = rs["numpy.einsum"] / rs["ort_dec"]
     rs["opt-einsum"] = rs["numpy.einsum"] / rs["opt-einsum"]
-    if "c_einsum_tr" in rs.columns:
-        rs["c_einsum_tr"] = rs["numpy.einsum"] / rs["c_einsum_tr"]
     if "tf_einsum" in rs.columns:
         rs["tf_einsum"] = rs["numpy.einsum"] / rs["tf_einsum"]
     if "torch_einsum" in rs.columns:
@@ -294,7 +267,7 @@ def benchmark_equation(equation):
 dfs = []
 equation = "bsnh,btnh->bnts"
 df, piv, ax = benchmark_equation(equation)
-df.pivot("fct", "dim", "average")
+df.pivot(index="fct", columns="dim", values="average")
 dfs.append(df)
 
 ###################################
@@ -317,7 +290,7 @@ dfs.append(df)
 
 equation = "bshn,bthn->bnts"
 df, piv, ax = benchmark_equation(equation)
-df.pivot("fct", "dim", "average")
+df.pivot(index="fct", columns="dim", values="average")
 dfs.append(df)
 
 ###################################
@@ -339,7 +312,7 @@ dfs.append(df)
 
 equation = "bhsn,bhtn->bnts"
 df, piv, ax = benchmark_equation(equation)
-df.pivot("fct", "dim", "average")
+df.pivot(index="fct", columns="dim", values="average")
 dfs.append(df)
 
 ####################################
@@ -356,4 +329,4 @@ merged.to_csv(f"plot_{name}.csv", index=False)
 merged.to_excel(f"plot_{name}.xlsx", index=False)
 plt.savefig(f"plot_{name}.png")
 
-plt.show()
+# plt.show()

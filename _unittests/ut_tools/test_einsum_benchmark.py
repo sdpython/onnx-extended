@@ -39,4 +39,8 @@ class TestEinsumBenchmark(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import logging
+
+    logging.getLogger("skl2onnx").setLevel(logging.ERROR)
+    logging.getLogger("onnx-extended").setLevel(logging.ERROR)
+    unittest.main(verbosity=2)
