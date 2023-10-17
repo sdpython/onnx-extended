@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Iterable, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
