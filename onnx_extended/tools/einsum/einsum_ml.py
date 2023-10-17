@@ -69,7 +69,7 @@ def _is_rotation(perm: Tuple[int, ...]):
     t = tuple(perm)
     c = list(range(len(perm)))
     for i in range(len(c)):
-        for k in range(len(c)):  # pylint: disable=C0200
+        for k in range(len(c)):
             c[k] = (k + i) % len(c)
         if t == tuple(c):
             return True

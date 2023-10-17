@@ -1,12 +1,9 @@
-"""
-@brief      test log(time=6s)
-"""
 import unittest
 import io
 from contextlib import redirect_stdout
 import numpy
-from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.einsum.einsum_impl_ext import (
+from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.tools.einsum.einsum_impl_ext import (
     numpy_extended_dot,
     numpy_extended_dot_python,
     numpy_extended_dot_matrix,
@@ -4551,7 +4548,7 @@ class TestEinsumGenericdot(ExtTestCase):
         try:
             self.assertEqualArray(exp, dot)
         except AssertionError:
-            raise AssertionError(  # pylint: disable=W0707
+            raise AssertionError(
                 "shape1=%r shape2=%r\naxes=%r left=%r right=%r\n"
                 "m1=%r\nm2=%r\nexp=\n%r\ndot=\n%r"
                 "\n-----\n%s"

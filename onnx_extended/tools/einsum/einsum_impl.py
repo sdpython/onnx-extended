@@ -1,18 +1,16 @@
-"""
-@file
-@brief Main functions decomposing einsum computation into
-more simple functions.
-"""
+from typing import Any, Dict, Iterable, List, Tuple, Union
 import numpy
 from .einsum_impl_classes import EinsumSubOp, GraphEinsumSubOp
 
 
-def analyse_einsum_equation(equation):
+def analyse_einsum_equation(
+    equation: str,
+) -> Tuple[str, numpy.ndarray, List[int], List[Dict[str, int]]]:
     """
     Analyses an einsum equation.
 
-    :param equation: :epkg:`numpy:einsum` equation
-    :return: three results, list of letters,
+    :param equation: :func:`numpy.einsum` equation
+    :return: four results, list of letters,
         a matrix (see below), lengths of each components,
         duplicates
 
@@ -81,8 +79,12 @@ def analyse_einsum_equation(equation):
 
 
 def decompose_einsum_equation(
-    equation, *shapes, strategy="simple", clean=False, verbose=False
-):
+    equation: str,
+    *shapes: List[Tuple[int, ...]],
+    strategy: str = "simple",
+    clean: bool = False,
+    verbose: bool = False,
+) -> GraphEinsumSubOp:
     """
     Decomposes an equation used in :epkg:`numpy:einsum` knowing
     the input shapes. It returns a sequence of operations
@@ -114,7 +116,7 @@ def decompose_einsum_equation(
     .. runpython::
         :showcode:
 
-        from mlprodict.testing.einsum import decompose_einsum_equation
+        from onnx_extended.tools.einsum import decompose_einsum_equation
         seq = decompose_einsum_equation("bac,cd,def->ebc")
         for op in seq:
             print(op)
@@ -125,7 +127,7 @@ def decompose_einsum_equation(
         :script: DOT-SECTION
         :process:
 
-        from mlprodict.testing.einsum import decompose_einsum_equation
+        from onnx_extended.tools.einsum import decompose_einsum_equation
         seq = decompose_einsum_equation(
             "bac,cd,def->ebc", (2, 2, 2), (2, 2), (2, 2, 2))
         print("DOT-SECTION", seq.to_dot())
@@ -157,7 +159,12 @@ def decompose_einsum_equation(
     return graph
 
 
-def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
+def apply_einsum_sequence(
+    seq: List[numpy.ndarray],
+    *inputs: List[EinsumSubOp],
+    verbose: bool = False,
+    **kwargs: Dict[str, Any],
+) -> numpy.ndarray:
     """
     Applies a sequence of operations on a list of inputs.
     The sequence of operations is produced by function
@@ -167,7 +174,7 @@ def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
     :param inputs: inputs
     :param kwargs: additional parameters,
         see :meth:`apply_sequence
-        <mlprodict.testing.einsum.einsum_impl_classes.
+        <onnx_extended.tools.einsum.einsum_impl_classes.
         GraphEinsumSubOp.apply_sequence>`.
     :return: output
 
@@ -175,7 +182,7 @@ def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum import (
+        from onnx_extended.tools.einsum import (
             decompose_einsum_equation, apply_einsum_sequence)
 
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
@@ -191,7 +198,7 @@ def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
     return seq.apply_sequence(*inputs, verbose=verbose, **kwargs)
 
 
-def is_transpose_identity(perm):
+def is_transpose_identity(perm: Tuple[int, ...]) -> bool:
     """
     Tells if the permutation *perm* does nothing (itentity).
 
@@ -201,7 +208,9 @@ def is_transpose_identity(perm):
     return list(perm) == list(range(len(perm)))
 
 
-def _basic_verification(lengths, shapes, equation):
+def _basic_verification(
+    lengths: List[int], shapes: List[Tuple[int, ...]], equation: str
+):
     if len(lengths) - 1 != len(shapes):
         raise ValueError(
             "Equation %r has %d inputs but %d shapes are given."
@@ -215,7 +224,7 @@ def _basic_verification(lengths, shapes, equation):
             )
 
 
-def _apply_transpose_reshape(op, row):
+def _apply_transpose_reshape(op: Union[int, EinsumSubOp], row: str) -> EinsumSubOp:
     """
     Put all dimensions in the same order.
 
@@ -247,7 +256,9 @@ def _apply_transpose_reshape(op, row):
         yield op
 
 
-def _apply_squeeze_transpose(op, row_last, row_output):
+def _apply_squeeze_transpose(
+    op: Union[int, EinsumSubOp], row_last: str, row_output: List[int]
+) -> Iterable[EinsumSubOp]:
     """
     Puts output dimension in the expected order.
     """
@@ -277,7 +288,7 @@ def _apply_squeeze_transpose(op, row_last, row_output):
 
 def _apply_einsum_matmul(
     fd, op1, op2, axes, left, right, ndim, op_matmul, row1, row2, verbose=False
-):
+) -> Iterable[EinsumSubOp]:
     """
     Decomposes the generic matrix multiplication into numpy operations
     depending on the operator to use for matrix multiplication
@@ -285,24 +296,24 @@ def _apply_einsum_matmul(
     """
     allowed = {"matmul", "batch_dot", "dot"}
     if op_matmul not in allowed:
-        raise ValueError(  # pragma: no cover
+        raise ValueError(
             f"Unknown operator op_matmul={op_matmul!r} not in {allowed!r}."
         )
     if op_matmul == "matmul":
-        if verbose:  # pragma: no cover
+        if verbose:
             print(f"  -- MATMUL -> matmul axes={axes!r} left={left!r} right={right!r}")
         yield EinsumSubOp(
             fd, "matmul", op1, op2, axes=axes, left=left, right=right, ndim=ndim
         )
 
     elif len(axes) == 0 and len(set(left) & set(right)) == 0:
-        if verbose:  # pragma: no cover
+        if verbose:
             print(f"  -- MATMUL -> mul axes={axes!r} left={left!r} right={right!r}")
         yield EinsumSubOp(fd, "mul", op1, op2)
 
     elif len(set(axes) & set(left)) == 0 and len(set(axes) & set(right)) == 0:
         # No intersection between axes and right: matrix multiplication
-        if verbose:  # pragma: no cover
+        if verbose:
             print(
                 "  -- MATMUL -> batch_dot axes=%r left=%r right=%r"
                 "" % (axes, left, right)
@@ -319,7 +330,7 @@ def _apply_einsum_matmul(
         has_dim = set(i for i in range(len(row1)) if row1[i] >= 0)
         right_no_left = (set(right) & has_dim) - (set(right) & (set(left) | set(axes)))
         if right_no_left:
-            if verbose:  # pragma: no cover
+            if verbose:
                 print(f"  -- MATMUL reduce1 has_dim={has_dim!r} axes={right_no_left!r}")
             op1 = EinsumSubOp(
                 fd, "reduce_sum_mm", op1, op2, axes=tuple(sorted(right_no_left))
@@ -329,7 +340,7 @@ def _apply_einsum_matmul(
         has_dim = set(i for i in range(len(row2)) if row2[i] >= 0)
         left_no_right = (set(left) & has_dim) - (set(left) & (set(right) | set(axes)))
         if left_no_right:
-            if verbose:  # pragma: no cover
+            if verbose:
                 print(f"  -- MATMUL reduce2 has_dim={has_dim!r} axes={left_no_right!r}")
             op2 = EinsumSubOp(fd, "reduce_sum", op2, axes=tuple(sorted(left_no_right)))
             yield op2
@@ -389,26 +400,32 @@ def _apply_einsum_matmul(
             op = EinsumSubOp(fd, "transpose", op, perm=tuple(rev_perm))
             yield op
     else:
-        raise NotImplementedError(  # pragma: no cover
+        raise NotImplementedError(
             "axes and right or left have axes in common, "
             "axes=%r left=%r right=%r ndim=%r." % (axes, left, right, ndim)
         )
 
 
 def _decompose_einsum_equation_simple(
-    equation, *shapes, verbose=False, op_matmul="matmul"
-):
+    equation: str,
+    *shapes: List[Tuple[int, ...]],
+    verbose: bool = False,
+    op_matmul: str = "matmul",
+) -> GraphEinsumSubOp:
     """
     Applies strategy `simple`, `numpy`
     defined in by function @see fn decompose_einsum_equation.
 
+    :param equation: equation
+    :param shapes: input shapes
+    :param verbose: verbosity
     :param op_matmul: which operator to use for matrix multiplication,
         a single operator *matmul*, or *batch_dot* with *transposes*,
         *reduce_sum*, or just *dot*
     """
     letters, mat, lengths, duplicates = analyse_einsum_equation(equation)
     if len(letters) != mat.shape[1]:
-        raise RuntimeError(  # pragma: no cover
+        raise RuntimeError(
             f"Unexpected number of letters {letters!r}, shape={mat.shape!r}."
         )
     if len(shapes) == 0:
@@ -523,12 +540,12 @@ def _decompose_einsum_equation_simple(
             if rows[0, d] > 0 and rows[1, d] == -1:
                 red.append(d)
             elif rows[0, d] == -1 and rows[1, d] >= 0:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Issue in equation %r, variable %d, last_result is %r, "
                     "output is %r." % (equation, d, rows[0, :], rows[1, :])
                 )
         if len(red) > 0:
-            if verbose:  # pragma: no cover
+            if verbose:
                 print(f"-- REDUCE2 axes={red!r}")
                 print(mat)
             op = EinsumSubOp(fd, "reduce_sum", op, axes=tuple(red))

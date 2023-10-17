@@ -1,14 +1,11 @@
-"""
-@brief      test log(time=3s)
-"""
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.einsum import (
+from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.tools.einsum import (
     decompose_einsum_equation,
     optimize_decompose_einsum_equation,
 )
-from mlprodict.onnxrt import OnnxInference
+from onnx_extended.reference import CReferenceEvaluator
 
 
 class TestEinsumBug(ExtTestCase):
@@ -18,7 +15,7 @@ class TestEinsumBug(ExtTestCase):
 
     def test__pprint_forward(self):
         res = decompose_einsum_equation("ab,b->ba", strategy="numpy", clean=True)
-        pf = res._pprint_forward()  # pylint: disable=W0212
+        pf = res._pprint_forward()
         spl = pf.split("<- id")
         self.assertEqual(len(spl), 4)
 
@@ -30,7 +27,7 @@ class TestEinsumBug(ExtTestCase):
             f.write(onx.SerializeToString())
         a = numpy.random.rand(*list((2,) * dim1))
         b = numpy.random.rand(*list((2,) * dim2))
-        oinf = OnnxInference(onx)
+        oinf = CReferenceEvaluator(onx)
         got = oinf.run({"X1": a, "X2": b})
         expected = numpy.einsum(equation, a, b)
         self.assertEqualArray(expected, got["Y"])
@@ -51,7 +48,7 @@ class TestEinsumBug(ExtTestCase):
         sequ = new_eq.replace(",", "_").replace("->", "__")
         with open(f"temp_{sequ}_B.onnx", "wb") as f:
             f.write(new_onx.SerializeToString())
-        oinf = OnnxInference(new_onx)
+        oinf = CReferenceEvaluator(new_onx)
         got = oinf.run({"X0": a, "X1": b})
         self.assertEqualArray(expected, got["Y"])
 

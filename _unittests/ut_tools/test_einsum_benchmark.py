@@ -1,9 +1,6 @@
-"""
-@brief      test log(time=8s)
-"""
 import unittest
-from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.einsum.einsum_bench import einsum_benchmark
+from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.tools.einsum.einsum_bench import einsum_benchmark
 
 
 class TestEinsumBenchmark(ExtTestCase):

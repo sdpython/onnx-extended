@@ -1,13 +1,10 @@
-"""
-@brief      test log(time=22s)
-"""
 import sys
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.einsum import einsum
-from mlprodict.testing.einsum.einsum_fct import enumerate_cached_einsum
-from mlprodict import __max_supported_opset__ as TARGET_OPSET
+from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.tools.einsum.einsum_config import DEFAULT_OPSET
+from onnx_extended.tools.einsum import einsum
+from onnx_extended.tools.einsum.einsum_fct import enumerate_cached_einsum
 
 
 class TestEinsumEinsum(ExtTestCase):
@@ -26,15 +23,15 @@ class TestEinsumEinsum(ExtTestCase):
             # too long
             return
         if opset is None:
-            opset = TARGET_OPSET
+            opset = DEFAULT_OPSET
         inps = equation.split("->")[0].split(",")
         lens = [len(s) for s in inps]
         inputs = [numpy.random.randn(N**d).reshape((N,) * d) for d in lens]
         if runtime is None:
             if decompose:
-                runtime = ["batch_dot", "python", "onnxruntime1"]
+                runtime = ["batch_dot", "python", "onnxruntime"]
             else:
-                runtime = ["python", "onnxruntime1"]
+                runtime = ["python", "onnxruntime"]
         elif isinstance(runtime, str):
             runtime = [runtime]
         for rt in runtime:

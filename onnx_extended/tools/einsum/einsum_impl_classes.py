@@ -1,5 +1,11 @@
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import numpy
-from onnx import helper, numpy_helper
+from onnx import helper, numpy_helper, ModelProto, NodeProto
+from .einsum_config import (
+    DEFAULT_IR_VERSION,
+    DEFAULT_OPSET,
+    guess_proto_dtype,
+)
 from .einsum_impl_ext import (
     numpy_extended_dot,
     numpy_diagonal,
@@ -7,9 +13,10 @@ from .einsum_impl_ext import (
     numpy_extended_dot_python,
     numpy_extended_dot_matrix,
 )
+from ...validation.cython.blas_lapack import gemm_dot
 
 
-def single_axes(axes):
+def single_axes(axes: Tuple[int, ...]) -> Tuple[int, ...]:
     """
     *axes* contains positive values, then it is the position
     of this axis in the original matrix, otherwise it is -1
@@ -57,7 +64,13 @@ class EinsumSubOp:
         "reduce_sum_mm",
     }
 
-    def __init__(self, full_dim, name, *inputs, **kwargs):
+    def __init__(
+        self,
+        full_dim: int,
+        name: str,
+        *inputs: List["EinsumSubOp"],
+        **kwargs: Dict[str, Any],
+    ):
         self.full_dim = full_dim
         self.name = name
         self.inputs = inputs
@@ -87,11 +100,11 @@ class EinsumSubOp:
             self._check_arg_("perm", tuple)
             perm = self.kwargs["perm"]
             if len(perm) != len(set(perm)):
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     f"perm has duplicated values {perm!r} (name={self.name!r})."
                 )
             if list(perm) == list(range(len(perm))):
-                raise ValueError(  # pragma: no cover
+                raise ValueError(
                     f"Transpose = identity perm={perm}. It must be removed."
                 )
         elif self.name == "matmul":
@@ -103,18 +116,18 @@ class EinsumSubOp:
             right = self.kwargs["right"]
             for a in axes:
                 if a in left and a in right:
-                    raise RuntimeError(  # pragma: no cover
+                    raise RuntimeError(
                         "One axis belongs to every set (axes, left, right). "
                         "axes=%r, left=%r, right=%r." % (axes, left, right)
                     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         inps = ", ".join(map(str, self.inputs))
         kw = ", ".join(f"{k}={w!r}" for k, w in self.kwargs.items())
         m = f"{self.__class__.__name__}({self.name!r}, {inps}, {kw})"
         return m
 
-    def dot_label(self):
+    def dot_label(self) -> Optional[str]:
         """
         Displays some informations useful to understand the operator.
         """
@@ -128,20 +141,22 @@ class EinsumSubOp:
             return "~" + eq
         return None
 
-    def _check_arg_(self, name, typ, empty=False):
+    def _check_arg_(self, name: str, typ: type, empty: bool = False):
         if name not in self.kwargs:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 f"Parameter {name!r} not found for operator {self.name!r}."
             )
         if empty and self.kwargs[name] is None:
             return
         if not isinstance(self.kwargs[name], typ):
-            raise TypeError(  # pragma: no cover
+            raise TypeError(
                 "Unexpected type %r for parameter %r and parameter %r."
                 "" % (type(self.kwargs[name]), name, self.name)
             )
 
-    def _check_row_(self, row, inp=False, verbose=False):
+    def _check_row_(
+        self, row: List["EinsumSubOp"], inp: bool = False, verbose: bool = False
+    ):
         """
         Checks input or output is valid.
         """
@@ -151,21 +166,33 @@ class EinsumSubOp:
             else:
                 print("<<" if inp else ">>", self.name, row)
 
-    def _compute_output_row_id(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_id(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if ab:
-            raise RuntimeError("ab option not allowed.")  # pragma: no cover
+            raise RuntimeError("ab option not allowed.")
         self._check_row_(row, True, verbose=verbose)
         row[:] = row2[:]
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_transpose(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_transpose(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if ab:
             self._compute_output_row_transpose(row2, verbose=verbose)
             return
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_("perm", tuple)
         if len(self.kwargs["perm"]) != len(row):
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 f"Unexpected permutation {self.kwargs['perm']!r} (row={row!r})."
             )
         perm = self.kwargs["perm"]
@@ -174,38 +201,54 @@ class EinsumSubOp:
             row[i] = cpy[p]
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_transpose_mm(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_transpose_mm(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if not ab:
-            raise RuntimeError("ab must be True.")  # pragma: no cover
+            raise RuntimeError("ab must be True.")
         self._check_row_(row, True, verbose=verbose)
         if row2 is None:
-            raise RuntimeError(  # pragma: no cover
-                "transpose_mm expects a second input."
-            )
+            raise RuntimeError("transpose_mm expects a second input.")
         self._compute_output_row_transpose(row, row2=None, verbose=verbose)
 
-    def _compute_output_row_expand_dims(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_expand_dims(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if ab:
-            raise RuntimeError("ab option not allowed.")  # pragma: no cover
+            raise RuntimeError("ab option not allowed.")
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_("axes", tuple)
         axes = self.kwargs["axes"]
         for axis in axes:
             if not isinstance(axis, tuple):
-                raise TypeError(  # pragma: no cover
+                raise TypeError(
                     "Parameter axes of expand_dims should be a tuple of "
                     "tuple, axes=%r." % axes
                 )
             if row[axis[1]] != -1:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Dimension should be -1 in row %r axis=%r."
                     % (row, self.kwargs["axis"])
                 )
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_reduce_sum(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_reduce_sum(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if ab:
-            raise RuntimeError("ab option not allowed.")  # pragma: no cover
+            raise RuntimeError("ab option not allowed.")
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_("axes", tuple)
         for a in self.kwargs["axes"]:
@@ -213,29 +256,43 @@ class EinsumSubOp:
         self._check_row_(row, verbose=verbose)
 
     def _compute_output_row_reduce_sum_mm(
-        self, row, row2=None, ab=False, verbose=False
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
     ):
         if not ab:
-            raise RuntimeError("ab must be true.")  # pragma: no cover
+            raise RuntimeError("ab must be true.")
         self._check_row_(row2, True, verbose=verbose)
         if row2 is None:
-            raise RuntimeError(  # pragma: no cover
-                "reduce_sum_mm expects a second input."
-            )
+            raise RuntimeError("reduce_sum_mm expects a second input.")
         self._compute_output_row_reduce_sum(row, row2=None, verbose=verbose)
 
-    def _compute_output_row_squeeze(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_squeeze(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if ab:
-            raise RuntimeError("ab option not allowed.")  # pragma: no cover
+            raise RuntimeError("ab option not allowed.")
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_("axes", tuple)
         for a in self.kwargs["axes"]:
             row[a] = -1
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_diagonal(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_diagonal(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if ab:
-            raise RuntimeError("ab option not allowed.")  # pragma: no cover
+            raise RuntimeError("ab option not allowed.")
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_("diag", list)
         to_remove = []
@@ -243,15 +300,15 @@ class EinsumSubOp:
             for ch in choices:
                 if ch != choice:
                     to_remove.append(ch)
-            for i in range(len(row)):  # pylint: disable=C0200
+            for i in range(len(row)):
                 if row[i] in choices:
                     if row[i] != choice:
                         row[i] = choice
         to_remove.sort()
         for r in to_remove:
-            for i in range(len(row)):  # pylint: disable=C0200
+            for i in range(len(row)):
                 if row[i] == r:
-                    raise RuntimeError(  # pragma: no cover
+                    raise RuntimeError(
                         "Unexpected result r=%r row=%r to_remove=%r "
                         "diag=%r." % (r, row, to_remove, self.kwargs["diag"])
                     )
@@ -259,9 +316,15 @@ class EinsumSubOp:
                     row[i] -= 1
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_matmul(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_matmul(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if not ab:
-            raise RuntimeError("ab must be True.")  # pragma: no cover
+            raise RuntimeError("ab must be True.")
         self._check_row_(row, True, verbose=verbose)
         self._check_row_(row2, True, verbose=verbose)
         self._check_arg_("axes", tuple)
@@ -269,7 +332,7 @@ class EinsumSubOp:
         self._check_arg_("right", tuple)
         self._check_arg_("ndim", int)
         if row2 is None:
-            raise RuntimeError("matmul expects two inputs.")  # pragma: no cover
+            raise RuntimeError("matmul expects two inputs.")
         if verbose:
             ndim = self.kwargs["ndim"]
             axes = self.kwargs["axes"]
@@ -292,9 +355,15 @@ class EinsumSubOp:
                 row2[a] = -1
         self._check_row_(row2, verbose=verbose)
 
-    def _compute_output_row_batch_dot(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_batch_dot(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if not ab:
-            raise RuntimeError("ab must be True.")  # pragma: no cover
+            raise RuntimeError("ab must be True.")
         self._check_row_(row, True, verbose=verbose)
         self._check_row_(row2, True, verbose=verbose)
         self._check_arg_("batch_axes", tuple)
@@ -304,7 +373,7 @@ class EinsumSubOp:
         self._check_arg_("right", tuple)
         self._check_arg_("ndim", int)
         if row2 is None:
-            raise RuntimeError("batch_dot expects two inputs.")  # pragma: no cover
+            raise RuntimeError("batch_dot expects two inputs.")
         if verbose:
             batch_axes = self.kwargs["batch_axes"]
             keep_axes = self.kwargs["keep_axes"]
@@ -330,26 +399,38 @@ class EinsumSubOp:
                 row2[a] = -1
         self._check_row_(row2, verbose=verbose)
 
-    def _compute_output_row_mul(self, row, row2=None, ab=False, verbose=False):
+    def _compute_output_row_mul(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         if not ab:
-            raise RuntimeError("ab must be True.")  # pragma: no cover
+            raise RuntimeError("ab must be True.")
         self._check_row_(row, True, verbose=verbose)
         self._check_row_(row2, True, verbose=verbose)
         if row2 is None:
-            raise RuntimeError("mul expects two inputs.")  # pragma: no cover
+            raise RuntimeError("mul expects two inputs.")
         if verbose:
-            print(f"    MUL {row!r} @ {row2!r}")  # pragma: no cover
+            print(f"    MUL {row!r} @ {row2!r}")
         row2[:] = numpy.maximum(row, row2)
         self._check_row_(row2, verbose=verbose)
 
-    def compute_output_row(self, row, row2=None, ab=False, verbose=False):
+    def compute_output_row(
+        self,
+        row: List["EinsumSubOp"],
+        row2: Optional[List["EinsumSubOp"]] = None,
+        ab: bool = False,
+        verbose: bool = False,
+    ):
         """
         Updates *row* based on the operator.
         """
         method_name = f"_compute_output_row_{self.name}"
         meth = getattr(self, method_name, None)
         if meth is None:
-            raise NotImplementedError(  # pragma: no cover
+            raise NotImplementedError(
                 f"compute_output_row not implemented for {self.name!r}."
             )
         if verbose and ab:
@@ -358,7 +439,7 @@ class EinsumSubOp:
         meth(row, row2=row2, ab=ab, verbose=verbose)
         self.add_info(o_row=single_axes(row), o_row2=single_axes(row2))
 
-    def add_info(self, **kwargs):
+    def add_info(self, **kwargs: Dict[str, Any]):
         """
         Adds information to the node.
 
@@ -366,64 +447,66 @@ class EinsumSubOp:
         """
         for k, v in kwargs.items():
             if k in self._info:
-                raise KeyError(  # pragma: no cover
-                    f"Key {k!r} already added (operator {self.name!r})."
-                )
+                raise KeyError(f"Key {k!r} already added (operator {self.name!r}).")
             self._info[k] = v
 
-    def _check_inputs_(self, n_expected, check_dim=False):
+    def _check_inputs_(self, n_expected: int, check_dim: bool = False):
         if len(self.inputs) != n_expected:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Number of inputs must be %d not %d for operator %r."
                 "" % (n_expected, len(self.inputs), self.name)
             )
 
-    def _check_shape_(self, m):
+    def _check_shape_(self, m: numpy.ndarray):
         if len(m.shape) != self.full_dim:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Number of dimensions %r is different from expected value "
                 "%d." % (m.shape, self.full_dim)
             )
 
-    def _get_data(self, data, key):
+    def _get_data(self, data: Dict[int, Any], key: Union[int, "EinsumSubOp"]) -> Any:
         if isinstance(key, int):
             if key not in data:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Unable to find key %d in %r." % (key, list(sorted(data)))
                 )
             return data[key]
         if isinstance(key, EinsumSubOp):
             if id(key) not in data:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Unable to find key %d in %r." % (id(key), list(sorted(data)))
                 )
             return data[id(key)]
-        raise TypeError(f"Unexpected input type {type(key)!r}.")  # pragma: no cover
+        raise TypeError(f"Unexpected input type {type(key)!r}.")
 
-    def _apply_id(self, data, verbose=False, **kwargs):
+    def _apply_id(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(1)
         inp = self.inputs[0]
         output = self._get_data(data, inp)
         return output
 
-    def _apply_diagonal(self, data, verbose=False, **kwargs):
+    def _apply_diagonal(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
         if verbose:
-            print(  # pragma: no cover
-                f"- {self.name}, shape={m.shape!r} diag={self.kwargs['diag']!r}"
-            )
+            print(f"- {self.name}, shape={m.shape!r} diag={self.kwargs['diag']!r}")
         diag = self.kwargs["diag"]
         if len(diag) != 1:
-            raise NotImplementedError(  # pragma: no cover
+            raise NotImplementedError(
                 f"Not implemented with more than one duplicated indice {diag!r}."
             )
         diag0 = diag[0]
         output = numpy_diagonal(m, axis=diag0[0], axes=diag0[1])
         return output
 
-    def _apply_expand_dims(self, data, verbose=False, **kwargs):
+    def _apply_expand_dims(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -434,7 +517,9 @@ class EinsumSubOp:
             output = numpy.expand_dims(output, axis[0])
         return output
 
-    def _apply_transpose(self, data, verbose=False, **kwargs):
+    def _apply_transpose(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(1, True)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -445,20 +530,22 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
-    def _apply_transpose_mm(self, data, verbose=False, **kwargs):
+    def _apply_transpose_mm(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(2, True)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
         self._check_shape_(m)
         if verbose:
-            print(  # pragma: no cover
-                f"- {self.name}, shape={m.shape!r} perm={self.kwargs['perm']!r}"
-            )
+            print(f"- {self.name}, shape={m.shape!r} perm={self.kwargs['perm']!r}")
         output = numpy.transpose(m, self.kwargs["perm"])
         self._check_shape_(output)
         return output
 
-    def _apply_matmul(self, data, verbose=False, **kwargs):
+    def _apply_matmul(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(2)
         inp1 = self.inputs[0]
         inp2 = self.inputs[1]
@@ -492,7 +579,9 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
-    def _apply_mul(self, data, verbose=False, **kwargs):
+    def _apply_mul(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(2)
         inp1 = self.inputs[0]
         inp2 = self.inputs[1]
@@ -502,15 +591,15 @@ class EinsumSubOp:
         self._check_shape_(m2)
 
         if verbose:
-            print(  # pragma: no cover
-                f"- {self.name}, shapes={m1.shape!r} @ {m2.shape!r}"
-            )
+            print(f"- {self.name}, shapes={m1.shape!r} @ {m2.shape!r}")
 
         output = m1 * m2
         self._check_shape_(output)
         return output
 
-    def _apply_batch_dot(self, data, verbose=False, **kwargs):
+    def _apply_batch_dot(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(2)
         inp1 = self.inputs[0]
         inp2 = self.inputs[1]
@@ -532,7 +621,7 @@ class EinsumSubOp:
             )
 
         if len(m1.shape) != len(m2.shape):
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "batch_dot only work with two tensors with the same number "
                 "of dimensions not %r @ %r." % (m1.shape, m2.shape)
             )
@@ -589,7 +678,9 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
-    def _apply_reduce_sum(self, data, verbose=False, **kwargs):
+    def _apply_reduce_sum(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -601,7 +692,9 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
-    def _apply_reduce_sum_mm(self, data, verbose=False, **kwargs):
+    def _apply_reduce_sum_mm(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(2, True)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -612,7 +705,9 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
-    def _apply_squeeze(self, data, verbose=False, **kwargs):
+    def _apply_squeeze(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -624,7 +719,9 @@ class EinsumSubOp:
             output = numpy.squeeze(output, axis=a)
         return output
 
-    def apply(self, data, verbose=False, **kwargs):
+    def apply(
+        self, data: Dict[int, Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Any:
         """
         Applies one operator on the data.
 
@@ -637,8 +734,8 @@ class EinsumSubOp:
         Known additional paramaters:
 
         * 'matmul_impl': if None calls :epkg:`numpy:einsum` through
-          @see fn numpy_extended_dot (default) or 'py' to call
-          @see fn numpy_extended_dot_python instead.
+          :func:`numpy_extended_dot` (default) or 'py' to call
+          :func:`numpy_extended_dot_python` instead.
         """
         if verbose:
             print()
@@ -650,9 +747,7 @@ class EinsumSubOp:
         method_name = f"_apply_{self.name}"
         meth = getattr(self, method_name, None)
         if meth is None:
-            raise NotImplementedError(  # pragma: no cover
-                f"apply not implemented for {self.name!r}."
-            )
+            raise NotImplementedError(f"apply not implemented for {self.name!r}.")
         output = meth(data, verbose, **kwargs)
 
         data[id(self)] = output
@@ -660,22 +755,34 @@ class EinsumSubOp:
             print("+ %s, shape=%r -- %d" % (self.name, output.shape, id(self)))
         return output
 
-    def _onnx_name(self):
+    def _onnx_name(self) -> str:
         return "einsum%d_%s" % (id(self), self.name[:2])
 
-    def _check_onnx_opset_(self, opset, limit):
+    def _check_onnx_opset_(self, opset: Optional[int], limit: int):
         if opset is not None and opset < limit:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 f"Opset ({opset!r}) must be >= {limit!r} for operator {self.name!r}."
             )
 
-    def _to_onnx_id(self, names, opset, verbose=False, **kwargs):
+    def _to_onnx_id(
+        self,
+        names: List[str],
+        opset: Optional[int],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Iterable[NodeProto]:
         self._check_inputs_(1)
         inp = self.inputs[0]
         name = self._get_data(names, inp)
         yield helper.make_node("Identity", [name], [self._onnx_name()])
 
-    def _to_onnx_expand_dims(self, names, opset, verbose=False, **kwargs):
+    def _to_onnx_expand_dims(
+        self,
+        names: List[str],
+        opset: Optional[int],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Iterable[NodeProto]:
         self._check_inputs_(1)
         self._check_onnx_opset_(opset, 11)
         inp = self.inputs[0]
@@ -693,7 +800,13 @@ class EinsumSubOp:
             name="Unsqueeze%s_%d" % (s_axes, id(self)),
         )
 
-    def _to_onnx_squeeze(self, names, opset, verbose=False, **kwargs):
+    def _to_onnx_squeeze(
+        self,
+        names: List[str],
+        opset: Optional[int],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Iterable[NodeProto]:
         self._check_inputs_(1)
         self._check_onnx_opset_(opset, 11)
         inp = self.inputs[0]
@@ -711,7 +824,13 @@ class EinsumSubOp:
             name="Squeeze%s_%d" % (s_axes, id(self)),
         )
 
-    def _to_onnx_transpose(self, names, opset, verbose=False, **kwargs):
+    def _to_onnx_transpose(
+        self,
+        names: List[str],
+        opset: Optional[int],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Iterable[NodeProto]:
         self._check_inputs_(1)
         inp = self.inputs[0]
         name = self._get_data(names, inp)
@@ -725,7 +844,13 @@ class EinsumSubOp:
             name="Transpose%s_%d" % (s_perm, id(self)),
         )
 
-    def _to_onnx_reduce_sum(self, names, opset, verbose=False, **kwargs):
+    def _to_onnx_reduce_sum(
+        self,
+        names: List[str],
+        opset: Optional[int],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Iterable[NodeProto]:
         self._check_inputs_(1)
         self._check_onnx_opset_(opset, 11)
         inp = self.inputs[0]
@@ -744,7 +869,9 @@ class EinsumSubOp:
             name="ReduceSum%s_%d" % (s_axes, id(self)),
         )
 
-    def _to_onnx_mul(self, data, verbose=False, **kwargs):
+    def _to_onnx_mul(
+        self, data: List[Any], verbose: bool = False, **kwargs: Dict[str, Any]
+    ) -> Iterable[NodeProto]:
         self._check_inputs_(2)
         inp1 = self.inputs[0]
         inp2 = self.inputs[1]
@@ -753,11 +880,15 @@ class EinsumSubOp:
         yield helper.make_node("Mul", [m1, m2], [self._onnx_name()])
 
     def _to_onnx_batch_dot(
-        self, names, opset, verbose=False, **kwargs
-    ):  # pylint: disable=R0914
+        self,
+        names: List[str],
+        opset: Optional[int],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Iterable[NodeProto]:
         self._check_inputs_(2)
         self._check_onnx_opset_(opset, 13)
-        inp1, inp2 = self.inputs[:2]  # pylint: disable=W0632
+        inp1, inp2 = self.inputs[:2]
         name1 = self._get_data(names, inp1)
         name2 = self._get_data(names, inp2)
 
@@ -1011,7 +1142,13 @@ class EinsumSubOp:
         name_final = root + "_final"
         yield helper.make_node("Reshape", [name_dot, name_new_shape], [name_final])
 
-    def to_onnx(self, names, opset=None, verbose=False, **kwargs):
+    def to_onnx(
+        self,
+        names: List[str],
+        opset: Optional[int],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Iterable[NodeProto]:
         """
         Converts this node into ONNX. Enumerates all ONNX node
         which participate to the conversion. The last one
@@ -1024,7 +1161,7 @@ class EinsumSubOp:
         :return: output
         """
         if opset is None:
-            opset = __max_supported_opset__  # pragma: no cover
+            opset = DEFAULT_OPSET
         if verbose:
             print()
             print(
@@ -1054,7 +1191,7 @@ class EinsumSubOp:
                 print("+ CT %r -- (%s - %d)" % (node.name, self.name, id(self)))
             yield node
 
-    def get_dot_kind(self):
+    def get_dot_kind(self) -> str:
         """
         Every matrix multiplication can be either:
 
@@ -1087,12 +1224,18 @@ class GraphEinsumSubOp:
     operators.
 
     :param letters: list of distinct letters
-    :param mat: matrix, see @see fn analyse_einsum_equation
+    :param mat: matrix, see :func:`analyse_einsum_equation`
     :param lengths: lengths of every input
-    :param duplicates: see @see fn analyse_einsum_equation
+    :param duplicates: see :func:`analyse_einsum_equation`
     """
 
-    def __init__(self, letters, mat, lengths, duplicates):
+    def __init__(
+        self,
+        letters: str,
+        mat: numpy.ndarray,
+        lengths: List[int],
+        duplicates: List[Dict[str, int]],
+    ):
         self._nodes = {}
         self._mark = {}
         self._ops = []
@@ -1107,37 +1250,35 @@ class GraphEinsumSubOp:
             duplicates=duplicates,
         )
 
-    def append(self, op):
+    def append(self, op: Union[int, EinsumSubOp]) -> Optional[EinsumSubOp]:
         """
         Adds one input or result.
 
-        :param op: integer (an input) or an instance of @see cl EinsumSubOp.
+        :param op: integer (an input) or an instance of :class:`EinsumSubOp`.
         :return: op or None if op is an integer
         """
         if isinstance(op, int):
             if op in self._nodes:
-                raise RuntimeError("Key %d already added." % op)  # pragma: no cover
+                raise RuntimeError("Key %d already added." % op)
             self._nodes[op] = op
             self.last_added_op = op
             self._inputs[op] = op
             return None
         if isinstance(op, EinsumSubOp):
             if op in self._nodes:
-                raise RuntimeError(  # pragma: no cover
-                    "Key %d already added, op=%r." % (id(op), op)
-                )
+                raise RuntimeError("Key %d already added, op=%r." % (id(op), op))
             self._nodes[id(op)] = op
             self._ops.append(op)
             self.last_added_op = op
             return op
-        raise TypeError(f"Unexpected type {type(op)!r}.")  # pragma: no cover
+        raise TypeError(f"Unexpected type {type(op)!r}.")
 
     def mark_last_node(self):
         """
         Marks the last node as the final output.
         """
         if self.last_added_op is None:
-            raise RuntimeError("last_added_op is None.")  # pragma: no cover
+            raise RuntimeError("last_added_op is None.")
         self.mark(-1, self.last_added_op)
 
     def mark(self, i, op):
@@ -1145,31 +1286,27 @@ class GraphEinsumSubOp:
         Marks one input or result as an intermediate result
         after a full einsum step.
 
-        :param op: integer (an input) or an instance of @see cl EinsumSubOp.
+        :param op: integer (an input) or an instance of :class:`EinsumSubOp`.
         """
         if not isinstance(i, int):
-            raise TypeError(f"i must an integer not {type(i)!r}.")  # pragma: no cover
+            raise TypeError(f"i must an integer not {type(i)!r}.")
         if i != -1 and i not in self._inputs:
-            raise RuntimeError(  # pragma: no cover
-                "Input %d was not registered in %r." % (i, self._inputs)
-            )
+            raise RuntimeError("Input %d was not registered in %r." % (i, self._inputs))
         if isinstance(op, EinsumSubOp):
             if id(op) not in self._nodes:
-                raise RuntimeError(  # pragma: no cover
-                    "Key %d not found, op=%r." % (id(op), op)
-                )
+                raise RuntimeError("Key %d not found, op=%r." % (id(op), op))
             self._mark[i] = op
             self._mark[id(op)] = i
             self.last_op = op
         else:
-            raise TypeError(f"Unexpected type {type(i)!r}.")  # pragma: no cover
+            raise TypeError(f"Unexpected type {type(i)!r}.")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[EinsumSubOp]:
         "Iterates on nodes."
         for op in self._ops:
             yield op
 
-    def to_dot(self, **kwargs):
+    def to_dot(self, **kwargs: Dict[str, Any]) -> str:
         """
         Produces a graph in :epkg:`dot`.
 
@@ -1255,15 +1392,20 @@ class GraphEinsumSubOp:
         rows.append("}")
         return "\n".join(rows)
 
-    def apply_sequence(self, *inputs, verbose=False, **kwargs):
+    def apply_sequence(
+        self,
+        *inputs: List[EinsumSubOp],
+        verbose: bool = False,
+        **kwargs: Dict[str, Any],
+    ) -> Any:
         """
         Applies a sequence of operations on a list of inputs.
 
-        :param inputs: inputs:
+        :param inputs: inputs
         :param verbose: prints out intermediate results
         :param kwargs: additional parameters,
             see :meth:`apply
-            <mlprodict.testing.einsum.einsum_impl_classes.EinsumSubOp.apply>`.
+            <onnx_extended.tools.einsum.einsum_impl_classes.EinsumSubOp.apply>`.
         :return: output
         """
         if verbose:
@@ -1273,10 +1415,10 @@ class GraphEinsumSubOp:
         for op in self:
             last = op.apply(data, verbose=verbose, **kwargs)
         if last is None:
-            raise RuntimeError("Sequence of operations is empty.")  # pragma: no cover
+            raise RuntimeError("Sequence of operations is empty.")
         return last
 
-    def clean_unused_nodes(self, verbose=False):
+    def clean_unused_nodes(self, verbose: bool = False):
         """
         Cleans nodes with unused outputs.
 
@@ -1328,7 +1470,7 @@ class GraphEinsumSubOp:
         self.last_op = None
         self.last_added_op = None
 
-    def simplify_mm_nodes(self, verbose=False):
+    def simplify_mm_nodes(self, verbose: bool = False):
         """
         Node name suffixed by `mm` are an artifact to keep
         the graph consistent while building it. They can
@@ -1346,14 +1488,14 @@ class GraphEinsumSubOp:
                         " - id=%d" % (op.name, id(op))
                     )
                 if len(op.inputs) != 2:
-                    raise RuntimeError(  # pragma: no cover
+                    raise RuntimeError(
                         "Expecting 2 inputs for node %r not %r id=%r."
                         % (op.name, len(op.inputs), id(op))
                     )
                 op.name = op.name[:-3]
                 op.inputs = op.inputs[:1]
 
-    def _get_forward_nodes(self):
+    def _get_forward_nodes(self) -> Dict[int, EinsumSubOp]:
         """
         Returns the forward nodes.
         """
@@ -1369,7 +1511,7 @@ class GraphEinsumSubOp:
                     forward[key] = [op]
         return forward
 
-    def _pprint_forward(self):
+    def _pprint_forward(self) -> str:
         rows = []
         for op in self:
             line = "%r <- %s(%s)" % (
@@ -1380,7 +1522,9 @@ class GraphEinsumSubOp:
             rows.append(line)
         return "\n".join(rows)
 
-    def _replace_node_sequence(self, added, deleted):
+    def _replace_node_sequence(
+        self, added: List[EinsumSubOp], deleted: List[EinsumSubOp]
+    ):
         """
         Removes a sequence of nodes. The method does not check
         that the graph remains consistent.
@@ -1388,7 +1532,7 @@ class GraphEinsumSubOp:
         forward = self._get_forward_nodes()
         key = id(deleted[-1])
         if key not in forward:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Key {} missing in all forward nodes (other keys {}), "
                 "all keys:\n{}".format(
                     key, [id(_) for _ in deleted], self._pprint_forward()
@@ -1407,7 +1551,7 @@ class GraphEinsumSubOp:
                         mark_input = k
                         dels.append(k)
                 if len(dels) != 1:
-                    raise RuntimeError(  # pragma: no cover
+                    raise RuntimeError(
                         "Input %d has more than one marked operator "
                         "(%r)." % (id(d), dels)
                     )
@@ -1419,7 +1563,7 @@ class GraphEinsumSubOp:
             if id(op) in dels:
                 rem.append(i)
         if len(rem) != len(deleted):
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 f"Mismatched length {rem!r}, {dels!r}, len={len(deleted)!r}."
             )
         for i in reversed(rem):
@@ -1432,7 +1576,7 @@ class GraphEinsumSubOp:
             self._nodes[id(added)] = added
             for op in forward[key]:
                 new_inputs = list(op.inputs)
-                for i in range(len(op.inputs)):  # pylint: disable=C0200
+                for i in range(len(op.inputs)):
                     if id(op.inputs[i]) == key:
                         new_inputs[i] = added
                 op.inputs = tuple(new_inputs)
@@ -1441,20 +1585,18 @@ class GraphEinsumSubOp:
         else:
             inps = deleted[0].inputs
             if len(inps) != 1:
-                raise RuntimeError(  # pragma: no cover
-                    "More than one input. Call another method."
-                )
+                raise RuntimeError("More than one input. Call another method.")
             inp = inps[0]
             for op in forward[key]:
                 new_inputs = list(op.inputs)
-                for i in range(len(op.inputs)):  # pylint: disable=C0200
+                for i in range(len(op.inputs)):
                     if id(op.inputs[i]) == key:
                         new_inputs[i] = inp
                 op.inputs = tuple(new_inputs)
             if mark_input is not None:
                 self.mark(mark_input, inp)
 
-    def remove_duplicate_transpose(self, verbose=False):
+    def remove_duplicate_transpose(self, verbose: bool = False):
         """
         Removes consecutive transpose by merging them.
 
@@ -1485,12 +1627,12 @@ class GraphEinsumSubOp:
                 perm1 = op1.kwargs["perm"]
                 perm2 = op2.kwargs["perm"]
                 if len(perm1) != len(perm2):
-                    raise RuntimeError(  # pragma: no cover
+                    raise RuntimeError(
                         "Transposition should have the same length "
                         "%r, %r." % (perm1, perm2)
                     )
                 perm = list(perm1)
-                for i in range(len(perm)):  # pylint: disable=C0200
+                for i in range(len(perm)):
                     perm[i] = perm1[perm2[i]]
                 if list(range(len(perm))) == perm:
                     # identity, everything needs to be removed
@@ -1501,7 +1643,7 @@ class GraphEinsumSubOp:
                     )
                 self._replace_node_sequence(new_op, [op1, op2])
                 if verbose:
-                    print(  # pragma: no cover
+                    print(
                         "[GraphEinsumSubOp.remove_duplicate_transpose] remove nodes %r"
                         " - id=%d,%d + %d perm1=%r perm2=%r -> perm=%r"
                         % (
@@ -1515,7 +1657,15 @@ class GraphEinsumSubOp:
                         )
                     )
 
-    def to_onnx(self, output, *inputs, dtype=None, verbose=False, opset=None, **kwargs):
+    def to_onnx(
+        self,
+        output: str,
+        *inputs: List[str],
+        dtype: Optional[Any] = None,
+        verbose: bool = False,
+        opset: Optional[int] = None,
+        **kwargs: Dict[str, Any],
+    ) -> ModelProto:
         """
         Converts the graph into ONNX.
 
@@ -1538,11 +1688,11 @@ class GraphEinsumSubOp:
 
             NotImplementedError: to_onnx not implemented for 'matmul'.
         """
-        from ...onnx_tools.optim import onnx_remove_node_unused
+        from ..onnx_nodes import onnx_remove_node_unused
 
         # inputs
         if opset is None:
-            opset = __max_supported_opset__
+            opset = DEFAULT_OPSET
         if verbose:
             print(
                 "[GraphEinsumSubOp.to_onnx] %r -> %s opset=%r "
@@ -1556,11 +1706,11 @@ class GraphEinsumSubOp:
             if isinstance(inp, tuple):
                 name, typ = inp
                 if le != len(typ.shape):
-                    raise ValueError(  # pragma: no cover
+                    raise ValueError(
                         "Irreconcialable shapes for input %r: "
                         "%r != len(%r)." % (name, le, typ.shape)
                     )
-                proto = guess_proto_dtype(guess_numpy_type(typ))
+                proto = guess_proto_dtype(typ)
                 onx_inputs.append(helper.make_tensor_value_info(name, proto, typ.shape))
                 names[len(names)] = name
             else:
@@ -1593,8 +1743,8 @@ class GraphEinsumSubOp:
         # Builds the graph
         model = helper.make_model(
             opset_imports=[helper.make_operatorsetid("", opset)],
-            ir_version=kwargs.get("ir_version", get_ir_version(opset)),
-            producer_name=kwargs.get("producer_name", "mlprodict"),
+            ir_version=kwargs.get("ir_version", DEFAULT_IR_VERSION),
+            producer_name=kwargs.get("producer_name", "onnx_extended"),
             producer_version=kwargs.get("producer_version", "0.0.dev"),
             graph=helper.make_graph(
                 name=kwargs.get("name", "einsum"),

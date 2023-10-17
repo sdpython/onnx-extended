@@ -154,7 +154,7 @@ def _common_check_numpy_extended_dot(
     m1_dim = len(m1.shape)
     m2_dim = len(m2.shape)
     if m1_dim != m2_dim:
-        raise RuntimeError(  # pragma: no cover
+        raise RuntimeError(
             "Matrices m1 and m2 must have the same number of dimensions, "
             "m1=%r, m2=%r." % (m1_dim, m2_dim)
         )
@@ -307,7 +307,7 @@ def numpy_extended_dot_ouput_shape(
             and m1.shape[i] != 1
             and m2.shape[i] != 1
         ):
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Matrices should have the same dimension for dimension %d, "
                 "shapes=%r @ %r." % (i, m1.shape, m2.shape)
             )
@@ -385,7 +385,7 @@ def _numpy_extended_dot_python_update_broadcast(
         return "".join("o" if b else "." for b in c)
 
     if verbose:
-        print(  # pragma: no cover
+        print(
             "[GENERICDOT] before broadcast %s,%s->%s      or %s"
             % (
                 "".join(l1),
@@ -396,14 +396,14 @@ def _numpy_extended_dot_python_update_broadcast(
                 ),
             )
         )
-        print(  # pragma: no cover
+        print(
             "[GENERICDOT] names=%s kind=%r common=%s broadcast=%s"
             % ("".join(names), kind.tolist(), dispb(common), dispb(broadcast))
         )
 
-    for i in range(len(broadcast)):  # pylint: disable=C0200
+    for i in range(len(broadcast)):
         if broadcast[i] and not (kind[i] & 3) == 3:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Broadcast should only happen on common axes, "
                 "axes=%r left=%r right=%r shape1=%r shape2=%r."
                 "" % (axes, left, right, m1.shape, m2.shape)
@@ -416,11 +416,11 @@ def _numpy_extended_dot_python_update_broadcast(
         let = [l1[p], l2[p], l3[p]]
         inp = 1 if dim[0] == 1 else 0
         if verbose:
-            print(  # pragma: no cover
+            print(
                 "[GENERICDOT] name=%s dim=%r let=%r inp=%r p=%r"
                 % (names[i], dim, let, inp, p)
             )
-            print(f"    B0 l1={l1!r}, l2={l2!r} l3={l3!r}")  # pragma: no cover
+            print(f"    B0 l1={l1!r}, l2={l2!r} l3={l3!r}")
         if (kind[i] & 4) > 0:
             # Summation axis is part of the output.
             if let[inp].lower() == let[inp]:
@@ -433,7 +433,7 @@ def _numpy_extended_dot_python_update_broadcast(
             else:
                 l1[p] = let[inp]
             if verbose:
-                print(f"    B1 l1={l1!r}, l2={l2!r} l3={l3!r}")  # pragma: no cover
+                print(f"    B1 l1={l1!r}, l2={l2!r} l3={l3!r}")
         else:
             # Summation axis is not part of the output.
             if let[inp].lower() == let[inp]:
@@ -630,7 +630,7 @@ def numpy_extended_dot_matrix(
     _common_check_numpy_extended_dot(m1, m2, axes, left, right)
 
     if verbose:
-        print(  # pragma: no cover
+        print(
             "[GENERICDOT] shape1=%r shape2=%r axes=%r "
             "left=%r right=%r -- %s"
             % (
@@ -649,9 +649,7 @@ def numpy_extended_dot_matrix(
         # Simple multiplication
         res = m1 * m2
         if verbose:
-            print(  # pragma: no cover
-                f"[GENERICDOT] Mul {m1.shape!r} @ {m2.shape!r} -> {res.shape!r}"
-            )
+            print(f"[GENERICDOT] Mul {m1.shape!r} @ {m2.shape!r} -> {res.shape!r}")
         return res
 
     if len(set(axes) & set(left)) == 0 and len(set(axes) & set(right)) == 0:
@@ -727,7 +725,7 @@ def numpy_extended_dot_matrix(
         dim1 = int(numpy.prod([trm1.shape[i] for i in new_axes]))
         dim2 = int(numpy.prod([trm2.shape[i] for i in new_axes]))
         if dim1 != dim2:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Summation axis do not have the same length %d != %d, "
                 "trshape1=%r trshape2=%r "
                 "p_axes=%r p_left=%r p_right=%r p_common=%r"
@@ -787,7 +785,7 @@ def numpy_extended_dot_matrix(
             )
 
         if len(current_shape) != len(final_shape):
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Shapes mismatch %r > %r, "
                 "shape1=%r shape2=%r axes=%r left=%r right=%r."
                 % (current_shape, final_shape, m1.shape, m2.shape, axes, left, right)
@@ -811,7 +809,7 @@ def numpy_extended_dot_matrix(
         if r_axes and not l_axes:
             new_axes = list(a for a in axes if a not in right)
             new_left = list(sorted(set(left) | r_axes))
-            if verbose:  # pragma: no cover
+            if verbose:
                 eq1 = _numpy_extended_dot_equation(
                     len(m1.shape), len(m1.shape), axes, left, right
                 )
@@ -825,7 +823,7 @@ def numpy_extended_dot_matrix(
             return numpy_extended_dot_matrix(
                 m1, m2, new_axes, new_left, right, verbose=verbose
             )
-        raise RuntimeError(  # pragma: no cover
+        raise RuntimeError(
             "shape1=%r shape2=%r axes=%r left=%r right=%r eq=%s."
             % (
                 m1.shape,

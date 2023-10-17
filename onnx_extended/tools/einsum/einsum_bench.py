@@ -1,20 +1,23 @@
-"""
-@file
-@brief Function to measure the performance of einsum decomposition.
-"""
 from itertools import permutations
+from typing import Any, Dict, Iterable, List, Optional, Union
 import numpy
-from onnx import helper, TensorProto
-from cpyquickhelper.numbers import measure_time
-from ... import __max_supported_opset__, get_ir_version
-from ...tools.ort_wrapper import InferenceSession
-from ...onnxrt import OnnxInference
+from onnx import helper, ModelProto, TensorProto
+from onnx.reference import ReferenceEvaluator
+from onnxruntime import InferenceSession
+from ...ext_test_case import measure_time
+from .einsum_config import DEFAULT_OPSET, DEFAULT_IR_VERSION
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 
 
 def _measure_time(
-    stmt, *x, repeat=5, number=5, div_by_number=True, first_run=True, max_time=None
-):
+    stmt: Any,
+    *x: List[numpy.ndarray],
+    repeat: int = 5,
+    number: int = 5,
+    div_by_number: bool = True,
+    first_run: bool = True,
+    max_time: Optional[float] = None,
+) -> Dict[str, Union[str, float]]:
     """
     Measures a statement and returns the results as a dictionary.
 
@@ -38,7 +41,7 @@ def _measure_time(
     if first_run:
         try:
             stmt(*x)
-        except RuntimeError as e:  # pragma: no cover
+        except RuntimeError as e:
             raise RuntimeError(f"{type(x)}-{getattr(x, 'dtype', '?')}") from e
 
     def fct():
@@ -57,25 +60,21 @@ def _measure_time(
     )
 
 
-def _make_einsum_model(equation, opset=__max_supported_opset__):
+def _make_einsum_model(equation: str, opset: int = DEFAULT_OPSET) -> ModelProto:
     inputs = equation.split("->")[0].split(",")
 
     model = helper.make_model(
         opset_imports=[helper.make_operatorsetid("", opset)],
-        ir_version=get_ir_version(opset),
-        producer_name="mlprodict",
+        ir_version=DEFAULT_IR_VERSION,
+        producer_name="onnx_extended",
         producer_version="0.1",
         graph=helper.make_graph(
             name="einsum_test",
             inputs=[
-                helper.make_tensor_value_info(
-                    "X%d" % i, TensorProto.FLOAT, None
-                )  # pylint: disable=E1101
+                helper.make_tensor_value_info("X%d" % i, TensorProto.FLOAT, None)
                 for i in range(len(inputs))
             ],
-            outputs=[
-                helper.make_tensor_value_info("Y", TensorProto.FLOAT, None)
-            ],  # pylint: disable=E1101
+            outputs=[helper.make_tensor_value_info("Y", TensorProto.FLOAT, None)],
             nodes=[
                 helper.make_node(
                     "Einsum",
@@ -98,7 +97,7 @@ def _make_inputs(equation, shapes):
         shapes = [(N,) * le for le in dims]
     else:
         if len(shapes) != len(inputs):
-            raise ValueError(  # pragma: no cover
+            raise ValueError(
                 f"Unexpected number of shapes {shapes!r} with equation {equation!r}."
             )
     inputs = [numpy.random.randn(*sh) for sh in shapes]
@@ -106,15 +105,15 @@ def _make_inputs(equation, shapes):
 
 
 def einsum_benchmark(
-    equation="abc,cd->abd",
-    shape=30,
-    perm=False,
-    runtime="python",
-    use_tqdm=False,
-    number=5,
-    repeat=5,
-    opset=__max_supported_opset__,
-):
+    equation: str = "abc,cd->abd",
+    shape: int = 30,
+    perm: bool = False,
+    runtime: str = "python",
+    use_tqdm: bool = False,
+    number: int = 5,
+    repeat: int = 5,
+    opset=DEFAULT_OPSET,
+) -> Iterable[Dict[str, Union[str, int]]]:
     """
     Investigates whether or not the decomposing einsum is faster.
 
@@ -161,9 +160,9 @@ def einsum_benchmark(
                 scenarios.append((equation, runtime, dec, sh))
 
     if use_tqdm:
-        from tqdm import tqdm  # pragma: no cover
+        from tqdm import tqdm
 
-        loop = tqdm(scenarios)  # pragma: no cover
+        loop = tqdm(scenarios)
     else:
         loop = scenarios
 
@@ -189,7 +188,7 @@ def einsum_benchmark(
                 )
             sess = InferenceSession(
                 onx.SerializeToString(), providers=["CPUExecutionProvider"]
-            )  # pylint: disable=W0612
+            )
             fct = lambda *x, se=sess: se.run(
                 None, {"X%d" % i: v for i, v in enumerate(x)}
             )
@@ -200,7 +199,7 @@ def einsum_benchmark(
                 onx = seq.to_onnx(
                     "Y", *["X%d" % i for i in range(len(inputs))], opset=opset
                 )
-            oinf = OnnxInference(onx)  # pylint: disable=W0612
+            oinf = ReferenceEvaluator(onx)
             fct = lambda *x, oi=oinf: oi.run({"X%d" % i: v for i, v in enumerate(x)})
         else:
             raise ValueError(f"Unexpected runtime {rt!r}.")

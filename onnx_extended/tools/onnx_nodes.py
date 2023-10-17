@@ -273,7 +273,7 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     modif = 1
     while modif > 0:
         modif = 0
-        for e1, e2 in edges:  # pylint: disable=E1141
+        for e1, e2 in edges:
             if valid.get(e2, False) and not valid.get(e1, False):
                 valid[e1] = True
                 modif += 1

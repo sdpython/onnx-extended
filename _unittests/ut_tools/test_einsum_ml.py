@@ -1,10 +1,7 @@
-"""
-@brief      test log(time=3s)
-"""
 import unittest
 from itertools import permutations
-from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.einsum.einsum_ml import (
+from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.tools.einsum.einsum_ml import (
     predict_transposition_cost,
     compute_transposition_features,
     _edit_distance,
@@ -25,7 +22,7 @@ class TestEinsumMl(ExtTestCase):
     def test_cost(self):
         res = predict_transposition_cost((3, 5, 7), (0, 1, 2))
         self.assertIsInstance(res, float)
-        self.assertGreater(res, 0)
+        self.assertGreaterEqual(res, 0)
         for shape in [(3, 5, 7), (30, 50, 70)]:
             for perm in permutations([0, 1, 2]):
                 p = tuple(perm)

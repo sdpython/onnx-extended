@@ -1,26 +1,23 @@
-"""
-@brief      test log(time=8s)
-"""
 import unittest
 import io
 from contextlib import redirect_stdout
 import itertools
 import numpy
 from onnx import numpy_helper
-from pyquickhelper.pycode import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase
 from onnxruntime import InferenceSession, GraphOptimizationLevel, SessionOptions
-from mlprodict.testing.einsum.einsum_impl_ext import (
+from onnx_extended.tools.einsum.einsum_impl_ext import (
     numpy_diagonal,
     numpy_extended_dot,
     numpy_extended_dot_python,
 )
-from mlprodict.testing.einsum.einsum_impl import (
+from onnx_extended.tools.einsum.einsum_impl import (
     analyse_einsum_equation,
     decompose_einsum_equation,
     EinsumSubOp,
     apply_einsum_sequence,
 )
-from mlprodict.onnxrt import OnnxInference
+from onnx_extended.reference import CReferenceEvaluator
 
 
 class TestEinsum(ExtTestCase):
@@ -110,9 +107,12 @@ class TestEinsum(ExtTestCase):
         self.assertEqual(len(res), 4)
         letters, mat, lengths, duplicates = res
         self.assertEqual(letters, "abch")
-        self.assertEqualArray(lengths, numpy.array([3, 2, 2]))
+        self.assertEqual(lengths, [3, 2, 2])
         self.assertEqualArray(
-            mat, numpy.array([[0, 1, 2, -1], [-1, -1, 0, 1], [0, -1, -1, 1]])
+            mat,
+            numpy.array(
+                [[0, 1, 2, -1], [-1, -1, 0, 1], [0, -1, -1, 1]], dtype=numpy.int8
+            ),
         )
         self.assertEqual(duplicates, [None, None, None])
 
@@ -121,9 +121,11 @@ class TestEinsum(ExtTestCase):
         self.assertEqual(len(res), 4)
         letters, mat, lengths, duplicates = res
         self.assertEqual(letters, "ac")
-        self.assertEqualArray(lengths, numpy.array([3, 2, 2]))
+        self.assertEqual(lengths, [3, 2, 2])
         self.assertEqual(duplicates, [{"a": [0, 1], "c": [2]}, None, {"a": [0, 1]}])
-        self.assertEqualArray(mat, numpy.array([[1, 2], [1, 0], [1, -1]]))
+        self.assertEqualArray(
+            mat, numpy.array([[1, 2], [1, 0], [1, -1]], dtype=numpy.int8)
+        )
 
     def test_decompose_einsum_equation_exc(self):
         self.assertRaise(
@@ -228,9 +230,7 @@ class TestEinsum(ExtTestCase):
                 )
                 if strat == "simple":
                     self.assertRaise(
-                        lambda: apply_einsum_sequence(
-                            seq, m1, m2, matmul_impl="py2"
-                        ),  # pylint: disable=W0640
+                        lambda: apply_einsum_sequence(seq, m1, m2, matmul_impl="py2"),
                         ValueError,
                     )
                 self.assertEqualArray(res1, res2)
@@ -251,9 +251,7 @@ class TestEinsum(ExtTestCase):
                 )
                 if strat == "simple":
                     self.assertRaise(
-                        lambda: apply_einsum_sequence(
-                            seq, m1, m2, matmul_impl="py2"
-                        ),  # pylint: disable=W0640
+                        lambda: apply_einsum_sequence(seq, m1, m2, matmul_impl="py2"),
                         ValueError,
                     )
                 self.assertEqualArray(res1, res2)
@@ -262,34 +260,36 @@ class TestEinsum(ExtTestCase):
         m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
         m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
         verbose = False
-        for strat, opname in [("numpy", "batch_dot")]:  # pylint: disable=W0612
+        for strat, opname in [("numpy", "batch_dot")]:
             with self.subTest(strategy=strat):
                 seq = decompose_einsum_equation(
                     "bac,ch->ah", (2, 3, 4), (4, 5), strategy=strat, verbose=verbose
                 )
                 res1 = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
                 self.assertRaise(
-                    lambda: seq.to_onnx(  # pylint: disable=W0640
-                        "Y", "X1", "X2", dtype=numpy.float32
-                    ),
+                    lambda: seq.to_onnx("Y", "X1", "X2", dtype=numpy.float32),
                     NotImplementedError,
                 )
                 seq.simplify_mm_nodes()
                 seq.clean_unused_nodes()
                 onx = seq.to_onnx("Y", "X1", "X2", dtype=numpy.float32)
 
-                oinf = OnnxInference(onx)
+                oinf = CReferenceEvaluator(onx)
                 oxres = oinf.run(
-                    {"X1": m1.astype(numpy.float32), "X2": m2.astype(numpy.float32)}
+                    None,
+                    {"X1": m1.astype(numpy.float32), "X2": m2.astype(numpy.float32)},
                 )
-                res2 = oxres["Y"]
+                res2 = oxres[0]
                 self.assertEqualArray(res1, res2)
 
-                oinf = OnnxInference(onx, runtime="onnxruntime1")
-                oxres = oinf.run(
-                    {"X1": m1.astype(numpy.float32), "X2": m2.astype(numpy.float32)}
+                oinf = InferenceSession(
+                    onx.SerializeToString(), providers=["CPUExecutionProvider"]
                 )
-                res2 = oxres["Y"]
+                oxres = oinf.run(
+                    None,
+                    {"X1": m1.astype(numpy.float32), "X2": m2.astype(numpy.float32)},
+                )
+                res2 = oxres[0]
                 self.assertEqualArray(res1, res2)
 
     def test_decompose_einsum_equation_onnx2(self):
@@ -297,7 +297,7 @@ class TestEinsum(ExtTestCase):
         m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
         m3 = numpy.arange(0, 77 * 5).astype(numpy.float32).reshape((5, 7, 11))
         verbose = False
-        for strat, opname in [("numpy", "batch_dot")]:  # pylint: disable=W0612
+        for strat, opname in [("numpy", "batch_dot")]:
             with self.subTest(strategy=strat):
                 seq = decompose_einsum_equation(
                     "bac,cd,def->ebc",
@@ -312,31 +312,37 @@ class TestEinsum(ExtTestCase):
                 seq.clean_unused_nodes()
                 onx = seq.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32)
 
-                oinf = OnnxInference(onx)
+                oinf = CReferenceEvaluator(onx)
                 oxres = oinf.run(
+                    None,
                     {
                         "X1": m1.astype(numpy.float32),
                         "X2": m2.astype(numpy.float32),
                         "X3": m3.astype(numpy.float32),
-                    }
+                    },
                 )
-                res2 = oxres["Y"]
+                res2 = oxres[0]
                 self.assertEqualArray(res1, res2)
 
-                oinf = OnnxInference(onx, runtime="onnxruntime2")
+                oinf = InferenceSession(
+                    onx.SerializeToString(), providers=["CPUExecutionProvider"]
+                )
                 oxres = oinf.run(
+                    None,
                     {
                         "X1": m1.astype(numpy.float32),
                         "X2": m2.astype(numpy.float32),
                         "X3": m3.astype(numpy.float32),
-                    }
+                    },
                 )
-                res2 = oxres["Y"]
+                res2 = oxres[0]
                 self.assertEqualArray(res1, res2)
 
                 so = SessionOptions()
                 so.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
-                oinf = InferenceSession(onx.SerializeToString(), so)
+                oinf = InferenceSession(
+                    onx.SerializeToString(), so, providers=["CPUExecutionProvider"]
+                )
                 oxres = oinf.run(
                     None,
                     {
@@ -401,6 +407,8 @@ class TestEinsum(ExtTestCase):
     def test_many_2(self):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
         m2 = numpy.arange(4).reshape((2, 2)) + 100
+        m1 = m1.astype(numpy.float32)
+        m2 = m2.astype(numpy.float32)
 
         res = []
         for p1 in itertools.permutations(list("abc")):
@@ -443,21 +451,23 @@ class TestEinsum(ExtTestCase):
                 res = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
                 self.assertEqualArray(exp, res)
                 onx = seq.to_onnx("Y", "X1", "X2", dtype=numpy.float32)
-                oinf = OnnxInference(onx)
+                oinf = CReferenceEvaluator(onx)
                 res2 = oinf.run(
+                    None,
                     {"X1": m1.astype(numpy.float32), "X2": m2.astype(numpy.float32)},
-                    verbose=verbose,
-                    fLOG=print,
                 )
-                self.assertEqualArray(exp, res2["Y"])
+                self.assertEqualArray(exp, res2[0])
 
     def test_many_3(self):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
         m2 = numpy.arange(4).reshape((2, 2)) + 100
         m3 = numpy.arange(8).reshape((2, 2, 2)) + 1000
+        m1 = m1.astype(numpy.float32)
+        m2 = m2.astype(numpy.float32)
+        m3 = m3.astype(numpy.float32)
 
         res = []
-        for p1 in itertools.permutations(list("abc")):  # pylint: disable=R1702
+        for p1 in itertools.permutations(list("abc")):
             for p2 in itertools.permutations(list("cd")):
                 for p3 in itertools.permutations(list("def")):
                     for i in [1, 2]:
@@ -488,17 +498,16 @@ class TestEinsum(ExtTestCase):
                 res = apply_einsum_sequence(seq, m1, m2, m3, verbose=verbose)
                 self.assertEqualArray(exp, res)
                 onx = seq.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32)
-                oinf = OnnxInference(onx)
+                oinf = CReferenceEvaluator(onx)
                 res2 = oinf.run(
+                    None,
                     {
                         "X1": m1.astype(numpy.float32),
                         "X2": m2.astype(numpy.float32),
                         "X3": m3.astype(numpy.float32),
                     },
-                    verbose=verbose,
-                    fLOG=print,
                 )
-                self.assertEqualArray(exp, res2["Y"])
+                self.assertEqualArray(exp, res2[0])
 
     # Taken from https://github.com/numpy/numpy/blob/main/numpy/
     # core/tests/test_einsum.py.
@@ -517,7 +526,7 @@ class TestEinsum(ExtTestCase):
                             .reshape((2,) * len(eq))
                             .astype(numpy.float32)
                         )
-                        inputs.append(i + numpy.array([3**d], dtype=numpy.float32))
+                        inputs.append((i + numpy.array([3**d])).astype(numpy.float32))
 
                 exp = numpy.einsum(equation, *inputs)
                 if verbose:
@@ -539,7 +548,7 @@ class TestEinsum(ExtTestCase):
                         clean=clean,
                     )
                     got = apply_einsum_sequence(seq, *inputs, verbose=vv)
-                    self.assertEqualArray(exp, got, decimal=6)
+                    self.assertEqualArray(exp, got, atol=1e-6)
 
                 if clean:
                     with self.subTest(strategy="onnx"):
@@ -552,19 +561,21 @@ class TestEinsum(ExtTestCase):
                             else:
                                 raise e
                         if onx is not None:
-                            oinf = OnnxInference(onx)
+                            oinf = CReferenceEvaluator(onx)
                             inps = {
                                 n: v.astype(numpy.float32) for n, v in zip(inps, inputs)
                             }
-                            got = oinf.run(inps, verbose=vv, fLOG=print)["Y"]
-                            self.assertEqualArray(exp, got, decimal=5)
+                            got = oinf.run(None, inps)[0]
+                            self.assertEqualArray(
+                                exp.astype(numpy.float32), got, atol=1e-5
+                            )
 
                 with self.subTest(strategy="simple"):
                     seq = decompose_einsum_equation(
                         equation, *shapes, clean=clean, verbose=verbose
                     )
                     got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
-                    self.assertEqualArray(exp, got, decimal=6)
+                    self.assertEqualArray(exp, got, atol=1e-6)
 
     def test_numpy_test_hadamard_like_products(self):
         # Hadamard outer products
@@ -625,7 +636,7 @@ class TestEinsum(ExtTestCase):
         # gh-10792
         a = numpy.arange(9).reshape(1, 1, 3, 1, 3)
         b = numpy.einsum("bbcdc->d", a)
-        self.assertEqualArray(b, [12])
+        self.assertEqual(b.tolist(), [12])
 
     def test_np_test_broadcasting_dot_cases1(self):
         # Ensures broadcasting cases are not mistaken for GEMM
@@ -709,19 +720,19 @@ class TestEinsum(ExtTestCase):
             exp = numpy.einsum("bid,nd->bin", inp1, inp2)
             seq = decompose_einsum_equation("bid,nd->bin", clean=True, strategy="numpy")
             got = apply_einsum_sequence(seq, inp1, inp2)
-            self.assertEqualArray(exp, got, decimal=3)
+            self.assertEqualArray(exp, got, atol=1e-6)
 
             onx = seq.to_onnx("Y", "X1", "X2")
-            oinf = OnnxInference(onx)
-            got = oinf.run({"X1": inp1, "X2": inp2})["Y"]
-            self.assertEqualArray(exp, got, decimal=3)
+            oinf = CReferenceEvaluator(onx)
+            got = oinf.run(None, {"X1": inp1, "X2": inp2})[0]
+            self.assertEqualArray(exp, got, atol=1e-6)
 
             onx = seq.to_onnx(
                 "Y", "X1", "X2", initializer=[numpy_helper.from_array(inp2, name="X2")]
             )
-            oinf = OnnxInference(onx)
-            got = oinf.run({"X1": inp1})["Y"]
-            self.assertEqualArray(exp, got, decimal=3)
+            oinf = CReferenceEvaluator(onx)
+            got = oinf.run(None, {"X1": inp1})[0]
+            self.assertEqualArray(exp, got, atol=1e-6)
 
         inp1 = numpy.arange(2 * 3 * 5).reshape((2, 3, 5)).astype(numpy.float32)
         inp2 = numpy.arange(5 * 7).reshape((5, 7)).astype(numpy.float32)
@@ -745,15 +756,17 @@ class TestEinsum(ExtTestCase):
 
         onx = seq.to_onnx("Y", "X1", "X2")
         self.assertNotIn("Transpose", str(onx))
-        oinf = OnnxInference(onx)
+        oinf = CReferenceEvaluator(onx)
         res = oinf.run(
-            {"X1": inp1.astype(numpy.float32), "X2": inp2.astype(numpy.float32)}
+            None, {"X1": inp1.astype(numpy.float32), "X2": inp2.astype(numpy.float32)}
         )
-        oinf = OnnxInference(onx, runtime="onnxruntime1")
+        oinf = InferenceSession(
+            onx.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
         res = oinf.run(
-            {"X1": inp1.astype(numpy.float32), "X2": inp2.astype(numpy.float32)}
+            None, {"X1": inp1.astype(numpy.float32), "X2": inp2.astype(numpy.float32)}
         )
-        got = res["Y"]
+        got = res[0]
         self.assertEqualArray(exp, got)
         for op in seq:
             if op.name == "batch_dot":
@@ -763,4 +776,8 @@ class TestEinsum(ExtTestCase):
 
 if __name__ == "__main__":
     # TestEinsum().test_np_test_broadcasting_dot_cases1()
-    unittest.main()
+    import logging
+
+    logging.getLogger("skl2onnx").setLevel(logging.ERROR)
+    logging.getLogger("onnx-extended").setLevel(logging.ERROR)
+    unittest.main(verbosity=2)

@@ -1,28 +1,23 @@
-"""
-@file
-@brief Main functions decomposing einsum computation into
-more simple functions.
-"""
 from itertools import permutations
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 import time
 import math
 import numpy
-from onnx import helper
-from ...onnx_tools.onnx2py_helper import guess_proto_dtype
-from ...onnxrt.onnx_micro_runtime import OnnxMicroRuntime
-from ... import __max_supported_opset__, get_ir_version
+from onnx import helper, TensorProto
+from onnx.reference import ReferenceEvaluator
+from .einsum_config import DEFAULT_OPSET, DEFAULT_IR_VERSION, guess_proto_dtype
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 from .einsum_ml import predict_transposition_cost
 
 
-_einsum_cache = {}
+_einsum_cache: Dict[int, Any] = {}
 
 
-def enumerate_cached_einsum():
+def enumerate_cached_einsum() -> Iterable[Tuple[int, Any]]:
     """
     Enumerates all cached einsum function.
     """
-    global _einsum_cache  # pylint: disable=W0603,W0602
+    global _einsum_cache
     for k, v in _einsum_cache.items():
         yield k, v
 
@@ -34,7 +29,7 @@ class CachedEinsum:
 
     :param equation: numpy equation
     :param runtime: see :func:`einsum
-        <mlprodict.testing.einsum.einsum_fct.einsum>`
+        <onnx_extended.tools.einsum.einsum_fct.einsum>`
     :param opset: ONNX opset
     :param optimize: finds the best letter permutation
     :param dtype: dtype
@@ -48,22 +43,22 @@ class CachedEinsum:
     * `equation_` corresponding to the best equivalent equation
     * `graph_`: the corresponding graph returned by function
         :func:`decompose_einsum_equation
-        <mlprodict.testing.einsum.einsum_impl.decompose_einsum_equation> `
+        <onnx_extended.tools.einsum.einsum_impl.decompose_einsum_equation> `
     * `onnx_`: if a conversion to onnx is used, stores the onnx graph
     * `runtime_`: a function used by `__call__`, calls the runtime
     """
 
     def __init__(
         self,
-        equation,
-        runtime="batch_dot",
-        opset=None,
-        optimize=False,
-        dtype=numpy.float64,
-        decompose=True,
-        strategy=None,
-        verbose=None,
-        key=None,
+        equation: str,
+        runtime: str = "batch_dot",
+        opset: Optional[int] = None,
+        optimize: bool = False,
+        dtype: Any = numpy.float64,
+        decompose: bool = True,
+        strategy: Optional[str] = None,
+        verbose: Optional[bool] = None,
+        key: Optional[int] = None,
     ):
         self.equation = equation
         self.runtime = runtime
@@ -89,7 +84,7 @@ class CachedEinsum:
             self.key,
         )
 
-    def default_inputs(self, N=None):
+    def default_inputs(self, N: Optional[int] = None) -> List[numpy.ndarray]:
         """
         Returns default inputs (reshaped numpy.arange + 0.7i).
 
@@ -123,22 +118,22 @@ class CachedEinsum:
         elif self.strategy == "ml":
             self.equation_ = self._build_optimize_ml()
         else:
-            raise ValueError(f"Unknown strategy {self.strategy!r}.")  # pragma error
+            raise ValueError(f"Unknown strategy {self.strategy!r}.")
         self.build_runtime()
 
-    def _build_optimize(self):
+    def _build_optimize(self) -> str:
         # loops over all permutations
         if self.equation.lower() != self.equation:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 f"Only lower equation can be optimized, {self.equation!r} is not."
             )
         letters = list(sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
         if self.verbose:
-            from tqdm import tqdm  # pragma: no cover
+            from tqdm import tqdm
 
-            subset = tqdm(possible)  # pragma: no cover
+            subset = tqdm(possible)
         else:
             subset = possible
         best = []
@@ -181,19 +176,19 @@ class CachedEinsum:
         self.timed_permutations_ = confs
         return best[0][1]
 
-    def _build_optimize_ml(self):
+    def _build_optimize_ml(self) -> str:
         # loops over all permutations
         if self.equation.lower() != self.equation:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 f"Only lower equation can be optimized, {self.equation!r} is not."
             )
         letters = list(sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
         if self.verbose:
-            from tqdm import tqdm  # pragma: no cover
+            from tqdm import tqdm
 
-            subset = tqdm(possible)  # pragma: no cover
+            subset = tqdm(possible)
         else:
             subset = possible
         best = []
@@ -220,20 +215,18 @@ class CachedEinsum:
             if hasattr(inst, "onnx_"):
                 onx = inst.onnx_
             else:
-                from skl2onnx.common.data_types import FloatTensorType  # delayed
-
                 inits = [
-                    ("X%d" % i, FloatTensorType(list(inputs[i].shape)))
+                    ("X%d" % i, (TensorProto.FLOAT, inputs[i].shape))
                     for i in range(len(inputs))
                 ]
                 onx = inst.graph_.to_onnx("Y", *inits, opset=self.opset)
 
-            rt = OnnxMicroRuntime(onx)
+            rt = ReferenceEvaluator(onx)
             dict_inputs = {"X%d" % i: inp for i, inp in enumerate(inputs)}
-            out = rt.run(dict_inputs)
+            out = rt.run(None, dict_inputs)
 
             transposes = []
-            for node in onx.graph.node:  # pylint: disable=E1101
+            for node in onx.graph.node:
                 if node.op_type == "Transpose":
                     shape = [(d * 10 if d > 1 else d) for d in out[node.input[0]].shape]
                     transposes.append([shape, list(node.attribute[0].ints)])
@@ -254,12 +247,12 @@ class CachedEinsum:
         self.timed_permutations_ = confs
         return best[0][1]
 
-    def build_onnx_einsum(self, input_names):
+    def build_onnx_einsum(self, input_names: List[str]) -> str:
         """
         Builds an ONNX graph with a single einsum operator.
         """
-        opset = self.opset if self.opset is not None else __max_supported_opset__
-        ir_version = get_ir_version(opset)
+        opset = self.opset if self.opset is not None else DEFAULT_OPSET
+        ir_version = DEFAULT_IR_VERSION
         proto_type = guess_proto_dtype(
             numpy.float32 if self.dtype is None else self.dtype
         )
@@ -267,7 +260,7 @@ class CachedEinsum:
         model = helper.make_model(
             opset_imports=[helper.make_operatorsetid("", opset)],
             ir_version=ir_version,
-            producer_name="mlprodict",
+            producer_name="onnx_extended",
             producer_version="0.0.1",
             graph=helper.make_graph(
                 name="einsum",
@@ -290,6 +283,19 @@ class CachedEinsum:
         Builds the runtime associated to the
         equation `self.equation_`.
         """
+        if self.runtime == "python":
+            from ...reference import CReferenceEvaluator
+
+            cls = CReferenceEvaluator
+        elif self.runtime == "onnxruntime":
+            from onnxruntime import InferenceSession
+
+            cls = InferenceSession
+        elif self.runtime == "batch_dot":
+            cls = None
+        else:
+            raise TypeError(f"Unexpected runtime {self.runtime!r}.")
+
         if self.decompose:
             self.graph_ = decompose_einsum_equation(
                 self.equation_, strategy="numpy", clean=True
@@ -298,9 +304,7 @@ class CachedEinsum:
                 self.runtime_ = lambda *inputs: apply_einsum_sequence(
                     self.graph_, *inputs
                 )
-            elif self.runtime in ("python", "onnxruntime1"):
-                from ...onnxrt import OnnxInference
-
+            else:
                 n_inputs = len(self.graph_.metadata["lengths"]) - 1
                 input_names = ["X%d" % i for i in range(n_inputs)]
                 self.onnx_names_ = input_names
@@ -308,59 +312,40 @@ class CachedEinsum:
                     "Y", *input_names, opset=self.opset, dtype=self.dtype
                 )
                 self.onnx_ = onx
-                rt = "python_compiled" if self.runtime == "python" else self.runtime
-                self.oinf_ = OnnxInference(
-                    self.onnx_, runtime=rt, runtime_options=dict(log_severity_level=3)
-                )
+                self.oinf_ = cls(self.onnx_.SerializeToString())
                 self.runtime_ = lambda *inputs: self.oinf_.run(
-                    {i: v for i, v in zip(self.onnx_names_, inputs)}
-                )["Y"]
-            else:
-                raise ValueError(  # pragma: no cover
-                    f"Unexpected runtime {self.runtime!r}."
-                )
+                    None, {i: v for i, v in zip(self.onnx_names_, inputs)}
+                )[0]
         else:
-            if self.runtime in ("python", "onnxruntime1"):
-                from ...onnxrt import OnnxInference
+            n_inputs = len(self.equation.split("->")[0].split(","))
+            input_names = ["X%d" % i for i in range(n_inputs)]
+            self.onnx_ = self.build_onnx_einsum(input_names)
+            self.onnx_names_ = input_names
+            self.oinf_ = cls(self.onnx_.SerializeToString())
+            self.runtime_ = lambda *inputs: self.oinf_.run(
+                None, {i: v for i, v in zip(self.onnx_names_, inputs)}
+            )[0]
 
-                n_inputs = len(self.equation.split("->")[0].split(","))
-                input_names = ["X%d" % i for i in range(n_inputs)]
-                self.onnx_ = self.build_onnx_einsum(input_names)
-                self.onnx_names_ = input_names
-                rt = "python_compiled" if self.runtime == "python" else self.runtime
-                self.oinf_ = OnnxInference(
-                    self.onnx_, runtime=rt, runtime_options=dict(log_severity_level=3)
-                )
-                self.runtime_ = lambda *inputs: self.oinf_.run(
-                    {i: v for i, v in zip(self.onnx_names_, inputs)}
-                )["Y"]
-            else:
-                raise ValueError(  # pragma: no cover
-                    f"Unexpected runtime {self.runtime!r}."
-                )
-
-    def __call__(self, *inputs):
+    def __call__(self, *inputs: List[numpy.ndarray]) -> List[numpy.ndarray]:
         """
         Calls the runtime `self.runtime_`.
         """
         if not hasattr(self, "runtime_"):
-            raise RuntimeError(  # pragma: no cover
-                "Method build_runtime was not called."
-            )
+            raise RuntimeError("Method build_runtime was not called.")
         return self.runtime_(*inputs)
 
     @staticmethod
     def build_einsum(
-        equation,
-        runtime,
-        opset,
-        optimize,
-        dtype,
-        decompose=True,
-        strategy=None,
-        verbose=None,
-        key=None,
-    ):
+        equation: str,
+        runtime: str,
+        opset: int,
+        optimize: bool,
+        dtype: Any,
+        decompose: bool = True,
+        strategy: Optional[str] = None,
+        verbose: Optional[bool] = None,
+        key: Optional[int] = None,
+    ) -> "CachedEinsum":
         """
         Creates an instance of *CachedEinsum*.
         """
@@ -380,17 +365,17 @@ class CachedEinsum:
 
 
 def _einsum(
-    equation,
-    dtype,
-    optimize=False,
-    runtime="batch_dot",
-    cache=True,
-    opset=None,
-    decompose=True,
-    strategy=None,
-    verbose=None,
-):
-    global _einsum_cache  # pylint: disable=W0603,W0602
+    equation: str,
+    dtype: Any,
+    optimize: bool = False,
+    runtime: str = "batch_dot",
+    cache: bool = True,
+    opset: Optional[int] = None,
+    decompose: bool = True,
+    strategy: Optional[str] = None,
+    verbose: Optional[bool] = None,
+) -> CachedEinsum:
+    global _einsum_cache
     cached = None
     if cache:
         key = equation, runtime, opset, optimize, dtype, decompose, strategy
@@ -417,16 +402,16 @@ def _einsum(
 
 
 def optimize_decompose_einsum_equation(
-    equation,
-    dtype,
-    optimize=False,
-    runtime="batch_dot",
-    cache=True,
-    opset=None,
-    decompose=True,
-    strategy=None,
-    verbose=None,
-):
+    equation: str,
+    dtype: Any,
+    optimize: bool = False,
+    runtime: str = "batch_dot",
+    cache: bool = True,
+    opset: Optional[int] = None,
+    decompose: bool = True,
+    strategy: Optional[str] = None,
+    verbose: Optional[bool] = None,
+) -> CachedEinsum:
     """
     Proposes a new implementation of :epkg:`numpy:einsum`.
     It does not allow expresion using `...` and expects
@@ -473,17 +458,17 @@ def optimize_decompose_einsum_equation(
     * `equation_` corresponding to the best equivalent equation
     * `graph_`: the corresponding graph returned by function
         :func:`decompose_einsum_equation
-        <mlprodict.testing.einsum.einsum_impl.decompose_einsum_equation> `
+        <onnx_extended.tools.einsum.einsum_impl.decompose_einsum_equation> `
     * `onnx_`: if a conversion to onnx is used, stores the onnx graph
     * `runtime_`: a function used by `__call__`, calls the runtime
-    * `oinf_`: an object of type @see cl OnnxInference
+    * `oinf_`: an object of type @see cl CReferenceEvaluator
     * `timed_permutations_`: memorizes the results of the optimization
 
     .. runpython::
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum import optimize_decompose_einsum_equation
+        from onnx_extended.tools.einsum import optimize_decompose_einsum_equation
 
         seq_opt = optimize_decompose_einsum_equation(
             "bsnh,btnh->bnts", numpy.float64, strategy='ml', verbose=1,
@@ -507,16 +492,16 @@ def optimize_decompose_einsum_equation(
 
 
 def einsum(
-    equation,
-    *inputs,
-    optimize=False,
-    runtime="batch_dot",
-    cache=True,
-    opset=None,
-    decompose=True,
-    strategy=None,
-    verbose=None,
-):
+    equation: str,
+    *inputs: List[numpy.ndarray],
+    optimize: bool = False,
+    runtime: str = "batch_dot",
+    cache: bool = True,
+    opset: Optional[int] = None,
+    decompose: bool = True,
+    strategy: Optional[str] = None,
+    verbose: Optional[bool] = None,
+) -> numpy.ndarray:
     """
     Proposes a new implementation of :epkg:`numpy:einsum`.
     It does not allow expresion using `...` and expects
@@ -566,7 +551,7 @@ def einsum(
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum import einsum
+        from onnx_extended.tools.einsum import einsum
 
         equation = "abc,cd->abd"
 
@@ -577,7 +562,7 @@ def einsum(
         print('numpy.einsum')
         print(np)
 
-        print('mlprodict.testing.einsum')
+        print('onnx_extended.tools.einsum')
         mp = einsum(equation, m1, m2)
         print(mp)
 
@@ -590,8 +575,8 @@ def einsum(
 
         import timeit
         import numpy
-        from mlprodict.testing.einsum import einsum
-        from mlprodict.testing.einsum.einsum_fct import enumerate_cached_einsum
+        from onnx_extended.tools.einsum import einsum
+        from onnx_extended.tools.einsum.einsum_fct import enumerate_cached_einsum
 
         equation = "cab,cd->ad"
 
@@ -641,9 +626,9 @@ def einsum(
         import os
         from pyquickhelper.pycode.profiling import profile
         import numpy
-        from mlprodict.testing.einsum import einsum
-        from mlprodict.testing.einsum.einsum_fct import enumerate_cached_einsum
-        from mlprodict import __file__ as path
+        from onnx_extended.tools.einsum import einsum
+        from onnx_extended.tools.einsum.einsum_fct import enumerate_cached_einsum
+        from onnx_extended import __file__ as path
 
         root = os.path.dirname(path)
 
@@ -653,7 +638,7 @@ def einsum(
         m2 = numpy.random.randn(200, 20)
 
         def clean(txt):
-            txt = txt.replace(root, "mlprodict")
+            txt = txt.replace(root, "onnx_extended")
             return "\\n".join(txt.split("\\n")[:30])
 
         def fct1():
@@ -709,10 +694,10 @@ def einsum(
         print(clean(res[1]))
     """
     if len(inputs) == 0:
-        raise ValueError("No inputs found.")  # pragma: no cover
+        raise ValueError("No inputs found.")
     dtypes = set(i.dtype for i in inputs)
     if len(dtypes) != 1:
-        raise ValueError(  # pragma: no cover
+        raise ValueError(
             "All inputs do not have the same type (%r), "
             "all of them should be cast before called einsum."
             "" % dtypes
