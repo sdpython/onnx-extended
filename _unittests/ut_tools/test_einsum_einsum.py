@@ -38,7 +38,7 @@ class TestEinsumEinsum(ExtTestCase):
             for dtype in [numpy.float32, numpy.float64]:
                 if not double and dtype == numpy.float64:
                     continue
-                decimal = 5 if dtype == numpy.float32 else 8
+                atol = 1e-5 if dtype == numpy.float32 else 1e-8
                 with self.subTest(
                     dt=dtype,
                     rt=rt,
@@ -59,9 +59,9 @@ class TestEinsumEinsum(ExtTestCase):
                         kwargs["verbose"] = 1
                     exp = numpy.einsum(equation, *typed)
                     got = einsum(equation, *typed, **kwargs)
-                    self.assertEqualArray(exp, got, decimal=decimal)
+                    self.assertEqualArray(exp, got, atol=atol)
                     got = einsum(equation, *typed, **kwargs)
-                    self.assertEqualArray(exp, got, decimal=decimal)
+                    self.assertEqualArray(exp, got, atol=atol)
 
     def test_einsum(self):
         self.common_test("abc,cd->abd")
@@ -108,5 +108,8 @@ class TestEinsumEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsumEinsum().test_einsum_optimize_ml_mul2()
+    import logging
+
+    logging.getLogger("skl2onnx").setLevel(logging.ERROR)
+    logging.getLogger("onnx-extended").setLevel(logging.ERROR)
     unittest.main()

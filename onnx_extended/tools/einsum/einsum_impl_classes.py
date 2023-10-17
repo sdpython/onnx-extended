@@ -1704,14 +1704,13 @@ class GraphEinsumSubOp:
         names = {}
         for inp, le in zip(inputs, lengths):
             if isinstance(inp, tuple):
-                name, typ = inp
-                if le != len(typ.shape):
+                name, (typ, shape) = inp
+                if le != len(shape):
                     raise ValueError(
                         "Irreconcialable shapes for input %r: "
                         "%r != len(%r)." % (name, le, typ.shape)
                     )
-                proto = guess_proto_dtype(typ)
-                onx_inputs.append(helper.make_tensor_value_info(name, proto, typ.shape))
+                onx_inputs.append(helper.make_tensor_value_info(name, typ, shape))
                 names[len(names)] = name
             else:
                 onx_inputs.append(

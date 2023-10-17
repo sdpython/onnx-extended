@@ -483,7 +483,9 @@ class CachedEinsum:
         elif self.runtime == "onnxruntime":
             from onnxruntime import InferenceSession
 
-            cls = InferenceSession
+            cls = lambda obj: InferenceSession(  # noqa: E731
+                obj, providers=["CPUExecutionProvider"]
+            )
         elif self.runtime == "batch_dot":
             cls = None
         else:
