@@ -914,6 +914,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_combinations(self):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
 
@@ -921,12 +922,12 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             ((2, 3), (3, 5), 0, 0, 1),
             ((2, 3), (5, 3), 0, 1, 1),
             ((2, 3), (5, 2), 1, 1, 1),
-            ((3, 2), (5, 2), 1, 0, 1),
+            ((2, 3), (2, 5), 1, 0, 1),
             #
-            ((2, 3), (5, 2), 0, 0, 0),
-            ((2, 3), (2, 5), 0, 1, 0),
-            ((3, 2), (2, 5), 1, 1, 0),
-            ((3, 2), (5, 2), 1, 0, 0),
+            ((2, 3), (3, 5), 0, 0, 0),
+            ((2, 3), (5, 3), 0, 1, 0),
+            ((2, 3), (5, 2), 1, 1, 0),
+            ((2, 3), (2, 5), 1, 0, 0),
         ]:
             with self.subTest(
                 shapeA=shapeA,
@@ -939,7 +940,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                     make_graph(
                         [
                             make_node(
-                                "GemmFloat8",
+                                "CustomGemmFloat",
                                 ["A", "B"],
                                 ["Y"],
                                 transA=transA,
@@ -958,7 +959,11 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                             ),
                         ],
                         [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])],
-                    )
+                    ),
+                    opset_imports=[
+                        make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                        make_opsetid("", 18),
+                    ],
                 )
 
                 opts = SessionOptions()
