@@ -17,9 +17,9 @@ struct CustomGemmKernel {
   void Compute(OrtKernelContext *context);
 
 private:
-  void set(const std::vector<int64_t> &shape_a,
-           const std::vector<int64_t> &shape_b, int &M, int &N, int &K,
-           int &lda, int &ldb, int &ldd, int row_major) const;
+  void SetParams(const std::vector<int64_t> &shape_a,
+                 const std::vector<int64_t> &shape_b, int &M, int &N, int &K,
+                 int &lda, int &ldb, int &ldd, int row_major) const;
 
   void ComputeRowMajor(Ort::KernelContext &ctx, int n_inputs, bool has_bias,
                        bool has_scales, bool has_scales_Y,

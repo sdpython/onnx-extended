@@ -914,7 +914,96 @@ class TestOrtOpTutorialCuda(ExtTestCase):
             square=False,
         )
 
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_combinations(self):
+        from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
+
+        for shapeA, shapeB, transA, transB, row_major_compute in [
+            ((2, 3), (3, 5), 0, 0, 1),
+            ((2, 3), (5, 3), 0, 1, 1),
+            ((2, 3), (5, 2), 1, 1, 1),
+            ((2, 3), (2, 5), 1, 0, 1),
+            #
+            ((2, 3), (3, 5), 0, 0, 0),
+            ((2, 3), (5, 3), 0, 1, 0),
+            ((2, 3), (5, 2), 1, 1, 0),
+            ((2, 3), (2, 5), 1, 0, 0),
+        ]:
+            with self.subTest(
+                shapeA=shapeA,
+                shapeB=shapeB,
+                transA=transA,
+                transB=transB,
+                row_major_compute=row_major_compute,
+            ):
+                model = make_model(
+                    make_graph(
+                        [
+                            make_node(
+                                "CustomGemmFloat",
+                                ["A", "B"],
+                                ["Y"],
+                                transA=transA,
+                                transB=transB,
+                                rowMajorCompute=row_major_compute,
+                                domain="onnx_extented.ortops.tutorial.cuda",
+                            )
+                        ],
+                        "f8",
+                        [
+                            make_tensor_value_info(
+                                "A", TensorProto.FLOAT, [None, None]
+                            ),
+                            make_tensor_value_info(
+                                "B", TensorProto.FLOAT, [None, None]
+                            ),
+                        ],
+                        [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])],
+                    ),
+                    opset_imports=[
+                        make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                        make_opsetid("", 18),
+                    ],
+                )
+
+                opts = SessionOptions()
+                opts.register_custom_ops_library(get_ort_ext_libs()[0])
+                sess = InferenceSession(
+                    model.SerializeToString(),
+                    opts,
+                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                )
+                a = (
+                    numpy.arange(numpy.prod(shapeA))
+                    .reshape(shapeA)
+                    .astype(numpy.float32)
+                )
+                b = (
+                    numpy.arange(numpy.prod(shapeB))
+                    .reshape(shapeB)
+                    .astype(numpy.float32)
+                )
+                try:
+                    expected = (a.T if transA else a) @ (b.T if transB else b)
+                except Exception as e:
+                    raise AssertionError(
+                        f"Unable to multiply shapes={shapeA}x{shapeB}, "
+                        f"transA={transA}, transB={transB}, "
+                        f"row_major_compute={row_major_compute}"
+                    ) from e
+                try:
+                    got = sess.run(None, {"A": a, "B": b})
+                except Exception as e:
+                    raise AssertionError(
+                        f"Unable to run Gemm with shapes={shapeA}x{shapeB}, "
+                        f"transA={transA}, transB={transB}, "
+                        f"row_major_compute={row_major_compute}"
+                    ) from e
+                self.assertEqual(expected.shape, got[0].shape)
+                self.assertEqual(expected.dtype, got[0].dtype)
+                self.assertEqualArray(expected, got[0])
+
 
 if __name__ == "__main__":
-    # TestOrtOpTutorialCuda().test_custom_gemm_local_function()
+    TestOrtOpTutorialCuda().test_combinations()
     unittest.main(verbosity=2)
