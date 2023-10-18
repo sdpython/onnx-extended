@@ -61,7 +61,8 @@ def _numpy_extended_dot_equation(
     """
     Returns the equation equivalent to an extended version
     of an aligned matrix multiplication
-    (see :func:`numpy_extended_dot`).
+    (see :func:`numpy_extended_dot
+    <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot>`).
 
     :param m1: number of dimensions of the first matrix
     :param m2: number of dimensions of the second matrix
@@ -145,7 +146,8 @@ def _common_check_numpy_extended_dot(
 ):
     """
     Common verifications for all implementations of
-    :func:`numpy_extended_dot`.
+    :func:`numpy_extended_dot
+     <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot>`.
     """
     if m1.dtype != m2.dtype:
         raise TypeError(
@@ -469,9 +471,10 @@ def numpy_extended_dot_python(
     verbose: bool = False,
 ) -> numpy.ndarray:
     """
-    Implementation of :func:`numpy_extended_dot` in pure python.
-    This implementation is not efficient but shows how to
-    implement this operation without :func:`numpy.einsum`.
+    Implementation of :func:`numpy_extended_dot
+    <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot>`
+    in pure python. This implementation is not efficient
+    but shows how to implement this operation without :func:`numpy.einsum`.
 
     .. runpython::
         :showcode:
@@ -611,10 +614,12 @@ def numpy_extended_dot_matrix(
     verbose: bool = False,
 ) -> numpy.ndarray:
     """
-    Implementation of :func:`numpy_extended_dot using dot product`,
-    multiplication, transpose and reduction
+    Implementation of :func:`numpy_extended_dot
+    <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot>`
+    using dot product, multiplication, transpose and reduction
     but not a custom python implementation like
-    :func:`numpy_extended_dot_python`.
+    :func:`numpy_extended_dot_python
+    <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot_python>`.
 
     .. runpython::
         :showcode:

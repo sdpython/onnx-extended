@@ -138,7 +138,7 @@ class EinsumSubOp:
             left = self.kwargs["left"]
             right = self.kwargs["right"]
             eq = _numpy_extended_dot_equation(ndim, ndim, axes, left, right)
-            eq = eq.replace(">", "\\\\>")
+            eq = eq.replace(">", "\\\\=")
             return "~" + eq
         return None
 
@@ -741,8 +741,12 @@ class EinsumSubOp:
         Known additional paramaters:
 
         * 'matmul_impl': if None calls :func:`numpy.einsum` through
-          :func:`numpy_extended_dot` (default) or 'py' to call
-          :func:`numpy_extended_dot_python` instead.
+          :func:`numpy_extended_dot
+          <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot>`
+          (default) or 'py' to call
+          :func:`numpy_extended_dot_python
+          <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot_python>`
+          instead.
         """
         if verbose:
             print()
@@ -1231,9 +1235,11 @@ class GraphEinsumSubOp:
     operators.
 
     :param letters: list of distinct letters
-    :param mat: matrix, see :func:`analyse_einsum_equation`
+    :param mat: matrix, see :func:`analyse_einsum_equation
+        <onnx_extended.tools.einsum.einsum_impl.analyse_einsum_equation>`
     :param lengths: lengths of every input
-    :param duplicates: see :func:`analyse_einsum_equation`
+    :param duplicates: see :func:`analyse_einsum_equation
+        <onnx_extended.tools.einsum.einsum_impl.analyse_einsum_equation>`
     """
 
     def __init__(
@@ -1261,7 +1267,8 @@ class GraphEinsumSubOp:
         """
         Adds one input or result.
 
-        :param op: integer (an input) or an instance of :class:`EinsumSubOp`.
+        :param op: integer (an input) or an instance of :class:`EinsumSubOp
+            <onnx_extended.tools.einsum.einsum_impl_classes.EinsumSubOp>`.
         :return: op or None if op is an integer
         """
         if isinstance(op, int):
@@ -1294,7 +1301,8 @@ class GraphEinsumSubOp:
         after a full einsum step.
 
         :param i: a position
-        :param op: an instance of :class:`EinsumSubOp`.
+        :param op: an instance of :class:`EinsumSubOp
+            <onnx_extended.tools.einsum.einsum_impl_classes.EinsumSubOp>`.
         """
         if not isinstance(i, int):
             raise TypeError(f"i must an integer not {type(i)!r}.")
@@ -1383,13 +1391,9 @@ class GraphEinsumSubOp:
             if sk in self._mark and isinstance(self._mark[sk], int):
                 la = self._mark[sk]
                 lab = lab.replace("\\\\n", " - I%d\\\\n" % la)
-                s = '%d [label="%s%s" style=filled ' "fillcolor=red];" % (
-                    k,
-                    lab,
-                    extended_lab,
-                )
+                s = f'{k} [label="{lab}{extended_lab}" style=filled fillcolor=red];'
             else:
-                s = '%d [label="%s%s"];' % (k, lab, extended_lab)
+                s = f'{k} [label="{lab}{extended_lab}"];'
             rows.append(s)
             if not hasattr(v, "inputs"):
                 continue

@@ -633,7 +633,7 @@ def optimize_decompose_einsum_equation(
     The available runtimes are:
 
     * `batch_dot`: the runtime is :func:`apply_einsum_sequence
-      <onnx_extended.einsum.tools.einsum_impl.apply_einsum_sequence>`,
+      <onnx_extended.tools.einsum.einsum_impl.apply_einsum_sequence>`,
     * `python`: one ONNX graph executed with a python runtime,
     * `onnxruntime`: one ONNX graph executed with :epkg:`onnxruntime`.
 
@@ -725,7 +725,7 @@ def einsum(
     The available runtimes are:
 
     * `batch_dot`: the runtime is :func:`apply_einsum_sequence
-      <onnx_extended.einsum.tools.einsum_impl.apply_einsum_sequence>`,
+      <onnx_extended.tools.einsum.einsum_impl.apply_einsum_sequence>`,
     * `python`: one ONNX graph executed with a python runtime,
     * `onnxruntime`: one ONNX graph executed with :epkg:`onnxruntime`.
 

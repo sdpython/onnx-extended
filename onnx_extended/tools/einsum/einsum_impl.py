@@ -104,15 +104,18 @@ def decompose_einsum_equation(
     * `'simple'`: align all dimensions in the alphabetical order,
       some generic matrix multiplication remains implemented with
       :func:`numpy.einsum` but only with two matrices aligned on
-      the same dimension (see :func:`numpy_extended_dot`)
+      the same dimension (see :func:`numpy_extended_dot
+      <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot>`)
     * `'numpy'`: same as `simple` but the decomposition does not use
       :func:`numpy.einsum` anymore but only multiplication or
       matrix multiplication merged into a single operator called
-      *batch_dot* (see :func:`numpy_extended_dot_matrix`)
+      *batch_dot* (see :func:`numpy_extended_dot_matrix
+      <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot_matrix>`)
 
     Available operations: *expand_dims*, *transpose*, *matmul*, *reduce_sum*,
     *id*, *squeeze*, *diagonal*. It analyses an equation and produces a graph
-    where node are instance of class :class:`EinsumSubOp`.
+    where nodes are instance of class :class:`EinsumSubOp
+    <onnx_extended.tools.einsum.einsum_impl_classes.EinsumSubOp>`.
 
     .. runpython::
         :showcode:

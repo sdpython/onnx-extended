@@ -48,6 +48,11 @@ numpy_extended_dot_matrix
 
 .. autofunction:: onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot_matrix
 
+numpy_extended_dot_python
+=========================
+
+.. autofunction:: onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot_python
+
 EinsumSubOp
 ===========
 
