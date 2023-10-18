@@ -1,7 +1,6 @@
-
-======
-Einsum
-======
+==============================================
+Decomposition of Einsum into simple operations
+==============================================
 
 analyse_einsum_equation
 =======================

@@ -121,10 +121,8 @@ def einsum_benchmark(
     :param shape: an integer (all dimension gets the same size) or
         a list of shapes in a string separated with `;`)
     :param perm: check on permutation or all letter permutations
-    :param runtime: numpy, python, onnxruntime
+    :param runtime: a string among 'numpy', 'python', 'onnxruntime'
     :param use_tqdm: show progress
-    :param output: output file (usually a csv file or an excel file),
-        it requires pandas
     :param number: usual parameter to measure a function
     :param repeat: usual parameter to measure a function
     :param opset: target opset

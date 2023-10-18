@@ -632,7 +632,7 @@ def optimize_decompose_einsum_equation(
 
     * `batch_dot`: the runtime is @see fn apply_einsum_sequence,
     * `python`: one ONNX graph executed with a python runtime,
-    * `onnxruntime1`: one ONNX graph executed with :epkg:`onnxruntime`.
+    * `onnxruntime`: one ONNX graph executed with :epkg:`onnxruntime`.
 
     The optimisation strategy can be:
 
@@ -723,7 +723,7 @@ def einsum(
 
     * `batch_dot`: the runtime is @see fn apply_einsum_sequence,
     * `python`: one ONNX graph executed with a python runtime,
-    * `onnxruntime1`: one ONNX graph executed with :epkg:`onnxruntime`.
+    * `onnxruntime`: one ONNX graph executed with :epkg:`onnxruntime`.
 
     The optimisation strategy can be:
 
@@ -778,35 +778,48 @@ def einsum(
         m1 = numpy.random.randn(20, 20, 20)
         m2 = numpy.random.randn(20, 20)
 
-        print('numpy.einsum',
-              timeit.timeit('numpy.einsum(equation, m1, m2)',
-                            number=200,
-                            globals=globals()))
+        print(
+            "numpy.einsum",
+            timeit.timeit(
+                "numpy.einsum(equation, m1, m2)",
+                number=200, globals=globals()
+            ),
+        )
 
         einsum(equation, m1, m2)
-        print('einsum',
-              timeit.timeit('einsum(equation, m1, m2)',
-                            number=200,
-                            globals=globals()))
+        print(
+            "einsum", timeit.timeit(
+                "einsum(equation, m1, m2)", number=200, globals=globals()
+            )
+        )
 
-        einsum(equation, m1, m2, runtime='python')
-        print('einsum-python',
-              timeit.timeit('einsum(equation, m1, m2, runtime="python")',
-                            number=200,
-                            globals=globals()))
+        einsum(equation, m1, m2, runtime="python")
+        print(
+            "einsum-python",
+            timeit.timeit(
+                'einsum(equation, m1, m2, runtime="python")',
+                number=200, globals=globals()
+            ),
+        )
 
-        einsum(equation, m1, m2, runtime='onnxruntime1')
-        print('einsum-onnxruntime1',
-              timeit.timeit('einsum(equation, m1, m2, runtime="onnxruntime1")',
-                            number=200,
-                            globals=globals()))
+        einsum(equation, m1, m2, runtime="onnxruntime")
+        print(
+            "einsum-onnxruntime",
+            timeit.timeit(
+                'einsum(equation, m1, m2, runtime="onnxruntime")',
+                number=200, globals=globals()
+            ),
+        )
 
-        einsum(equation, m1, m2, runtime='onnxruntime1', optimize=True, verbose=1)
-        print('einsum-onnxruntime1',
-              timeit.timeit('einsum(equation, m1, m2,
-                                    runtime="onnxruntime1", optimize=True)',
-                            number=200,
-                            globals=globals()))
+        einsum(equation, m1, m2, runtime="onnxruntime", optimize=True, verbose=1)
+        print(
+            "einsum-onnxruntime",
+            timeit.timeit(
+                'einsum(equation, m1, m2, runtime="onnxruntime", optimize=True)',
+                number=200,
+                globals=globals(),
+            ),
+        )
 
         print("list of cached einsum equations")
         for k, v in enumerate_cached_einsum():
@@ -818,36 +831,58 @@ def einsum(
         :showcode:
         :process:
 
+        import logging
         import os
-        from pyquickhelper.pycode.profiling import profile
+        import cProfile
+        from io import StringIO
+        from pstats import Stats
         import numpy
         from onnx_extended.tools.einsum import einsum
         from onnx_extended.tools.einsum.einsum_fct import enumerate_cached_einsum
         from onnx_extended import __file__ as path
 
+
+        def profile(fct, sort="cumulative", **kwargs):
+            pr = cProfile.Profile(**kwargs)
+            pr.enable()
+            fct_res = fct()
+            pr.disable()
+            s = StringIO()
+            ps = Stats(pr, stream=s).sort_stats(sort)
+            ps.print_stats()
+            res = s.getvalue()
+            return ps, res
+
+
         root = os.path.dirname(path)
+        logging.getLogger("onnx-extended").setLevel(logging.ERROR)
 
         equation = "cab,cd->ad"
 
         m1 = numpy.random.randn(200, 20, 20)
         m2 = numpy.random.randn(200, 20)
 
+
         def clean(txt):
             txt = txt.replace(root, "onnx_extended")
             return "\\n".join(txt.split("\\n")[:30])
 
+
         def fct1():
             for i in range(100):
                 einsum(equation, m1, m2, cache=False)
+
 
         print("Profile cache with default runtime.")
         res = profile(fct1)
         print(root)
         print(clean(res[1]))
 
+
         def fct2():
             for i in range(100):
-                einsum(equation, m1, m2, cache=False, runtime='python')
+                einsum(equation, m1, m2, cache=False, runtime="python")
+
 
         print("Profile cache with runtime='python'.")
         res = profile(fct2)
@@ -859,6 +894,7 @@ def einsum(
             for i in range(100):
                 einsum(equation, m1, m2, cache=True)
 
+
         einsum(equation, m1, m2, cache=True)
         print("Profile execution with default runtime.")
         res = profile(fct3)
@@ -866,12 +902,12 @@ def einsum(
         print(clean(res[1]))
 
 
-
         def fct4():
             for i in range(100):
-                einsum(equation, m1, m2, cache=True, runtime='python')
+                einsum(equation, m1, m2, cache=True, runtime="python")
 
-        einsum(equation, m1, m2, cache=True, runtime='python')
+
+        einsum(equation, m1, m2, cache=True, runtime="python")
         print("Profile execution with runtime='python'.")
         res = profile(fct4)
         print(root)
@@ -880,10 +916,11 @@ def einsum(
 
         def fct5():
             for i in range(100):
-                einsum(equation, m1, m2, cache=True, runtime='onnxruntime1')
+                einsum(equation, m1, m2, cache=True, runtime="onnxruntime")
 
-        einsum(equation, m1, m2, cache=True, runtime='onnxruntime1')
-        print("Profile execution with runtime='onnxruntime1'.")
+
+        einsum(equation, m1, m2, cache=True, runtime="onnxruntime")
+        print("Profile execution with runtime='onnxruntime'.")
         res = profile(fct5)
         print(root)
         print(clean(res[1]))
