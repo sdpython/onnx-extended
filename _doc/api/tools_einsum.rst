@@ -38,6 +38,16 @@ einsum_benchmark
 
 .. autofunction:: onnx_extended.tools.einsum.einsum_bench.einsum_benchmark
 
+numpy_extended_dot
+==================
+
+.. autofunction:: onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot
+
+numpy_extended_dot_matrix
+=========================
+
+.. autofunction:: onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot_matrix
+
 EinsumSubOp
 ===========
 
