@@ -119,6 +119,7 @@ epkg_dictionary = {
     "CUDAExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
     "custom_gemm.cu": "https://github.com/sdpython/onnx-extended/blob/main/onnx_extended/ortops/tutorial/cuda/custom_gemm.cu",
     "cython": "https://cython.org/",
+    "dot": "https://graphviz.org/doc/info/lang.html",
     "DOT": "https://graphviz.org/doc/info/lang.html",
     "eigen": "https://eigen.tuxfamily.org/",
     "gcc": "https://gcc.gnu.org/",

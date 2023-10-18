@@ -1,6 +1,4 @@
 """
-.. _l-einsum:
-
 Compares implementations of Einsum
 ==================================
 
@@ -13,9 +11,6 @@ It uses parallelisation and SIMD optimization when the summation
 happens on the last axis of both matrices. It only implements
 matrix multiplication. We also measure the improvment made with
 function :func:`einsum <onnx_extended.tools.einsum.einsum_fct.einsum>`.
-
-.. contents::
-    :local:
 
 Available optimisation
 ++++++++++++++++++++++
@@ -44,6 +39,7 @@ from onnx_extended.tools.einsum.einsum_fct import _einsum
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 logging.getLogger("matplotlib.ticker").setLevel(logging.ERROR)
+logging.getLogger("PIL.PngImagePlugin").setLevel(logging.ERROR)
 logging.getLogger("onnx-extended").setLevel(logging.ERROR)
 
 ###################################
@@ -109,12 +105,19 @@ def loop_einsum(fct, xs, ys):
         fct(x, y)
 
 
+def timeit(stmt, ctx, dim, name):
+    obs = measure_time(stmt, div_by_number=True, context=ctx, repeat=5, number=1)
+    obs["dim"] = dim
+    obs["fct"] = name
+    return obs
+
+
 def benchmark_equation(equation):
     # equations
     ort_einsum = build_ort_einsum(equation)
     ort_einsum_decomposed = build_ort_decomposed(equation)
     res = []
-    for dim in tqdm([8, 16, 32, 64, 100, 128, 200, 256, 500, 512]):
+    for dim in tqdm([8, 16, 32, 64, 100, 128, 200, 256]):  # , 500, 512]):
         if unit_test_going() and dim > 64:
             break
         xs = [numpy.random.rand(2, dim, 12, 64).astype(numpy.float32) for _ in range(5)]
@@ -130,54 +133,24 @@ def benchmark_equation(equation):
             loop_einsum_eq=loop_einsum_eq,
             loop_einsum_eq_th=loop_einsum_eq_th,
         )
-        obs = measure_time(
-            "loop_einsum_eq(einsum, equation, xs, ys)",
-            div_by_number=True,
-            context=ctx,
-            repeat=5,
-            number=1,
+        obs = timeit(
+            "loop_einsum_eq(einsum, equation, xs, ys)", ctx, dim, "numpy.einsum"
         )
-        obs["dim"] = dim
-        obs["fct"] = "numpy.einsum"
         res.append(obs)
 
         # opt-einsum
         ctx["einsum"] = contract
-        obs = measure_time(
-            "loop_einsum_eq(einsum, equation, xs, ys)",
-            div_by_number=True,
-            context=ctx,
-            repeat=5,
-            number=1,
-        )
-        obs["dim"] = dim
-        obs["fct"] = "opt-einsum"
+        obs = timeit("loop_einsum_eq(einsum, equation, xs, ys)", ctx, dim, "opt-einsum")
         res.append(obs)
 
         # onnxruntime
         ctx["einsum"] = ort_einsum
-        obs = measure_time(
-            "loop_einsum(einsum, xs, ys)",
-            div_by_number=True,
-            context=ctx,
-            repeat=5,
-            number=1,
-        )
-        obs["dim"] = dim
-        obs["fct"] = "ort_einsum"
+        obs = timeit("loop_einsum(einsum, xs, ys)", ctx, dim, "ort-einsum")
         res.append(obs)
 
         # onnxruntime decomposed
         ctx["einsum"] = ort_einsum_decomposed
-        obs = measure_time(
-            "loop_einsum(einsum, xs, ys)",
-            div_by_number=True,
-            context=ctx,
-            repeat=5,
-            number=1,
-        )
-        obs["dim"] = dim
-        obs["fct"] = "ort_dec"
+        obs = timeit("loop_einsum(einsum, xs, ys)", ctx, dim, "ort-dec")
         res.append(obs)
 
         if tf_einsum is not None:
@@ -185,15 +158,9 @@ def benchmark_equation(equation):
             ctx["einsum"] = tf_einsum
             ctx["xs"] = [convert_to_tensor(x) for x in xs]
             ctx["ys"] = [convert_to_tensor(y) for y in ys]
-            obs = measure_time(
-                "loop_einsum_eq(einsum, equation, xs, ys)",
-                div_by_number=True,
-                context=ctx,
-                repeat=5,
-                number=1,
+            obs = timeit(
+                "loop_einsum_eq(einsum, equation, xs, ys)", ctx, dim, "tf-einsum"
             )
-            obs["dim"] = dim
-            obs["fct"] = "tf_einsum"
             res.append(obs)
 
         if torch_einsum is not None:
@@ -201,15 +168,9 @@ def benchmark_equation(equation):
             ctx["einsum"] = torch_einsum
             ctx["xs"] = [from_numpy(x) for x in xs]
             ctx["ys"] = [from_numpy(y) for y in ys]
-            obs = measure_time(
-                "loop_einsum_eq(einsum, equation, xs, ys)",
-                div_by_number=True,
-                context=ctx,
-                repeat=5,
-                number=1,
+            obs = timeit(
+                "loop_einsum_eq(einsum, equation, xs, ys)", ctx, dim, "torch-einsum"
             )
-            obs["dim"] = dim
-            obs["fct"] = "torch_einsum"
             res.append(obs)
 
     # Dataframes
@@ -217,13 +178,10 @@ def benchmark_equation(equation):
     piv = df.pivot(index="dim", columns="fct", values="average")
 
     rs = piv.copy()
-    rs["ort_einsum"] = rs["numpy.einsum"] / rs["ort_einsum"]
-    rs["ort_dec"] = rs["numpy.einsum"] / rs["ort_dec"]
-    rs["opt-einsum"] = rs["numpy.einsum"] / rs["opt-einsum"]
-    if "tf_einsum" in rs.columns:
-        rs["tf_einsum"] = rs["numpy.einsum"] / rs["tf_einsum"]
-    if "torch_einsum" in rs.columns:
-        rs["torch_einsum"] = rs["numpy.einsum"] / rs["torch_einsum"]
+    for c in ["ort-einsum", "ort-dec", "tf-einsum", "torch-einsum", "opt-einsum"]:
+        if c not in rs.columns:
+            continue
+        rs[c] = rs["numpy.einsum"] / rs[c]
     rs["numpy.einsum"] = 1.0
 
     # Graphs.

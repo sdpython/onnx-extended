@@ -45,6 +45,7 @@ class OnnxMicroRuntime:
         """
         Computes the outputs of the graph.
 
+        :param unused: unused (the list of desired outputs)
         :param inputs: dictionary
         :return: all intermediates results and output as a dictionary
         """
@@ -236,7 +237,7 @@ class CachedEinsum:
     * `equation_` corresponding to the best equivalent equation
     * `graph_`: the corresponding graph returned by function
         :func:`decompose_einsum_equation
-        <onnx_extended.tools.einsum.einsum_impl.decompose_einsum_equation> `
+        <onnx_extended.tools.einsum.einsum_impl.decompose_einsum_equation>`
     * `onnx_`: if a conversion to onnx is used, stores the onnx graph
     * `runtime_`: a function used by `__call__`, calls the runtime
     """
@@ -613,6 +614,7 @@ def optimize_decompose_einsum_equation(
     a right member.
 
     :param equation: einsum equation
+    :param dtype: numpy dtype used for the computation
     :param optimize: permutes all letters to find the best
         permutation
     :param runtime: runtime used to compute the results once the
@@ -630,7 +632,8 @@ def optimize_decompose_einsum_equation(
 
     The available runtimes are:
 
-    * `batch_dot`: the runtime is @see fn apply_einsum_sequence,
+    * `batch_dot`: the runtime is :func:`apply_einsum_sequence
+      <onnx_extended.einsum.tools.einsum_impl.apply_einsum_sequence>`,
     * `python`: one ONNX graph executed with a python runtime,
     * `onnxruntime`: one ONNX graph executed with :epkg:`onnxruntime`.
 
@@ -638,8 +641,7 @@ def optimize_decompose_einsum_equation(
 
     * `None`: the same runtime is used to find the best permutation of letters
     * `'ml'`: a machine learned model is used to predict the
-        best permutation of letters, this model comes from
-        notebook :ref:`onnxoperatorcostrst`.
+        best permutation of letters.
 
     The function works in two steps:
 
@@ -647,16 +649,17 @@ def optimize_decompose_einsum_equation(
       this graph can also be converted into ONNX,
     * second step runs the graph whatever the graph is.
 
-    The function returns an object of type @see cl CachedEinsum
+    The function returns an object of type :class:`CachedEinsum`
     which has the following members after optimization:
 
     * `equation_` corresponding to the best equivalent equation
     * `graph_`: the corresponding graph returned by function
         :func:`decompose_einsum_equation
-        <onnx_extended.tools.einsum.einsum_impl.decompose_einsum_equation> `
+        <onnx_extended.tools.einsum.einsum_impl.decompose_einsum_equation>`
     * `onnx_`: if a conversion to onnx is used, stores the onnx graph
     * `runtime_`: a function used by `__call__`, calls the runtime
-    * `oinf_`: an object of type @see cl CReferenceEvaluator
+    * `oinf_`: an object of type :class:`CReferenceEvaluator
+      <onnx_extended.reference.CReferenceEvaluator>`
     * `timed_permutations_`: memorizes the results of the optimization
 
     .. runpython::
@@ -721,7 +724,8 @@ def einsum(
 
     The available runtimes are:
 
-    * `batch_dot`: the runtime is @see fn apply_einsum_sequence,
+    * `batch_dot`: the runtime is :func:`apply_einsum_sequence
+      <onnx_extended.einsum.tools.einsum_impl.apply_einsum_sequence>`,
     * `python`: one ONNX graph executed with a python runtime,
     * `onnxruntime`: one ONNX graph executed with :epkg:`onnxruntime`.
 
@@ -729,8 +733,7 @@ def einsum(
 
     * `None`: the same runtime is used to find the best permutation of letters
     * `'ml'`: a machine learned model is used to predict the
-        best permutation of letters, this model comes from
-        notebook :ref:`onnxoperatorcostrst`.
+        best permutation of letters.
 
     The function works in two steps:
 
@@ -739,7 +742,7 @@ def einsum(
     * second step runs the graph whatever the graph is.
 
     Further details are available in the documentation of function
-    @see fn optimize_decompose_einsum_equation.
+    :func:`optimize_decompose_einsum_equation`.
     The function works the same way as :func:`numpy.einsum`:
 
     .. runpython::

@@ -96,22 +96,23 @@ def decompose_einsum_equation(
         this parameters defines the way to do it (see below)
     :param clean: clean the unnecessary node in the graph
     :param verbose: verbosity
-    :return: instance of @see cl GraphEinsumSubOp
+    :return: instance of :class:`GraphEinsumSubOp
+        <onnx_extended.tools.einsum.einsum_impl_classes.GraphEinsumSubOp>`
 
     About *strategy*:
 
     * `'simple'`: align all dimensions in the alphabetical order,
       some generic matrix multiplication remains implemented with
       :func:`numpy.einsum` but only with two matrices aligned on
-      the same dimension (see @see fn numpy_extended_dot)
+      the same dimension (see :func:`numpy_extended_dot`)
     * `'numpy'`: same as `simple` but the decomposition does not use
       :func:`numpy.einsum` anymore but only multiplication or
       matrix multiplication merged into a single operator called
-      *batch_dot* (see @see fn numpy_extended_dot_matrix)
+      *batch_dot* (see :func:`numpy_extended_dot_matrix`)
 
     Available operations: *expand_dims*, *transpose*, *matmul*, *reduce_sum*,
     *id*, *squeeze*, *diagonal*. It analyses an equation and produces a graph
-    where node are instance of class @see cl EinsumSubOp.
+    where node are instance of class :class:`EinsumSubOp`.
 
     .. runpython::
         :showcode:
@@ -131,8 +132,6 @@ def decompose_einsum_equation(
         seq = decompose_einsum_equation(
             "bac,cd,def->ebc", (2, 2, 2), (2, 2), (2, 2, 2))
         print("DOT-SECTION", seq.to_dot())
-
-    See notebook :ref:`einsumdecompositionrst`.
     """
     if len(shapes) > 0:
         for sh in shapes:
@@ -169,14 +168,14 @@ def apply_einsum_sequence(
     """
     Applies a sequence of operations on a list of inputs.
     The sequence of operations is produced by function
-    @see fn decompose_einsum_equation.
+    :func:`decompose_einsum_equation`.
 
     :param seq: sequence of operations
     :param inputs: inputs
+    :param verbose: verbosity
     :param kwargs: additional parameters,
-        see :meth:`apply_sequence
-        <onnx_extended.tools.einsum.einsum_impl_classes.
-        GraphEinsumSubOp.apply_sequence>`.
+        see `apply_sequence` in :class:`GraphEinsumSubOp
+        <onnx_extended.tools.einsum.einsum_impl_classes.GraphEinsumSubOp>`
     :return: output
 
     .. runpython::
@@ -193,8 +192,6 @@ def apply_einsum_sequence(
         seq = decompose_einsum_equation("bac,cd,def->ebc")
         res = apply_einsum_sequence(seq, m1, m2, m3)
         print(res)
-
-    See notebook :ref:`einsumdecompositionrst`.
     """
     return seq.apply_sequence(*inputs, verbose=verbose, **kwargs)
 
@@ -295,7 +292,7 @@ def _apply_einsum_matmul(
     """
     Decomposes the generic matrix multiplication into numpy operations
     depending on the operator to use for matrix multiplication
-    *op_matmul* (see @see fn decompose_einsum_equation).
+    *op_matmul* (see :func:`decompose_einsum_equation`).
     """
     allowed = {"matmul", "batch_dot", "dot"}
     if op_matmul not in allowed:
@@ -417,7 +414,7 @@ def _decompose_einsum_equation_simple(
 ) -> GraphEinsumSubOp:
     """
     Applies strategy `simple`, `numpy`
-    defined in by function @see fn decompose_einsum_equation.
+    defined in by function :func:`decompose_einsum_equation`.
 
     :param equation: equation
     :param shapes: input shapes

@@ -36,6 +36,7 @@ class EinsumSubOp:
     """
     Defines a sub operation used in Einsum decomposition.
 
+    :param full_dim: dimension of the result
     :param name: name (reshape, transpose, reduce_sum, matmul, id,
         squeeze, diagonal, mul, batch_dot)
     :param inputs: inputs
@@ -1287,12 +1288,13 @@ class GraphEinsumSubOp:
             raise RuntimeError("last_added_op is None.")
         self.mark(-1, self.last_added_op)
 
-    def mark(self, i, op):
+    def mark(self, i: int, op: EinsumSubOp):
         """
         Marks one input or result as an intermediate result
         after a full einsum step.
 
-        :param op: integer (an input) or an instance of :class:`EinsumSubOp`.
+        :param i: a position
+        :param op: an instance of :class:`EinsumSubOp`.
         """
         if not isinstance(i, int):
             raise TypeError(f"i must an integer not {type(i)!r}.")
