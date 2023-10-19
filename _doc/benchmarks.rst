@@ -21,6 +21,14 @@ This scripts tries many values to select the best one
 for trees trains with :epkg:`scikit-learn` and a 
 :class:`sklearn.ensemble.RandomForestRegressor`.
 
+plot_op_einsum
+++++++++++++++
+
+See :ref:`l-plot-op-einsum`.
+
+Function einsum can be decomposed into a matrix multiplication and
+other transpose operators. What is the best decomposition?
+
 CUDA
 ====
 

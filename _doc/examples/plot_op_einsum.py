@@ -1,4 +1,6 @@
 """
+.. _l-plot-op-einsum:
+
 Compares implementations of Einsum
 ==================================
 

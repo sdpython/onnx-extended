@@ -1,7 +1,7 @@
 
-=========
-reference
-=========
+=======================
+onnx_extended.reference
+=======================
 
 CReferenceEvaluator
 ===================
@@ -27,6 +27,8 @@ Tools
 =====
 
 .. autofunction:: onnx_extended.reference.from_array_extended
+
+.. autofunction:: onnx_extended.reference.to_array_extended
 
 Operators
 =========

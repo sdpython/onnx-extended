@@ -1,9 +1,6 @@
 
-Examples
-========
-
 Experiments about parallelization
-+++++++++++++++++++++++++++++++++
+=================================
 
 .. toctree::
     :maxdepth: 1

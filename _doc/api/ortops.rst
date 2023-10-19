@@ -1,7 +1,7 @@
 
-======
-ortops
-======
+====================
+onnx_extended.ortops
+====================
 
 It supports any onnxruntime C API greater than version:
 
@@ -15,5 +15,6 @@ It supports any onnxruntime C API greater than version:
 .. toctree::
     :maxdepth: 2
 
-    ortops_tutorial
+    ortops_tutorial_cpu
+    ortops_tutorial_cuda
     ortops_optim

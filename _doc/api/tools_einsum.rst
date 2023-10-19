@@ -1,6 +1,8 @@
-==============================================
-Decomposition of Einsum into simple operations
-==============================================
+==========================
+onnx_extended.tools.einsum
+==========================
+
+Decomposition of Einsum into simple operations.
 
 analyse_einsum_equation
 =======================

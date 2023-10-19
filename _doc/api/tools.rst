@@ -7,9 +7,9 @@ tools
     :maxdepth: 2
 
     tools_io
+    tools_einsum
     tools_graph
-    tools_transformer
+    tools_graph_transformer
     tools_nodes
     tools_stats
     tools_other
-    tools_einsum
