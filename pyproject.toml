@@ -184,6 +184,49 @@ module = [
 disable_error_code = ["assignment", "operator", "call-overload", "no-redef", "attr-defined"]
 
 [[tool.mypy.overrides]]
+module = ["onnx_extended.tools.einsum.einsum_bench"]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.einsum.einsum_fct"]
+disable_error_code = [
+    "assignment",
+    "arg-type",
+    "attr-defined",
+    "call-overload",
+    "index",
+    "misc",
+    "return-value",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.einsum.einsum_impl"]
+disable_error_code = [
+    "assignment",
+    "arg-type",
+    "attr-defined",
+    "index",
+    "misc",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.einsum.einsum_impl_classes"]
+disable_error_code = [
+    "assignment",
+    "attr-defined",
+    "arg-type",
+    "call-overload",
+    "has-type",
+    "index",
+    "misc",
+    "str-format",
+]
+
+[[tool.mypy.overrides]]
+module = ["onnx_extended.tools.einsum.einsum_impl_ext"]
+disable_error_code = ["assignment", "union-attr"]
+
+[[tool.mypy.overrides]]
 module = [
     "onnx_extended.tools.graph.onnx_graph_struct",
     "onnx_extended.tools.graph.onnx_graph_transformer",
@@ -256,6 +299,8 @@ max-complexity = 10
 "onnx_extended/helper/__init__.py" = ["F401"]
 "onnx_extended/reference/__init__.py" = ["F401"]
 "onnx_extended/tools/__init__.py" = ["F401"]
+"onnx_extended/tools/einsum/__init__.py" = ["F401"]
+"onnx_extended/tools/einsum/einsum_bench.py" = ["E731"]
 "onnx_extended/tools/graph/__init__.py" = ["F401"]
 "onnx_extended/tools/js_profile.py" = ["F821"]
 "onnx_extended/tools/run_onnx_main.py" = ["E731"]

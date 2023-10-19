@@ -1,0 +1,115 @@
+import sys
+import unittest
+import numpy
+from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.tools.einsum.einsum_config import DEFAULT_OPSET
+from onnx_extended.tools.einsum import einsum
+from onnx_extended.tools.einsum.einsum_fct import enumerate_cached_einsum
+
+
+class TestEinsumEinsum(ExtTestCase):
+    def common_test(
+        self,
+        equation,
+        runtime=None,
+        opset=None,
+        N=5,
+        optimize=False,
+        decompose=True,
+        strategy=None,
+        double=True,
+    ):
+        if sys.platform == "darwin":
+            # too long
+            return
+        if opset is None:
+            opset = DEFAULT_OPSET
+        inps = equation.split("->")[0].split(",")
+        lens = [len(s) for s in inps]
+        inputs = [numpy.random.randn(N**d).reshape((N,) * d) for d in lens]
+        if runtime is None:
+            if decompose:
+                runtime = ["batch_dot", "python", "onnxruntime"]
+            else:
+                runtime = ["python", "onnxruntime"]
+        elif isinstance(runtime, str):
+            runtime = [runtime]
+        for rt in runtime:
+            for dtype in [numpy.float32, numpy.float64]:
+                if not double and dtype == numpy.float64:
+                    continue
+                atol = 1e-5 if dtype == numpy.float32 else 1e-8
+                with self.subTest(
+                    dt=dtype,
+                    rt=rt,
+                    eq=equation,
+                    opset=opset,
+                    opt=optimize,
+                    decompose=decompose,
+                ):
+                    typed = [i.astype(dtype) for i in inputs]
+                    kwargs = dict(
+                        runtime=rt,
+                        opset=opset,
+                        optimize=optimize,
+                        decompose=decompose,
+                        strategy=strategy,
+                    )
+                    if __name__ == "__main__":
+                        kwargs["verbose"] = 1
+                    exp = numpy.einsum(equation, *typed)
+                    got = einsum(equation, *typed, **kwargs)
+                    self.assertEqualArray(exp, got, atol=atol)
+                    got = einsum(equation, *typed, **kwargs)
+                    self.assertEqualArray(exp, got, atol=atol)
+
+    def test_einsum(self):
+        self.common_test("abc,cd->abd")
+        self.common_test("abc,cd,de->abe")
+        res = list(enumerate_cached_einsum())
+        if sys.platform == "darwin":
+            # Disabled because these tests are too long on macosx.
+            return
+        self.assertGreater(len(res), 2)
+        self.assertIn("CachedEinsum", str(res))
+
+    def test_einsum_optimize(self):
+        self.common_test("abc,cd->abd", optimize=True)
+
+    def test_einsum_optimize_ml(self):
+        self.common_test("abc,cd->abd", optimize=True, strategy="ml")
+
+    def test_einsum_optimize_ml_merge(self):
+        self.common_test("abce,cd->abd", optimize=True, strategy="ml")
+
+    def test_einsum_optimize_ml_reduceprod(self):
+        self.common_test("ab,ab->ab", optimize=True, strategy="ml", double=False)
+
+    def test_einsum_optimize_ml_mul(self):
+        self.common_test("ab,b->ab", optimize=True, strategy="ml", double=False)
+        self.common_test("ab,b->a", optimize=True, strategy="ml")
+        self.common_test("ab,a->a", optimize=True, strategy="ml", double=False)
+        self.common_test("ab,b->b", optimize=True, strategy="ml", double=False)
+        self.common_test("ab,a->b", optimize=True, strategy="ml")
+
+    def test_einsum_optimize_ml_mul2(self):
+        self.common_test("ba,b->ba", optimize=False, double=False)
+
+    def test_einsum_optimize_no(self):
+        self.common_test("abc,cd->abd", optimize=True, decompose=False)
+
+    def test_einsum_optimize_ml_cases(self):
+        self.common_test("ab,cd->abcd", optimize=True, strategy="ml")
+        # self.common_test("ab,cd,ef->acdf", optimize=True, strategy='ml')
+        # self.common_test("ab,cd,de->abcde", optimize=True, strategy='ml')
+        # self.common_test("ab,cd,de->be", optimize=True, strategy='ml')
+        # self.common_test("ab,bcd,cd->abcd", optimize=True, strategy='ml')
+        # self.common_test("ab,bcd,cd->abd", optimize=True, strategy='ml')
+
+
+if __name__ == "__main__":
+    import logging
+
+    logging.getLogger("skl2onnx").setLevel(logging.ERROR)
+    logging.getLogger("onnx-extended").setLevel(logging.ERROR)
+    unittest.main()

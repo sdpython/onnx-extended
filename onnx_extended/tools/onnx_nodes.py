@@ -3,7 +3,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generator,
     Iterable,
     List,
     Optional,
@@ -273,7 +272,7 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     modif = 1
     while modif > 0:
         modif = 0
-        for e1, e2 in edges:  # pylint: disable=E1141
+        for e1, e2 in edges:
             if valid.get(e2, False) and not valid.get(e1, False):
                 valid[e1] = True
                 modif += 1
@@ -369,7 +368,7 @@ def get_hidden_inputs(nodes: Iterable[NodeProto]) -> Set[str]:
 
 def enumerate_model_node_outputs(
     model: ModelProto, add_node: bool = False, order: bool = False
-) -> Iterable:
+) -> Iterable[Union[str, Tuple[str, NodeProto]]]:
     """
     Enumerates all the nodes of a model.
 
@@ -669,7 +668,7 @@ def enumerate_onnx_node_types(
     level: int = 0,
     shapes: Optional[Dict[str, TypeProto]] = None,
     external: bool = True,
-) -> Generator[Dict[str, Union[str, float]], None, None]:
+) -> Iterable[Dict[str, Union[str, float]]]:
     """
     Looks into types for every node in a model.
 
