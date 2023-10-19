@@ -12,8 +12,6 @@ API
     ortcy
     ortops
     reference
-    validation_cpu
-    validation_cuda
-    validation_trees
+    validation
     tools
     command_lines

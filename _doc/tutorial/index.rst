@@ -20,4 +20,4 @@ Introduction
     custom_ops
     many_tools
     ops
-    examples
+    parallelization
