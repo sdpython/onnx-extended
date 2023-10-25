@@ -160,6 +160,10 @@ module = ["onnx_extended.ext_test_case"]
 disable_error_code = ["override", "index"]
 
 [[tool.mypy.overrides]]
+module = ["onnx_extended.helper.large_helper"]
+disable_error_code = ["annotation-unchecked", "assignment", "attr-defined"]
+
+[[tool.mypy.overrides]]
 module = ["onnx_extended.ortops.optim.optimize"]
 disable_error_code = ["arg-type"]
 
