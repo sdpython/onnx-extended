@@ -100,21 +100,6 @@ class TestLargeOnnx(ExtTestCase):
             copy.load(filename)
             copy.check_model()
 
-    def test_large_onnx_multi_files(self):
-        large_model = self._large_linear_regression()
-        assert isinstance(large_model, LargeModelContainer)
-        with tempfile.TemporaryDirectory() as temp:
-            filename = os.path.join(temp, "model.onnx")
-            saved_proto = large_model.save(filename)
-            assert isinstance(saved_proto, ModelProto)
-            copy = load_model(filename)
-            checker.check_model(copy)
-            for tensor in _get_all_tensors(copy):
-                if uses_external_data(tensor):
-                    for ext in tensor.external_data:
-                        if ext.key == "location":
-                            assert os.path.exists(ext.value)
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

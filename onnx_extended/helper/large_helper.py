@@ -1,7 +1,7 @@
 import enum
 import os
 import struct
-from typing import Any, Dict, Iterable, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 import numpy as np
 from onnx import GraphProto, ModelProto, StringStringEntryProto, TensorProto, checker
 from onnx.external_data_helper import _get_all_tensors, uses_external_data
@@ -222,57 +222,7 @@ class LargeModelContainer:
         :param file_path: model file
         :return: modified main model proto
         """
-        _unique_names: Set[str] = set()
-
-        def _clean_name(prefix: str, name: str) -> str:
-            for c in ":/\\;,!":
-                name = name.replace(c, "")
-            base_name = name
-            i = 0
-            while name in _unique_names:
-                i += 1
-                name = f"{base_name}_{i}"
-            _unique_names.add(name)
-            return name
-
-        ext = os.path.splitext(file_path)[-1]
-        if ext != ".onnx":
-            raise ValueError(f"file_path {file_path} must have extension '.onnx'.")
-        folder = os.path.dirname(file_path)
-        if not os.path.exists(folder):
-            raise FileNotFoundError(f"Folder {folder!r} does not exist.")
-        proto = self.model_proto.SerializeToString()
-        copy = ModelProto()
-        copy.ParseFromString(proto)
-        prefix = os.path.splitext(os.path.split(file_path)[-1])[0]
-
-        for tensor in _get_all_tensors(copy):
-            if not uses_external_data(tensor):
-                continue
-            prop: Optional[StringStringEntryProto] = None
-            for ext in tensor.external_data:
-                if ext.key == "location":
-                    prop = ext
-            if prop is None:
-                raise RuntimeError(
-                    f"No location found for tensor name {tensor.name!r}."
-                )
-            if prop.value not in self.large_initializers:
-                raise RuntimeError(
-                    f"Unable to find large tensor named {tensor.name!r} "
-                    f"with location {prop.value!r} in "
-                    f"{sorted(self.large_initializers)}."
-                )
-            np_tensor = self.large_initializers[prop.value]
-            name = f"{_clean_name(prefix, prop.value)}.weight"
-            full_name = os.path.join(folder, name)
-            prop.value = name
-            with open(full_name, "wb") as f:
-                f.write(np_tensor.tobytes())
-
-        with open(file_path, "wb") as f:
-            f.write(copy.SerializeToString())
-        return copy
+        raise NotImplementedError("Use onnx package.")
 
     def save(
         self,
