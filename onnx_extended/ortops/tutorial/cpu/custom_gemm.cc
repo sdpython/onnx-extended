@@ -1,6 +1,7 @@
 #include "custom_gemm.h"
 #include "cpu/cast_fp8.h"
 #include <omp.h>
+#include <iostream>
 
 #define DEBUG_EXT_ENFORCE(cond) EXT_ENFORCE(cond)
 
@@ -515,27 +516,29 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
+	// 0
 #pragma omp parallel for
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
-            EXT_ENFORCE(k * lda + i < M * K);
+	    DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
-              EXT_ENFORCE(i * ldd + j < MN);
-              EXT_ENFORCE(j * ldb + k < N * K);
+              DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+              DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
             }
           }
         }
       } else {
+	// 1
 #pragma omp parallel for
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
+	    DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
-              DEBUG_EXT_ENFORCE(k * lda + i < M * K);
               DEBUG_EXT_ENFORCE(i * ldd + j < MN);
               DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
@@ -544,6 +547,7 @@ void CustomGemmKernel::ComputeGemm(
         }
       }
     } else if (transb) {
+      // 2
 #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
@@ -558,6 +562,7 @@ void CustomGemmKernel::ComputeGemm(
         }
       }
     } else {
+      // 3
 #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
@@ -576,58 +581,62 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
+	// 4
 #pragma omp parallel for
 	for (j = 0; j < N; ++j) {
           float B_PART;
           for (k = 0; k < K; ++k) {
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             B_PART = alpha_ * p_input_b[k * ldb + j];
 	    for (i = 0; i < M; ++i) {
 	      DEBUG_EXT_ENFORCE(i * lda + k < M * K);
               DEBUG_EXT_ENFORCE(j * ldd + i < MN);
-              DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
               p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
             }
           }
         }
       } else {
+	// 5
 #pragma omp parallel for
         for (j = 0; j < N; ++j) {
           float B_PART;
           for (k = 0; k < K; ++k) {
-            B_PART = alpha_ * p_input_b[j * ldb + k];
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
+            B_PART = alpha_ * p_input_b[k * ldb + j];
 	    for (i = 0; i < M; ++i) {
               DEBUG_EXT_ENFORCE(k * lda + i < M * K);
 	      DEBUG_EXT_ENFORCE(j * ldd + i < MN);
-              DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
               p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
             }
           }
         }
       }
     } else if (transb) {
+      // 6
 #pragma omp parallel for
       for (j = 0; j < N; ++j) {
         float B_PART;
         for (k = 0; k < K; ++k) {
+          DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
           B_PART = alpha_ * p_input_b[j * ldb + k];
           for (i = 0; i < M; ++i) {
             DEBUG_EXT_ENFORCE(i * lda + k < M * K);
             DEBUG_EXT_ENFORCE(j * ldd + i < MN);
-            DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
             p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
           }
         }
       }
     } else {
+      // 7
 #pragma omp parallel for
       for (j = 0; j < N; ++j) {
         float B_PART;
         for (k = 0; k < K; ++k) {
-          B_PART = alpha_ * p_input_b[k * ldb + j];
+          DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
+          B_PART = alpha_ * p_input_b[j * ldb + k];
           for (i = 0; i < M; ++i) {
             DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             DEBUG_EXT_ENFORCE(j * ldd + i < MN);
-            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
           }
         }
