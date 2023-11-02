@@ -543,6 +543,7 @@ def plot_profile(
     if out_png not in {"", None}:
         if verbose:
             print(f"[plot_profile] save {out_png!r}")
+        fig.tight_layout()
         fig.savefig(out_png)
 
 
@@ -597,7 +598,7 @@ def cmd_stat(input_model: str, verbose: int = 0) -> Iterable[Dict[str, Any]]:
         if verbose:
             print(
                 f"[cmd_stat] object {i}: name={name!r} "
-                f"size={stat['size']} dtype={stat['dtype']}"
+                f"size={stat.get('size', '?')} dtype={stat.get('dtype', '?')}"
             )
         obs = dict(index=i, joined_name="|".join(name))
         obs.update(stat.dict_values)

@@ -73,6 +73,7 @@ except Exception as e:
 df = df.set_index("size")
 fig, ax = plt.subplots(1, 1, figsize=(12, 4))
 df.plot(ax=ax, title="Cache Performance time/size", logy=True)
+fig.tight_layout()
 fig.savefig("plot_benchmark_cpu_array.png")
 
 #####################################
@@ -140,4 +141,5 @@ df.set_index("i").drop(cols_time, axis=1).plot(
     ax=ax[0], title="TreeEnsemble Performance time per row", logy=True, linewidth=0.2
 )
 df.set_index("i")[cols_time].plot(ax=ax[1], linewidth=1.0, logy=True)
+fig.tight_layout()
 fig.savefig("plot_bench_cpu.png")

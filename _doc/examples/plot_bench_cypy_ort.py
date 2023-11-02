@@ -128,4 +128,5 @@ piv = df.pivot(index="dim", columns="name", values="average")
 
 fig, ax = plt.subplots(1, 1)
 piv.plot(ax=ax, title="Binding Comparison", logy=True, logx=True)
+fig.tight_layout()
 fig.savefig("plot_bench_ort.png")

@@ -33,6 +33,7 @@ Source are available on `github/onnx-extended
     :caption: Contents
 
     tutorial/index
+    command_lines
     api/index
     tech/index
     benchmarks

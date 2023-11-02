@@ -140,6 +140,10 @@ class _Statistics:
         "Returns one statistics."
         return self._statistics[name]
 
+    def get(self, name: str, default_value: Optional[Any] = None) -> Any:
+        "Returns one statistics or a default value if not found."
+        return self._statistics.get(name, default_value)
+
     def __str__(self) -> str:
         "Usual"
         return f"{self.__class__.__name__}(\n{pprint.pformat(self._statistics)})"
@@ -147,7 +151,7 @@ class _Statistics:
     @property
     def dict_values(self) -> Dict[str, Any]:
         """
-        Converts the statistics the class holds into a single rows in order
+        Converts the statistics the class holds into a single row in order
         to build a dataframe.
         """
         raise NotImplementedError(
@@ -170,6 +174,40 @@ class NodeStatistics(_Statistics):
             f"{self.__class__.__name__}(<{self.parent.name}>, <{self.node.op_type}>,\n"
             f"{pprint.pformat(self._statistics)})"
         )
+
+    @property
+    def dict_values(self) -> Dict[str, Any]:
+        "Returns the statistics as a dictionary."
+        obs = {}
+        for k, v in self._statistics.items():
+            if isinstance(
+                v, (int, float, str, np.int64, np.int32, np.float32, np.float64)
+            ):
+                obs[k] = v
+            elif isinstance(v, set):
+                obs[k] = ",".join(map(str, sorted(v)))
+            elif isinstance(v, Counter):
+                for kk, vv in v.items():
+                    obs[f"{k}__{kk}"] = vv
+            elif isinstance(v, list):
+                if len(v) == 0:
+                    continue
+                if isinstance(v[0], (HistTreeStatistics, TreeStatistics)):
+                    # It is the statistics for every tree.
+                    # Let's skip that.
+                    continue
+                raise TypeError(
+                    f"Unexpected type {type(v)} for statistics {k!r} "
+                    f"with element {type(v[0])}."
+                )
+            elif isinstance(v, _Statistics):
+                dv = v.dict_values
+                for kk, vv in dv.items():
+                    if isinstance(vv, (int, float, str)):
+                        obs[f"{k}__{kk}"] = vv
+            else:
+                raise TypeError(f"Unexpected type {type(v)} for statistics {k!r}: {v}.")
+        return obs
 
 
 class TreeStatistics(_Statistics):

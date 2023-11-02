@@ -244,6 +244,7 @@ df[["n_denorm"]].plot(
     ax=ax[1], logx=True, logy=True, title="Ratio of denormalized numbers"
 )
 
+fig.tight_layout()
 fig.savefig("plot_conv_denorm.png")
 # plt.show()
 

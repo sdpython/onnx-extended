@@ -14,7 +14,7 @@ Example:
     python -m onnx_extended bench -r 3 -f 100 -d 12 -v -t 200 -b 10000 -n 100 \
         -e onnxruntime,CReferenceEvaluator,onnxruntime-customops
 
-::
+Output example::
 
     [bench_trees] 11:24:56.852193 create tree
     [bench_trees] 11:24:59.094062 create forest with 200 trees
@@ -107,6 +107,16 @@ and in a csv file.
     from onnx_extended._command_lines_parser import get_parser_display
     get_parser_display().print_help()
 
+Output example::
+
+    input       tensor      X           FLOAT       ?x?                                                         
+    input       tensor      Y           FLOAT       5x6                                                         
+    Op          Add                                             ,           FLOAT       X,Y         res         
+    result      tensor      res         FLOAT       5x6                                                         
+    Op          Cos                                             FLOAT       FLOAT       res         Z           
+    result      tensor      Z           FLOAT       ?x?                                                         
+    output      tensor      Z           FLOAT       ?x?   
+
 .. autofunction:: onnx_extended._command_lines.display_intermediate_results
 
 external
@@ -129,6 +139,20 @@ Plots a graph like a profiling.
     from onnx_extended._command_lines_parser import get_parser_plot
     get_parser_plot().print_help()
 
+Output example::
+
+    [plot_profile] load 'onnxruntime_profile__2023-11-02_10-07-44.json'
+    args_node_index,args_op_name,args_provider,it==0,dur,ratio
+    1,Cos,CPU,1,11,0.08396946564885496
+    1,Cos,CPU,0,29,0.22137404580152673
+    0,Neg,CPU,1,46,0.3511450381679389
+    0,Neg,CPU,0,45,0.3435114503816794
+
+    [plot_profile] save '/tmp/tmp40_jc95t/o.csv'
+    [plot_profile] save '/tmp/tmp40_jc95t/o.png'
+
+.. image:: _static/profile.png
+
 .. autofunction:: onnx_extended._command_lines.cmd_plot
 
 print
@@ -140,6 +164,73 @@ Prints a model or a tensor on the standard output.
 
     from onnx_extended._command_lines_parser import get_parser_print
     get_parser_print().print_help()
+
+Output example::
+
+    Type: <class 'onnx.onnx_ml_pb2.ModelProto'>
+    ir_version: 9
+    opset_import {
+      domain: ""
+      version: 18
+    }
+    graph {
+      node {
+        input: "X"
+        input: "Y"
+        output: "res"
+        op_type: "Add"
+      }
+      node {
+        input: "res"
+        output: "Z"
+        op_type: "Cos"
+      }
+      name: "g"
+      input {
+        name: "X"
+        type {
+          tensor_type {
+            elem_type: 1
+            shape {
+              dim {
+              }
+              dim {
+              }
+            }
+          }
+        }
+      }
+      input {
+        name: "Y"
+        type {
+          tensor_type {
+            elem_type: 1
+            shape {
+              dim {
+                dim_value: 5
+              }
+              dim {
+                dim_value: 6
+              }
+            }
+          }
+        }
+      }
+      output {
+        name: "Z"
+        type {
+          tensor_type {
+            elem_type: 1
+            shape {
+              dim {
+              }
+              dim {
+              }
+            }
+          }
+        }
+      }
+    }
 
 .. autofunction:: onnx_extended._command_lines.print_proto
 
@@ -157,6 +248,13 @@ Example::
 
     python3 -m onnx_extended quantize -i bertsquad-12.onnx -o bertsquad-12-fp8-1.onnx -v -v -k fp8 -q
 
+Output example::
+
+    INFO:onnx-extended:Model initial size: 143
+    INFO:onnx-extended/transformer:[quantize_float8] upgrade model from opset 18 to 19
+    INFO:onnx-extended/transformer:[quantize_float8] 2/4 quantize Node(2, <parent>, <MatMul>) [X,mat] -> [Z]
+    INFO:onnx-extended:Model quantized size: 991
+
 .. autofunction:: onnx_extended._command_lines.cmd_quantize
 
 select
@@ -168,6 +266,14 @@ Extracts a subpart of an existing model.
 
     from onnx_extended._command_lines_parser import get_parser_select
     get_parser_select().print_help()
+
+Output example::
+
+    INFO:onnx-extended:Initial model size: 101
+    INFO:onnx-extended:[select_model_inputs_outputs] nodes 2 --> 1
+    INFO:onnx-extended:[select_model_inputs_outputs] inputs: ['X', 'Y']
+    INFO:onnx-extended:[select_model_inputs_outputs] inputs: ['res']
+    INFO:onnx-extended:Selected model size: 102
 
 .. autofunction:: onnx_extended._command_lines.cmd_select
 
@@ -181,6 +287,23 @@ See :func:`onnx_extended.tools.stats_nodes.enumerate_stats_nodes`
 
     from onnx_extended._command_lines_parser import get_parser_stat
     get_parser_stat().print_help()
+
+Output example::
+
+    [cmd_stat] load model '/tmp/tmpxqeqawk1/m.onnx'
+    [cmd_stat] object 0: name=('add', 'Y') size=4 dtype=float32
+    [cmd_stat] prints out /tmp/tmpxqeqawk1/stat.scsv
+       index joined_name  size   shape    dtype  min  max  mean  ...  hist_x_13  hist_x_14  hist_x_15  hist_x_16  hist_x_17  hist_x_18  hist_x_19  hist_x_20
+    0      0       add|Y     4  (2, 2)  float32  2.0  5.0   3.5  ...       3.95        4.1       4.25        4.4       4.55        4.7       4.85        5.0
+
+    [1 rows x 51 columns]
+
+Output example with trees::
+
+       index                                        joined_name       kind  n_trees  ...  n_rules            rules  hist_rules__BRANCH_LEQ  hist_rules__LEAF
+    0      0  ONNX(RandomForestRegressor)|TreeEnsembleRegressor  Regressor        3  ...        2  BRANCH_LEQ,LEAF                       9                12
+
+    [1 rows x 11 columns]
 
 .. autofunction:: onnx_extended._command_lines.cmd_stat
 
