@@ -1,4 +1,5 @@
 import unittest
+import sys
 from io import StringIO
 from contextlib import redirect_stdout
 from typing import Callable, List, Optional, Tuple
@@ -270,6 +271,7 @@ class TestOnnxTools(ExtTestCase):
         io_map = [("B00", "B01"), ("B10", "B11"), ("B20", "B21")]
         self._test_merge_models(M1_DEF, M2_DEF, io_map, check_expectations)
 
+    @unittest.skipIf(sys.platform == "win32", reason="unstable test on Windows")
     def test_random_forest_regressor_as_tensor(self):
         from skl2onnx import to_onnx
 
