@@ -338,8 +338,8 @@ void CustomGemmKernel::ComputeGemm(
                 static_cast<const float *>(p_scale_b),
                 static_cast<const float *>(p_scale_y),
                 static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
-  } else if (dtype_A == 17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN */ &&
-             dtype_B == 17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN */ &&
+  } else if (dtype_A == ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN &&
+             dtype_B == ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN &&
              dtype_C == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
              dtype_Y == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
              computeType_ == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
@@ -387,7 +387,7 @@ void CustomGemmKernel::ComputeGemm(
             << " ldd=" << ldd << " M=" << M << " N=" << N << " K=" << K
             << ")\n";
   */
-#if defined(__MACOSX__) || defined(__APPLE__) || defined(_WIN32)
+#if defined(__MACOSX__) || defined(__APPLE__)
 
   int i, j, k;
   int MN = M * N;
@@ -431,7 +431,7 @@ void CustomGemmKernel::ComputeGemm(
         for (k = 0; k < K; ++k) {
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
-            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
           }
         }
       }
@@ -476,7 +476,7 @@ void CustomGemmKernel::ComputeGemm(
         for (k = 0; k < K; ++k) {
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
-            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+            p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
           }
         }
       }
@@ -517,8 +517,11 @@ void CustomGemmKernel::ComputeGemm(
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
+            EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
+              EXT_ENFORCE(i * ldd + j < MN);
+              EXT_ENFORCE(j * ldb + k < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
             }
           }
@@ -528,8 +531,11 @@ void CustomGemmKernel::ComputeGemm(
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
+            EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
+              EXT_ENFORCE(i * ldd + j < MN);
+              EXT_ENFORCE(k * ldb + j < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
             }
           }
@@ -540,8 +546,11 @@ void CustomGemmKernel::ComputeGemm(
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
+          EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
+            EXT_ENFORCE(i * ldd + j < MN);
+            EXT_ENFORCE(j * ldb + k < N * K);
             p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
           }
         }
@@ -551,8 +560,11 @@ void CustomGemmKernel::ComputeGemm(
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
+          EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
+            EXT_ENFORCE(i * ldd + j < MN);
+            EXT_ENFORCE(k * ldb + j < N * K);
             p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
           }
         }
@@ -566,8 +578,11 @@ void CustomGemmKernel::ComputeGemm(
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
+            EXT_ENFORCE(i * lda + k < M * K);
             A_PART = alpha_ * p_input_a[i * lda + k];
             for (j = 0; j < N; ++j) {
+              EXT_ENFORCE(j * ldd + i < MN);
+              EXT_ENFORCE(k * ldb + j < N * K);
               p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
             }
           }
@@ -577,9 +592,12 @@ void CustomGemmKernel::ComputeGemm(
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
+            EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
-              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+              EXT_ENFORCE(j * ldd + i < MN);
+              EXT_ENFORCE(j * ldb + k < N * K);
+              p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
             }
           }
         }
@@ -589,8 +607,11 @@ void CustomGemmKernel::ComputeGemm(
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
+          EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
+            EXT_ENFORCE(j * ldd + i < MN);
+            EXT_ENFORCE(j * ldb + k < N * K);
             p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
           }
         }
@@ -600,9 +621,12 @@ void CustomGemmKernel::ComputeGemm(
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
+          EXT_ENFORCE(k * lda + i < M * K);
           A_PART = alpha_ * p_input_a[k * lda + i];
           for (j = 0; j < N; ++j) {
-            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+            EXT_ENFORCE(j * ldd + i < MN);
+            EXT_ENFORCE(k * ldb + j < N * K);
+            p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
           }
         }
       }
