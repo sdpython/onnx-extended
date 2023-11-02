@@ -387,7 +387,7 @@ void CustomGemmKernel::ComputeGemm(
             << " ldd=" << ldd << " M=" << M << " N=" << N << " K=" << K
             << ")\n";
   */
-#if defined(__MACOSX__) || defined(__APPLE__)
+#if defined(__MACOSX__) || defined(__APPLE__) || defined(_WIN32)
 
   int i, j, k;
   int MN = M * N;
