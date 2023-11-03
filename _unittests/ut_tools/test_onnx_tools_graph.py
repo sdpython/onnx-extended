@@ -90,7 +90,11 @@ class TestOnnxToolsGraph(ExtTestCase):
             graph, opset_imports=[make_opsetid("", 18)], ir_version=8
         )
         check_model(onnx_model)
-        return onnx_model, value_cst.reshape(tuple(shape_cst.tolist()))
+        if side_x == 0:
+            fct = lambda X: X @ value_cst.reshape(tuple(shape_cst))
+        else:
+            fct = lambda X: value_cst.reshape(tuple(shape_cst)) @ X
+        return onnx_model, value_cst.reshape(tuple(shape_cst.tolist())), fct
 
     def test_basic_all(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
@@ -144,14 +148,14 @@ class TestOnnxToolsGraph(ExtTestCase):
             [3, 2],  # n_dim_c
         )
 
+        # 7, 5, 5, 6, 6, 4, 4, 7, 7, 5, 5, 6, 6, 4, 4
         for it, (init, tr, side_x, n_dim_x, n_dim_c) in enumerate(options):
             msg = (
                 f"init={init}, tr={tr}, side_x={side_x}, "
                 f"n_dim_x={n_dim_x}, n_dim_c={n_dim_c}"
             )
             with self.subTest(msg=msg):
-                # print(f"-----------------------------\n{msg}")
-                model, cst = self._get_basic_square_model(
+                model, cst, fct = self._get_basic_square_model(
                     init=init, n_dim_x=n_dim_x, n_dim_c=n_dim_c, side_x=side_x
                 )
 
@@ -258,6 +262,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                             f.write(onxo.SerializeToString())
                         continue
                     raise e
+                self.assertEqualArray(fct(x), expected, atol=1e-1)
                 got = sess.run(None, dict(X=x))[0]
                 self.assertEqualArray(expected, got, atol=1e-5)
 
@@ -673,4 +678,5 @@ if __name__ == "__main__":
     for name in ["onnx-extended", "skl2onnx", "onnx-extended/transformer"]:
         log = logging.getLogger(name)
         log.setLevel(logging.ERROR)
+    TestOnnxToolsGraph().test_basic_all()
     unittest.main(verbosity=2)
