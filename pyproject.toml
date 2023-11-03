@@ -305,3 +305,4 @@ max-complexity = 10
 "onnx_extended/tools/graph/__init__.py" = ["F401"]
 "onnx_extended/tools/js_profile.py" = ["F821"]
 "onnx_extended/tools/run_onnx_main.py" = ["E731"]
+"_unittests/ut_tools/test_onnx_tools_graph.py" = ["E731"]
