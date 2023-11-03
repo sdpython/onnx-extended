@@ -3,7 +3,13 @@
 #include <omp.h>
 #include <iostream>
 
+#if _DEBUG
 #define DEBUG_EXT_ENFORCE(cond) EXT_ENFORCE(cond)
+#define DEBUG_STR(s) std::cout << s << "\n";
+#else
+#define DEBUG_EXT_ENFORCE(cond)
+#define DEBUG_STR(s)
+#endif
 
 namespace ortops {
 
@@ -516,7 +522,8 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
-	// 0
+        // 0
+        DEBUG_STR("P0")
 #pragma omp parallel for
         for (i = 0; i < M; ++i) {
           float A_PART;
@@ -531,7 +538,8 @@ void CustomGemmKernel::ComputeGemm(
           }
         }
       } else {
-	// 1
+        // 1
+        DEBUG_STR("P1")
 #pragma omp parallel for
         for (i = 0; i < M; ++i) {
           float A_PART;
@@ -548,6 +556,7 @@ void CustomGemmKernel::ComputeGemm(
       }
     } else if (transb) {
       // 2
+      DEBUG_STR("P2")
 #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
@@ -563,6 +572,7 @@ void CustomGemmKernel::ComputeGemm(
       }
     } else {
       // 3
+      DEBUG_STR("P3")
 #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
@@ -581,22 +591,24 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
-	// 4
+        // 4
+        DEBUG_STR("P4")
 #pragma omp parallel for
-	for (j = 0; j < N; ++j) {
+        for (j = 0; j < N; ++j) {
           float B_PART;
           for (k = 0; k < K; ++k) {
             DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             B_PART = alpha_ * p_input_b[k * ldb + j];
-	    for (i = 0; i < M; ++i) {
-	      DEBUG_EXT_ENFORCE(i * lda + k < M * K);
+            for (i = 0; i < M; ++i) {
+              DEBUG_EXT_ENFORCE(i * lda + k < M * K);
               DEBUG_EXT_ENFORCE(j * ldd + i < MN);
               p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
             }
           }
         }
       } else {
-	// 5
+        // 5
+        DEBUG_STR("P5")
 #pragma omp parallel for
         for (j = 0; j < N; ++j) {
           float B_PART;
@@ -613,6 +625,7 @@ void CustomGemmKernel::ComputeGemm(
       }
     } else if (transb) {
       // 6
+      DEBUG_STR("P6")
 #pragma omp parallel for
       for (j = 0; j < N; ++j) {
         float B_PART;
@@ -628,6 +641,7 @@ void CustomGemmKernel::ComputeGemm(
       }
     } else {
       // 7
+      DEBUG_STR("P7")
 #pragma omp parallel for
       for (j = 0; j < N; ++j) {
         float B_PART;

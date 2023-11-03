@@ -204,6 +204,16 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 f"\n----\ngot=\n{got[0][:2,:2]}"
             ) from e
 
+    def test_custom_gemm_base0_cnot_square(self):
+        self.common_test_custom_gemm(
+            "CustomGemmFloat",
+            [TensorProto.FLOAT for i in range(2)],
+            name="cgf",
+            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
+            rowMajor=1,
+            square=False,
+        )
+
     def test_custom_gemm_base0_no_trans(self):
         self.common_test_custom_gemm(
             "CustomGemmFloat",
@@ -368,16 +378,6 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             transA=1,
             computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
             rowMajor=0,
-        )
-
-    def test_custom_gemm_base0_cnot_square(self):
-        self.common_test_custom_gemm(
-            "CustomGemmFloat",
-            [TensorProto.FLOAT for i in range(2)],
-            name="cgf",
-            computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
-            rowMajor=1,
-            square=False,
         )
 
     def test_custom_gemm_base0_col_major_not_square(self):

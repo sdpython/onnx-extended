@@ -255,7 +255,12 @@ class cmake_build_class_extension(Command):
         (
             "manylinux=",
             None,
-            "Enforces the compilation with manylinux, " "default is set to 0.",
+            "Enforces the compilation with manylinux, default is set to 0.",
+        ),
+        (
+            "cfg=",
+            None,
+            "Builds a specific configuration, default is set to Release.",
         ),
     ]
 
@@ -278,13 +283,14 @@ class cmake_build_class_extension(Command):
         self.cuda_build = "DEFAULT"
         self.cuda_link = "STATIC"
         self.noverbose = None
+        self.cfg = None
 
         self._parent.initialize_options(self)
 
         # boolean
         b_values = {0, 1, "1", "0", True, False}
         t_values = {1, "1", True}
-        for att in ["use_nvtx", "use_cuda", "manylinux", "noverbose"]:
+        for att in ["use_nvtx", "use_cuda", "manylinux", "noverbose", "cfg"]:
             v = getattr(self, att)
             if v is not None:
                 continue
@@ -314,6 +320,8 @@ class cmake_build_class_extension(Command):
             self.manylinux = False
         if self.noverbose is None:
             self.noverbose = False
+        if self.cfg is None:
+            self.cfg = "Release"
 
     def finalize_options(self):
         self._parent.finalize_options(self)
@@ -339,6 +347,9 @@ class cmake_build_class_extension(Command):
         link = {"STATIC", "SHARED"}
         if self.cuda_link not in link:
             raise ValueError(f"cuda-link={self.cuda_link!r} not in {link}.")
+        cfg_names = {"Debug", "Release"}
+        if self.cfg not in cfg_names:
+            raise ValueError(f"cfg={self.cfg!r} not in {cfg_names}.")
 
         options = {o[0]: o for o in self.user_options}
         keys = list(sorted(options.keys()))
@@ -560,7 +571,7 @@ class cmake_build_class_extension(Command):
         except OSError:
             raise RuntimeError("Cannot find CMake executable")
 
-        cfg = "Release"
+        cfg = self.cfg if self.cfg else "Release"
         cmake_args = self.get_cmake_args(cfg)
         build_path, build_lib = self.build_cmake(cfg, cmake_args)
         if hasattr(self, "extensions"):
