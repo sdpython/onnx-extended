@@ -41,3 +41,4 @@ The development versions of :epkg:`onnxruntime` can be used if it was already bu
     build_pybind11
     build_cuda
     build_ortext
+    readings
