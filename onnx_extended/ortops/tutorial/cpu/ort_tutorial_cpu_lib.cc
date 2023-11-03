@@ -39,13 +39,10 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
 #if ORT_API_VERSION_SUPPORTED >= 16
   static ortops::DynamicQuantizeLinearOp
-      c_dql(
-          ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */);
+      c_dql(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN);
 
   static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FN(
-      "CustomGemmFloat8E4M3FN", (ONNXTensorElementDataType)17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN
-                                                               */
-      ,
+      "CustomGemmFloat8E4M3FN", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
       false);
 #endif

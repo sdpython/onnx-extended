@@ -28,10 +28,11 @@ requires-python = ">=3.9"
 version = "0.2.4"
 
 [project.urls]
-homepage = "https://sdpython.github.io/doc/onnx-extended/dev/"
-documentation = "https://sdpython.github.io/doc/onnx-extended/dev/"
-repository = "https://github.com/sdpython/onnx-extended/"
-changelog = "https://github.com/sdpython/onnx-extended/CHANGELOGS.rst"
+Homepage = "https://sdpython.github.io/doc/onnx-extended/dev/"
+Documentation = "https://sdpython.github.io/doc/onnx-extended/dev/"
+Repository = "https://github.com/sdpython/onnx-extended/"
+Changelog = "https://github.com/sdpython/onnx-extended/blob/main/CHANGELOGS.rst"
+Issues = "https://github.com/sdpython/onnx-extended/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -304,3 +305,4 @@ max-complexity = 10
 "onnx_extended/tools/graph/__init__.py" = ["F401"]
 "onnx_extended/tools/js_profile.py" = ["F821"]
 "onnx_extended/tools/run_onnx_main.py" = ["E731"]
+"_unittests/ut_tools/test_onnx_tools_graph.py" = ["E731"]

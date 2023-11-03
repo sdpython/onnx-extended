@@ -127,5 +127,6 @@ df["speedup"] = df["onnx"] / df["onnx_extended"]
 ax2 = ax.twinx()
 df[["speedup"]].plot(ax=ax2, color="green")
 
+fig.tight_layout()
 fig.savefig("plot_conv.png")
 # plt.show()

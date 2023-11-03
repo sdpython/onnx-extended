@@ -4,6 +4,7 @@ Change Logs
 0.2.4
 +++++
 
+* :pr:`108`: improves command lines documentation, fix an issue in command line stats
 * :pr:`103`: add methods to compute statistics on TreeEnsemble and initializers
 
 0.2.3

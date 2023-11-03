@@ -1,6 +1,15 @@
 #include "custom_gemm.h"
 #include "cpu/cast_fp8.h"
 #include <omp.h>
+#include <iostream>
+
+#if _DEBUG
+#define DEBUG_EXT_ENFORCE(cond) EXT_ENFORCE(cond)
+#define DEBUG_STR(s) std::cout << s << "\n";
+#else
+#define DEBUG_EXT_ENFORCE(cond)
+#define DEBUG_STR(s)
+#endif
 
 namespace ortops {
 
@@ -338,8 +347,8 @@ void CustomGemmKernel::ComputeGemm(
                 static_cast<const float *>(p_scale_b),
                 static_cast<const float *>(p_scale_y),
                 static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
-  } else if (dtype_A == 17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN */ &&
-             dtype_B == 17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_E4M3FN */ &&
+  } else if (dtype_A == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN &&
+             dtype_B == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN &&
              dtype_C == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
              dtype_Y == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT &&
              computeType_ == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
@@ -431,7 +440,7 @@ void CustomGemmKernel::ComputeGemm(
         for (k = 0; k < K; ++k) {
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
-            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
+            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
           }
         }
       }
@@ -476,7 +485,7 @@ void CustomGemmKernel::ComputeGemm(
         for (k = 0; k < K; ++k) {
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
-            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+            p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
           }
         }
       }
@@ -513,46 +522,66 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
+        // 0
+        DEBUG_STR("P0")
 #pragma omp parallel for
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
+	    DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
+              DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+              DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
             }
           }
         }
       } else {
+        // 1
+        DEBUG_STR("P1")
 #pragma omp parallel for
         for (i = 0; i < M; ++i) {
           float A_PART;
           for (k = 0; k < K; ++k) {
+	    DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (j = 0; j < N; ++j) {
+              DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+              DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
             }
           }
         }
       }
     } else if (transb) {
+      // 2
+      DEBUG_STR("P2")
 #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
+          DEBUG_EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
+            DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+            DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
             p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
           }
         }
       }
     } else {
+      // 3
+      DEBUG_STR("P3")
 #pragma omp parallel for
       for (i = 0; i < M; ++i) {
         float A_PART;
         for (k = 0; k < K; ++k) {
+          DEBUG_EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
           for (j = 0; j < N; ++j) {
+            DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
           }
         }
@@ -562,47 +591,67 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
+        // 4
+        DEBUG_STR("P4")
 #pragma omp parallel for
-        for (i = 0; i < M; ++i) {
-          float A_PART;
+        for (j = 0; j < N; ++j) {
+          float B_PART;
           for (k = 0; k < K; ++k) {
-            A_PART = alpha_ * p_input_a[i * lda + k];
-            for (j = 0; j < N; ++j) {
-              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
+            B_PART = alpha_ * p_input_b[k * ldb + j];
+            for (i = 0; i < M; ++i) {
+              DEBUG_EXT_ENFORCE(i * lda + k < M * K);
+              DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+              p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
             }
           }
         }
       } else {
+        // 5
+        DEBUG_STR("P5")
 #pragma omp parallel for
-        for (i = 0; i < M; ++i) {
-          float A_PART;
+        for (j = 0; j < N; ++j) {
+          float B_PART;
           for (k = 0; k < K; ++k) {
-            A_PART = alpha_ * p_input_a[k * lda + i];
-            for (j = 0; j < N; ++j) {
-              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
+            B_PART = alpha_ * p_input_b[k * ldb + j];
+	    for (i = 0; i < M; ++i) {
+              DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+	      DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+              p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
             }
           }
         }
       }
     } else if (transb) {
+      // 6
+      DEBUG_STR("P6")
 #pragma omp parallel for
-      for (i = 0; i < M; ++i) {
-        float A_PART;
+      for (j = 0; j < N; ++j) {
+        float B_PART;
         for (k = 0; k < K; ++k) {
-          A_PART = alpha_ * p_input_a[i * lda + k];
-          for (j = 0; j < N; ++j) {
-            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+          DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
+          B_PART = alpha_ * p_input_b[j * ldb + k];
+          for (i = 0; i < M; ++i) {
+            DEBUG_EXT_ENFORCE(i * lda + k < M * K);
+            DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+            p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
           }
         }
       }
     } else {
+      // 7
+      DEBUG_STR("P7")
 #pragma omp parallel for
-      for (i = 0; i < M; ++i) {
-        float A_PART;
+      for (j = 0; j < N; ++j) {
+        float B_PART;
         for (k = 0; k < K; ++k) {
-          A_PART = alpha_ * p_input_a[k * lda + i];
-          for (j = 0; j < N; ++j) {
-            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+          DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
+          B_PART = alpha_ * p_input_b[j * ldb + k];
+          for (i = 0; i < M; ++i) {
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+            DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+            p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
           }
         }
       }

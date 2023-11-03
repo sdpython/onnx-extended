@@ -14,4 +14,3 @@ API
     reference
     validation
     tools
-    command_lines

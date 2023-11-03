@@ -6,6 +6,7 @@ cython>=3.0
 cython-lint
 flake8
 furo; sys_platform == 'linux'
+google-re2
 isort
 lightgbm
 matplotlib
@@ -17,6 +18,7 @@ openpyxl
 opt_einsum
 packaging
 pandas
+Pillow
 psutil
 pytest
 pytest-cov

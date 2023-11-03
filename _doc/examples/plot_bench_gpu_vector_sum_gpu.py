@@ -139,6 +139,7 @@ fig, ax = plt.subplots(1, 3, figsize=(12, 6))
 piv.plot(ax=ax[0], logx=True, title="Comparison between two summation")
 piv_diff.plot(ax=ax[1], logx=True, logy=True, title="Summation errors")
 piv_time.plot(ax=ax[2], logx=True, logy=True, title="Total time")
+fig.tight_layout()
 fig.savefig("plot_bench_gpu_vector_sum_gpu.png")
 
 ##############################################

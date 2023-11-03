@@ -167,7 +167,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqualArray(expected, got2, rtol=0.05)
 
     @unittest.skipIf(
-        onnx_opset_version() < 20 and (not has_cuda() or not ort_has_cuda),
+        onnx_opset_version() < 20 or (not has_cuda() or not ort_has_cuda),
         reason="onnx not recent enough or onnxruntime not "
         "installed or cuda is not available",
     )
