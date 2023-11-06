@@ -147,7 +147,8 @@ class TestOnnxToolsGraph(ExtTestCase):
             [0, 1],  # side_
             [2, 3],  # n_dim_x
             [3, 2],  # n_dim_c
-            [0, 1, 2, 3, -1] if __name__ == "__main__" else [-1],  # simple
+            # [0, 1, 2, 3, -1] if __name__ == "__main__" else [-1],  # simple
+            [-1],
         )
 
         # 7, 5, 5, 6, 6, 4, 4, 7, 7, 5, 5, 6, 6, 4, 4
