@@ -402,11 +402,11 @@ void CustomGemmKernel::ComputeGemm(
 
   int MN = M * N;
   if (p_input_c == nullptr) {
-    for (i = 0; i < MN; ++i) {
+    for (int i = 0; i < MN; ++i) {
       p_output_y[i] = 0;
     }
   } else {
-    for (i = 0; i < MN; ++i) {
+    for (int i = 0; i < MN; ++i) {
       p_output_y[i] = beta_ * p_input_c[i];
     }
   }
