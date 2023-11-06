@@ -251,11 +251,13 @@ class ExtTestCase(unittest.TestCase):
                         f"\n{sout.getvalue()}\n---\nstderr=\n{serr.getvalue()}"
                     ) from e
         return res, sout.getvalue(), serr.getvalue()
-    
-    def tryCall(self, fct:Callable, msg:Optional[str]=None,        none_if: Optional[str] = None)->Optional[Any]:
+
+    def tryCall(
+        self, fct: Callable, msg: Optional[str] = None, none_if: Optional[str] = None
+    ) -> Optional[Any]:
         """
         Calls the function, catch any error.
-        
+
         :param fct: function to call
         :param msg: error message to display if failing
         :param none_if: returns None if this substring is found in the error message

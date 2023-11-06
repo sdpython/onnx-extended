@@ -240,8 +240,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       check_device(scale_Y, "scale_Y");
     }
   } else if (n_inputs != 2 && n_inputs != 3) {
-    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ",
-              (int64_t)n_inputs, ".");
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", (int64_t)n_inputs,
+              ".");
   }
 
   switch (rowMajor_) {
@@ -367,16 +367,17 @@ void CustomGemmKernel::ComputeGemm(
                 static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
   } else {
     EXT_THROW("Not implemented for dtype_A=", (int64_t)dtype_A,
-              " dtype_B=", (int64_t)dtype_B,
-              " dtype_C=", (int64_t)dtype_C,
+              " dtype_B=", (int64_t)dtype_B, " dtype_C=", (int64_t)dtype_C,
               " dtype_Y=", (int64_t)dtype_Y, ".");
   }
 }
 
 void CustomGemmKernel::ComputeGemm(
-    Ort::KernelContext & /* ctx */, int /* n_inputs */, bool /* has_bias */, bool has_scales,
-    bool has_scales_Y, const std::vector<int64_t> & /* shape_A */,
-    const std::vector<int64_t> & /* shape_B */, const std::vector<int64_t> & /* shape_C */,
+    Ort::KernelContext & /* ctx */, int /* n_inputs */, bool /* has_bias */,
+    bool has_scales, bool has_scales_Y,
+    const std::vector<int64_t> & /* shape_A */,
+    const std::vector<int64_t> & /* shape_B */,
+    const std::vector<int64_t> & /* shape_C */,
     const std::vector<int64_t> & /* shape_Y */, bool transa, bool transb,
     const float *p_input_a, const float *p_input_b, const float *p_input_c,
     const float *p_scale_a, const float *p_scale_b, const float *p_scale_y,
@@ -388,7 +389,7 @@ void CustomGemmKernel::ComputeGemm(
               "scale_B must be empty or one for float.");
   EXT_ENFORCE(has_scales_Y || p_scale_y == nullptr || *p_scale_y == 1,
               "scale_Y must be empty or one for float.");
-    
+
   /*
   std::cout << "ComputeGemm("
             << "transa=" << transa << " transb=" << transb
@@ -419,7 +420,7 @@ void CustomGemmKernel::ComputeGemm(
         for (int i = 0; i < M; ++i) {
           float A_PART;
           for (int k = 0; k < K; ++k) {
-	        DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (int j = 0; j < N; ++j) {
               DEBUG_EXT_ENFORCE(i * ldd + j < MN);
@@ -434,7 +435,7 @@ void CustomGemmKernel::ComputeGemm(
         for (int i = 0; i < M; ++i) {
           float A_PART;
           for (int k = 0; k < K; ++k) {
-	        DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (int j = 0; j < N; ++j) {
               DEBUG_EXT_ENFORCE(i * ldd + j < MN);
@@ -501,9 +502,9 @@ void CustomGemmKernel::ComputeGemm(
           for (int k = 0; k < K; ++k) {
             DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             B_PART = alpha_ * p_input_b[k * ldb + j];
-	    for (int i = 0; i < M; ++i) {
+            for (int i = 0; i < M; ++i) {
               DEBUG_EXT_ENFORCE(k * lda + i < M * K);
-	      DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+              DEBUG_EXT_ENFORCE(j * ldd + i < MN);
               p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
             }
           }
@@ -567,7 +568,7 @@ void CustomGemmKernel::ComputeGemm(
         for (int i = 0; i < M; ++i) {
           float A_PART;
           for (int k = 0; k < K; ++k) {
-	       DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (int j = 0; j < N; ++j) {
               DEBUG_EXT_ENFORCE(i * ldd + j < MN);
@@ -583,7 +584,7 @@ void CustomGemmKernel::ComputeGemm(
         for (int i = 0; i < M; ++i) {
           float A_PART;
           for (int k = 0; k < K; ++k) {
-	        DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
             for (int j = 0; j < N; ++j) {
               DEBUG_EXT_ENFORCE(i * ldd + j < MN);
@@ -654,9 +655,9 @@ void CustomGemmKernel::ComputeGemm(
           for (int k = 0; k < K; ++k) {
             DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             B_PART = alpha_ * p_input_b[k * ldb + j];
-	    for (int i = 0; i < M; ++i) {
+            for (int i = 0; i < M; ++i) {
               DEBUG_EXT_ENFORCE(k * lda + i < M * K);
-	      DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+              DEBUG_EXT_ENFORCE(j * ldd + i < MN);
               p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
             }
           }

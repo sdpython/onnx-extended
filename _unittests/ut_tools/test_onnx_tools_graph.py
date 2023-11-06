@@ -1,8 +1,7 @@
 import itertools
 import unittest
 import numpy as np
-from packaging.version import Version
-from onnx import TensorProto, __version__ as onnx_version
+from onnx import TensorProto
 from onnx.checker import check_model
 from onnx.helper import (
     make_model,
@@ -15,7 +14,6 @@ from onnx.helper import (
 from onnx.reference import ReferenceEvaluator
 from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 from onnx.reference.op_run import to_array_extended
-from onnx.onnx_cpp2py_export.defs import SchemaError
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -25,7 +23,6 @@ except ImportError:
     ort_version = "0.0"
 if InferenceSession is not None:
     from onnxruntime import get_available_providers
-    from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
 
     ort_has_cuda = "CUDAExecutionProvider" in get_available_providers()
 else:
@@ -161,15 +158,24 @@ class TestOnnxToolsGraph(ExtTestCase):
             )
             with self.subTest(msg=msg):
                 model, cst, fct = self._get_basic_square_model(
-                    init=init, n_dim_x=n_dim_x, n_dim_c=n_dim_c, side_x=side_x, simple=simple
+                    init=init,
+                    n_dim_x=n_dim_x,
+                    n_dim_c=n_dim_c,
+                    side_x=side_x,
+                    simple=simple,
                 )
 
-                x = (np.arange(2 ** n_dim_x) + 1).reshape((2,) * n_dim_x).astype(np.float32)
+                x = (
+                    (np.arange(2**n_dim_x) + 1)
+                    .reshape((2,) * n_dim_x)
+                    .astype(np.float32)
+                )
                 feeds = dict(X=x)
 
                 ref = self.tryCall(
                     lambda: CReferenceEvaluator(model),
-                    f"Unable to load model\n----\n{onnx_simple_text_plot(model)}")
+                    f"Unable to load model\n----\n{onnx_simple_text_plot(model)}",
+                )
                 z0 = ref.run(None, feeds)[0]
 
                 # Let's compute expected value after quandization
@@ -203,17 +209,27 @@ class TestOnnxToolsGraph(ExtTestCase):
                 for node in onx.graph.node:
                     if node.op_type == "GemmFloat8":
                         node.op_type = "GemmFloat8Quiet"
-                ref2 = self.tryCall(lambda: CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet]),
-                    f"Unable to load model\n----\n{msg}\n{onnx_simple_text_plot(onx)}")
-                got = self.tryCall(lambda: ref2.run(None, dict(X=x))[0],
-                        f"Unable to run model with x.shape={x.shape}"
-                        f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}")
-                self.assertEqualArray(expected, got, atol=1e-5,
-                msg=(f"Verification failed with GemmFloat8Quiet\n"
+                ref2 = self.tryCall(
+                    lambda: CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet]),
+                    f"Unable to load model\n----\n{msg}\n{onnx_simple_text_plot(onx)}",
+                )
+                got = self.tryCall(
+                    lambda: ref2.run(None, dict(X=x))[0],
+                    f"Unable to run model with x.shape={x.shape}"
+                    f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}",
+                )
+                self.assertEqualArray(
+                    expected,
+                    got,
+                    atol=1e-5,
+                    msg=(
+                        f"Verification failed with GemmFloat8Quiet\n"
                         f"expected.shape={expected.shape} got.shape={got.shape}\n"
                         f"x=\n{x}\nqx=\n{qx}\ncst=\n{cst}\nqc=\n{qc}\n--\n"
                         f"expected=\n{expected}\ngot={got}\n----\n{msg}\n"
-                        f"onx={onnx_simple_text_plot(onx)}"))
+                        f"onx={onnx_simple_text_plot(onx)}"
+                    ),
+                )
 
                 # check with onnxruntime and CPU kernel
                 graph = Graph(model)
@@ -227,23 +243,30 @@ class TestOnnxToolsGraph(ExtTestCase):
                 )
                 onxo = new_graph.to_onnx()
                 check_onx(onxo, tr)
-                sess = self.tryCall(lambda: InferenceSession(
+                sess = self.tryCall(
+                    lambda: InferenceSession(
                         onxo.SerializeToString(),
                         sess_opts,
                         providers=["CPUExecutionProvider"],
-                    ), msg=f"onnxruntime inference fails with\n{onnx_simple_text_plot(onxo)}",
-                    none_if="type inference failed")
+                    ),
+                    msg=f"onnxruntime inference fails with\n{onnx_simple_text_plot(onxo)}",
+                    none_if="type inference failed",
+                )
                 if sess is not None:
                     got = sess.run(None, dict(X=x))[0]
-                    self.assertEqualArray(expected, got, rtol=1e-5, 
-                    msg=(
-                        f"Discrepancies with\n"
-                        f"x={x}\ncst={cst}\nqx={qx}\nqc={qc}"
-                        f"\nexpected={expected}\nfct(x)={fct(x)}"
-                        f"\n{onnx_simple_text_plot(onxo)}"
-                        f"\n-------------------------\n"
-                        f"{onnx_simple_text_plot(onxo)}"
-                    ))
+                    self.assertEqualArray(
+                        expected,
+                        got,
+                        rtol=1e-5,
+                        msg=(
+                            f"Discrepancies with\n"
+                            f"x={x}\ncst={cst}\nqx={qx}\nqc={qc}"
+                            f"\nexpected={expected}\nfct(x)={fct(x)}"
+                            f"\n{onnx_simple_text_plot(onxo)}"
+                            f"\n-------------------------\n"
+                            f"{onnx_simple_text_plot(onxo)}"
+                        ),
+                    )
 
     def _get_model(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
