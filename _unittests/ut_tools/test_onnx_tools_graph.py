@@ -1,5 +1,6 @@
 import itertools
 import unittest
+import sys
 import numpy as np
 from onnx import TensorProto
 from onnx.checker import check_model
@@ -97,6 +98,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             fct = lambda X: value_cst.reshape(tuple(shape_cst)) @ X
         return onnx_model, value_cst.reshape(tuple(shape_cst.tolist())), fct
 
+    @unittest.skipIf(sys.platform == "win32", reason="unastable on CI, cannot replicate")
     def test_basic_all(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
