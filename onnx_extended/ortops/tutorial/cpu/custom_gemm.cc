@@ -1,9 +1,9 @@
 #include "custom_gemm.h"
 #include "cpu/cast_fp8.h"
 #include <omp.h>
-#include <iostream>
 
 #if _DEBUG
+#include <iostream>
 #define DEBUG_EXT_ENFORCE(cond) EXT_ENFORCE(cond)
 #define DEBUG_STR(s) std::cout << s << "\n";
 #else
@@ -240,8 +240,8 @@ void CustomGemmKernel::Compute(OrtKernelContext *context) {
       check_device(scale_Y, "scale_Y");
     }
   } else if (n_inputs != 2 && n_inputs != 3) {
-    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ",
-              (int64_t)n_inputs, ".");
+    EXT_THROW("Number of inputs must be 2, 3 or 6 but is ", (int64_t)n_inputs,
+              ".");
   }
 
   switch (rowMajor_) {
@@ -367,16 +367,17 @@ void CustomGemmKernel::ComputeGemm(
                 static_cast<float *>(p_output_y), M, N, K, lda, ldb, ldd);
   } else {
     EXT_THROW("Not implemented for dtype_A=", (int64_t)dtype_A,
-              " dtype_B=", (int64_t)dtype_B,
-              " dtype_C=", (int64_t)dtype_C,
+              " dtype_B=", (int64_t)dtype_B, " dtype_C=", (int64_t)dtype_C,
               " dtype_Y=", (int64_t)dtype_Y, ".");
   }
 }
 
 void CustomGemmKernel::ComputeGemm(
-    Ort::KernelContext & /* ctx */, int /* n_inputs */, bool /* has_bias */, bool has_scales,
-    bool has_scales_Y, const std::vector<int64_t> & /* shape_A */,
-    const std::vector<int64_t> & /* shape_B */, const std::vector<int64_t> & /* shape_C */,
+    Ort::KernelContext & /* ctx */, int /* n_inputs */, bool /* has_bias */,
+    bool has_scales, bool has_scales_Y,
+    const std::vector<int64_t> & /* shape_A */,
+    const std::vector<int64_t> & /* shape_B */,
+    const std::vector<int64_t> & /* shape_C */,
     const std::vector<int64_t> & /* shape_Y */, bool transa, bool transb,
     const float *p_input_a, const float *p_input_b, const float *p_input_c,
     const float *p_scale_a, const float *p_scale_b, const float *p_scale_y,
@@ -396,16 +397,16 @@ void CustomGemmKernel::ComputeGemm(
             << " ldd=" << ldd << " M=" << M << " N=" << N << " K=" << K
             << ")\n";
   */
+
 #if defined(__MACOSX__) || defined(__APPLE__)
 
-  int i, j, k;
   int MN = M * N;
   if (p_input_c == nullptr) {
-    for (i = 0; i < MN; ++i) {
+    for (int i = 0; i < MN; ++i) {
       p_output_y[i] = 0;
     }
   } else {
-    for (i = 0; i < MN; ++i) {
+    for (int i = 0; i < MN; ++i) {
       p_output_y[i] = beta_ * p_input_c[i];
     }
   }
@@ -414,42 +415,62 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
-        for (i = 0; i < M; ++i) {
+        // 0
+        DEBUG_STR("S0")
+        for (int i = 0; i < M; ++i) {
           float A_PART;
-          for (k = 0; k < K; ++k) {
+          for (int k = 0; k < K; ++k) {
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
-            for (j = 0; j < N; ++j) {
+            for (int j = 0; j < N; ++j) {
+              DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+              DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
             }
           }
         }
       } else {
-        for (i = 0; i < M; ++i) {
+        // 1
+        DEBUG_STR("S1")
+        for (int i = 0; i < M; ++i) {
           float A_PART;
-          for (k = 0; k < K; ++k) {
+          for (int k = 0; k < K; ++k) {
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
-            for (j = 0; j < N; ++j) {
+            for (int j = 0; j < N; ++j) {
+              DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+              DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
             }
           }
         }
       }
     } else if (transb) {
-      for (i = 0; i < M; ++i) {
+      // 2
+      DEBUG_STR("S2")
+      for (int i = 0; i < M; ++i) {
         float A_PART;
-        for (k = 0; k < K; ++k) {
+        for (int k = 0; k < K; ++k) {
+          DEBUG_EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
-          for (j = 0; j < N; ++j) {
-            p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
+          for (int j = 0; j < N; ++j) {
+            DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+            DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
+            p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
           }
         }
       }
     } else {
-      for (i = 0; i < M; ++i) {
+      // 3
+      DEBUG_STR("S3")
+      for (int i = 0; i < M; ++i) {
         float A_PART;
-        for (k = 0; k < K; ++k) {
+        for (int k = 0; k < K; ++k) {
+          DEBUG_EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
-          for (j = 0; j < N; ++j) {
+          for (int j = 0; j < N; ++j) {
+            DEBUG_EXT_ENFORCE(i * ldd + j < MN);
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
           }
         }
@@ -459,43 +480,63 @@ void CustomGemmKernel::ComputeGemm(
     // rowMajor_ == 0
     if (transa) {
       if (transb) {
-        for (i = 0; i < M; ++i) {
-          float A_PART;
-          for (k = 0; k < K; ++k) {
-            A_PART = alpha_ * p_input_a[i * lda + k];
-            for (j = 0; j < N; ++j) {
-              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+        // 4
+        DEBUG_STR("S4")
+        for (int j = 0; j < N; ++j) {
+          float B_PART;
+          for (int k = 0; k < K; ++k) {
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
+            B_PART = alpha_ * p_input_b[k * ldb + j];
+            for (int i = 0; i < M; ++i) {
+              DEBUG_EXT_ENFORCE(i * lda + k < M * K);
+              DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+              p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
             }
           }
         }
       } else {
-        for (i = 0; i < M; ++i) {
-          float A_PART;
-          for (k = 0; k < K; ++k) {
-            A_PART = alpha_ * p_input_a[k * lda + i];
-            for (j = 0; j < N; ++j) {
-              p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+        // 5
+        DEBUG_STR("S5")
+        for (int j = 0; j < N; ++j) {
+          float B_PART;
+          for (int k = 0; k < K; ++k) {
+            DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
+            B_PART = alpha_ * p_input_b[k * ldb + j];
+            for (int i = 0; i < M; ++i) {
+              DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+              DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+              p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
             }
           }
         }
       }
     } else if (transb) {
-      for (i = 0; i < M; ++i) {
-        float A_PART;
-        for (k = 0; k < K; ++k) {
-          A_PART = alpha_ * p_input_a[i * lda + k];
-          for (j = 0; j < N; ++j) {
-            p_output_y[j * ldd + i] += A_PART * p_input_b[k * ldb + j];
+      // 6
+      DEBUG_STR("S6")
+      for (int j = 0; j < N; ++j) {
+        float B_PART;
+        for (int k = 0; k < K; ++k) {
+          DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
+          B_PART = alpha_ * p_input_b[j * ldb + k];
+          for (int i = 0; i < M; ++i) {
+            DEBUG_EXT_ENFORCE(i * lda + k < M * K);
+            DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+            p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
           }
         }
       }
     } else {
-      for (i = 0; i < M; ++i) {
-        float A_PART;
-        for (k = 0; k < K; ++k) {
-          A_PART = alpha_ * p_input_a[k * lda + i];
-          for (j = 0; j < N; ++j) {
-            p_output_y[j * ldd + i] += A_PART * p_input_b[j * ldb + k];
+      // 7
+      DEBUG_STR("S7")
+      for (int j = 0; j < N; ++j) {
+        float B_PART;
+        for (int k = 0; k < K; ++k) {
+          DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
+          B_PART = alpha_ * p_input_b[j * ldb + k];
+          for (int i = 0; i < M; ++i) {
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+            DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+            p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
           }
         }
       }
@@ -504,16 +545,15 @@ void CustomGemmKernel::ComputeGemm(
 
 #else
 
-  int i, j, k;
   int MN = M * N;
   if (p_input_c == nullptr) {
 #pragma omp parallel for
-    for (i = 0; i < MN; ++i) {
+    for (int i = 0; i < MN; ++i) {
       p_output_y[i] = 0;
     }
   } else {
 #pragma omp parallel for
-    for (i = 0; i < MN; ++i) {
+    for (int i = 0; i < MN; ++i) {
       p_output_y[i] = beta_ * p_input_c[i];
     }
   }
@@ -525,12 +565,12 @@ void CustomGemmKernel::ComputeGemm(
         // 0
         DEBUG_STR("P0")
 #pragma omp parallel for
-        for (i = 0; i < M; ++i) {
+        for (int i = 0; i < M; ++i) {
           float A_PART;
-          for (k = 0; k < K; ++k) {
-	    DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+          for (int k = 0; k < K; ++k) {
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
-            for (j = 0; j < N; ++j) {
+            for (int j = 0; j < N; ++j) {
               DEBUG_EXT_ENFORCE(i * ldd + j < MN);
               DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
@@ -541,12 +581,12 @@ void CustomGemmKernel::ComputeGemm(
         // 1
         DEBUG_STR("P1")
 #pragma omp parallel for
-        for (i = 0; i < M; ++i) {
+        for (int i = 0; i < M; ++i) {
           float A_PART;
-          for (k = 0; k < K; ++k) {
-	    DEBUG_EXT_ENFORCE(k * lda + i < M * K);
+          for (int k = 0; k < K; ++k) {
+            DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             A_PART = alpha_ * p_input_a[k * lda + i];
-            for (j = 0; j < N; ++j) {
+            for (int j = 0; j < N; ++j) {
               DEBUG_EXT_ENFORCE(i * ldd + j < MN);
               DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
               p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
@@ -558,12 +598,12 @@ void CustomGemmKernel::ComputeGemm(
       // 2
       DEBUG_STR("P2")
 #pragma omp parallel for
-      for (i = 0; i < M; ++i) {
+      for (int i = 0; i < M; ++i) {
         float A_PART;
-        for (k = 0; k < K; ++k) {
+        for (int k = 0; k < K; ++k) {
           DEBUG_EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
-          for (j = 0; j < N; ++j) {
+          for (int j = 0; j < N; ++j) {
             DEBUG_EXT_ENFORCE(i * ldd + j < MN);
             DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
             p_output_y[i * ldd + j] += A_PART * p_input_b[j * ldb + k];
@@ -574,12 +614,12 @@ void CustomGemmKernel::ComputeGemm(
       // 3
       DEBUG_STR("P3")
 #pragma omp parallel for
-      for (i = 0; i < M; ++i) {
+      for (int i = 0; i < M; ++i) {
         float A_PART;
-        for (k = 0; k < K; ++k) {
+        for (int k = 0; k < K; ++k) {
           DEBUG_EXT_ENFORCE(i * lda + k < M * K);
           A_PART = alpha_ * p_input_a[i * lda + k];
-          for (j = 0; j < N; ++j) {
+          for (int j = 0; j < N; ++j) {
             DEBUG_EXT_ENFORCE(i * ldd + j < MN);
             DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             p_output_y[i * ldd + j] += A_PART * p_input_b[k * ldb + j];
@@ -594,12 +634,12 @@ void CustomGemmKernel::ComputeGemm(
         // 4
         DEBUG_STR("P4")
 #pragma omp parallel for
-        for (j = 0; j < N; ++j) {
+        for (int j = 0; j < N; ++j) {
           float B_PART;
-          for (k = 0; k < K; ++k) {
+          for (int k = 0; k < K; ++k) {
             DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             B_PART = alpha_ * p_input_b[k * ldb + j];
-            for (i = 0; i < M; ++i) {
+            for (int i = 0; i < M; ++i) {
               DEBUG_EXT_ENFORCE(i * lda + k < M * K);
               DEBUG_EXT_ENFORCE(j * ldd + i < MN);
               p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
@@ -610,14 +650,14 @@ void CustomGemmKernel::ComputeGemm(
         // 5
         DEBUG_STR("P5")
 #pragma omp parallel for
-        for (j = 0; j < N; ++j) {
+        for (int j = 0; j < N; ++j) {
           float B_PART;
-          for (k = 0; k < K; ++k) {
+          for (int k = 0; k < K; ++k) {
             DEBUG_EXT_ENFORCE(k * ldb + j < N * K);
             B_PART = alpha_ * p_input_b[k * ldb + j];
-	    for (i = 0; i < M; ++i) {
+            for (int i = 0; i < M; ++i) {
               DEBUG_EXT_ENFORCE(k * lda + i < M * K);
-	      DEBUG_EXT_ENFORCE(j * ldd + i < MN);
+              DEBUG_EXT_ENFORCE(j * ldd + i < MN);
               p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
             }
           }
@@ -627,12 +667,12 @@ void CustomGemmKernel::ComputeGemm(
       // 6
       DEBUG_STR("P6")
 #pragma omp parallel for
-      for (j = 0; j < N; ++j) {
+      for (int j = 0; j < N; ++j) {
         float B_PART;
-        for (k = 0; k < K; ++k) {
+        for (int k = 0; k < K; ++k) {
           DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
           B_PART = alpha_ * p_input_b[j * ldb + k];
-          for (i = 0; i < M; ++i) {
+          for (int i = 0; i < M; ++i) {
             DEBUG_EXT_ENFORCE(i * lda + k < M * K);
             DEBUG_EXT_ENFORCE(j * ldd + i < MN);
             p_output_y[j * ldd + i] += p_input_a[i * lda + k] * B_PART;
@@ -643,12 +683,12 @@ void CustomGemmKernel::ComputeGemm(
       // 7
       DEBUG_STR("P7")
 #pragma omp parallel for
-      for (j = 0; j < N; ++j) {
+      for (int j = 0; j < N; ++j) {
         float B_PART;
-        for (k = 0; k < K; ++k) {
+        for (int k = 0; k < K; ++k) {
           DEBUG_EXT_ENFORCE(j * ldb + k < N * K);
           B_PART = alpha_ * p_input_b[j * ldb + k];
-          for (i = 0; i < M; ++i) {
+          for (int i = 0; i < M; ++i) {
             DEBUG_EXT_ENFORCE(k * lda + i < M * K);
             DEBUG_EXT_ENFORCE(j * ldd + i < MN);
             p_output_y[j * ldd + i] += p_input_a[k * lda + i] * B_PART;
