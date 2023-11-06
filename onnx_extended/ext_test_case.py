@@ -178,10 +178,14 @@ class ExtTestCase(unittest.TestCase):
         value: numpy.ndarray,
         atol: float = 0,
         rtol: float = 0,
+        msg: Optional[str] = None,
     ):
         self.assertEqual(expected.dtype, value.dtype)
         self.assertEqual(expected.shape, value.shape)
-        assert_allclose(expected, value, atol=atol, rtol=rtol)
+        try:
+            assert_allclose(expected, value, atol=atol, rtol=rtol)
+        except AssertionError as e:
+            raise AssertionError(msg) from e
 
     def assertAlmostEqual(
         self,
@@ -247,6 +251,24 @@ class ExtTestCase(unittest.TestCase):
                         f"\n{sout.getvalue()}\n---\nstderr=\n{serr.getvalue()}"
                     ) from e
         return res, sout.getvalue(), serr.getvalue()
+    
+    def tryCall(self, fct:Callable, msg:Optional[str]=None,        none_if: Optional[str] = None)->Optional[Any]:
+        """
+        Calls the function, catch any error.
+        
+        :param fct: function to call
+        :param msg: error message to display if failing
+        :param none_if: returns None if this substring is found in the error message
+        :return: output of *fct*
+        """
+        try:
+            return fct()
+        except Exception as e:
+            if none_if is not None and none_if in str(e):
+                return None
+            if msg is None:
+                raise e
+            raise AssertionError(msg) from e
 
 
 def get_parsed_args(
