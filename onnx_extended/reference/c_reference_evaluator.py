@@ -164,6 +164,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
             TreeEnsembleRegressor_1 as TreeEnsembleRegressor_1_Float,
             TreeEnsembleRegressor_3 as TreeEnsembleRegressor_3_Float,
         )
+        from onnx_extended.reference.c_ops.c_op_tfidf_vectorizer import TfIdfVectorizer
         from onnx_extended.reference.other_ops.op_tokenizer import Tokenizer
 
         return [
@@ -175,6 +176,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
             TreeEnsembleRegressor_1_Float,
             TreeEnsembleRegressor_3_Float,
             Tokenizer,
+            TfIdfVectorizer,
         ]
 
     @staticmethod

@@ -1,7 +1,9 @@
 # coding: utf-8
 import unittest
 from logging import getLogger
+import packaging.version as pv
 import numpy
+import onnx
 from sklearn.feature_extraction.text import CountVectorizer
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 from onnx_extended.reference import CReferenceEvaluator
@@ -14,7 +16,7 @@ class TestCTfIdefVectorizer(ExtTestCase):
         logger = getLogger("skl2onnx")
         logger.disabled = True
 
-    def test_onnxrt_tfidf_vectorizer(self):
+    def test_onnx_tfidf_vectorizer(self):
         from skl2onnx.common.data_types import Int64TensorType, FloatTensorType
         from skl2onnx.algebra.onnx_ops import OnnxTfIdfVectorizer
 
@@ -50,7 +52,7 @@ class TestCTfIdefVectorizer(ExtTestCase):
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
-    def test_onnxrt_tfidf_vectorizer_skip5(self):
+    def test_onnx_tfidf_vectorizer_skip5(self):
         from skl2onnx.common.data_types import Int64TensorType, FloatTensorType
         from skl2onnx.algebra.onnx_ops import OnnxTfIdfVectorizer
 
@@ -86,7 +88,7 @@ class TestCTfIdefVectorizer(ExtTestCase):
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
-    def test_onnxrt_tfidf_vectorizer_unibi_skip5(self):
+    def test_onnx_tfidf_vectorizer_unibi_skip5(self):
         from skl2onnx.common.data_types import Int64TensorType, FloatTensorType
         from skl2onnx.algebra.onnx_ops import OnnxTfIdfVectorizer
 
@@ -122,7 +124,7 @@ class TestCTfIdefVectorizer(ExtTestCase):
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
-    def test_onnxrt_tfidf_vectorizer_bi_skip0(self):
+    def test_onnx_tfidf_vectorizer_bi_skip0(self):
         from skl2onnx.common.data_types import Int64TensorType, FloatTensorType
         from skl2onnx.algebra.onnx_ops import OnnxTfIdfVectorizer
 
@@ -156,7 +158,7 @@ class TestCTfIdefVectorizer(ExtTestCase):
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
-    def test_onnxrt_tfidf_vectorizer_empty(self):
+    def test_onnx_tfidf_vectorizer_empty(self):
         from skl2onnx.common.data_types import Int64TensorType, FloatTensorType
         from skl2onnx.algebra.onnx_ops import OnnxTfIdfVectorizer
 
@@ -189,7 +191,11 @@ class TestCTfIdefVectorizer(ExtTestCase):
         self.assertEqual(output.tolist(), res[0].tolist())
 
     @ignore_warnings(UserWarning)
-    def test_onnxrt_python_count_vectorizer(self):
+    @unittest.skipIf(
+        pv.Version(onnx.__version__) < pv.Version("1.16.0"),
+        reason="onnx not recent enough",
+    )
+    def test_sklearn_count_vectorizer(self):
         from skl2onnx import to_onnx
 
         corpus = numpy.array(

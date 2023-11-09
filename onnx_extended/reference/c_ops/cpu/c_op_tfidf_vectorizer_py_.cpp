@@ -66,7 +66,7 @@ private:
 
 using namespace onnx_c_ops;
 
-PYBIND11_MODULE(c_op_tfidfvectorizer_, m) {
+PYBIND11_MODULE(c_op_tfidf_vectorizer_py_, m) {
   m.doc() =
 #if defined(__APPLE__)
       "Implements runtime for operator TfIdfVectorizer."
