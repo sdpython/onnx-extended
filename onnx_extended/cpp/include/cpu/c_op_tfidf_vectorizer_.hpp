@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 #include <sstream>
+#include <functional>
 
 using namespace onnx_extended_helpers;
 
