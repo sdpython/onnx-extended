@@ -73,7 +73,7 @@ template <typename T> struct ScoreValue {
   }
   inline operator T() const { return has_score ? score : 0; }
 
-  inline ScoreValue<T> &operator=(ScoreValue<T> v) {
+  inline ScoreValue<T> &operator=(const ScoreValue<T>& v) {
     this->score = v.score;
     this->has_score = v.has_score;
     return *this;
