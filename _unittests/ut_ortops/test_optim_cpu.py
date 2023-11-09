@@ -62,7 +62,9 @@ class TestOrtOpOptimCpu(ExtTestCase):
 
         # transformation
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
+            "BRANCH_", ""
+        )
         onx2 = change_onnx_operator_domain(
             onx,
             op_type="TreeEnsembleRegressor",

@@ -9,6 +9,8 @@
 
 #include "murmur_hash3.h"
 
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+
 #if defined(_MSC_VER)
 
 #define FORCE_INLINE __forceinline
