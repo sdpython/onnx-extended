@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 namespace onnx_c_ops {
 
@@ -45,7 +45,7 @@ NTYPE flattened_dimension(const std::vector<NTYPE> &values, int64_t first) {
 
 template <class DIMTYPE, class NTYPE>
 void shape2strides(const std::vector<DIMTYPE> &shape,
-                   std::vector<DIMTYPE> &strides, NTYPE cst) {
+                   std::vector<DIMTYPE> &strides, NTYPE) {
   strides.resize(shape.size());
   strides[strides.size() - 1] = sizeof(NTYPE);
   for (int64_t i = (int64_t)strides.size() - 2; i >= 0; --i)

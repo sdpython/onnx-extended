@@ -4,13 +4,13 @@
 
 #include "common/c_op_helpers.h"
 #include "onnx_extended_helpers.h"
+#include <functional>
 #include <span>
+#include <sstream>
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <sstream>
-#include <functional>
 
 using namespace onnx_extended_helpers;
 
@@ -41,8 +41,9 @@ public:
   inline ~NgramPart() {}
   inline std::string to_string(const std::string &indent = "") const {
     if (leafs_.size() == 0)
-      return MakeString("NGramPart(", id_, ")");
-    return MakeString("NGramPart(", id_, ", ", leafs_.to_string(indent), ")");
+      return MakeString("NGramPart(", static_cast<int64_t>(id_), ")");
+    return MakeString("NGramPart(", static_cast<int64_t>(id_), ", ",
+                      leafs_.to_string(indent), ")");
   }
 };
 
@@ -173,8 +174,8 @@ public:
   ~RuntimeTfIdfVectorizer() {}
 
   void Compute(const std::vector<int64_t> &input_shape,
-               const std::span<const int64_t> &X, std::vector<int64_t> &output_dims,
-               std::vector<T> &out) const {
+               const std::span<const int64_t> &X,
+               std::vector<int64_t> &output_dims, std::vector<T> &out) const {
     const size_t total_items = flattened_dimension(input_shape);
 
     int32_t num_rows = 0;
