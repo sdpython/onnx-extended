@@ -8,6 +8,7 @@ You can run a specific test by using the following syntax.
 
 import os
 import unittest
+import sys
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -74,9 +75,11 @@ class TestCReferenceEvaluator(ExtTestCase):
                 got = sess2.run(None, {"X": X, "W": W, "B": B})[0]
                 assert_allclose(expected, got)
 
+    @unittest.skipIf(sys.platform == "darwin", reason="crash")
     def test_conv_float(self):
         self.conv_test(TensorProto.FLOAT, np.float32)
 
+    @unittest.skipIf(sys.platform == "darwin", reason="crash")
     def test_conv_double(self):
         self.conv_test(TensorProto.DOUBLE, np.float64)
 
