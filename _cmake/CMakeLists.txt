@@ -60,6 +60,7 @@ include("targets/common_kernels.cmake")
 include("targets/ortinf.cmake")
 include("targets/c_op_conv_.cmake")
 include("targets/c_op_tree_ensemble_py_.cmake")
+include("targets/c_op_tfidf_vectorizer_py_.cmake")
 
 #
 # new kernels for onnxruntime
