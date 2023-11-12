@@ -227,8 +227,8 @@ if sys.platform == "darwin":
         "(test_basic_conv_*|"
         "test_Conv2d_*|"
         "test_Conv3d_*|"
-        "test_operator_conv_*|"
-        "test_conv_*)"
+        "test_conv_*|"
+        "test_operator_conv_*)"
     )
 
 # import all test cases at global scope to make them visible to python.unittest
