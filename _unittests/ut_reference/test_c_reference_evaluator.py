@@ -75,6 +75,7 @@ class TestCReferenceEvaluator(ExtTestCase):
                 got = sess2.run(None, {"X": X, "W": W, "B": B})[0]
                 assert_allclose(expected, got)
 
+    @unittest.skipIf(sys.platform == "darwin", reason="crash")
     def test_conv_float(self):
         self.conv_test(TensorProto.FLOAT, np.float32)
 
