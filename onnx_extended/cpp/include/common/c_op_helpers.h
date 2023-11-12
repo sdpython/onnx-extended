@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <span>
 
 namespace onnx_c_ops {
 
@@ -28,6 +29,14 @@ namespace onnx_c_ops {
 
 template <class NTYPE>
 NTYPE flattened_dimension(const std::vector<NTYPE> &values) {
+  NTYPE r = 1;
+  for (auto it = values.begin(); it != values.end(); ++it)
+    r *= *it;
+  return r;
+}
+
+template <class NTYPE>
+NTYPE flattened_dimension(const std::span<NTYPE> &values) {
   NTYPE r = 1;
   for (auto it = values.begin(); it != values.end(); ++it)
     r *= *it;

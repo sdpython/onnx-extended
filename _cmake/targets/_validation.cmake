@@ -17,7 +17,7 @@ local_pybind11_add_module(
   ../onnx_extended/validation/cpu/vector_sum.cpp)
 message(STATUS "    LINK _validation <- lib_validation_cpp")
 target_include_directories(_validation PRIVATE "${ROOT_INCLUDE_PATH}")
-target_link_libraries(_validation PRIVATE lib_validation_cpp)
+target_link_libraries(_validation PRIVATE lib_validation_cpp common)
 
 add_executable(
   test_validation_cpp

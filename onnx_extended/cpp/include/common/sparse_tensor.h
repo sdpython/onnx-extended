@@ -21,7 +21,7 @@ struct sparse_struct {
 
   inline uint32_t *indices() const { return (uint32_t *)&begin; }
   inline float *values() const { return (float *)(indices() + n_elements); }
-  inline size_t element_size() const {
+  static size_t element_size(uint32_t onnx_type) {
     switch (onnx_type) {
     case 1:
       return sizeof(float);
@@ -31,9 +31,21 @@ struct sparse_struct {
       EXT_THROW("Unsupported sparse element type.");
     }
   }
-  inline size_t size_float() const {
-    return sizeof(sparse_struct) + n_elements +
-           n_elements * element_size() / 4 + (element_size() % 4 ? 1 : 0);
+  inline size_t element_size() const { return element_size(onnx_type); }
+  static inline size_t size_float(uint32_t n_elements, uint32_t onnx_type) {
+    size_t el_size = element_size(onnx_type);
+    return sizeof(sparse_struct) + n_elements + n_elements * el_size / 4 +
+           (el_size % 4 ? 1 : 0);
+  }
+  inline size_t size_float() const { return size_float(n_elements, onnx_type); }
+
+  void set(const std::vector<int64_t> &sh, uint32_t onnx_type) {
+    EXT_ENFORCE(sh.size() <= 5, "Sparse tensor must be 5D or less.");
+    fix_value = 0b10101010101010101010101010101010;
+    n_dims = sh.size();
+    for (size_t i = 0; i < sh.size(); ++i)
+      shape[i] = sh[i];
+    onnx_type = onnx_type;
   }
 
   static void copy(const std::vector<int64_t> &shape,
