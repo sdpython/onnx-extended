@@ -185,7 +185,7 @@ Optimizes the parallelisation settings
 ++++++++++++++++++++++++++++++++++++++
 
 See example :ref:`l-plot-optim-tree-ensemble`.
-It produces the following graph. The baseline means `onnxruntime==1.16.1`.
+It produces the following graph. The baseline means `onnxruntime==1.16.2`.
 The command line is:
 
 ::
