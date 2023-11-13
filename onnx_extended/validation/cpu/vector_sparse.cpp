@@ -17,15 +17,16 @@ py_array_float sparse_struct_to_dense(const py_array_float &v) {
   float *values;
   uint32_t n_dims;
   const int64_t *shape;
-  sp->unmake(n_dims, shape, indices, values);
-  std::span<int64_t> out_shape((int64_t*)shape, n_dims);
+  uint32_t n_elements;
+  sp->unmake(n_dims, n_elements, shape, indices, values);
+  std::span<int64_t> out_shape((int64_t *)shape, n_dims);
 
   py_array_float result = py::array_t<float>(out_shape);
   py::buffer_info brout = result.request();
   pr = static_cast<float *>(brout.ptr);
   int64_t size = onnx_c_ops::flattened_dimension(out_shape);
   std::memset(pr, 0, size * sizeof(float));
-  for (uint32_t pos = 0; pos < sp->n_elements; ++pos) {
+  for (uint32_t pos = 0; pos < n_elements; ++pos) {
     pr[indices[pos]] = values[pos];
   }
   return result;
@@ -39,18 +40,20 @@ py_array_float dense_to_sparse_struct(const py_array_float &v) {
 
   uint32_t n_elements = 0;
   std::size_t size_v = static_cast<std::size_t>(v.size());
-  for (std::size_t i = i; i < size_v; ++i) {
+  for (std::size_t i = 0; i < size_v; ++i) {
     if (pv[i] != 0)
       ++n_elements;
   }
+  std::size_t size_float =
+      onnx_sparse::sparse_struct::size_float(n_elements, 1);
 
-  std::vector<int64_t> out_dims{n_elements};
+  std::vector<int64_t> out_dims{size_float};
   py_array_float result = py::array_t<float>(out_dims);
   py::buffer_info br = result.request();
   float *pr = static_cast<float *>(br.ptr);
 
   onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)pr;
-  sp->set(dims, 1);
+  sp->set(dims, n_elements, 1);
   uint32_t *indices = sp->indices();
   float *values = sp->values();
 
@@ -62,7 +65,6 @@ py_array_float dense_to_sparse_struct(const py_array_float &v) {
       ++n_elements;
     }
   }
-
   return result;
 }
 } // namespace validation

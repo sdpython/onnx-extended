@@ -15,7 +15,7 @@ class TestSparseTensor(ExtTestCase):
         dense[9, 9] = 888
         dense[6, 3] = 555
         sp = dense_to_sparse_struct(dense)
-        self.assertLess(sp.size(), dense.size())
+        self.assertLess(sp.size, dense.size)
         dense2 = sparse_struct_to_dense(sp)
         self.assertEqualArray(dense, dense2)
 

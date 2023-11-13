@@ -1,7 +1,6 @@
 import os
 import tempfile
 import unittest
-import sys
 from contextlib import redirect_stdout
 from io import StringIO
 import numpy as np
@@ -17,7 +16,7 @@ from onnx.helper import (
     make_tensor_value_info,
 )
 from onnx.numpy_helper import from_array
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_windows
 from onnx_extended._command_lines import _type_shape
 from onnx_extended._command_lines_parser import (
     get_main_parser,
@@ -170,7 +169,7 @@ class TestCommandLines1(ExtTestCase):
                     list(sorted(fols)), list(sorted(["test_data_set_0", "model.onnx"]))
                 )
 
-    @unittest.skipIf(sys.platform == "win32", reason="permision issue")
+    @skipif_ci_windows("permission issue")
     def test_command_display(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [5, 6])
@@ -202,14 +201,14 @@ class TestCommandLines1(ExtTestCase):
         )
         self.assertRaise(lambda: main(["print", "-i", __file__]), ValueError)
 
-    @unittest.skipIf(sys.platform == "win32", reason="permision issue")
+    @skipif_ci_windows("permission issue")
     def test_command_print_exc2(self):
         with tempfile.NamedTemporaryFile(suffix=".pb") as f:
             f.write(b"Rrrrrrrrrrrrrr")
             f.seek(0)
             self.assertRaise(lambda: main(["print", "-i", f.name]), RuntimeError)
 
-    @unittest.skipIf(sys.platform == "win32", reason="permision issue")
+    @skipif_ci_windows("permission issue")
     def test_command_print_model(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [5, 6])
@@ -236,7 +235,7 @@ class TestCommandLines1(ExtTestCase):
             self.assertIn("Type:", text)
             self.assertIn('op_type: "Cos"', text)
 
-    @unittest.skipIf(sys.platform == "win32", reason="permision issue")
+    @skipif_ci_windows("permission issue")
     def test_command_print_tensor(self):
         tensor = make_tensor("dummy", TensorProto.FLOAT8E4M3FN, [4], [0, 1, 2, 3])
         with tempfile.NamedTemporaryFile(suffix=".pb") as f:
