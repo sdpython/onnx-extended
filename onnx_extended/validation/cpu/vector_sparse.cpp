@@ -47,7 +47,7 @@ py_array_float dense_to_sparse_struct(const py_array_float &v) {
   std::size_t size_float =
       onnx_sparse::sparse_struct::size_float(n_elements, 1);
 
-  std::vector<int64_t> out_dims{size_float};
+  std::vector<int64_t> out_dims{static_cast<int64_t>(size_float)};
   py_array_float result = py::array_t<float>(out_dims);
   py::buffer_info br = result.request();
   float *pr = static_cast<float *>(br.ptr);
