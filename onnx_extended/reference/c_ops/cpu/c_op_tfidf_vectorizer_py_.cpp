@@ -8,16 +8,6 @@ namespace py = pybind11;
 
 namespace onnx_c_ops {
 
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(
-    py::array_t<float, py::array::c_style | py::array::forcecast> &Z) {
-  return Z.mutable_unchecked<1>();
-}
-
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(
-    py::array_t<double, py::array::c_style | py::array::forcecast> &Z) {
-  return Z.mutable_unchecked<1>();
-}
-
 template <typename Sequence>
 inline py::array_t<typename Sequence::value_type,
                    py::array::c_style | py::array::forcecast>
