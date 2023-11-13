@@ -9,6 +9,42 @@
 
 namespace validation {
 
+py_array_float dense_to_sparse_struct(const py_array_float &v) {
+  std::vector<int64_t> dims;
+  arrayshape2vector(dims, v);
+  py::buffer_info brv = v.request();
+  float *pv = static_cast<float *>(brv.ptr);
+
+  uint32_t n_elements = 0;
+  std::size_t size_v = static_cast<std::size_t>(v.size());
+  for (std::size_t i = 0; i < size_v; ++i) {
+    if (pv[i] != 0)
+      ++n_elements;
+  }
+  std::size_t size_float =
+      onnx_sparse::sparse_struct::size_float(n_elements, 1);
+  
+  std::vector<int64_t> out_dims{static_cast<int64_t>(size_float)};
+  py_array_float result = py::array_t<float>(out_dims);
+  py::buffer_info br = result.request();
+  float *pr = static_cast<float *>(br.ptr);
+
+  onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)pr;
+  sp->set(dims, n_elements, 1);
+  uint32_t *indices = sp->indices();
+  float *values = sp->values();
+
+  n_elements = 0;
+  for (std::size_t i = 0; i < size_v; ++i) {
+    if (pv[i] != 0) {
+      indices[n_elements] = i;
+      values[n_elements] = pv[i];
+      ++n_elements;
+    }
+  }
+  return result;
+}
+
 py_array_float sparse_struct_to_dense(const py_array_float &v) {
   py::buffer_info br = v.request();
   float *pr = static_cast<float *>(br.ptr);
@@ -32,39 +68,4 @@ py_array_float sparse_struct_to_dense(const py_array_float &v) {
   return result;
 }
 
-py_array_float dense_to_sparse_struct(const py_array_float &v) {
-  std::vector<int64_t> dims;
-  arrayshape2vector(dims, v);
-  py::buffer_info brv = v.request();
-  float *pv = static_cast<float *>(brv.ptr);
-
-  uint32_t n_elements = 0;
-  std::size_t size_v = static_cast<std::size_t>(v.size());
-  for (std::size_t i = 0; i < size_v; ++i) {
-    if (pv[i] != 0)
-      ++n_elements;
-  }
-  std::size_t size_float =
-      onnx_sparse::sparse_struct::size_float(n_elements, 1);
-
-  std::vector<int64_t> out_dims{static_cast<int64_t>(size_float)};
-  py_array_float result = py::array_t<float>(out_dims);
-  py::buffer_info br = result.request();
-  float *pr = static_cast<float *>(br.ptr);
-
-  onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)pr;
-  sp->set(dims, n_elements, 1);
-  uint32_t *indices = sp->indices();
-  float *values = sp->values();
-
-  n_elements = 0;
-  for (std::size_t i = i; i < size_v; ++i) {
-    if (pv[i] != 0) {
-      indices[n_elements] = i;
-      values[n_elements] = pv[i];
-      ++n_elements;
-    }
-  }
-  return result;
-}
 } // namespace validation
