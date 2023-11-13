@@ -6,7 +6,7 @@ import importlib
 import subprocess
 import time
 from onnx_extended import __file__ as onnx_extended_file
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, is_windows
 
 VERBOSE = 0
 ROOT = os.path.realpath(os.path.abspath(os.path.join(onnx_extended_file, "..", "..")))
@@ -47,7 +47,7 @@ class TestDocumentationExamples(ExtTestCase):
         if len(ppath) == 0:
             os.environ["PYTHONPATH"] = ROOT
         elif ROOT not in ppath:
-            sep = ";" if sys.platform == "win32" else ":"
+            sep = ";" if is_windows() else ":"
             os.environ["PYTHONPATH"] = ppath + sep + ROOT
         perf = time.perf_counter()
         os.environ["UNITTEST_GOING"] = "1"

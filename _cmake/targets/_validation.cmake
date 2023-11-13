@@ -13,9 +13,11 @@ set_property(TARGET lib_validation_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
 local_pybind11_add_module(
   _validation OpenMP::OpenMP_CXX
   ../onnx_extended/validation/cpu/_validation.cpp
+  ../onnx_extended/validation/cpu/vector_sparse.cpp
   ../onnx_extended/validation/cpu/vector_sum.cpp)
 message(STATUS "    LINK _validation <- lib_validation_cpp")
-target_link_libraries(_validation PRIVATE lib_validation_cpp)
+target_include_directories(_validation PRIVATE "${ROOT_INCLUDE_PATH}")
+target_link_libraries(_validation PRIVATE lib_validation_cpp common)
 
 add_executable(
   test_validation_cpp

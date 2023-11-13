@@ -5,6 +5,7 @@
 #include "cpu_fpemu.hpp"
 #include "murmur_hash3.h"
 #include "speed_metrics.h"
+#include "vector_sparse.h"
 #include "vector_sum.h"
 
 namespace py = pybind11;
@@ -168,4 +169,10 @@ It assumes both vectors have the same dimensions (no broadcast).).
   m.def(
       "half2float", &cpu_fpemu::__half2float, py::arg("d"),
       R"pbdoc(Converts a half represented as an unsigned short into float.)pbdoc");
+
+  m.def("sparse_struct_to_dense", &sparse_struct_to_dense, py::arg("v"),
+        R"pbdoc(Converts a sparse structure into a dense vector.)pbdoc");
+
+  m.def("dense_to_sparse_struct", &dense_to_sparse_struct, py::arg("v"),
+        R"pbdoc(Converts a dense float tensor into a sparse structure.)pbdoc");
 }

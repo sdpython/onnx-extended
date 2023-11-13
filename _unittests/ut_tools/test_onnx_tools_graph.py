@@ -1,6 +1,5 @@
 import itertools
 import unittest
-import sys
 import numpy as np
 from onnx import TensorProto
 from onnx.checker import check_model
@@ -34,7 +33,7 @@ try:
 except ImportError:
     onnx_simple_text_plot = str
 
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_windows
 from onnx_extended.helper import make_dynamic_quantize_linear_function_proto
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
@@ -98,9 +97,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             fct = lambda X: value_cst.reshape(tuple(shape_cst)) @ X
         return onnx_model, value_cst.reshape(tuple(shape_cst.tolist())), fct
 
-    @unittest.skipIf(
-        sys.platform == "win32", reason="unastable on CI, cannot replicate"
-    )
+    @skipif_ci_windows("unstable on Windows")
     def test_basic_all(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 

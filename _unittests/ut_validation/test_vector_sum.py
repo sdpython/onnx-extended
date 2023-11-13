@@ -1,7 +1,6 @@
 import unittest
-import sys
 import numpy
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_windows
 
 
 class TestVectorSum(ExtTestCase):
@@ -70,7 +69,7 @@ class TestVectorSum(ExtTestCase):
         t1 = vector_sum_array_avx_parallel(16, values)
         self.assertEqual(t, t1)
 
-    @unittest.skipIf(sys.platform == "win32", reason="Unstable CI")
+    @skipif_ci_windows("unstable on Windows")
     def test_vector_add_exc(self):
         from onnx_extended.validation.cpu._validation import vector_add
 

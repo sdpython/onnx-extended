@@ -12,6 +12,25 @@ import numpy
 from numpy.testing import assert_allclose
 
 
+def is_azure() -> bool:
+    "Tells if the job is running on Azure DevOps."
+    return os.environ.get("AZURE_HTTP_USER_AGENT", "undefined") != "undefined"
+
+
+def is_windows() -> bool:
+    return sys.platform == "win32"
+
+
+def skipif_ci_windows(msg) -> Callable:
+    """
+    Skips a unit test if it runs on :epkg:`azure pipeline` on :epkg:`Windows`.
+    """
+    if is_windows() and is_azure():
+        msg = f"Test does not work on azure pipeline (linux). {msg}"
+        return unittest.skip(msg)
+    return lambda x: x
+
+
 def unit_test_going():
     """
     Enables a flag telling the script is running while testing it.
