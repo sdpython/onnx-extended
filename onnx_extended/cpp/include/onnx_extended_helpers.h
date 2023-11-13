@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <stdexcept>
 
 namespace onnx_extended_helpers {
 
