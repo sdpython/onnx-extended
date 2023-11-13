@@ -4,6 +4,7 @@ Change Logs
 0.2.4
 +++++
 
+* :pr:`115`: adds C implementation of SVMRegressor + python implementation of SVMRegressor
 * :pr:`111`: adds C implementation of TfIdfVectorizer + python implementation of Tokenizer
 * :pr:`112`: use onnxruntime==1.16.2 as default
 * :pr:`110`: allows LEQ as an alias for BRANCH_LEQ for nodes_modes in TreeEnsemble* operators
