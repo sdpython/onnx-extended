@@ -3,8 +3,8 @@ import numpy as np
 from onnx_extended.ext_test_case import ExtTestCase
 
 
-class TestSparseTensor(ExtTestCase):
-    def test_sparse_tensor(self):
+class TestSparseStruct(ExtTestCase):
+    def test_sparse_struct(self):
         from onnx_extended.validation.cpu._validation import (
             sparse_struct_to_dense,
             dense_to_sparse_struct,
