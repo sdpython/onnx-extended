@@ -41,7 +41,7 @@ _ml_transpose_coefs: Dict[str, float] = {
 
 def _edit_distance(mot1: Sequence, mot2: Sequence) -> float:
     dist = {(-1, -1): 0}
-    if len(mot1) == 0:
+    if not mot1:
         for j, d in enumerate(mot2):
             dist[-1, j] = dist[-1, j - 1] + 1
             dist[j, -1] = dist[j - 1, -1] + 1

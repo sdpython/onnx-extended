@@ -660,7 +660,7 @@ def numpy_extended_dot_matrix(
             )
         )
 
-    if len(axes) == 0 and len(set(left) & set(right)) == 0:
+    if len(axes) == 0 and not (set(left) & set(right)):
         # Simple multiplication
         res = m1 * m2
         if verbose:

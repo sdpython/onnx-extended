@@ -126,7 +126,7 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
         if scores.shape[0] != label.shape[0]:
             scores = scores.reshape((label.shape[0], -1))
         cl = kwargs["classlabels_int64s"] or []
-        if len(cl) == 0:
+        if not cl:
             cl = kwargs["classlabels_strings"]
         return self._post_process_predicted_label(label, scores, cl)
 

@@ -125,7 +125,7 @@ class GemmFloat8(OpRun):
             raise ValueError(f"A is not a matrix, its shape is {A.shape}.")
         if len(B.shape) != 2:
             raise ValueError(f"B is not a matrix, its shape is {B.shape}.")
-        C = args[0] if len(args) > 0 else None
+        C = args[0] if args else None
         scaleA = args[1] if len(args) > 1 else None
         scaleB = args[2] if len(args) > 2 else None
         scaleR = args[3] if len(args) > 3 else None
