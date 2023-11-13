@@ -92,7 +92,7 @@ def _make_node(
     if domain is not None:
         node.domain = domain
     if isinstance(attributes, dict):
-        if len(attributes) > 0:
+        if attributes:
             node.attribute.extend(
                 make_attribute(key, value) for key, value in sorted(attributes.items())
             )
@@ -214,7 +214,7 @@ def _process_node(
         data[out, 0] = node
         paths[out, 0] = node_name
         edges[(node_name, 1), (out, 0)] = node
-    if len(node.attribute) > 0:
+    if node.attribute:
         for att in node.attribute:
             if not hasattr(att, "g"):
                 continue
@@ -336,7 +336,7 @@ def get_tensor_shape(
     for d in obj.tensor_type.shape.dim:
         v = d.dim_value if d.dim_value > 0 else d.dim_param
         shape.append(v)
-    if len(shape) == 0:
+    if not shape:
         return shape
     return list(None if s in (0, "") else s for s in shape)
 
@@ -624,7 +624,7 @@ def select_model_inputs_outputs(
     onnx_model.domain = model.domain
     onnx_model.model_version = model.model_version
     onnx_model.doc_string = model.doc_string
-    if len(model.metadata_props) > 0:
+    if model.metadata_props:
         values = {p.key: p.value for p in model.metadata_props}
         set_model_props(onnx_model, values)
 
@@ -799,7 +799,7 @@ def onnx_merge_models(
         if v1 == v2:
             continue
         update[k] = max(v1, v2)
-    if len(update) > 0 and verbose > 0:
+    if update and verbose > 0:
         print(f"[onnx_merge_models] selected opsets: {update}")
     if "" in update:
         if opsets1[""] != update[""]:
@@ -1041,20 +1041,20 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             kwargs[att.name] = att.i
         elif att.name == "classlabels_int64s":
             ints = att.ints
-            if len(ints) > 0:
+            if ints:
                 kwargs[att.name] = list(ints)
         elif att.name == "classlabels_strings":
             vals = att.strings
-            if len(vals) > 0:
+            if vals:
                 kwargs[att.name] = list(vals)
         elif att.name == "base_values":
             fs = list(att.floats)
-            if len(fs) > 0:
+            if fs:
                 kwargs.att[att.name] = fs
         elif att.name.endswith("_as_tensor"):
             v = to_array(att.t)
             if att.name == "base_values_as_tensor":
-                if len(v.shape) > 0:
+                if v.shape:
                     kwargs[att.name] = from_array(v)
             else:
                 kwargs[att.name] = from_array(np.repeat(v, n))
@@ -1086,7 +1086,7 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             "class_weights",
         }:
             fs = list(att.floats)
-            if len(fs) > 0:
+            if fs:
                 kwargs[att.name] = fs * n
 
     return make_node(*args, **kwargs)

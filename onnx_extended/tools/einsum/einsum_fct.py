@@ -928,7 +928,7 @@ def einsum(
         print(root)
         print(clean(res[1]))
     """
-    if len(inputs) == 0:
+    if not inputs:
         raise ValueError("No inputs found.")
     dtypes = set(i.dtype for i in inputs)
     if len(dtypes) != 1:

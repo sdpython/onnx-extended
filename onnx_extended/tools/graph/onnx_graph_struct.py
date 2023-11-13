@@ -332,7 +332,7 @@ class NodeWithSubGraph(Node):
         for att in proto.attribute:
             if att.data_type == AttributeProto.GRAPH:
                 self.subgraphs[att.name] = Graph(att.g)
-        if len(self.subgraphs) == 0:
+        if not self.subgraphs:
             raise ValueError(f"A node type {self.proto.op_type!r} has no subgraph.")
 
     @property
@@ -404,7 +404,7 @@ class Graph:
         self.proto = proto
         if isinstance(proto, ModelProto):
             graph = proto.graph
-            if len(proto.functions) > 0:
+            if proto.functions:
                 raise NotImplementedError(
                     "Class Graph does not handle model included functions yet."
                 )
@@ -765,7 +765,7 @@ class Graph:
                 to_remove.append(node)
                 self.removed.add(node.index)
 
-            if len(to_remove) == 0:
+            if not to_remove:
                 break
 
             total_remove.extend(to_remove)
@@ -838,11 +838,9 @@ class Graph:
                 doc_string=self.proto.doc_string,
                 # training_info=self.proto.training_info,
                 opset_imports=[make_opsetid(k, v) for k, v in opsets.items()],
-                functions=None
-                if len(self.functions) == 0
-                else list(self.functions.values()),
+                functions=None if not self.functions else list(self.functions.values()),
             )
-            if len(self.proto.metadata_props) > 0:
+            if self.proto.metadata_props:
                 set_model_props(
                     model, {p.key: p.value for p in self.proto.metadata_props}
                 )

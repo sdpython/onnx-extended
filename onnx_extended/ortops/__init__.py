@@ -13,7 +13,7 @@ def _get_ort_ext_libs(path: str) -> List[str]:
     global _ort_ext_libs_pathes
     if path not in _ort_ext_libs_pathes:
         _ort_ext_libs_pathes[path] = []
-    if len(_ort_ext_libs_pathes[path]) == 0:
+    if not _ort_ext_libs_pathes[path]:
         if platform.system() == "Windows":
             ext = ".dll"
         elif platform.system() == "Darwin":
@@ -27,7 +27,7 @@ def _get_ort_ext_libs(path: str) -> List[str]:
             e = os.path.splitext(name)[-1]
             if e == ext and "ortops" in name:
                 res.append(os.path.join(this, name))
-        if len(res) == 0:
+        if not res:
             raise RuntimeError(
                 f"Unable to find any kernel library with ext={ext!r} "
                 f"in {this!r} among {files}."

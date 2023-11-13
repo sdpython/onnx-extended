@@ -27,7 +27,7 @@ def _process_shape(shape_df):
         if len(val) != 1:
             raise ValueError(f"Unable to process shape {val!r} from {values!r}.")
         k, v = list(val.items())[0]
-        if len(v) > 0:
+        if v:
             vs = "x".join(map(str, v))
             values.append(f"{_mapping_types.get(k,k)}[{vs}]")
         else:

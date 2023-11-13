@@ -366,7 +366,7 @@ for tt, engine, provider, dim, domain in pbar:
 # Results
 # +++++++
 
-if len(data) > 0:
+if data:
     df = concat(data, axis=0)
     df.to_excel("plot_profile_gemm_ort.xlsx")
     df.to_csv("plot_profile_gemm_ort.csv")
@@ -376,7 +376,7 @@ if len(data) > 0:
 # Summary
 # +++++++
 
-if len(data) > 0:
+if data:
     piv = pivot_table(
         df[df["it==0"] == 0],
         index=["xdim", "cat", "event_name"],
@@ -394,7 +394,7 @@ if len(data) > 0:
 ##############################
 # plot
 
-if len(data) > 0:
+if data:
     print()
     print("compact")
 
@@ -418,7 +418,7 @@ if len(data) > 0:
     print(pivinot)
 
 
-if len(data) > 0:
+if data:
     fig, ax = plt.subplots(2, 2, figsize=(12, 8))
     pivi.T.plot(
         ax=ax[0, 0],
