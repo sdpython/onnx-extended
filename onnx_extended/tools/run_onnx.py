@@ -215,7 +215,7 @@ class TestRun:
                 checks[name] = (max_diff, rel_diff, reason)
                 continue
 
-        if len(checks) == 0:
+        if not checks:
             return None
         if exc:
             raise AssertionError(

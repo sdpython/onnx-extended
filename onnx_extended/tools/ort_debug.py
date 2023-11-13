@@ -210,7 +210,7 @@ def render_node(node: NodeProto) -> str:
                     val = ".%d" % att.type
                 atts.append(f"{att.name}={val}")
         inputs = list(node.input)
-        if len(atts) > 0:
+        if atts:
             inputs.extend(atts)
         domain = "" if node.domain in ("", "ai.onnx.ml") else f"[{node.domain}]"
         return "%s%s%s(%s) -> %s" % (

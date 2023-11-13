@@ -660,7 +660,7 @@ def quantize_float8(
         graph.upgrade_opsets({"": 19})
         main_opset = 19
 
-    if len(graph.functions) > 0:
+    if graph.functions:
         raise NotImplementedError("Quantization of local functions is not implemented.")
     local_functions = graph.functions.copy()
     n_local_functions = len(local_functions)
@@ -718,13 +718,13 @@ def quantize_float8(
                 continue
             rem, add = results.removed_nodes, results.added_nodes
             to_add.append((rem, add))
-            if len(results.new_opsets) > 0:
+            if results.new_opsets:
                 n_changes += 1
                 new_opsets.update(results.new_opsets)
             if early_stop > 0 and n_changes >= early_stop:
                 break
 
-    if len(to_add) == 0:
+    if not to_add:
         return None
 
     for rem, add in to_add:
@@ -836,7 +836,7 @@ def cast_constant(
     The graph is modified inplace.
     Enables the logs gives a better idea of the progress.
     """
-    if len(graph.functions) > 0:
+    if graph.functions:
         raise NotImplementedError("Conversion of local functions is not implemented.")
 
     to_add = []
@@ -850,7 +850,7 @@ def cast_constant(
             rem, add = results.removed_nodes, results.added_nodes
             to_add.append((rem, add))
 
-    if len(to_add) == 0:
+    if not to_add:
         return None
 
     for rem, add in to_add:

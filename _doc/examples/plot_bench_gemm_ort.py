@@ -452,7 +452,7 @@ for tt, engine, provider, dim, domain in pbar:
 
         obs = measure_time(fct_benchmarked, repeat=repeat, number=number)
         internal_time = None
-        if len(times) > 0:
+        if times:
             np_times = [t.numpy() for t in times]
             internal_time = (sum(np_times) / len(times))[0]
 
