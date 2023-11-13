@@ -3,6 +3,8 @@
 
 #include "cpu/c_op_svm_common_.hpp"
 
+namespace onnx_c_ops {
+
 template <typename NTYPE>
 class RuntimeSVMRegressor : public RuntimeSVMCommon<NTYPE> {
 public:
@@ -82,8 +84,7 @@ py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(
   int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];
   int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
 
-  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(
-      x_dims[0]); // one target only
+  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(x_dims[0]);
   {
     py::gil_scoped_release release;
     compute_gil_free(x_dims, N, stride, X, Z);
@@ -95,7 +96,9 @@ template <typename NTYPE>
 void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
     const std::vector<int64_t> &x_dims, int64_t N, int64_t stride,
     const py::array_t<NTYPE, py::array::c_style | py::array::forcecast> &X,
-    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> &Z) const {}
+    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> &Z) const {
+  compute(x_dims, N, stride, X.data(), Z.data());
+}
 
 class RuntimeSVMRegressorFloat : public RuntimeSVMRegressor<float> {
 public:
@@ -107,7 +110,9 @@ public:
   RuntimeSVMRegressorDouble(int omp_N) : RuntimeSVMRegressor<double>(omp_N) {}
 };
 
-#ifndef SKIP_PYTHON
+} // namespace onnx_c_ops
+
+using namespace onnx_c_ops;
 
 PYBIND11_MODULE(c_op_svm_py_, m) {
   m.doc() =
@@ -125,8 +130,6 @@ in :epkg:`onnxruntime`.)pbdoc"
       R"pbdoc(Implements float runtime for operator SVMRegressor. The code is inspired from
 `svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
 in :epkg:`onnxruntime`.
-
-:param omp_N: number of observations above which it gets parallelized.
 )pbdoc");
 
   clf.def(py::init<int>());
@@ -135,31 +138,18 @@ in :epkg:`onnxruntime`.
           "order.");
   clf.def("compute", &RuntimeSVMRegressorFloat::compute,
           "Computes the predictions for the SVM regressor.");
-  clf.def("runtime_options", &RuntimeSVMRegressorFloat::runtime_options,
-          "Returns indications about how the runtime was compiled.");
-  clf.def("omp_get_max_threads", &RuntimeSVMRegressorFloat::omp_get_max_threads,
-          "Returns omp_get_max_threads from openmp library.");
 
   py::class_<RuntimeSVMRegressorDouble> cld(
       m, "RuntimeSVMRegressorDouble",
       R"pbdoc(Implements Double runtime for operator SVMRegressor. The code is inspired from
 `svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
 in :epkg:`onnxruntime`.
-
-:param omp_N: number of observations above which it gets parallelized.
 )pbdoc");
 
-  cld.def(py::init<int>());
+  cld.def(py::init<>());
   cld.def("init", &RuntimeSVMRegressorDouble::init,
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
   cld.def("compute", &RuntimeSVMRegressorDouble::compute,
           "Computes the predictions for the SVM regressor.");
-  cld.def("runtime_options", &RuntimeSVMRegressorDouble::runtime_options,
-          "Returns indications about how the runtime was compiled.");
-  cld.def("omp_get_max_threads",
-          &RuntimeSVMRegressorDouble::omp_get_max_threads,
-          "Returns omp_get_max_threads from openmp library.");
 }
-
-#endif
