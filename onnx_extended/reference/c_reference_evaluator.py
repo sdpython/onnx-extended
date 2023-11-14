@@ -152,6 +152,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
     @staticmethod
     def default_ops():
         from onnx_extended.reference.c_ops.c_op_conv import Conv
+        from onnx_extended.reference.c_ops.c_op_svm_regressor import SVMRegressor
         from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
             TreeEnsembleRegressor_1,
             TreeEnsembleRegressor_3,
@@ -169,14 +170,15 @@ class CReferenceEvaluator(ReferenceEvaluator):
 
         return [
             Conv,
+            SVMRegressor,
+            TfIdfVectorizer,
+            Tokenizer,
             TreeEnsembleClassifier_1,
             TreeEnsembleClassifier_3,
             TreeEnsembleRegressor_1,
             TreeEnsembleRegressor_3,
             TreeEnsembleRegressor_1_Float,
             TreeEnsembleRegressor_3_Float,
-            Tokenizer,
-            TfIdfVectorizer,
         ]
 
     @staticmethod
