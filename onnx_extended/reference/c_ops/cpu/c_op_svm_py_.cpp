@@ -1,155 +1,119 @@
 // Inspired from
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc.
 
+#define py_array_ntype py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
+
 #include "cpu/c_op_svm_common_.hpp"
+
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+
+namespace py = pybind11;
 
 namespace onnx_c_ops {
 
-template <typename NTYPE>
-class RuntimeSVMRegressor : public RuntimeSVMCommon<NTYPE> {
-public:
-  bool one_class_;
+	template <typename NTYPE>
+	class RuntimeSVMRegressor : public RuntimeSVMCommon<NTYPE> {
+	public:
+		RuntimeSVMRegressor() : RuntimeSVMCommon<NTYPE>() {}
+		~RuntimeSVMRegressor() {}
 
-public:
-  RuntimeSVMRegressor(int omp_N);
-  ~RuntimeSVMRegressor();
+		void init(py_array_ntype coefficients,
+			py_array_ntype kernel_params,
+			const std::string& kernel_type, int64_t n_supports,
+			int64_t one_class, const std::string& post_transform,
+			py_array_ntype rho,
+			py_array_ntype support_vectors) {
+			std::vector<NTYPE> vcoefficients, vkernel_params, vrho, vsupport_vectors;
+			array2vector(vcoefficients, coefficients, NTYPE);
+			array2vector(vkernel_params, kernel_params, NTYPE);
+			array2vector(vrho, rho, NTYPE);
+			array2vector(vsupport_vectors, support_vectors, NTYPE);
+			RuntimeSVMCommon<NTYPE>::init(vcoefficients, vkernel_params, kernel_type,
+				n_supports, one_class, post_transform, vrho, vsupport_vectors);
+			Initialize();
+		}
 
-  void init(py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
-                coefficients,
-            py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
-                kernel_params,
-            const std::string &kernel_type, int64_t n_supports,
-            int64_t one_class, const std::string &post_transform,
-            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
-            py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
-                support_vectors);
+		py::array_t<NTYPE> compute(py_array_ntype X) const {
+			// const Tensor& X = *context->Input<Tensor>(0);
+			// const TensorShape& x_shape = X.Shape();
+			std::vector<int64_t> x_dims;
+			arrayshape2vector(x_dims, X);
+			if (x_dims.size() != 2)
+				throw std::invalid_argument("X must have 2 dimensions.");
+			// Does not handle 3D tensors
+			int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];
+			int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
 
-  py::array_t<NTYPE> compute(
-      py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const;
+			py_array_ntype Z(x_dims[0]);
+			{
+				py::gil_scoped_release release;
+				compute_gil_free(x_dims, N, stride, X, Z);
+			}
+			return Z;
+		}
 
-private:
-  void Initialize();
+	private:
+		void Initialize() {
+			if (this->vector_count_ > 0) {
+				this->feature_count_ = this->support_vectors_.size() /
+					this->vector_count_; // length of each support vector
+				this->mode_ = SVM_TYPE::SVM_SVC;
+			}
+			else {
+				this->feature_count_ = this->coefficients_.size();
+				this->mode_ = SVM_TYPE::SVM_LINEAR;
+				this->kernel_type_ = KERNEL::LINEAR;
+			}
+		}
 
-  void compute_gil_free(
-      const std::vector<int64_t> &x_dims, int64_t N, int64_t stride,
-      const py::array_t<NTYPE, py::array::c_style | py::array::forcecast> &X,
-      py::array_t<NTYPE, py::array::c_style | py::array::forcecast> &Z) const;
-};
+		void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride, const py_array_ntype& X, py_array_ntype& Z) const {
+			RuntimeSVMCommon<NTYPE>::compute_svm(x_dims, N, stride, (const NTYPE*)X.data(), (NTYPE*)Z.data());
+		}
+	};
 
-template <typename NTYPE>
-RuntimeSVMRegressor<NTYPE>::RuntimeSVMRegressor(int omp_N)
-    : RuntimeSVMCommon<NTYPE>(omp_N) {}
-
-template <typename NTYPE> RuntimeSVMRegressor<NTYPE>::~RuntimeSVMRegressor() {}
-
-template <typename NTYPE>
-void RuntimeSVMRegressor<NTYPE>::init(
-    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> coefficients,
-    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> kernel_params,
-    const std::string &kernel_type, int64_t n_supports, int64_t one_class,
-    const std::string &post_transform,
-    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
-    py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
-        support_vectors) {
-  RuntimeSVMCommon<NTYPE>::init(coefficients, kernel_params, kernel_type,
-                                post_transform, rho, support_vectors);
-
-  one_class_ = one_class != 0;
-  this->vector_count_ = n_supports;
-  Initialize();
-}
-
-template <typename NTYPE> void RuntimeSVMRegressor<NTYPE>::Initialize() {
-  if (this->vector_count_ > 0) {
-    this->feature_count_ = this->support_vectors_.size() /
-                           this->vector_count_; // length of each support vector
-    this->mode_ = SVM_TYPE::SVM_SVC;
-  } else {
-    this->feature_count_ = this->coefficients_.size();
-    this->mode_ = SVM_TYPE::SVM_LINEAR;
-    this->kernel_type_ = KERNEL::LINEAR;
-  }
-}
-
-template <typename NTYPE>
-py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(
-    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const {
-  // const Tensor& X = *context->Input<Tensor>(0);
-  // const TensorShape& x_shape = X.Shape();
-  std::vector<int64_t> x_dims;
-  arrayshape2vector(x_dims, X);
-  if (x_dims.size() != 2)
-    throw std::invalid_argument("X must have 2 dimensions.");
-  // Does not handle 3D tensors
-  int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];
-  int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
-
-  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(x_dims[0]);
-  {
-    py::gil_scoped_release release;
-    compute_gil_free(x_dims, N, stride, X, Z);
-  }
-  return Z;
-}
-
-template <typename NTYPE>
-void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
-    const std::vector<int64_t> &x_dims, int64_t N, int64_t stride,
-    const py::array_t<NTYPE, py::array::c_style | py::array::forcecast> &X,
-    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> &Z) const {
-  compute(x_dims, N, stride, X.data(), Z.data());
-}
-
-class RuntimeSVMRegressorFloat : public RuntimeSVMRegressor<float> {
-public:
-  RuntimeSVMRegressorFloat(int omp_N) : RuntimeSVMRegressor<float>(omp_N) {}
-};
-
-class RuntimeSVMRegressorDouble : public RuntimeSVMRegressor<double> {
-public:
-  RuntimeSVMRegressorDouble(int omp_N) : RuntimeSVMRegressor<double>(omp_N) {}
-};
 
 } // namespace onnx_c_ops
 
 using namespace onnx_c_ops;
 
 PYBIND11_MODULE(c_op_svm_py_, m) {
-  m.doc() =
+	m.doc() =
 #if defined(__APPLE__)
-      "Implements runtime for operator SVMRegressor."
+		"Implements runtime for operator SVMRegressor."
 #else
-      R"pbdoc(Implements runtime for operator SVMRegressor. The code is inspired from
+		R"pbdoc(Implements runtime for operator SVMRegressor. The code is inspired from
 `svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
 in :epkg:`onnxruntime`.)pbdoc"
 #endif
-      ;
+;
 
-  py::class_<RuntimeSVMRegressorFloat> clf(
-      m, "RuntimeSVMRegressorFloat",
-      R"pbdoc(Implements float runtime for operator SVMRegressor. The code is inspired from
+	py::class_<RuntimeSVMRegressor<float>> clf(
+		m, "RuntimeSVMRegressor<float>",
+		R"pbdoc(Implements float runtime for operator SVMRegressor. The code is inspired from
 `svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
 in :epkg:`onnxruntime`.
 )pbdoc");
 
-  clf.def(py::init<int>());
-  clf.def("init", &RuntimeSVMRegressorFloat::init,
-          "Initializes the runtime with the ONNX attributes in alphabetical "
-          "order.");
-  clf.def("compute", &RuntimeSVMRegressorFloat::compute,
-          "Computes the predictions for the SVM regressor.");
+	clf.def(py::init<>());
+	clf.def("init", &RuntimeSVMRegressor<float>::init,
+		"Initializes the runtime with the ONNX attributes in alphabetical "
+		"order.");
+	clf.def("compute", &RuntimeSVMRegressor<float>::compute,
+		"Computes the predictions for the SVM regressor.");
 
-  py::class_<RuntimeSVMRegressorDouble> cld(
-      m, "RuntimeSVMRegressorDouble",
-      R"pbdoc(Implements Double runtime for operator SVMRegressor. The code is inspired from
+	py::class_<RuntimeSVMRegressor<double>> cld(
+		m, "RuntimeSVMRegressor<double>",
+		R"pbdoc(Implements Double runtime for operator SVMRegressor. The code is inspired from
 `svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
 in :epkg:`onnxruntime`.
 )pbdoc");
 
-  cld.def(py::init<>());
-  cld.def("init", &RuntimeSVMRegressorDouble::init,
-          "Initializes the runtime with the ONNX attributes in alphabetical "
-          "order.");
-  cld.def("compute", &RuntimeSVMRegressorDouble::compute,
-          "Computes the predictions for the SVM regressor.");
+	cld.def(py::init<>());
+	cld.def("init", &RuntimeSVMRegressor<double>::init,
+		"Initializes the runtime with the ONNX attributes in alphabetical "
+		"order.");
+	cld.def("compute", &RuntimeSVMRegressor<double>::compute,
+		"Computes the predictions for the SVM regressor.");
 }
