@@ -4,6 +4,9 @@
 #define py_array_ntype                                                         \
   py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
 
+#define py_array_int64                                                         \
+  py::array_t<int64_t, py::array::c_style | py::array::forcecast>
+
 #include "cpu/c_op_svm_common_.hpp"
 
 #include <pybind11/numpy.h>
@@ -32,7 +35,6 @@ public:
     RuntimeSVMCommon<NTYPE>::init(vcoefficients, vkernel_params, kernel_type,
                                   n_supports, one_class, post_transform, vrho,
                                   vsupport_vectors);
-    Initialize();
   }
 
   py::array_t<NTYPE> compute(py_array_ntype X) const {
@@ -55,24 +57,35 @@ public:
   }
 
 private:
-  void Initialize() {
-    if (this->vector_count_ > 0) {
-      this->feature_count_ =
-          this->support_vectors_.size() /
-          this->vector_count_; // length of each support vector
-      this->mode_ = SVM_TYPE::SVM_SVC;
-    } else {
-      this->feature_count_ = this->coefficients_.size();
-      this->mode_ = SVM_TYPE::SVM_LINEAR;
-      this->kernel_type_ = KERNEL::LINEAR;
-    }
-  }
-
   void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t N,
                         int64_t stride, const py_array_ntype &X,
                         py_array_ntype &Z) const {
     RuntimeSVMCommon<NTYPE>::compute_svm(
         x_dims, N, stride, (const NTYPE *)X.data(), (NTYPE *)Z.data());
+  }
+};
+
+template <typename NTYPE>
+class RuntimeSVMClassifier : public RuntimeSVMCommon<NTYPE> {
+public:
+  RuntimeSVMClassifier() : RuntimeSVMCommon<NTYPE>() {}
+  ~RuntimeSVMClassifier() {}
+
+  void init(py_array_int64 classlabels_int64s,
+            const std::vector<std::string> &classlabels_strings,
+            py_array_ntype coefficients, py_array_ntype kernel_params,
+            const std::string &kernel_type, const std::string &post_transform,
+            py_array_ntype prob_a, py_array_ntype prob_b, py_array_ntype rho,
+            py_array_ntype support_vectors, py_array_int64 vectors_per_class) {
+    array2vector(proba_, prob_a, NTYPE);
+    array2vector(probb_, prob_b, NTYPE);
+    array2vector(vectors_per_class_, vectors_per_class, int64_t);
+    if (classlabels_strings.size() > 0)
+      throw std::invalid_argument("This runtime only handles integers.");
+    array2vector(classlabels_ints_, classlabels_int64s, int64_t);
+
+    RuntimeSVMCommon<NTYPE>::init(coefficients, kernel_params, kernel_type,
+                                  post_transform, rho, support_vectors);
   }
 };
 
@@ -118,5 +131,33 @@ in :epkg:`onnxruntime`.
           "Initializes the runtime with the ONNX attributes in alphabetical "
           "order.");
   cld.def("compute", &RuntimeSVMRegressor<double>::compute,
+          "Computes the predictions for the SVM regressor.");
+
+  py::class_<RuntimeSVMClassifier<float>> clf(
+      m, "RuntimeSVMClassifierFloat",
+      R"pbdoc(Implements float runtime for operator SVMRegressor. The code is inspired from
+`svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
+in :epkg:`onnxruntime`.
+)pbdoc");
+
+  clf.def(py::init<>());
+  clf.def("init", &RuntimeSVMClassifier<float>::init,
+          "Initializes the runtime with the ONNX attributes in alphabetical "
+          "order.");
+  clf.def("compute", &RuntimeSVMClassifier<float>::compute,
+          "Computes the predictions for the SVM regressor.");
+
+  py::class_<RuntimeSVMClassifier<double>> cld(
+      m, "RuntimeSVMClassifierDouble",
+      R"pbdoc(Implements Double runtime for operator SVMRegressor. The code is inspired from
+`svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
+in :epkg:`onnxruntime`.
+)pbdoc");
+
+  cld.def(py::init<>());
+  cld.def("init", &RuntimeSVMClassifier<double>::init,
+          "Initializes the runtime with the ONNX attributes in alphabetical "
+          "order.");
+  cld.def("compute", &RuntimeSVMClassifier<double>::compute,
           "Computes the predictions for the SVM regressor.");
 }
