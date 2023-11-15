@@ -56,16 +56,13 @@ public:
 
   void init(const std::vector<NTYPE> &coefficients,
             const std::vector<NTYPE> &kernel_params,
-            const std::string &kernel_type,
-            const std::string &post_transform,
+            const std::string &kernel_type, const std::string &post_transform,
             const std::vector<NTYPE> &rho,
             const std::vector<NTYPE> &support_vectors,
             // regressor
-            int64_t n_supports,
-            int64_t one_class,
+            int64_t n_supports, int64_t one_class,
             // classifier
-            const std::vector<NTYPE> &proba,
-            const std::vector<NTYPE> &probb,
+            const std::vector<NTYPE> &proba, const std::vector<NTYPE> &probb,
             const std::vector<int64_t> &classlabels_ints,
             const std::vector<int64_t> &vectors_per_class) {
     kernel_type_ = to_KERNEL(kernel_type);
@@ -120,8 +117,7 @@ public:
                          vector_count_; // length of each support vector
         mode_ = SVM_TYPE::SVM_SVC;
       } else {
-        feature_count_ =
-            coefficients_.size() / class_count_; // liblinear mode
+        feature_count_ = coefficients_.size() / class_count_; // liblinear mode
         mode_ = SVM_TYPE::SVM_LINEAR;
         kernel_type_ = KERNEL::LINEAR;
       }
@@ -160,16 +156,16 @@ public:
   }
 
   int64_t get_n_columns() const {
-      int64_t n_columns = class_count_;
-      if (proba_.size() == 0 && vector_count_ > 0) {
-          n_columns = class_count_ > 2 ? class_count_ * (class_count_ - 1) / 2 : 2;
-      }
-      return n_columns;
+    int64_t n_columns = class_count_;
+    if (proba_.size() == 0 && vector_count_ > 0) {
+      n_columns = class_count_ > 2 ? class_count_ * (class_count_ - 1) / 2 : 2;
+    }
+    return n_columns;
   }
 
   void compute_classifier(const std::vector<int64_t> &x_dims, int64_t N,
-                          int64_t stride, const NTYPE *x_data,
-                          int64_t* y_data, NTYPE *z_data) const {
+                          int64_t stride, const NTYPE *x_data, int64_t *y_data,
+                          NTYPE *z_data) const {
 
 #pragma omp parallel for
     for (int64_t n = 0; n < N; ++n) {
@@ -182,11 +178,9 @@ public:
       if (vector_count_ == 0 && mode_ == SVM_TYPE::SVM_LINEAR) {
         scores.resize(class_count_);
         for (int64_t j = 0; j < class_count_; j++) { // for each class
-          scores[j] = rho_[0] +
-                      kernel_dot(x_data, 0, coefficients_,
-                                                feature_count_ * j,
-                                                feature_count_,
-                                                kernel_type_);
+          scores[j] =
+              rho_[0] + kernel_dot(x_data, 0, coefficients_, feature_count_ * j,
+                                   feature_count_, kernel_type_);
         }
       } else {
         if (vector_count_ == 0)
@@ -195,9 +189,9 @@ public:
 
         kernels.resize(vector_count_);
         for (int64_t j = 0; j < vector_count_; j++) {
-          kernels[j] = kernel_dot(
-              x_data, 0, support_vectors_, feature_count_ * j,
-              feature_count_, kernel_type_);
+          kernels[j] =
+              kernel_dot(x_data, 0, support_vectors_, feature_count_ * j,
+                         feature_count_, kernel_type_);
         }
         votes.resize(class_count_, 0);
         scores.reserve(class_count_ * (class_count_ - 1) / 2);
@@ -269,15 +263,15 @@ public:
       // onnx specs expects one column per class.
       int write_additional_scores = -1;
       if (rho_.size() == 1) {
-        write_additional_scores = _set_score_svm(y_data, max_weight, maxclass, 0, 1, 0);
+        write_additional_scores =
+            _set_score_svm(y_data, max_weight, maxclass, 0, 1, 0);
       } else if (classlabels_ints_.size() > 0) { // multiclass
         *y_data = classlabels_ints_[maxclass];
       } else {
         *y_data = maxclass;
       }
 
-      write_scores(scores, post_transform_, z_data,
-                   write_additional_scores);
+      write_scores(scores, post_transform_, z_data, write_additional_scores);
     }
   }
 
@@ -329,7 +323,7 @@ protected:
 
   int _set_score_svm(int64_t *output_data, NTYPE max_weight,
                      const int64_t maxclass, const int64_t n, int64_t posclass,
-                     int64_t negclass)const  {
+                     int64_t negclass) const {
     int write_additional_scores = -1;
     if (classlabels_ints_.size() == 2) {
       write_additional_scores =
