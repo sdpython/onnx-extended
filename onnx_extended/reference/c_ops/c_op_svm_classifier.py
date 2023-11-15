@@ -17,6 +17,30 @@ class SVMClassifier(OpRun):
         OpRun.__init__(self, onnx_node, run_params, schema=schema)
         self.rt_ = None
 
+    @classmethod
+    def _post_process_label_attributes(self, classlabels_int64s, classlabels_strings):
+        """
+        Replaces string labels by int64 labels.
+        It creates attributes *_classlabels_int64s_string*.
+        """
+        if classlabels_strings:
+            class_ints = np.arange(len(classlabels_strings), dtype=np.int64)
+            self_classlabels_int64s_string = classlabels_strings
+        else:
+            class_ints = classlabels_int64s
+            self_classlabels_int64s_string = None
+        return class_ints, self_classlabels_int64s_string
+
+    @classmethod
+    def _post_process_predicted_label(cls, classlabels_int64s_string, label, scores):
+        """
+        Replaces int64 predicted labels by the corresponding
+        strings.
+        """
+        if classlabels_int64s_string is not None:
+            label = np.array([classlabels_int64s_string[i] for i in label])
+        return label, scores
+
     def _run(
         self,
         x,
@@ -41,6 +65,12 @@ class SVMClassifier(OpRun):
         <mlprodict.onnxrt.ops_cpu.op_svm_regressor_.RuntimeSVMClasssifier>`.
         """
         if self.rt_ is None:
+            (
+                classlabels_ints,
+                self.classlabels_int64s_string,
+            ) = self._post_process_label_attributes(
+                classlabels_ints, classlabels_strings
+            )
             if x.dtype == np.float32:
                 self.rt_ = RuntimeSVMClassifierFloat()
             elif x.dtype == np.float64:
@@ -60,9 +90,9 @@ class SVMClassifier(OpRun):
                 support_vectors,
                 vectors_per_class,
             )
-        pred = self.rt_.compute(x)
-        if pred.shape[0] != x.shape[0]:
-            pred = pred.reshape(x.shape[0], pred.shape[0] // x.shape[0])
-        if len(pred.shape) == 1:
-            pred = pred.reshape((-1, 1))
-        return (pred,)
+        label, scores = self.rt_.compute(x)
+        if scores.shape[0] != label.shape[0]:
+            scores = scores.reshape(label.shape[0], scores.shape[0] // label.shape[0])
+        return self._post_process_predicted_label(
+            self.classlabels_int64s_string, label, scores
+        )
