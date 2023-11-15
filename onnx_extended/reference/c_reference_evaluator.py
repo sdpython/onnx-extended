@@ -152,10 +152,8 @@ class CReferenceEvaluator(ReferenceEvaluator):
     @staticmethod
     def default_ops():
         from onnx_extended.reference.c_ops.c_op_conv import Conv
-        from onnx_extended.reference.c_ops.c_op_svm_regressor import (
-            SVMClassifier,
-            SVMRegressor,
-        )
+        from onnx_extended.reference.c_ops.c_op_svm_classifier import SVMClassifier
+        from onnx_extended.reference.c_ops.c_op_svm_regressor import SVMRegressor
         from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
             TreeEnsembleRegressor_1,
             TreeEnsembleRegressor_3,
