@@ -138,7 +138,9 @@ class TestCSVM(ExtTestCase):
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
         cref = CReferenceEvaluator(model_def)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
@@ -161,7 +163,9 @@ class TestCSVM(ExtTestCase):
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
         cref = CReferenceEvaluator(model_def)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
@@ -184,7 +188,9 @@ class TestCSVM(ExtTestCase):
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float64))
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float64), options={"zipmap": False}
+        )
         cref = CReferenceEvaluator(model_def)
         y = cref.run(None, {"X": X_test.astype(numpy.float64)})
         self.assertEqual(len(y), 2)
@@ -206,7 +212,9 @@ class TestCSVM(ExtTestCase):
         clr = LinearSVC()
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
         cref = CReferenceEvaluator(model_def)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
@@ -228,7 +236,9 @@ class TestCSVM(ExtTestCase):
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
         cref = CReferenceEvaluator(model_def)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
