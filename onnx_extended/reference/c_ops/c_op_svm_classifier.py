@@ -79,7 +79,7 @@ class SVMClassifier(OpRun):
                 raise NotImplementedError(f"Not implemented for dtype={x.dtype}.")
             self.rt_.init(
                 classlabels_ints,
-                classlabels_strings,
+                classlabels_strings.tolist() if classlabels_strings is not None else [],
                 coefficients,
                 kernel_params,
                 kernel_type,
@@ -90,7 +90,10 @@ class SVMClassifier(OpRun):
                 support_vectors,
                 vectors_per_class,
             )
-        label, scores = self.rt_.compute(x)
+        print(self.rt_)
+        print(self.rt_.compute)
+        res = self.rt_.compute(x)
+        label, scores = res
         if scores.shape[0] != label.shape[0]:
             scores = scores.reshape(label.shape[0], scores.shape[0] // label.shape[0])
         return self._post_process_predicted_label(

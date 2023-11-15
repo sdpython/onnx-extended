@@ -8,6 +8,7 @@
   py::array_t<int64_t, py::array::c_style | py::array::forcecast>
 
 #include "cpu/c_op_svm_common_.hpp"
+#include <iostream>
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>

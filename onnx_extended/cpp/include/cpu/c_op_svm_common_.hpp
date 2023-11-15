@@ -81,7 +81,7 @@ public:
       degree_ = 0;
     }
 
-    if (vectors_per_class.empty()) {
+    if (classlabels_ints.empty()) {
       // regressor
       one_class_ = one_class != 0;
       vector_count_ = n_supports;
@@ -95,7 +95,7 @@ public:
         mode_ = SVM_TYPE::SVM_LINEAR;
         kernel_type_ = KERNEL::LINEAR;
       }
-
+      class_count_ = 0;
     } else {
       // classifier
       proba_ = proba;
