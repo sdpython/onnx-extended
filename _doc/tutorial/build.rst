@@ -1,6 +1,6 @@
 
-Build
-=====
+Build from source
+=================
 
 The packages relies on :epkg:`cmake` to build the C++ extensions.
 whether it wrapped with :epkg:`pybind11` or :epkg:`cython`.

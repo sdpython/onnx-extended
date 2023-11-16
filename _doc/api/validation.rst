@@ -1,6 +1,6 @@
 
 =========
-vlidation
+validation
 =========
 
 .. toctree::

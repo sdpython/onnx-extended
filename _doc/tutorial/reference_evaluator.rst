@@ -5,18 +5,9 @@ CReferenceEvaluator
 Class :class:`CReferenceEvaluator <onnx_extended.reference.CReferenceEvaluator>`
 extends :class:`onnx.reference.ReferenceEvaluator` with custom operators implemented
 in C++ in order to speed up the evaluation of this python runtime.
-This class works as a replacement of ReferenceEvaluator.
-It rewrites the following kernels:
-
-.. runpython::
-    :showcode:
-
-    import pprint
-    from onnx_extended.reference import CReferenceEvaluator
-
-    pprint.pprint(CReferenceEvaluator.default_ops())
-
-Full example:
+This class inherits from :class:`onnx.reference.ReferenceEvaluator` to automatically
+add the C++ implementation of this operators.
+It rewrites the following kernels and can be used as follows.
 
 .. runpython::
     :showcode:
@@ -56,9 +47,21 @@ Full example:
     B = np.array([[[[0]]]], dtype=np.float32)
 
     sess1 = ReferenceEvaluator(onnx_model)
-    sess2 = CReferenceEvaluator(onnx_model)  # 100 times faster
+    sess2 = CReferenceEvaluator(onnx_model)  # 10 to 100 times faster
 
     expected = sess1.run(None, {"X": X, "W": W, "B": B})[0]
     got = sess2.run(None, {"X": X, "W": W, "B": B})[0]
     diff = np.abs(expected - got).max()
     print(f"difference: {diff}")
+
+It rewrites the following examples.
+
+.. runpython::
+    :showcode:
+
+    import pprint
+    from onnx_extended.reference import CReferenceEvaluator
+
+    pprint.pprint(
+        [cl.__name__ for cl in CReferenceEvaluator.default_ops()]
+    )
