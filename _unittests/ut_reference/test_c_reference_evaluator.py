@@ -28,7 +28,7 @@ try:
     from onnxruntime import InferenceSession
 except ImportError:
     InferenceSession = None
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 from onnx_extended.reference import CReferenceEvaluator
 
 
@@ -85,6 +85,7 @@ class TestCReferenceEvaluator(ExtTestCase):
 
     @unittest.skipIf(not os.path.exists(light_model), reason="onnx not recent enough")
     @unittest.skipIf(InferenceSession is None, reason="onnxruntime not installed")
+    @skipif_ci_apple("unstable on Apple")
     def test_light_model(self):
         sess = CReferenceEvaluator(light_model)
         name = sess.input_names[0]

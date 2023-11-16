@@ -41,6 +41,12 @@ ai.onnx
 ai.onnx.ml
 ++++++++++
 
+.. autoclass:: onnx_extended.reference.c_ops.c_op_svm_classifier.SVMClassifier
+
+.. autoclass:: onnx_extended.reference.c_ops.c_op_svm_regressor.SVMRegressor
+
+.. autoclass:: onnx_extended.reference.c_ops.c_op_tfidf_vectorizer.TfIdfVectorizer
+
 .. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier.TreeEnsembleClassifier_1
 
 .. autoclass:: onnx_extended.reference.c_ops.c_op_tree_ensemble_classifier.TreeEnsembleClassifier_3

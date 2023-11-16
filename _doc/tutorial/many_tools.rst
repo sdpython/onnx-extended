@@ -1,7 +1,7 @@
 
-==========
-Many Tools
-==========
+=======================================
+Many Tools to help investigating issues
+=======================================
 
 Developpers write many lines of code, many are part of a package,
 many are used to investigate what the first line produces.
