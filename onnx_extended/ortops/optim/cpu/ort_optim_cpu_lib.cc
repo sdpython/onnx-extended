@@ -6,6 +6,7 @@
 
 #include "ort_optim_cpu_lib.h"
 #include "ortapi_version.h"
+#include "tfidf_vectorizer.h"
 #include "tree_ensemble.h"
 #include "tree_ensemble.hpp"
 
@@ -28,12 +29,14 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
       c_TreeEnsembleRegressor;
   static ortops::TreeEnsembleClassifier<float, float, float>
       c_TreeEnsembleClassifier;
+  static ortops::TfIdfVectorizer<int64_t, float> c_TfIdfVectorizer;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
     domain.Add(&c_TreeEnsembleRegressor);
     domain.Add(&c_TreeEnsembleClassifier);
+    domain.Add(&c_TfIdfVectorizer);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));
