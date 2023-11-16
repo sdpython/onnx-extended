@@ -12,6 +12,7 @@
 #include "common/c_op_common_parameters.h"
 #include "common/c_op_helpers.h"
 #include "common/c_op_math.h"
+#include "onnx_extended_helpers.h"
 
 namespace onnx_c_ops {
 
@@ -164,11 +165,16 @@ public:
   }
 
   void compute_classifier(const std::vector<int64_t> &x_dims, int64_t N,
-                          int64_t stride, const NTYPE *x_data, int64_t *y_data,
-                          NTYPE *z_data) const {
+                          int64_t stride, const NTYPE *x_data0,
+                          int64_t *y_data0, NTYPE *z_data0,
+                          int64_t n_columns) const {
 
 #pragma omp parallel for
     for (int64_t n = 0; n < N; ++n) {
+      const NTYPE *x_data = x_data0 + n * stride;
+      int64_t *y_data = y_data0 + n;
+      NTYPE *z_data = z_data0 + n_columns * n;
+
       int64_t maxclass = -1;
       std::vector<NTYPE> decisions;
       std::vector<NTYPE> scores;
@@ -183,8 +189,7 @@ public:
                                    feature_count_, kernel_type_);
         }
       } else {
-        if (vector_count_ == 0)
-          throw std::invalid_argument("No support vectors.");
+        EXT_ENFORCE(vector_count_ > 0, "No support vectors.");
         int evals = 0;
 
         kernels.resize(vector_count_);

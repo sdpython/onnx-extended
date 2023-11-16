@@ -90,6 +90,7 @@ public:
     array2vector(vrho, rho, NTYPE);
     array2vector(vcoef, coefficients, NTYPE);
     array2vector(kp, kernel_params, NTYPE);
+    array2vector(v_per_class, vectors_per_class, int64_t);
     if (classlabels_strings.size() > 0)
       throw std::invalid_argument("This runtime only handles integers.");
     array2vector(classlabels_ints, classlabels_int64s, int64_t);
@@ -127,7 +128,7 @@ private:
                         int64_t n_columns) const {
     RuntimeSVMCommon<NTYPE>::compute_classifier(
         x_dims, N, stride, (const NTYPE *)X.data(), (int64_t *)Y.data(),
-        (NTYPE *)Z.data());
+        (NTYPE *)Z.data(), n_columns);
   }
 };
 

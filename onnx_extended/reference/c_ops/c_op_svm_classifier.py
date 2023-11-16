@@ -90,8 +90,6 @@ class SVMClassifier(OpRun):
                 support_vectors,
                 vectors_per_class,
             )
-        print(self.rt_)
-        print(self.rt_.compute)
         res = self.rt_.compute(x)
         label, scores = res
         if scores.shape[0] != label.shape[0]:

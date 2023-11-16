@@ -145,8 +145,8 @@ class TestCSVM(ExtTestCase):
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test)
-        lprob = clr.predict_proba(X_test)
-        got = y[1].values
+        lprob = clr.predict_proba(X_test).astype(numpy.float32)
+        got = y[1]
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, got.shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
@@ -170,12 +170,11 @@ class TestCSVM(ExtTestCase):
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test)
-        lprob = clr.predict_proba(X_test)
-        got = y[1].values
+        lprob = clr.predict_proba(X_test).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqual(lprob.shape, got.shape)
+        self.assertEqual(lprob.shape, y[1].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
-        self.assertEqualArray(lprob, got, atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
 
     @ignore_warnings([FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning])
     def test_python_svc_proba_double_20(self):
@@ -196,11 +195,10 @@ class TestCSVM(ExtTestCase):
         self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test)
         lprob = clr.predict_proba(X_test)
-        got = y[1].values
         self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqual(lprob.shape, got.shape)
+        self.assertEqual(lprob.shape, y[1].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
-        self.assertEqualArray(lprob, got, atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
 
     @ignore_warnings([FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning])
     def test_python_svc_proba_linear(self):
@@ -208,18 +206,17 @@ class TestCSVM(ExtTestCase):
 
         iris = load_iris()
         X, y = iris.data, iris.target
+        y[y == 2] = 0
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = LinearSVC()
+        clr = LinearSVC(dual="auto")
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(
-            clr, X_train.astype(numpy.float32), options={"zipmap": False}
-        )
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
         cref = CReferenceEvaluator(model_def)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test)
-        lprob = clr.decision_function(X_test)
+        lprob = clr.decision_function(X_test).reshape((-1, 1)).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, y[1].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
@@ -243,12 +240,11 @@ class TestCSVM(ExtTestCase):
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test)
-        lprob = clr.predict_proba(X_test)
-        got = y[1].values
+        lprob = clr.predict_proba(X_test).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqual(lprob.shape, got.shape)
+        self.assertEqual(lprob.shape, y[1].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
-        self.assertEqualArray(lprob, got, atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
 
 
 if __name__ == "__main__":
