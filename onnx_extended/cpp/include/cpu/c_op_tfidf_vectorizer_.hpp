@@ -112,6 +112,7 @@ inline const void *AdvanceElementPtr(const void *p, size_t elements,
 enum WeightingCriteria { kNone = 0, kTF = 1, kIDF = 2, kTFIDF = 3 };
 
 template <typename T> class RuntimeTfIdfVectorizer {
+
 public:
   RuntimeTfIdfVectorizer() {
     weighting_criteria_ = WeightingCriteria::kNone;
@@ -173,9 +174,10 @@ public:
 
   ~RuntimeTfIdfVectorizer() {}
 
-  void Compute(const std::vector<int64_t> &input_shape,
-               const std::span<const int64_t> &X,
-               std::vector<int64_t> &output_dims, std::vector<T> &out) const {
+  void Compute(
+      const std::vector<int64_t> &input_shape,
+      const std::span<const int64_t> &X,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
     const size_t total_items = flattened_dimension(input_shape);
 
     int32_t num_rows = 0;
@@ -215,7 +217,7 @@ public:
       // {b_dim, output_size} when b_dim is the number of received observations
       // and output_size the is the maximum value in ngram_indexes attribute
       // plus 1.
-      OutputResult(B, frequencies, output_dims, out);
+      OutputResult(B, frequencies, alloc);
       return;
     }
 
@@ -228,7 +230,7 @@ public:
     for (int64_t i = 0; i < num_rows; ++i)
       fn(i);
 
-    OutputResult(B, frequencies, output_dims, out);
+    OutputResult(B, frequencies, alloc);
   }
 
 private:
@@ -285,10 +287,10 @@ private:
     }
   }
 
-  void OutputResult(size_t B, const std::vector<uint32_t> &frequences,
-                    std::vector<int64_t> &output_dims,
-                    std::vector<T> &out) const {
-    output_dims.clear();
+  void OutputResult(
+      size_t B, const std::vector<uint32_t> &frequences,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+    std::vector<int64_t> output_dims;
     if (B == 0) {
       output_dims.push_back(output_size_);
       B = 1; // For use in the loops below
@@ -299,8 +301,7 @@ private:
 
     const auto row_size = output_size_;
 
-    auto total_dims = flattened_dimension(output_dims);
-    out.resize(total_dims);
+    std::span<T> out = alloc(output_dims);
     T *output_data = out.data();
 
     const auto &w = weights_;

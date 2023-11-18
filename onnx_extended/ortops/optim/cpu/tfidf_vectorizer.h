@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common_kernels.h"
-#include "cpu/c_op_tree_ensemble_common_.hpp"
+#include "cpu/c_op_tfidf_vectorizer_.hpp"
 // #include <memory>
 
 namespace ortops {
@@ -9,6 +9,8 @@ namespace ortops {
 template <typename TIN, typename TOUT> struct TfIdfVectorizerKernel {
   TfIdfVectorizerKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
+
+  std::unique_ptr<onnx_c_ops::RuntimeTfIdfVectorizer<TOUT>> tfidf_typed;
 };
 
 template <typename TIN, typename TOUT>

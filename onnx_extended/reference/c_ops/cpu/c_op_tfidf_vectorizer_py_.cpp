@@ -38,13 +38,21 @@ public:
       py::array_t<int64_t, py::array::c_style | py::array::forcecast> X) const {
     std::vector<int64_t> input_shape;
     arrayshape2vector(input_shape, X);
-    std::vector<int64_t> output_dims;
-    std::vector<float> out; 
     std::size_t total_dims =
         static_cast<std::size_t>(flattened_dimension(input_shape));
     const int64_t *p = X.data();
     std::span<const int64_t> sp{p, total_dims};
-    tfidf_.Compute(input_shape, sp, output_dims, out);
+    std::vector<int64_t> output_dims;
+    std::vector<float> out;
+    tfidf_.Compute(
+        input_shape, sp,
+        [&dims = output_dims,
+         &o = out](const std::vector<int64_t> &out_dims) -> std::span<float> {
+          dims = out_dims;
+          int64_t total = flattened_dimension(out_dims);
+          o.resize(total);
+          return std::span{o.data(), static_cast<size_t>(total)};
+        });
     return as_pyarray<std::vector<float>>(output_dims, std::move(out));
   }
 

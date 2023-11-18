@@ -132,7 +132,7 @@ public:
     }
   }
 
-  void compute_regressor(const std::vector<int64_t> &x_dims, int64_t N,
+  void compute_regressor(const std::vector<int64_t> &, int64_t N,
                          int64_t stride, const NTYPE *x_data,
                          NTYPE *z_data) const {
 

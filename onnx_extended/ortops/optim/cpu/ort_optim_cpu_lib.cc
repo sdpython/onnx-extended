@@ -7,6 +7,7 @@
 #include "ort_optim_cpu_lib.h"
 #include "ortapi_version.h"
 #include "tfidf_vectorizer.h"
+#include "tfidf_vectorizer.hpp"
 #include "tree_ensemble.h"
 #include "tree_ensemble.hpp"
 
