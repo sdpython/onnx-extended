@@ -4,7 +4,9 @@ from logging import getLogger
 import packaging.version as pv
 import numpy
 import onnx
+from onnx.reference import ReferenceEvaluator
 from sklearn.feature_extraction.text import CountVectorizer
+from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 
 
@@ -14,6 +16,8 @@ TARGET_OPSET = 18
 def make_ort_session(onx):
     from onnxruntime import InferenceSession, SessionOptions
     from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+    
+    sess_check = InferenceSession(onx.SerializeToString(), providers=["CPUExecutionProvider"])
 
     for node in onx.graph.node:
         if node.op_type == "TfIdfVectorizer":
@@ -29,7 +33,7 @@ def make_ort_session(onx):
     sess = InferenceSession(
         onx.SerializeToString(), opts, providers=["CPUExecutionProvider"]
     )
-    return sess
+    return sess_check, sess
 
 
 class TestTfIdefVectorizer(ExtTestCase):
@@ -69,7 +73,16 @@ class TestTfIdefVectorizer(ExtTestCase):
         onx = op.to_onnx(
             inputs=[("tokens", Int64TensorType())], outputs=[("out", FloatTensorType())]
         )
-        oinf = make_ort_session(onx)
+
+        check, oinf = ReferenceEvaluator(onx), CReferenceEvaluator(onx)
+        res = check.run(None, {"tokens": inputi})
+        self.assertEqual(output.tolist(), res[0].tolist())
+        res = oinf.run(None, {"tokens": inputi})
+        self.assertEqual(output.tolist(), res[0].tolist())
+
+        check, oinf = make_ort_session(onx)
+        res = check.run(None, {"tokens": inputi})
+        self.assertEqual(output.tolist(), res[0].tolist())
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
@@ -105,7 +118,9 @@ class TestTfIdefVectorizer(ExtTestCase):
         onx = op.to_onnx(
             inputs=[("tokens", Int64TensorType())], outputs=[("out", FloatTensorType())]
         )
-        oinf = make_ort_session(onx)
+        check, oinf = make_ort_session(onx)
+        res = check.run(None, {"tokens": inputi})
+        self.assertEqual(output.tolist(), res[0].tolist())
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
@@ -141,7 +156,9 @@ class TestTfIdefVectorizer(ExtTestCase):
         onx = op.to_onnx(
             inputs=[("tokens", Int64TensorType())], outputs=[("out", FloatTensorType())]
         )
-        oinf = make_ort_session(onx)
+        check, oinf = make_ort_session(onx)
+        res = check.run(None, {"tokens": inputi})
+        self.assertEqual(output.tolist(), res[0].tolist())
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
@@ -175,7 +192,9 @@ class TestTfIdefVectorizer(ExtTestCase):
         onx = op.to_onnx(
             inputs=[("tokens", Int64TensorType())], outputs=[("out", FloatTensorType())]
         )
-        oinf = make_ort_session(onx)
+        check, oinf = make_ort_session(onx)
+        res = check.run(None, {"tokens": inputi})
+        self.assertEqual(output.tolist(), res[0].tolist())
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
@@ -207,7 +226,9 @@ class TestTfIdefVectorizer(ExtTestCase):
         onx = op.to_onnx(
             inputs=[("tokens", Int64TensorType())], outputs=[("out", FloatTensorType())]
         )
-        oinf = make_ort_session(onx)
+        check, oinf = make_ort_session(onx)
+        res = check.run(None, {"tokens": inputi})
+        self.assertEqual(output.tolist(), res[0].tolist())
         res = oinf.run(None, {"tokens": inputi})
         self.assertEqual(output.tolist(), res[0].tolist())
 
@@ -231,7 +252,16 @@ class TestTfIdefVectorizer(ExtTestCase):
         vect.fit(corpus)
         exp = vect.transform(corpus)
         onx = to_onnx(vect, corpus, target_opset=TARGET_OPSET)
-        oinf = make_ort_session(onx)
+        try:
+            check, oinf = make_ort_session(onx)
+        except Exception as e:
+            if "type inference failed" in str(e):
+                # Type inference failed
+                # see https://github.com/microsoft/onnxruntime/pull/17497
+                return
+            raise e
+        got = check.run(None, {"X": corpus})
+        self.assertEqualArray(exp.todense().astype(numpy.float32), got[0])
         got = oinf.run(None, {"X": corpus})
         self.assertEqualArray(exp.todense().astype(numpy.float32), got[0])
 

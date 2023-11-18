@@ -1,4 +1,4 @@
-#include "tfidf_vectorizer.h"
+#include "ort_tfidf_vectorizer.h"
 
 namespace ortops {
 
@@ -55,12 +55,22 @@ template <typename TIN, typename TOUT>
 TfIdfVectorizerKernel<TIN, TOUT>::TfIdfVectorizerKernel(
     const OrtApi &api, const OrtKernelInfo *info) {
 
-  int64_t max_gram_length = KernelInfoGetOptionalAttribute(
-      api, info, "max_gram_length", static_cast<int64_t>(1));
-  int64_t max_skip_count = KernelInfoGetOptionalAttribute(
-      api, info, "max_skip_count", static_cast<int64_t>(1));
-  int64_t min_gram_length = KernelInfoGetOptionalAttribute(
-      api, info, "min_gram_length ", static_cast<int64_t>(1));
+  int64_t max_gram_length, max_skip_count, min_gram_length;
+  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "max_gram_length",
+                                                     &max_gram_length));
+  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "max_skip_count",
+                                                     &max_skip_count));
+  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "min_gram_length",
+                                                     &min_gram_length));
+  EXT_ENFORCE(max_gram_length > 0,
+              "max_gram_length must be specifed and > 0 but is ",
+              max_gram_length, ".");
+  EXT_ENFORCE(max_skip_count >= 0,
+              "max_skip_count must be specifed and >= 0 but is ",
+              max_skip_count, ".");
+  EXT_ENFORCE(min_gram_length > 0,
+              "min_gram_length must be specifed and > 0 but is ",
+              min_gram_length, ".");
 
   std::string mode =
       KernelInfoGetOptionalAttributeString(api, info, "mode", "");
@@ -109,7 +119,8 @@ void TfIdfVectorizerKernel<TIN, TOUT>::Compute(OrtKernelContext *context) {
       [&c = ctx](const std::vector<int64_t> &dim_out) -> std::span<float> {
         Ort::UnownedValue output = c.GetOutput(0, dim_out);
         int64_t size = onnx_c_ops::flattened_dimension(dim_out);
-        return std::span<TOUT>{output.GetTensorMutableData<TOUT>(), static_cast<size_t>(size)};
+        return std::span<TOUT>{output.GetTensorMutableData<TOUT>(),
+                               static_cast<size_t>(size)};
       });
 }
 

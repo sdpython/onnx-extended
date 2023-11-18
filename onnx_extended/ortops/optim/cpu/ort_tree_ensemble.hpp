@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tree_ensemble.h"
+#include "ort_tree_ensemble.h"
 
 namespace ortops {
 

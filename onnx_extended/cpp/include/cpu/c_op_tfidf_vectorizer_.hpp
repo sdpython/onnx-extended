@@ -138,7 +138,6 @@ public:
     max_gram_length_ = max_gram_length;
     max_skip_count_ = max_skip_count;
     ngram_counts_ = ngram_counts;
-    max_gram_length_ = max_gram_length;
     ngram_indexes_ = ngram_indexes;
 
     auto greatest_hit =
@@ -314,23 +313,29 @@ private:
     case kIDF: {
       if (!w.empty()) {
         const auto *freqs = frequences.data();
-        for (size_t batch = 0; batch < B; ++batch)
-          for (size_t i = 0; i < row_size; ++i)
+        for (size_t batch = 0; batch < B; ++batch) {
+          for (size_t i = 0; i < row_size; ++i) {
             *output_data++ = (*freqs++ > 0) ? w[i] : 0;
+          }
+        }
       } else {
-        for (auto f : frequences)
+        for (auto f : frequences) {
           *output_data++ = (f > 0) ? 1.0f : 0;
+        }
       }
     } break;
     case kTFIDF: {
       if (!w.empty()) {
         const auto *freqs = frequences.data();
-        for (size_t batch = 0; batch < B; ++batch)
-          for (size_t i = 0; i < row_size; ++i)
+        for (size_t batch = 0; batch < B; ++batch) {
+          for (size_t i = 0; i < row_size; ++i) {
             *output_data++ = *freqs++ * w[i];
+          }
+        }
       } else {
-        for (auto f : frequences)
+        for (auto f : frequences) {
           *output_data++ = static_cast<T>(f);
+        }
       }
     } break;
     case kNone: // fall-through
