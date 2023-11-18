@@ -16,8 +16,10 @@ TARGET_OPSET = 18
 def make_ort_session(onx):
     from onnxruntime import InferenceSession, SessionOptions
     from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
-    
-    sess_check = InferenceSession(onx.SerializeToString(), providers=["CPUExecutionProvider"])
+
+    sess_check = InferenceSession(
+        onx.SerializeToString(), providers=["CPUExecutionProvider"]
+    )
 
     for node in onx.graph.node:
         if node.op_type == "TfIdfVectorizer":
