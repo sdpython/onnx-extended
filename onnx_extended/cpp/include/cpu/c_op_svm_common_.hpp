@@ -132,7 +132,7 @@ public:
     }
   }
 
-  void compute_regressor(const std::vector<int64_t> &, int64_t N,
+  void compute_regressor(const std::vector<int64_t> & /* x_dims */, int64_t N,
                          int64_t stride, const NTYPE *x_data,
                          NTYPE *z_data) const {
 
@@ -164,7 +164,7 @@ public:
     return n_columns;
   }
 
-  void compute_classifier(const std::vector<int64_t> &x_dims, int64_t N,
+  void compute_classifier(const std::vector<int64_t> & /* x_dims */, int64_t N,
                           int64_t stride, const NTYPE *x_data0,
                           int64_t *y_data0, NTYPE *z_data0,
                           int64_t n_columns) const {

@@ -4,6 +4,7 @@ Change Logs
 0.2.4
 +++++
 
+* :pr:`118`: adds SVMRegressor, SVMClassifier as a custom kernel for onnxruntime
 * :pr:`117`: adds TfIdfVectorizer as a custom kernel for onnxruntime
 * :pr:`116`: adds C implementation of SVMClassifier + reference operator based on it
 * :pr:`115`: adds C implementation of SVMRegressor + reference operator based on it

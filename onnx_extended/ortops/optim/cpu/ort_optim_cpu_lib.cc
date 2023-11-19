@@ -5,9 +5,8 @@
 #include <vector>
 
 #include "ort_optim_cpu_lib.h"
-#include "ort_tfidf_vectorizer.h"
+#include "ort_svm.hpp"
 #include "ort_tfidf_vectorizer.hpp"
-#include "ort_tree_ensemble.h"
 #include "ort_tree_ensemble.hpp"
 #include "ortapi_version.h"
 
@@ -26,6 +25,8 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
+  static ortops::SVMClassifier<float> c_SVMClassifier;
+  static ortops::SVMRegressor<float> c_SVMRegressor;
   static ortops::TreeEnsembleRegressor<float, float, float>
       c_TreeEnsembleRegressor;
   static ortops::TreeEnsembleClassifier<float, float, float>
@@ -35,6 +36,8 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
+    domain.Add(&c_SVMClassifier);
+    domain.Add(&c_SVMRegressor);
     domain.Add(&c_TreeEnsembleRegressor);
     domain.Add(&c_TreeEnsembleClassifier);
     domain.Add(&c_TfIdfVectorizer);
