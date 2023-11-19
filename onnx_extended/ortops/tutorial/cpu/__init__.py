@@ -23,6 +23,42 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
+    onnx_extented.ortops.tutorial.cpu.CustomGemmFloat
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Implements operator Gemm for float type.
+    Operator CustomGemmFloat16 implements the same for the float 16.
+    CustomGemmFloat8E4M3FN allows Float8E4M3FN as inputs and floats
+    as outputs.
+
+    **Provider**
+
+    CPUExecutionProvider
+
+    **Attributes**
+
+    * to: quantized type
+
+    **Inputs**
+    
+    * A (T1): tensor of type T
+    * B (T1): tensor of type T
+    * C (T2): tensor of type T (optional)
+    * scaleA (TF): scale for A (optional)
+    * scaleB (TF): scale for B (optional)
+    * scale (TF): scale for the result (optional)
+
+    **Outputs**
+
+    * Y (T2): result of Gemm
+
+    **Constraints**
+
+    * T1: float, float 16 or Float8E4M3FN
+    * T2: float or float 16
+    * TF: float
+    """,
+                """
     onnx_extented.ortops.tutorial.cpu.DynamicQuantizeLinear
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
