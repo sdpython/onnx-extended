@@ -112,6 +112,7 @@ inline const void *AdvanceElementPtr(const void *p, size_t elements,
 enum WeightingCriteria { kNone = 0, kTF = 1, kIDF = 2, kTFIDF = 3 };
 
 template <typename T> class RuntimeTfIdfVectorizer {
+
 public:
   RuntimeTfIdfVectorizer() {
     weighting_criteria_ = WeightingCriteria::kNone;
@@ -137,7 +138,6 @@ public:
     max_gram_length_ = max_gram_length;
     max_skip_count_ = max_skip_count;
     ngram_counts_ = ngram_counts;
-    max_gram_length_ = max_gram_length;
     ngram_indexes_ = ngram_indexes;
 
     auto greatest_hit =
@@ -173,9 +173,10 @@ public:
 
   ~RuntimeTfIdfVectorizer() {}
 
-  void Compute(const std::vector<int64_t> &input_shape,
-               const std::span<const int64_t> &X,
-               std::vector<int64_t> &output_dims, std::vector<T> &out) const {
+  void Compute(
+      const std::vector<int64_t> &input_shape,
+      const std::span<const int64_t> &X,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
     const size_t total_items = flattened_dimension(input_shape);
 
     int32_t num_rows = 0;
@@ -215,7 +216,7 @@ public:
       // {b_dim, output_size} when b_dim is the number of received observations
       // and output_size the is the maximum value in ngram_indexes attribute
       // plus 1.
-      OutputResult(B, frequencies, output_dims, out);
+      OutputResult(B, frequencies, alloc);
       return;
     }
 
@@ -228,7 +229,7 @@ public:
     for (int64_t i = 0; i < num_rows; ++i)
       fn(i);
 
-    OutputResult(B, frequencies, output_dims, out);
+    OutputResult(B, frequencies, alloc);
   }
 
 private:
@@ -285,10 +286,10 @@ private:
     }
   }
 
-  void OutputResult(size_t B, const std::vector<uint32_t> &frequences,
-                    std::vector<int64_t> &output_dims,
-                    std::vector<T> &out) const {
-    output_dims.clear();
+  void OutputResult(
+      size_t B, const std::vector<uint32_t> &frequences,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+    std::vector<int64_t> output_dims;
     if (B == 0) {
       output_dims.push_back(output_size_);
       B = 1; // For use in the loops below
@@ -299,8 +300,7 @@ private:
 
     const auto row_size = output_size_;
 
-    auto total_dims = flattened_dimension(output_dims);
-    out.resize(total_dims);
+    std::span<T> out = alloc(output_dims);
     T *output_data = out.data();
 
     const auto &w = weights_;
@@ -313,23 +313,29 @@ private:
     case kIDF: {
       if (!w.empty()) {
         const auto *freqs = frequences.data();
-        for (size_t batch = 0; batch < B; ++batch)
-          for (size_t i = 0; i < row_size; ++i)
+        for (size_t batch = 0; batch < B; ++batch) {
+          for (size_t i = 0; i < row_size; ++i) {
             *output_data++ = (*freqs++ > 0) ? w[i] : 0;
+          }
+        }
       } else {
-        for (auto f : frequences)
+        for (auto f : frequences) {
           *output_data++ = (f > 0) ? 1.0f : 0;
+        }
       }
     } break;
     case kTFIDF: {
       if (!w.empty()) {
         const auto *freqs = frequences.data();
-        for (size_t batch = 0; batch < B; ++batch)
-          for (size_t i = 0; i < row_size; ++i)
+        for (size_t batch = 0; batch < B; ++batch) {
+          for (size_t i = 0; i < row_size; ++i) {
             *output_data++ = *freqs++ * w[i];
+          }
+        }
       } else {
-        for (auto f : frequences)
+        for (auto f : frequences) {
           *output_data++ = static_cast<T>(f);
+        }
       }
     } break;
     case kNone: // fall-through
