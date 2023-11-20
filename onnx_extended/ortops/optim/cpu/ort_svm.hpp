@@ -147,7 +147,7 @@ SVMKernel<T>::SVMKernel(const OrtApi &api, const OrtKernelInfo *info) {
                  // classifier
                  prob_a, prob_b, classlabels_ints, vectors_per_class);
   if (!is_classifier) {
-    n_targets_or_classes = svm_type->get_n_columns();
+    n_targets_or_classes = 1;  // what about multiregression?
   }
 }
 
