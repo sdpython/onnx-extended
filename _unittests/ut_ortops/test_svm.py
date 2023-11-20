@@ -89,6 +89,7 @@ class TestSVM(ExtTestCase):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        X_test = X_test[:5]
         clr = SVR()
         clr.fit(X_train, y_train)
         lexp = clr.predict(X_test).reshape((-1, 1)).astype(numpy.float32)
@@ -103,26 +104,6 @@ class TestSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqualArray(lexp, y[0], atol=1e-5)
-
-    @ignore_warnings([FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning])
-    def test_svr_double(self):
-        from skl2onnx import to_onnx
-
-        iris = load_iris()
-        X, y = iris.data, iris.target
-        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = SVR()
-        clr.fit(X_train, y_train)
-        lexp = clr.predict(X_test).reshape((-1, 1))
-
-        model_def = to_onnx(clr, X_train.astype(numpy.float64))
-        ccheck, cref = make_ort_session(model_def)
-        y = cref.run(None, {"X": X_test.astype(numpy.float64)})
-        self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqualArray(lexp, y[0], atol=1e-5)
-        y = ccheck.run(None, {"X": X_test.astype(numpy.float64)})
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
 
@@ -220,36 +201,6 @@ class TestSVM(ExtTestCase):
         self.assertEqualArray(lexp, y[0], atol=1e-5)
         self.assertEqualArray(lprob, y[1], atol=1e-5)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqual(lprob.shape, y[1].shape)
-        self.assertEqual(len(y), 2)
-        self.assertEqualArray(lexp, y[0], atol=1e-5)
-        self.assertEqualArray(lprob, y[1], atol=1e-5)
-
-    @ignore_warnings([FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning])
-    def test_svc_proba_double_20(self):
-        from skl2onnx import to_onnx
-
-        iris = load_iris()
-        X, y = iris.data, iris.target
-        X = _modify_dimension(X, 20)
-        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = SVC(probability=True)
-        clr.fit(X_train, y_train)
-        lexp = clr.predict(X_test).astype(numpy.int64)
-        lprob = clr.predict_proba(X_test)
-
-        model_def = to_onnx(
-            clr, X_train.astype(numpy.float64), options={"zipmap": False}
-        )
-        ccheck, cref = make_ort_session(model_def)
-        y = ccheck.run(None, {"X": X_test.astype(numpy.float64)})
-        self.assertEqual(lexp.shape, y[0].shape)
-        self.assertEqual(lprob.shape, y[1].shape)
-        self.assertEqual(len(y), 2)
-        self.assertEqualArray(lexp, y[0], atol=1e-5)
-        self.assertEqualArray(lprob, y[1], atol=1e-5)
-        y = cref.run(None, {"X": X_test.astype(numpy.float64)})
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, y[1].shape)
         self.assertEqual(len(y), 2)

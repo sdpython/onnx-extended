@@ -135,7 +135,6 @@ public:
   void compute_regressor(const std::vector<int64_t> & /* x_dims */, int64_t N,
                          int64_t stride, const NTYPE *x_data,
                          NTYPE *z_data) const {
-
 #pragma omp parallel for
     for (int64_t n = 0; n < N; ++n) {
       int64_t current_weight_0 = n * stride;

@@ -134,7 +134,8 @@ SVMKernel<T>::SVMKernel(const OrtApi &api, const OrtKernelInfo *info) {
     // A regressor.
     is_classifier = false;
     one_class = KernelInfoGetOptionalAttribute(api, info, "one_class",
-                                               static_cast<int64_t>(-1));
+                                               static_cast<int64_t>(0));
+    EXT_ENFORCE(one_class >= 0, "unexpected value for one_class=", one_class, ".");
   }
 
   std::unique_ptr<onnx_c_ops::RuntimeSVMCommon<T>> ptr(
@@ -165,6 +166,8 @@ template <typename T> void SVMKernel<T>::Compute(OrtKernelContext *context) {
 
   int64_t *p_labels = nullptr;
   const T *X = input_X.GetTensorData<T>();
+  int64_t stride = dimensions_in.size() == 1 ? dimensions_in[0] : dimensions_in[1];
+
   if (is_classifier) {
     std::vector<int64_t> dimensions_label{dimensions_in[0]};
     Ort::UnownedValue labels = ctx.GetOutput(0, dimensions_label);
@@ -179,7 +182,7 @@ template <typename T> void SVMKernel<T>::Compute(OrtKernelContext *context) {
         (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(), ".");
 
     T *out = output.GetTensorMutableData<T>();
-    svm_type->compute_classifier(dimensions_in, dimensions_in[0], 1, X,
+    svm_type->compute_classifier(dimensions_in, dimensions_in[0], stride, X,
                                  p_labels, out, svm_type->get_n_columns());
   } else {
     std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
@@ -191,7 +194,7 @@ template <typename T> void SVMKernel<T>::Compute(OrtKernelContext *context) {
         (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(), ".");
 
     T *out = output.GetTensorMutableData<T>();
-    svm_type->compute_regressor(dimensions_in, dimensions_in[0], 1, X, out);
+    svm_type->compute_regressor(dimensions_in, dimensions_in[0], stride, X, out);
   }
 }
 
