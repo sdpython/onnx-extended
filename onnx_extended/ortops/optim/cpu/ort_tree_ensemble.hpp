@@ -265,6 +265,7 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
 template <typename ITYPE, typename TTYPE, typename OTYPE>
 void TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::Compute(
     OrtKernelContext *context) {
+
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_X = ctx.GetInput(0);
   std::vector<int64_t> dimensions_in =
@@ -273,6 +274,14 @@ void TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::Compute(
   std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
   Ort::UnownedValue output =
       ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
+
+  EXT_ENFORCE(reg_type_type_type.get() != nullptr,
+              "No implementation yet for input type=",
+              (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
+              " and output type=",
+              (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
+              ".");
+
   int64_t *p_labels = nullptr;
   if (is_classifier) {
     std::vector<int64_t> dimensions_label{dimensions_in[0]};
@@ -280,18 +289,10 @@ void TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::Compute(
     p_labels = labels.GetTensorMutableData<int64_t>();
   }
 
-  if (reg_type_type_type.get() != nullptr) {
-    const ITYPE *X = input_X.GetTensorData<ITYPE>();
-    OTYPE *out = output.GetTensorMutableData<OTYPE>();
-    reg_type_type_type->Compute(dimensions_in[0], dimensions_in[1], X, out,
-                                p_labels);
-  } else {
-    EXT_ENFORCE("No implementation yet for input type=",
-                (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
-                " and output type=",
-                (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
-                ".");
-  }
+  const ITYPE *X = input_X.GetTensorData<ITYPE>();
+  OTYPE *out = output.GetTensorMutableData<OTYPE>();
+  reg_type_type_type->Compute(dimensions_in[0], dimensions_in[1], X, out,
+                              p_labels);
 }
 
 } // namespace ortops
