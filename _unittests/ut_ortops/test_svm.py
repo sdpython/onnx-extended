@@ -82,7 +82,7 @@ class TestSVM(ExtTestCase):
         return self
 
     @ignore_warnings([FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning])
-    def test_svr(self):
+    def test_asvr(self):
         from skl2onnx import to_onnx
 
         iris = load_iris()
@@ -90,11 +90,14 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SVR()
         clr.fit(X_train, y_train)
+        lexp = clr.predict(X_test).reshape((-1, 1)).astype(numpy.float32)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
-        cref = make_ort_session(model_def)
+        ccheck, cref = make_ort_session(model_def)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(lexp.shape, y[0].shape)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        lexp = clr.predict(X_test).reshape((-1, 1)).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
 
@@ -107,11 +110,14 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SVR()
         clr.fit(X_train, y_train)
+        lexp = clr.predict(X_test).reshape((-1, 1))
 
         model_def = to_onnx(clr, X_train.astype(numpy.float64))
-        cref = make_ort_session(model_def)
+        ccheck, cref = make_ort_session(model_def)
         y = cref.run(None, {"X": X_test.astype(numpy.float64)})
-        lexp = clr.predict(X_test).reshape((-1, 1))
+        self.assertEqual(lexp.shape, y[0].shape)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float64)})
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
 
@@ -125,11 +131,14 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SVR()
         clr.fit(X_train, y_train)
+        lexp = clr.predict(X_test).reshape((-1, 1)).astype(numpy.float32)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
-        cref = make_ort_session(model_def)
+        ccheck, cref = make_ort_session(model_def)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(lexp.shape, y[0].shape)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
         y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        lexp = clr.predict(X_test).reshape((-1, 1)).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
 
@@ -144,13 +153,14 @@ class TestSVM(ExtTestCase):
                 model = OneClassSVM(kernel=kernel).fit(X)
                 X32 = X.astype(numpy.float32)
                 model_onnx = to_onnx(model, X32)
-                cref = make_ort_session(model_onnx)
-                res = cref.run(None, {"X": X32})
-                scores = res[1]
                 dec = (
                     model.decision_function(X32).astype(numpy.float32).reshape((-1, 1))
                 )
-                self.assertEqualArray(dec, scores, atol=1e-4)
+                ccheck, cref = make_ort_session(model_onnx)
+                res = ccheck.run(None, {"X": X32})
+                self.assertEqualArray(dec, res[1], atol=1e-4)
+                res = cref.run(None, {"X": X32})
+                self.assertEqualArray(dec, res[1], atol=1e-4)
 
     @ignore_warnings([FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning])
     def test_svc_proba(self):
@@ -161,17 +171,23 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
+        lexp = clr.predict(X_test).astype(numpy.int64)
+        lprob = clr.predict_proba(X_test).astype(numpy.float32)
 
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32), options={"zipmap": False}
         )
-        cref = make_ort_session(model_def)
-        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(len(y), 2)
-        lexp = clr.predict(X_test).astype(numpy.int64)
-        lprob = clr.predict_proba(X_test).astype(numpy.float32)
+        ccheck, cref = make_ort_session(model_def)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, y[1].shape)
+        self.assertEqual(len(y), 2)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
+        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(lexp.shape, y[0].shape)
+        self.assertEqual(lprob.shape, y[1].shape)
+        self.assertEqual(len(y), 2)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
         self.assertEqualArray(lprob, y[1], atol=1e-5)
 
@@ -185,17 +201,21 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
-
-        model_def = to_onnx(
-            clr, X_train.astype(numpy.float32), options={"zipmap": False}
-        )
-        cref = make_ort_session(model_def)
-        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test).astype(numpy.int64)
         lprob = clr.predict_proba(X_test).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, y[1].shape)
+
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
+        ccheck, cref = make_ort_session(model_def)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(len(y), 2)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
+        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(len(y), 2)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
         self.assertEqualArray(lprob, y[1], atol=1e-5)
 
@@ -209,17 +229,21 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
-
-        model_def = to_onnx(
-            clr, X_train.astype(numpy.float64), options={"zipmap": False}
-        )
-        cref = make_ort_session(model_def)
-        y = cref.run(None, {"X": X_test.astype(numpy.float64)})
-        self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test).astype(numpy.int64)
         lprob = clr.predict_proba(X_test)
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, y[1].shape)
+
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float64), options={"zipmap": False}
+        )
+        ccheck, cref = make_ort_session(model_def)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float64)})
+        self.assertEqual(len(y), 2)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
+        y = cref.run(None, {"X": X_test.astype(numpy.float64)})
+        self.assertEqual(len(y), 2)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
         self.assertEqualArray(lprob, y[1], atol=1e-5)
 
@@ -233,15 +257,19 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = LinearSVC(dual="auto")
         clr.fit(X_train, y_train)
-
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
-        cref = make_ort_session(model_def)
-        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test).astype(numpy.int64)
         lprob = clr.decision_function(X_test).reshape((-1, 1)).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, y[1].shape)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        ccheck, cref = make_ort_session(model_def)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(len(y), 2)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
+        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(len(y), 2)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
         self.assertEqualArray(lprob, y[1], atol=1e-5)
 
@@ -255,17 +283,21 @@ class TestSVM(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
-
-        model_def = to_onnx(
-            clr, X_train.astype(numpy.float32), options={"zipmap": False}
-        )
-        cref = make_ort_session(model_def)
-        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
-        self.assertEqual(len(y), 2)
         lexp = clr.predict(X_test).astype(numpy.int64)
         lprob = clr.predict_proba(X_test).astype(numpy.float32)
         self.assertEqual(lexp.shape, y[0].shape)
         self.assertEqual(lprob.shape, y[1].shape)
+
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), options={"zipmap": False}
+        )
+        ccheck, cref = make_ort_session(model_def)
+        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(len(y), 2)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
+        self.assertEqualArray(lprob, y[1], atol=1e-5)
+        y = ccheck.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(len(y), 2)
         self.assertEqualArray(lexp, y[0], atol=1e-5)
         self.assertEqualArray(lprob, y[1], atol=1e-5)
 
