@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC, SVC, SVR, OneClassSVM
 from sklearn.exceptions import ConvergenceWarning
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
+from onnx_extended.reference import CReferenceEvaluator
 
 
 def make_ort_session(onx):
@@ -93,6 +94,10 @@ class TestSVM(ExtTestCase):
         lexp = clr.predict(X_test).reshape((-1, 1)).astype(numpy.float32)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        cref = CReferenceEvaluator(model_def)
+        y = cref.run(None, {"X": X_test.astype(numpy.float32)})
+        self.assertEqual(lexp.shape, y[0].shape)
+        self.assertEqualArray(lexp, y[0], atol=1e-5)
         ccheck, cref = make_ort_session(model_def)
         y = ccheck.run(None, {"X": X_test.astype(numpy.float32)})
         self.assertEqual(lexp.shape, y[0].shape)
