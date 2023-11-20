@@ -43,7 +43,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
-        self.assertEqual(len(doc), 3)
+        self.assertEqual(len(doc), 4)
         for d in doc:
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
