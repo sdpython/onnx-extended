@@ -222,7 +222,8 @@ public:
 
     std::function<void(ptrdiff_t)> fn = [this, X, C,
                                          &frequencies](ptrdiff_t row_num) {
-      ComputeImpl(X, row_num, C, frequencies);
+      ComputeImpl(X.data() + row_num * C, C,
+                  frequencies.data() + row_num * output_size_);
     };
 
     // can be parallelized.
@@ -233,13 +234,12 @@ public:
   }
 
 private:
-  void ComputeImpl(const std::span<const int64_t> &X, ptrdiff_t row_num,
-                   size_t row_size, std::vector<uint32_t> &frequencies) const {
+  void ComputeImpl(const int64_t *X_data, size_t row_size,
+                   uint32_t *frequencies) const {
 
     const auto elem_size = sizeof(int64_t);
 
-    const void *row_begin =
-        AdvanceElementPtr((void *)X.data(), row_num * row_size, elem_size);
+    const void *row_begin = AdvanceElementPtr((void *)X_data, 0, elem_size);
     const void *const row_end =
         AdvanceElementPtr(row_begin, row_size, elem_size);
 
@@ -272,7 +272,7 @@ private:
           if (hit == int_map->end())
             break;
           if (ngram_size >= start_ngram_size && hit->second->id_ != 0) {
-            IncrementCount(hit->second->id_, row_num, frequencies);
+            IncrementCount(hit->second->id_, frequencies);
           }
           int_map = &hit->second->leafs_;
         }
@@ -356,13 +356,9 @@ private:
   IntMap int64_map_;
   size_t output_size_ = 0;
 
-  inline void IncrementCount(size_t ngram_id, size_t row_num,
-                             std::vector<uint32_t> &frequencies) const {
-    // assert(ngram_id != 0);
+  inline void IncrementCount(size_t ngram_id, uint32_t *frequencies) const {
     --ngram_id;
-    // assert(ngram_id < ngram_indexes_.size());
-    auto output_idx = row_num * output_size_ + ngram_indexes_[ngram_id];
-    // assert(static_cast<size_t>(output_idx) < frequencies.size());
+    auto output_idx = ngram_indexes_[ngram_id];
     ++frequencies[output_idx];
   }
 };
