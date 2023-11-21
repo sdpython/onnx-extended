@@ -9,6 +9,7 @@
 #include <sstream>
 #include <stdint.h>
 #include <string>
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 
@@ -206,8 +207,16 @@ public:
       throw std::invalid_argument("Unexpected total of items.");
     // Frequency holder allocate [B..output_size_]
     // and init all to zero
-    std::vector<uint32_t> frequencies;
-    frequencies.resize(num_rows * output_size_, 0);
+
+    std::vector<int64_t> output_dims;
+    if (B == 0) {
+      output_dims.push_back(output_size_);
+      B = 1; // For use in the loops below
+    } else {
+      output_dims.push_back(B);
+      output_dims.push_back(output_size_);
+    }
+    std::span<T> out = alloc(output_dims);
 
     if (total_items == 0 || int64_map_.empty()) {
       // TfidfVectorizer may receive an empty input when it follows a Tokenizer
@@ -216,30 +225,30 @@ public:
       // {b_dim, output_size} when b_dim is the number of received observations
       // and output_size the is the maximum value in ngram_indexes attribute
       // plus 1.
-      OutputResult(B, frequencies, alloc);
+      std::memset(out.data(), 0, out.size() * sizeof(T));
       return;
     }
 
-    std::function<void(ptrdiff_t)> fn = [this, X, C,
-                                         &frequencies](ptrdiff_t row_num) {
-      ComputeImpl(X, row_num, C, frequencies);
+    std::function<void(ptrdiff_t)> fn = [this, X, C, &out](ptrdiff_t row_num) {
+      std::vector<uint32_t> frequences;
+      frequences.resize(output_size_, 0);
+      ComputeImpl(X.data() + row_num * C, C, frequences.data());
+      OutputResult(frequences, out.data() + row_num * this->output_size_);
     };
 
     // can be parallelized.
-    for (int64_t i = 0; i < num_rows; ++i)
+    for (int64_t i = 0; i < num_rows; ++i) {
       fn(i);
-
-    OutputResult(B, frequencies, alloc);
+    }
   }
 
 private:
-  void ComputeImpl(const std::span<const int64_t> &X, ptrdiff_t row_num,
-                   size_t row_size, std::vector<uint32_t> &frequencies) const {
+  void ComputeImpl(const int64_t *X_data, size_t row_size,
+                   uint32_t *frequencies) const {
 
     const auto elem_size = sizeof(int64_t);
 
-    const void *row_begin =
-        AdvanceElementPtr((void *)X.data(), row_num * row_size, elem_size);
+    const void *row_begin = AdvanceElementPtr((void *)X_data, 0, elem_size);
     const void *const row_end =
         AdvanceElementPtr(row_begin, row_size, elem_size);
 
@@ -272,7 +281,7 @@ private:
           if (hit == int_map->end())
             break;
           if (ngram_size >= start_ngram_size && hit->second->id_ != 0) {
-            IncrementCount(hit->second->id_, row_num, frequencies);
+            IncrementCount(hit->second->id_, frequencies);
           }
           int_map = &hit->second->leafs_;
         }
@@ -286,22 +295,9 @@ private:
     }
   }
 
-  void OutputResult(
-      size_t B, const std::vector<uint32_t> &frequences,
-      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
-    std::vector<int64_t> output_dims;
-    if (B == 0) {
-      output_dims.push_back(output_size_);
-      B = 1; // For use in the loops below
-    } else {
-      output_dims.push_back(B);
-      output_dims.push_back(output_size_);
-    }
+  void OutputResult(const std::vector<uint32_t> &frequences, T* output_data) const {
 
     const auto row_size = output_size_;
-
-    std::span<T> out = alloc(output_dims);
-    T *output_data = out.data();
 
     const auto &w = weights_;
     switch (weighting_criteria_) {
@@ -313,10 +309,8 @@ private:
     case kIDF: {
       if (!w.empty()) {
         const auto *freqs = frequences.data();
-        for (size_t batch = 0; batch < B; ++batch) {
-          for (size_t i = 0; i < row_size; ++i) {
-            *output_data++ = (*freqs++ > 0) ? w[i] : 0;
-          }
+        for (size_t i = 0; i < row_size; ++i) {
+          *output_data++ = (*freqs++ > 0) ? w[i] : 0;
         }
       } else {
         for (auto f : frequences) {
@@ -327,10 +321,8 @@ private:
     case kTFIDF: {
       if (!w.empty()) {
         const auto *freqs = frequences.data();
-        for (size_t batch = 0; batch < B; ++batch) {
-          for (size_t i = 0; i < row_size; ++i) {
-            *output_data++ = *freqs++ * w[i];
-          }
+        for (size_t i = 0; i < row_size; ++i) {
+          *output_data++ = *freqs++ * w[i];
         }
       } else {
         for (auto f : frequences) {
@@ -356,13 +348,9 @@ private:
   IntMap int64_map_;
   size_t output_size_ = 0;
 
-  inline void IncrementCount(size_t ngram_id, size_t row_num,
-                             std::vector<uint32_t> &frequencies) const {
-    // assert(ngram_id != 0);
+  inline void IncrementCount(size_t ngram_id, uint32_t *frequencies) const {
     --ngram_id;
-    // assert(ngram_id < ngram_indexes_.size());
-    auto output_idx = row_num * output_size_ + ngram_indexes_[ngram_id];
-    // assert(static_cast<size_t>(output_idx) < frequencies.size());
+    auto output_idx = ngram_indexes_[ngram_id];
     ++frequencies[output_idx];
   }
 };
