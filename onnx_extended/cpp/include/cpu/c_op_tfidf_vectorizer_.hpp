@@ -207,20 +207,6 @@ public:
     // Frequency holder allocate [B..output_size_]
     // and init all to zero
 
-    if (total_items == 0 || int64_map_.empty()) {
-      // TfidfVectorizer may receive an empty input when it follows a Tokenizer
-      // (for example for a string containing only stopwords).
-      // TfidfVectorizer returns a zero tensor of shape
-      // {b_dim, output_size} when b_dim is the number of received observations
-      // and output_size the is the maximum value in ngram_indexes attribute
-      // plus 1.
-      EXT_THROW("TfIdfVectorizer implemented when input is empty.");
-      // std::vector<uint32_t> frequencies;
-      // frequencies.resize(num_rows * output_size_, 0);
-      // OutputResult(B, frequencies, alloc);
-      // return;
-    }
-
     std::vector<int64_t> output_dims;
     if (B == 0) {
       output_dims.push_back(output_size_);
@@ -230,6 +216,17 @@ public:
       output_dims.push_back(output_size_);
     }
     std::span<T> out = alloc(output_dims);
+
+    if (total_items == 0 || int64_map_.empty()) {
+      // TfidfVectorizer may receive an empty input when it follows a Tokenizer
+      // (for example for a string containing only stopwords).
+      // TfidfVectorizer returns a zero tensor of shape
+      // {b_dim, output_size} when b_dim is the number of received observations
+      // and output_size the is the maximum value in ngram_indexes attribute
+      // plus 1.
+      std::memset(out.data(), 0, out.size() * sizeof(T));
+      return;
+    }
 
     std::function<void(ptrdiff_t)> fn = [this, X, C, &out](ptrdiff_t row_num) {
       std::vector<uint32_t> frequences;
