@@ -367,7 +367,7 @@ def bench_virtual(
         starting to measure the model
     :param repeat: number of iterations to measure
     :param modules: modules to install, example:
-        `modules=[{"onnxruntime": "1.16.2", "onnx": "1.15.0"}]`
+        `modules=[{"onnxruntime": "1.16.3", "onnx": "1.15.0"}]`
     :param filter_fct: to disable some of the configuration
         based on the runtime and the installed modules
     :param verbose: verbosity
@@ -395,7 +395,7 @@ def bench_virtual(
     if modules is None:
         # ext = "https://github.com/sdpython/onnx-extended.git"
         modules = [
-            {"onnxruntime": "1.16.2", "onnx": None, "onnx-extended": "0.2.3"},
+            {"onnxruntime": "1.16.3", "onnx": None, "onnx-extended": "0.2.3"},
             {
                 "onnxruntime": "1.15.1",
                 "onnx": None,
