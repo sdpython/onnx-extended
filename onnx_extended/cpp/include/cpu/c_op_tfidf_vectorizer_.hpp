@@ -2,16 +2,19 @@
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/tfidfvectorizer.cc.
 #pragma once
 
+#include "common/c_op_common_parallel.hpp"
 #include "common/c_op_helpers.h"
 #include "onnx_extended_helpers.h"
+#include <cstring>
 #include <functional>
 #include <span>
 #include <sstream>
 #include <stdint.h>
 #include <string>
-#include <cstring>
 #include <unordered_map>
 #include <vector>
+
+#include <omp.h>
 
 using namespace onnx_extended_helpers;
 
@@ -127,7 +130,7 @@ public:
             const std::string &mode, const std::vector<int64_t> &ngram_counts,
             const std::vector<int64_t> &ngram_indexes,
             const std::vector<int64_t> &pool_int64s,
-            const std::vector<T> &weights) {
+            const std::vector<T> &weights, bool sparse) {
     if (mode == "TF")
       weighting_criteria_ = kTF;
     else if (mode == "IDF")
@@ -140,6 +143,7 @@ public:
     max_skip_count_ = max_skip_count;
     ngram_counts_ = ngram_counts;
     ngram_indexes_ = ngram_indexes;
+    sparse_ = sparse;
 
     auto greatest_hit =
         std::max_element(ngram_indexes_.cbegin(), ngram_indexes_.cend());
@@ -229,22 +233,35 @@ public:
       return;
     }
 
-    std::function<void(ptrdiff_t)> fn = [this, X, C, &out](ptrdiff_t row_num) {
-      std::vector<uint32_t> frequences;
-      frequences.resize(output_size_, 0);
-      ComputeImpl(X.data() + row_num * C, C, frequences.data());
-      OutputResult(frequences, out.data() + row_num * this->output_size_);
-    };
+    size_t reserve = C * std::max(static_cast<size_t>(max_gram_length_),
+                                  static_cast<size_t>(0));
+
+    std::function<void(ptrdiff_t, ptrdiff_t)> fn =
+        [this, X, C, &out, reserve](ptrdiff_t row_start, ptrdiff_t row_end) {
+          std::vector<int64_t> frequences;
+          frequences.reserve(reserve);
+          auto begin = out.data() + row_start * this->output_size_;
+          auto end = out.data() + row_end * this->output_size_;
+          std::fill(begin, end, 0);
+          for (auto row_num = row_start; row_num < row_end;
+               ++row_num, begin += this->output_size_) {
+            frequences.clear();
+            ComputeImpl(X.data() + row_num * C, C, frequences);
+            OutputResult(frequences, begin);
+          }
+        };
 
     // can be parallelized.
-    for (int64_t i = 0; i < num_rows; ++i) {
-      fn(i);
-    }
+    int current_num_threads = omp_get_max_threads();
+    int n_per_threads =
+        std::min(128, std::max(num_rows / current_num_threads / 2, 1));
+
+    TryBatchParallelFor2(current_num_threads, n_per_threads, num_rows, fn);
   }
 
 private:
   void ComputeImpl(const int64_t *X_data, size_t row_size,
-                   uint32_t *frequencies) const {
+                   std::vector<int64_t> &frequencies) const {
 
     const auto elem_size = sizeof(int64_t);
 
@@ -295,38 +312,40 @@ private:
     }
   }
 
-  void OutputResult(const std::vector<uint32_t> &frequences, T* output_data) const {
+  inline void IncrementCount(size_t ngram_id,
+                             std::vector<int64_t> &frequencies) const {
+    auto output_idx = ngram_indexes_[--ngram_id];
+    frequencies.push_back(output_idx);
+  }
 
-    const auto row_size = output_size_;
-
+  void OutputResult(const std::vector<int64_t> &frequences,
+                    T *output_data) const {
     const auto &w = weights_;
     switch (weighting_criteria_) {
     case kTF: {
       for (auto f : frequences) {
-        *output_data++ = static_cast<T>(f);
+        ++output_data[f];
       }
     } break;
     case kIDF: {
       if (!w.empty()) {
-        const auto *freqs = frequences.data();
-        for (size_t i = 0; i < row_size; ++i) {
-          *output_data++ = (*freqs++ > 0) ? w[i] : 0;
+        for (auto f : frequences) {
+          output_data[f] = w[f];
         }
       } else {
         for (auto f : frequences) {
-          *output_data++ = (f > 0) ? 1.0f : 0;
+          output_data[f] = 1.0f;
         }
       }
     } break;
     case kTFIDF: {
       if (!w.empty()) {
-        const auto *freqs = frequences.data();
-        for (size_t i = 0; i < row_size; ++i) {
-          *output_data++ = *freqs++ * w[i];
+        for (auto f : frequences) {
+          output_data[f] += w[f];
         }
       } else {
         for (auto f : frequences) {
-          *output_data++ = static_cast<T>(f);
+          ++output_data[f];
         }
       }
     } break;
@@ -341,18 +360,13 @@ private:
   int64_t max_gram_length_;
   int64_t min_gram_length_;
   int64_t max_skip_count_;
+  bool sparse_;
   std::vector<int64_t> ngram_counts_;
   std::vector<int64_t> ngram_indexes_;
   std::vector<T> weights_;
   std::vector<int64_t> pool_int64s_;
   IntMap int64_map_;
   size_t output_size_ = 0;
-
-  inline void IncrementCount(size_t ngram_id, uint32_t *frequencies) const {
-    --ngram_id;
-    auto output_idx = ngram_indexes_[ngram_id];
-    ++frequencies[output_idx];
-  }
 };
 
 } // namespace onnx_c_ops

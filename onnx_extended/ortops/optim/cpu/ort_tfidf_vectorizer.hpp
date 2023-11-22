@@ -72,6 +72,9 @@ TfIdfVectorizerKernel<TIN, TOUT>::TfIdfVectorizerKernel(
               "min_gram_length must be specifed and > 0 but is ",
               min_gram_length, ".");
 
+  int64_t sparse = KernelInfoGetOptionalAttribute(api, info, "sparse",
+                                                  static_cast<int64_t>(0));
+
   std::string mode =
       KernelInfoGetOptionalAttributeString(api, info, "mode", "");
 
@@ -95,7 +98,8 @@ TfIdfVectorizerKernel<TIN, TOUT>::TfIdfVectorizerKernel(
   tfidf_typed.swap(ptr);
 
   tfidf_typed->Init(max_gram_length, max_skip_count, min_gram_length, mode,
-                    ngram_counts, ngram_indexes, pool_int64s, weights);
+                    ngram_counts, ngram_indexes, pool_int64s, weights,
+                    sparse == 1);
 }
 
 ////////////////////////

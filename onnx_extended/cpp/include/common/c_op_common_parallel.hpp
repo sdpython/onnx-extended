@@ -86,9 +86,38 @@ inline void TryBatchParallelFor(int64_t n_threads, int64_t batch_size,
 #pragma omp parallel for
   for (int64_t batch_idx = 0; batch_idx < num_batches; ++batch_idx) {
     WorkInfo work = PartitionWork(batch_idx, num_batches, total);
-    for (int64_t i = work.start ; i < work.end; ++i) {
+    for (int64_t i = work.start; i < work.end; ++i) {
       fn(i);
     }
+  }
+}
+
+template <typename F>
+inline void TryBatchParallelFor2(int64_t n_threads, int64_t batch_size,
+                                 int64_t total, F &&fn) {
+  if (n_threads != omp_get_max_threads()) {
+    throw std::runtime_error("TryBatchParallelFor2 not implemented when "
+                             "n_threads != omp_get_max_threads().");
+  }
+  if (total <= n_threads * batch_size) {
+    fn(0, total);
+    return;
+  }
+  if (total <= 0) {
+    return;
+  }
+
+  if (total == 1) {
+    fn(0, 1);
+    return;
+  }
+
+  int64_t num_batches = total / batch_size + (total % batch_size == 0 ? 1 : 0);
+
+#pragma omp parallel for
+  for (int64_t batch_idx = 0; batch_idx < num_batches; ++batch_idx) {
+    WorkInfo work = PartitionWork(batch_idx, num_batches, total);
+    fn(work.start, work.end);
   }
 }
 
