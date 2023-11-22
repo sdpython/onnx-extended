@@ -726,7 +726,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         reason="onnxruntime not installed or CUDA provider not available",
     )
     @unittest.skipIf(
-        Version(ort_version) < Version("1.16.2"), reason="type inference fails"
+        Version(ort_version) < Version("1.17.0"), reason="type inference fails"
     )
     def test_custom_gemm_local_function(self):
         from onnx_extended.ortops.tutorial.cuda import get_ort_ext_libs
