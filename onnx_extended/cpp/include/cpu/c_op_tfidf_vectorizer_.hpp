@@ -233,35 +233,57 @@ public:
       return;
     }
 
-    size_t reserve = C * std::max(static_cast<size_t>(max_gram_length_),
-                                  static_cast<size_t>(0));
+    std::function<void(size_t, float *)> fn_weight;
+    // can be parallelized.
+    int n_threads = omp_get_max_threads();
+    int n_per_threads = std::min(128, std::max(num_rows / n_threads / 2, 1));
 
-    std::function<void(ptrdiff_t, ptrdiff_t)> fn =
-        [this, X, C, &out, reserve](ptrdiff_t row_start, ptrdiff_t row_end) {
-          std::vector<int64_t> frequences;
-          frequences.reserve(reserve);
+    if (sparse_) {
+      // std::vector<std::map<size_t, float>> sparse;
+      EXT_THROW("Not implemented yet.");
+    }
+
+    auto &w = weights_;
+
+    switch (weighting_criteria_) {
+    case kTF:
+      fn_weight = [&w](size_t i, float *out) { out[i] += 1.0f; };
+      break;
+    case kIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](size_t i, float *out) { out[i] = w[i]; };
+      } else {
+        fn_weight = [&w](size_t i, float *out) { out[i] = 1.0f; };
+      }
+      break;
+    case kTFIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](size_t i, float *out) { out[i] += w[i]; };
+      } else {
+        fn_weight = [&w](size_t i, float *out) { out[i] += 1.0f; };
+      }
+      break;
+    case kNone: // fall-through
+    default:
+      EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
+    }
+
+    TryBatchParallelFor2i(
+        n_threads, n_per_threads, num_rows,
+        [this, X, C, &out, &fn_weight](int thread_num, ptrdiff_t row_start, ptrdiff_t row_end) {
           auto begin = out.data() + row_start * this->output_size_;
           auto end = out.data() + row_end * this->output_size_;
           std::fill(begin, end, 0);
           for (auto row_num = row_start; row_num < row_end;
                ++row_num, begin += this->output_size_) {
-            frequences.clear();
-            ComputeImpl(X.data() + row_num * C, C, frequences);
-            OutputResult(frequences, begin);
+            ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);
           }
-        };
-
-    // can be parallelized.
-    int current_num_threads = omp_get_max_threads();
-    int n_per_threads =
-        std::min(128, std::max(num_rows / current_num_threads / 2, 1));
-
-    TryBatchParallelFor2(current_num_threads, n_per_threads, num_rows, fn);
+        });
   }
 
 private:
-  void ComputeImpl(const int64_t *X_data, size_t row_size,
-                   std::vector<int64_t> &frequencies) const {
+  void ComputeImpl(const int64_t *X_data, size_t row_size, float *out,
+                   std::function<void(size_t, float *)> &fn_weight) const {
 
     const auto elem_size = sizeof(int64_t);
 
@@ -298,7 +320,7 @@ private:
           if (hit == int_map->end())
             break;
           if (ngram_size >= start_ngram_size && hit->second->id_ != 0) {
-            IncrementCount(hit->second->id_, frequencies);
+            fn_weight(OutputIdToIncrement(hit->second->id_), out);
           }
           int_map = &hit->second->leafs_;
         }
@@ -312,47 +334,8 @@ private:
     }
   }
 
-  inline void IncrementCount(size_t ngram_id,
-                             std::vector<int64_t> &frequencies) const {
-    auto output_idx = ngram_indexes_[--ngram_id];
-    frequencies.push_back(output_idx);
-  }
-
-  void OutputResult(const std::vector<int64_t> &frequences,
-                    T *output_data) const {
-    const auto &w = weights_;
-    switch (weighting_criteria_) {
-    case kTF: {
-      for (auto f : frequences) {
-        ++output_data[f];
-      }
-    } break;
-    case kIDF: {
-      if (!w.empty()) {
-        for (auto f : frequences) {
-          output_data[f] = w[f];
-        }
-      } else {
-        for (auto f : frequences) {
-          output_data[f] = 1.0f;
-        }
-      }
-    } break;
-    case kTFIDF: {
-      if (!w.empty()) {
-        for (auto f : frequences) {
-          output_data[f] += w[f];
-        }
-      } else {
-        for (auto f : frequences) {
-          ++output_data[f];
-        }
-      }
-    } break;
-    case kNone: // fall-through
-    default:
-      throw std::invalid_argument("Unexpected weighting_criteria.");
-    }
+  inline int64_t OutputIdToIncrement(size_t ngram_id) const {
+    return ngram_indexes_[--ngram_id];
   }
 
 private:
