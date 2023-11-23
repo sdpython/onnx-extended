@@ -241,49 +241,52 @@ public:
     if (sparse_) {
       // std::vector<std::map<size_t, float>> sparse;
       EXT_THROW("Not implemented yet.");
-    }
+    } else {
 
-    auto &w = weights_;
+      auto &w = weights_;
 
-    switch (weighting_criteria_) {
-    case kTF:
-      fn_weight = [&w](size_t i, float *out) { out[i] += 1.0f; };
-      break;
-    case kIDF:
-      if (!w.empty()) {
-        fn_weight = [&w](size_t i, float *out) { out[i] = w[i]; };
-      } else {
-        fn_weight = [&w](size_t i, float *out) { out[i] = 1.0f; };
-      }
-      break;
-    case kTFIDF:
-      if (!w.empty()) {
-        fn_weight = [&w](size_t i, float *out) { out[i] += w[i]; };
-      } else {
+      switch (weighting_criteria_) {
+      case kTF:
         fn_weight = [&w](size_t i, float *out) { out[i] += 1.0f; };
+        break;
+      case kIDF:
+        if (!w.empty()) {
+          fn_weight = [&w](size_t i, float *out) { out[i] = w[i]; };
+        } else {
+          fn_weight = [&w](size_t i, float *out) { out[i] = 1.0f; };
+        }
+        break;
+      case kTFIDF:
+        if (!w.empty()) {
+          fn_weight = [&w](size_t i, float *out) { out[i] += w[i]; };
+        } else {
+          fn_weight = [&w](size_t i, float *out) { out[i] += 1.0f; };
+        }
+        break;
+      case kNone: // fall-through
+      default:
+        EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
       }
-      break;
-    case kNone: // fall-through
-    default:
-      EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
-    }
 
-    TryBatchParallelFor2i(
-        n_threads, n_per_threads, num_rows,
-        [this, X, C, &out, &fn_weight](int thread_num, ptrdiff_t row_start, ptrdiff_t row_end) {
-          auto begin = out.data() + row_start * this->output_size_;
-          auto end = out.data() + row_end * this->output_size_;
-          std::fill(begin, end, 0);
-          for (auto row_num = row_start; row_num < row_end;
-               ++row_num, begin += this->output_size_) {
-            ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);
-          }
-        });
+      TryBatchParallelFor2i(
+          n_threads, n_per_threads, num_rows,
+          [this, X, C, &out, &fn_weight](int, ptrdiff_t row_start,
+                                         ptrdiff_t row_end) {
+            auto begin = out.data() + row_start * this->output_size_;
+            auto end = out.data() + row_end * this->output_size_;
+            std::fill(begin, end, 0);
+            for (auto row_num = row_start; row_num < row_end;
+                 ++row_num, begin += this->output_size_) {
+              ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);
+            }
+          });
+    }
   }
 
 private:
-  void ComputeImpl(const int64_t *X_data, size_t row_size, float *out,
-                   std::function<void(size_t, float *)> &fn_weight) const {
+  template <typename F, typename C>
+  void ComputeImpl(const int64_t *X_data, size_t row_size, C out,
+                   F &fn_weight) const {
 
     const auto elem_size = sizeof(int64_t);
 
