@@ -240,8 +240,9 @@ jobs:
     displayName: 'Print'
   - script: brew install libomp
     displayName: 'Install omp'
-  - script: brew install llvm
-    displayName: 'Install llvm'
+  # macOS already provides this software and installing another version in parallel can cause all kinds of trouble.
+  # - script: brew install llvm
+  #   displayName: 'Install llvm'
   - script: |
       pip install -r requirements.txt
     displayName: 'Install Requirements'

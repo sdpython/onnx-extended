@@ -28,9 +28,9 @@ public:
             const std::string &mode, const std::vector<int64_t> &ngram_counts,
             const std::vector<int64_t> &ngram_indexes,
             const std::vector<int64_t> &pool_int64s,
-            const std::vector<float> &weights) {
+            const std::vector<float> &weights, bool sparse) {
     tfidf_.Init(max_gram_length, max_skip_count, min_gram_length, mode,
-                ngram_counts, ngram_indexes, pool_int64s, weights);
+                ngram_counts, ngram_indexes, pool_int64s, weights, sparse);
   }
   ~PyRuntimeTfIdfVectorizer() {}
 

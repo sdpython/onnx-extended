@@ -6,6 +6,16 @@
 
 namespace onnx_sparse {
 
+template <typename T> struct CTypeToElementType {
+  uint32_t onnx_type() const;
+};
+template <> struct CTypeToElementType<float> {
+  inline uint32_t onnx_type() const { return 1; }
+};
+template <> struct CTypeToElementType<double> {
+  inline uint32_t onnx_type() const { return 11; }
+};
+
 /**
  * This structure defines a 1D to 5D sparse tensor.
  * It assumes the sparse tensor has less than 4Gb non null elements.

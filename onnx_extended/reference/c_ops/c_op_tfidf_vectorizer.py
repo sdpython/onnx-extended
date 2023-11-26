@@ -39,6 +39,7 @@ class TfIdfVectorizer(OpRun):
             kwargs["ngram_indexes"],
             kwargs["pool_int64s"] or pool_int64s,
             kwargs["weights"] or [],
+            False,
         )
 
     def _run(

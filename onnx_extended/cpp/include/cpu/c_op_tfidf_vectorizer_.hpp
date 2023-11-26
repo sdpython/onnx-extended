@@ -2,16 +2,21 @@
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/tfidfvectorizer.cc.
 #pragma once
 
+#include "common/c_op_common_parallel.hpp"
 #include "common/c_op_helpers.h"
+#include "common/sparse_tensor.h"
+
 #include "onnx_extended_helpers.h"
+#include <cstring>
 #include <functional>
 #include <span>
 #include <sstream>
 #include <stdint.h>
 #include <string>
-#include <cstring>
 #include <unordered_map>
 #include <vector>
+
+#include <omp.h>
 
 using namespace onnx_extended_helpers;
 
@@ -127,7 +132,7 @@ public:
             const std::string &mode, const std::vector<int64_t> &ngram_counts,
             const std::vector<int64_t> &ngram_indexes,
             const std::vector<int64_t> &pool_int64s,
-            const std::vector<T> &weights) {
+            const std::vector<T> &weights, bool sparse) {
     if (mode == "TF")
       weighting_criteria_ = kTF;
     else if (mode == "IDF")
@@ -140,6 +145,7 @@ public:
     max_skip_count_ = max_skip_count;
     ngram_counts_ = ngram_counts;
     ngram_indexes_ = ngram_indexes;
+    sparse_ = sparse;
 
     auto greatest_hit =
         std::max_element(ngram_indexes_.cbegin(), ngram_indexes_.cend());
@@ -175,15 +181,13 @@ public:
   ~RuntimeTfIdfVectorizer() {}
 
   void Compute(
-      const std::vector<int64_t> &input_shape,
-      const std::span<const int64_t> &X,
+      const std::vector<int64_t> &input_dims, const std::span<const int64_t> &X,
       std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
-    const size_t total_items = flattened_dimension(input_shape);
+    const size_t total_items = flattened_dimension(input_dims);
 
-    int32_t num_rows = 0;
+    size_t num_rows = 0;
     size_t B = 0;
     size_t C = 0;
-    auto &input_dims = input_shape;
     if (input_dims.empty()) {
       num_rows = 1;
       C = 1;
@@ -195,7 +199,7 @@ public:
     } else if (input_dims.size() == 2) {
       B = input_dims[0];
       C = input_dims[1];
-      num_rows = static_cast<int32_t>(B);
+      num_rows = B;
       if (B < 1)
         throw std::invalid_argument(
             "Input shape must have either [C] or [B,C] dimensions with B > 0.");
@@ -216,35 +220,208 @@ public:
       output_dims.push_back(B);
       output_dims.push_back(output_size_);
     }
-    std::span<T> out = alloc(output_dims);
 
-    if (total_items == 0 || int64_map_.empty()) {
-      // TfidfVectorizer may receive an empty input when it follows a Tokenizer
-      // (for example for a string containing only stopwords).
-      // TfidfVectorizer returns a zero tensor of shape
-      // {b_dim, output_size} when b_dim is the number of received observations
-      // and output_size the is the maximum value in ngram_indexes attribute
-      // plus 1.
-      std::memset(out.data(), 0, out.size() * sizeof(T));
-      return;
-    }
-
-    std::function<void(ptrdiff_t)> fn = [this, X, C, &out](ptrdiff_t row_num) {
-      std::vector<uint32_t> frequences;
-      frequences.resize(output_size_, 0);
-      ComputeImpl(X.data() + row_num * C, C, frequences.data());
-      OutputResult(frequences, out.data() + row_num * this->output_size_);
-    };
-
-    // can be parallelized.
-    for (int64_t i = 0; i < num_rows; ++i) {
-      fn(i);
+    if (sparse_) {
+      if (total_items == 0 || int64_map_.empty()) {
+        // TfidfVectorizer may receive an empty input when it follows a
+        // Tokenizer (for example for a string containing only stopwords).
+        // TfidfVectorizer returns a zero tensor of shape
+        // {b_dim, output_size} when b_dim is the number of received
+        // observations and output_size the is the maximum value in
+        // ngram_indexes attribute plus 1.
+        std::vector<T> output;
+        onnx_sparse::sparse_struct::copy(output_dims, std::vector<uint32_t>(),
+                                         std::vector<T>(), output);
+        std::span<T> out =
+            alloc(std::vector<int64_t>{static_cast<int64_t>(output.size())});
+        std::memcpy(out.data(), output.data(), output.size() * sizeof(T));
+        return;
+      }
+      ComputeSparse(X, output_dims, num_rows, C, alloc);
+    } else {
+      if (total_items == 0 || int64_map_.empty()) {
+        // TfidfVectorizer may receive an empty input when it follows a
+        // Tokenizer (for example for a string containing only stopwords).
+        // TfidfVectorizer returns a zero tensor of shape
+        // {b_dim, output_size} when b_dim is the number of received
+        // observations and output_size the is the maximum value in
+        // ngram_indexes attribute plus 1.
+        std::span<T> out = alloc(output_dims);
+        std::memset(out.data(), 0, out.size() * sizeof(T));
+        return;
+      }
+      ComputeDense(X, output_dims, num_rows, C, alloc);
     }
   }
 
 private:
-  void ComputeImpl(const int64_t *X_data, size_t row_size,
-                   uint32_t *frequencies) const {
+  void ComputeDense(
+      const std::span<const int64_t> &X,
+      const std::vector<int64_t> &output_dims, const size_t num_rows,
+      const size_t C,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+
+    std::span<T> out = alloc(output_dims);
+
+    std::function<void(size_t, float *)> fn_weight;
+    // can be parallelized.
+    size_t n_threads = omp_get_max_threads();
+    size_t n_per_threads =
+        std::min(static_cast<size_t>(128),
+                 std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
+
+    auto &w = weights_;
+
+    switch (weighting_criteria_) {
+    case kTF:
+      fn_weight = [](size_t i, float *out) { out[i] += 1.0f; };
+      break;
+    case kIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](size_t i, float *out) { out[i] = w[i]; };
+      } else {
+        fn_weight = [](size_t i, float *out) { out[i] = 1.0f; };
+      }
+      break;
+    case kTFIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](size_t i, float *out) { out[i] += w[i]; };
+      } else {
+        fn_weight = [](size_t i, float *out) { out[i] += 1.0f; };
+      }
+      break;
+    case kNone: // fall-through
+    default:
+      EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
+    }
+
+    TryBatchParallelFor2i(
+        n_threads, n_per_threads, num_rows,
+        [this, X, C, &out, &fn_weight](int, ptrdiff_t row_start,
+                                       ptrdiff_t row_end) {
+          auto begin = out.data() + row_start * this->output_size_;
+          auto end = out.data() + row_end * this->output_size_;
+          std::fill(begin, end, 0);
+          for (auto row_num = row_start; row_num < row_end;
+               ++row_num, begin += this->output_size_) {
+            ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);
+          }
+        });
+  }
+
+  void ComputeSparse(
+      const std::span<const int64_t> &X,
+      const std::vector<int64_t> &output_dims, const size_t num_rows,
+      const size_t C,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+
+    std::function<void(uint32_t, std::unordered_map<uint32_t, T> & out)>
+        fn_weight;
+    // can be parallelized.
+    size_t n_threads = omp_get_max_threads();
+    size_t n_per_threads =
+        std::min(static_cast<size_t>(128),
+                 std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
+
+    auto &w = weights_;
+
+    switch (weighting_criteria_) {
+    case kTF:
+      fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+        auto it = out.find(i);
+        if (it == out.end())
+          out[i] = 1;
+        else
+          it->second += 1.0f;
+      };
+      break;
+    case kIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          out[i] = w[i];
+        };
+      } else {
+        fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          out[i] = 1.0f;
+        };
+      }
+      break;
+    case kTFIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          auto it = out.find(i);
+          if (it == out.end())
+            out[i] = w[i];
+          else
+            it->second += w[i];
+        };
+      } else {
+        fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          auto it = out.find(i);
+          if (it == out.end())
+            out[i] = 1.0f;
+          else
+            it->second += 1.0f;
+        };
+      }
+      break;
+    case kNone: // fall-through
+    default:
+      EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
+    }
+
+    std::vector<std::vector<uint32_t>> indices(num_rows);
+    std::vector<std::vector<T>> values(num_rows);
+
+    TryBatchParallelFor2i(
+        n_threads, n_per_threads, num_rows,
+        [this, X, C, &indices, &values, &fn_weight](int, ptrdiff_t row_start,
+                                                    ptrdiff_t row_end) {
+          for (auto row_num = row_start; row_num < row_end; ++row_num) {
+            std::unordered_map<uint32_t, T> out;
+            ComputeImpl(X.data() + row_num * C, C, out, fn_weight);
+            indices[row_num].resize(out.size());
+            values[row_num].resize(out.size());
+            auto &this_indices = indices[row_num];
+            auto &this_values = values[row_num];
+            size_t i = 0;
+            for (auto it = out.begin(); it != out.end(); ++it, ++i) {
+              this_indices[i] =
+                  it->first + static_cast<uint32_t>(row_num) *
+                                  static_cast<uint32_t>(this->output_size_);
+              this_values[i] = it->second;
+            }
+          }
+        });
+
+    int64_t total = 0;
+    for (auto &it : indices)
+      total += static_cast<int64_t>(it.size());
+
+    onnx_sparse::sparse_struct sp;
+    sp.set(output_dims, total,
+           onnx_sparse::CTypeToElementType<T>().onnx_type());
+
+    std::vector<int64_t> sparse_dims{static_cast<int64_t>(sp.size_float())};
+    std::span<T> out = alloc(sparse_dims);
+    std::memcpy(static_cast<void *>(out.data()), static_cast<void *>(&sp),
+                sizeof(sp) - 4);
+    onnx_sparse::sparse_struct *spmoved =
+        (onnx_sparse::sparse_struct *)(out.data());
+    uint32_t *p_indices = spmoved->indices();
+    T *p_values = spmoved->values();
+    for (size_t i = 0; i < indices.size(); ++i) {
+      std::memcpy(p_indices, indices[i].data(),
+                  indices[i].size() * sizeof(uint32_t));
+      std::memcpy(p_values, values[i].data(), values[i].size() * sizeof(T));
+      p_indices += indices[i].size();
+      p_values += values[i].size();
+    }
+  }
+
+  template <typename F, typename C>
+  void ComputeImpl(const int64_t *X_data, size_t row_size, C &out,
+                   F &fn_weight) const {
 
     const auto elem_size = sizeof(int64_t);
 
@@ -281,7 +458,7 @@ private:
           if (hit == int_map->end())
             break;
           if (ngram_size >= start_ngram_size && hit->second->id_ != 0) {
-            IncrementCount(hit->second->id_, frequencies);
+            fn_weight(OutputIdToIncrement(hit->second->id_), out);
           }
           int_map = &hit->second->leafs_;
         }
@@ -295,45 +472,8 @@ private:
     }
   }
 
-  void OutputResult(const std::vector<uint32_t> &frequences, T* output_data) const {
-
-    const auto row_size = output_size_;
-
-    const auto &w = weights_;
-    switch (weighting_criteria_) {
-    case kTF: {
-      for (auto f : frequences) {
-        *output_data++ = static_cast<T>(f);
-      }
-    } break;
-    case kIDF: {
-      if (!w.empty()) {
-        const auto *freqs = frequences.data();
-        for (size_t i = 0; i < row_size; ++i) {
-          *output_data++ = (*freqs++ > 0) ? w[i] : 0;
-        }
-      } else {
-        for (auto f : frequences) {
-          *output_data++ = (f > 0) ? 1.0f : 0;
-        }
-      }
-    } break;
-    case kTFIDF: {
-      if (!w.empty()) {
-        const auto *freqs = frequences.data();
-        for (size_t i = 0; i < row_size; ++i) {
-          *output_data++ = *freqs++ * w[i];
-        }
-      } else {
-        for (auto f : frequences) {
-          *output_data++ = static_cast<T>(f);
-        }
-      }
-    } break;
-    case kNone: // fall-through
-    default:
-      throw std::invalid_argument("Unexpected weighting_criteria.");
-    }
+  inline int64_t OutputIdToIncrement(size_t ngram_id) const {
+    return ngram_indexes_[--ngram_id];
   }
 
 private:
@@ -341,18 +481,13 @@ private:
   int64_t max_gram_length_;
   int64_t min_gram_length_;
   int64_t max_skip_count_;
+  bool sparse_;
   std::vector<int64_t> ngram_counts_;
   std::vector<int64_t> ngram_indexes_;
   std::vector<T> weights_;
   std::vector<int64_t> pool_int64s_;
   IntMap int64_map_;
   size_t output_size_ = 0;
-
-  inline void IncrementCount(size_t ngram_id, uint32_t *frequencies) const {
-    --ngram_id;
-    auto output_idx = ngram_indexes_[ngram_id];
-    ++frequencies[output_idx];
-  }
 };
 
 } // namespace onnx_c_ops
