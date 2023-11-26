@@ -4,6 +4,8 @@
 
 #include "common/c_op_common_parallel.hpp"
 #include "common/c_op_helpers.h"
+#include "common/sparse_tensor.h"
+
 #include "onnx_extended_helpers.h"
 #include <cstring>
 #include <functional>
@@ -220,8 +222,22 @@ public:
     }
 
     if (sparse_) {
-      // std::vector<std::map<size_t, float>> sparse;
-      EXT_THROW("Not implemented yet.");
+      if (total_items == 0 || int64_map_.empty()) {
+        // TfidfVectorizer may receive an empty input when it follows a
+        // Tokenizer (for example for a string containing only stopwords).
+        // TfidfVectorizer returns a zero tensor of shape
+        // {b_dim, output_size} when b_dim is the number of received
+        // observations and output_size the is the maximum value in
+        // ngram_indexes attribute plus 1.
+        std::vector<T> output;
+        onnx_sparse::sparse_struct::copy(output_dims, std::vector<uint32_t>(),
+                                         std::vector<T>(), output);
+        std::span<T> out =
+            alloc(std::vector<int64_t>{static_cast<int64_t>(output.size())});
+        std::memcpy(out.data(), output.data(), output.size() * sizeof(T));
+        return;
+      }
+      ComputeSparse(X, output_dims, num_rows, C, alloc);
     } else {
       if (total_items == 0 || int64_map_.empty()) {
         // TfidfVectorizer may receive an empty input when it follows a
@@ -234,7 +250,6 @@ public:
         std::memset(out.data(), 0, out.size() * sizeof(T));
         return;
       }
-
       ComputeDense(X, output_dims, num_rows, C, alloc);
     }
   }
@@ -292,6 +307,111 @@ private:
             ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);
           }
         });
+  }
+
+  void ComputeSparse(
+      const std::span<const int64_t> &X,
+      const std::vector<int64_t> &output_dims, const size_t num_rows,
+      const size_t C,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+
+    std::function<void(uint32_t, std::unordered_map<uint32_t, T> & out)>
+        fn_weight;
+    // can be parallelized.
+    size_t n_threads = omp_get_max_threads();
+    size_t n_per_threads =
+        std::min(static_cast<size_t>(128),
+                 std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
+
+    auto &w = weights_;
+
+    switch (weighting_criteria_) {
+    case kTF:
+      fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+        auto it = out.find(i);
+        if (it == out.end())
+          out[i] = 1;
+        else
+          it->second += 1.0f;
+      };
+      break;
+    case kIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          out[i] = w[i];
+        };
+      } else {
+        fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          out[i] = 1.0f;
+        };
+      }
+      break;
+    case kTFIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          auto it = out.find(i);
+          if (it == out.end())
+            out[i] = w[i];
+          else
+            it->second += w[i];
+        };
+      } else {
+        fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+          auto it = out.find(i);
+          if (it == out.end())
+            out[i] = 1.0f;
+          else
+            it->second += 1.0f;
+        };
+      }
+      break;
+    case kNone: // fall-through
+    default:
+      EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
+    }
+
+    std::vector<std::vector<uint32_t>> indices(num_rows);
+    std::vector<std::vector<T>> values(num_rows);
+
+    TryBatchParallelFor2i(
+        n_threads, n_per_threads, num_rows,
+        [this, X, C, &indices, &values, &fn_weight](int, ptrdiff_t row_start,
+                                                    ptrdiff_t row_end) {
+          for (auto row_num = row_start; row_num < row_end; ++row_num) {
+            std::unordered_map<uint32_t, T> out;
+            ComputeImpl(X.data() + row_num * C, C, out, fn_weight);
+            indices[row_num].resize(out.size());
+            values[row_num].resize(out.size());
+            size_t i = 0;
+            for (auto it = out.begin(); it != out.end(); ++it, ++i) {
+              indices[i] = it->first + static_cast<uint32_t>(row_num * this->output_size_);
+              values[i] = it->second;
+            }
+          }
+        });
+
+    int64_t total = 0;
+    for (auto &it : indices)
+      total += static_cast<int64_t>(it.size());
+
+    onnx_sparse::sparse_struct sp;
+    sp.set(std::vector<int64_t>{num_rows, this->output_size_}, total,
+           onnx_sparse::CTypeToElementType<T>().onnx_type());
+
+    std::span<T> out = alloc(std::vector<int64_t>{sp.size_float()});
+    std::memcpy(static_cast<void *>(out.data()), static_cast<void *>(&sp),
+                sizeof(sp) - 4);
+    onnx_sparse::sparse_struct *spmoved =
+        static_cast<onnx_sparse::sparse_struct *>(out.data());
+    int64_t *p_indices = spmoved->indices();
+    T *p_values = spmoved->values();
+    for (size_t i = 0; i < indices.size(); ++i) {
+      std::memcpy(p_indices, indices[i].data(),
+                  indices[i].size() * sizeof(int64_t));
+      std::memcpy(p_values, values[i].data(), values[i].size() * sizeof(T));
+      p_indices += indices[i].size();
+      p_values += values[i].size();
+    }
   }
 
   template <typename F, typename C>
