@@ -382,10 +382,14 @@ private:
             ComputeImpl(X.data() + row_num * C, C, out, fn_weight);
             indices[row_num].resize(out.size());
             values[row_num].resize(out.size());
+            auto &this_indices = indices[row_num];
+            auto &this_values = values[row_num];
             size_t i = 0;
             for (auto it = out.begin(); it != out.end(); ++it, ++i) {
-              indices[i] = it->first + static_cast<uint32_t>(row_num * this->output_size_);
-              values[i] = it->second;
+              this_indices[i] =
+                  it->first + static_cast<uint32_t>(row_num) *
+                                  static_cast<uint32_t>(this->output_size_);
+              this_values[i] = it->second;
             }
           }
         });
@@ -395,19 +399,19 @@ private:
       total += static_cast<int64_t>(it.size());
 
     onnx_sparse::sparse_struct sp;
-    sp.set(std::vector<int64_t>{num_rows, this->output_size_}, total,
+    sp.set(output_dims, total,
            onnx_sparse::CTypeToElementType<T>().onnx_type());
 
-    std::span<T> out = alloc(std::vector<int64_t>{sp.size_float()});
+    std::vector<int64_t> sparse_dims{static_cast<int64_t>(sp.size_float())};
+    std::span<T> out = alloc(sparse_dims);
     std::memcpy(static_cast<void *>(out.data()), static_cast<void *>(&sp),
                 sizeof(sp) - 4);
-    onnx_sparse::sparse_struct *spmoved =
-        static_cast<onnx_sparse::sparse_struct *>(out.data());
-    int64_t *p_indices = spmoved->indices();
+    onnx_sparse::sparse_struct *spmoved = (onnx_sparse::sparse_struct *)(out.data());
+    uint32_t *p_indices = spmoved->indices();
     T *p_values = spmoved->values();
     for (size_t i = 0; i < indices.size(); ++i) {
       std::memcpy(p_indices, indices[i].data(),
-                  indices[i].size() * sizeof(int64_t));
+                  indices[i].size() * sizeof(uint32_t));
       std::memcpy(p_values, values[i].data(), values[i].size() * sizeof(T));
       p_indices += indices[i].size();
       p_values += values[i].size();
