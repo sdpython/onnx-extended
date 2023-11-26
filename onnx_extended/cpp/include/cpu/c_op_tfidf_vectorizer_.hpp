@@ -179,15 +179,13 @@ public:
   ~RuntimeTfIdfVectorizer() {}
 
   void Compute(
-      const std::vector<int64_t> &input_shape,
-      const std::span<const int64_t> &X,
+      const std::vector<int64_t> &input_dims, const std::span<const int64_t> &X,
       std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
-    const size_t total_items = flattened_dimension(input_shape);
+    const size_t total_items = flattened_dimension(input_dims);
 
-    int32_t num_rows = 0;
+    size_t num_rows = 0;
     size_t B = 0;
     size_t C = 0;
-    auto &input_dims = input_shape;
     if (input_dims.empty()) {
       num_rows = 1;
       C = 1;
@@ -199,7 +197,7 @@ public:
     } else if (input_dims.size() == 2) {
       B = input_dims[0];
       C = input_dims[1];
-      num_rows = static_cast<int32_t>(B);
+      num_rows = B;
       if (B < 1)
         throw std::invalid_argument(
             "Input shape must have either [C] or [B,C] dimensions with B > 0.");
@@ -220,70 +218,82 @@ public:
       output_dims.push_back(B);
       output_dims.push_back(output_size_);
     }
-    std::span<T> out = alloc(output_dims);
-
-    if (total_items == 0 || int64_map_.empty()) {
-      // TfidfVectorizer may receive an empty input when it follows a Tokenizer
-      // (for example for a string containing only stopwords).
-      // TfidfVectorizer returns a zero tensor of shape
-      // {b_dim, output_size} when b_dim is the number of received observations
-      // and output_size the is the maximum value in ngram_indexes attribute
-      // plus 1.
-      std::memset(out.data(), 0, out.size() * sizeof(T));
-      return;
-    }
-
-    std::function<void(size_t, float *)> fn_weight;
-    // can be parallelized.
-    int n_threads = omp_get_max_threads();
-    int n_per_threads = std::min(128, std::max(num_rows / n_threads / 2, 1));
 
     if (sparse_) {
       // std::vector<std::map<size_t, float>> sparse;
       EXT_THROW("Not implemented yet.");
     } else {
-
-      auto &w = weights_;
-
-      switch (weighting_criteria_) {
-      case kTF:
-        fn_weight = [&w](size_t i, float *out) { out[i] += 1.0f; };
-        break;
-      case kIDF:
-        if (!w.empty()) {
-          fn_weight = [&w](size_t i, float *out) { out[i] = w[i]; };
-        } else {
-          fn_weight = [&w](size_t i, float *out) { out[i] = 1.0f; };
-        }
-        break;
-      case kTFIDF:
-        if (!w.empty()) {
-          fn_weight = [&w](size_t i, float *out) { out[i] += w[i]; };
-        } else {
-          fn_weight = [&w](size_t i, float *out) { out[i] += 1.0f; };
-        }
-        break;
-      case kNone: // fall-through
-      default:
-        EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
+      if (total_items == 0 || int64_map_.empty()) {
+        // TfidfVectorizer may receive an empty input when it follows a
+        // Tokenizer (for example for a string containing only stopwords).
+        // TfidfVectorizer returns a zero tensor of shape
+        // {b_dim, output_size} when b_dim is the number of received
+        // observations and output_size the is the maximum value in
+        // ngram_indexes attribute plus 1.
+        std::span<T> out = alloc(output_dims);
+        std::memset(out.data(), 0, out.size() * sizeof(T));
+        return;
       }
 
-      TryBatchParallelFor2i(
-          n_threads, n_per_threads, num_rows,
-          [this, X, C, &out, &fn_weight](int, ptrdiff_t row_start,
-                                         ptrdiff_t row_end) {
-            auto begin = out.data() + row_start * this->output_size_;
-            auto end = out.data() + row_end * this->output_size_;
-            std::fill(begin, end, 0);
-            for (auto row_num = row_start; row_num < row_end;
-                 ++row_num, begin += this->output_size_) {
-              ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);
-            }
-          });
+      ComputeDense(X, output_dims, num_rows, C, alloc);
     }
   }
 
 private:
+  void ComputeDense(
+      const std::span<const int64_t> &X,
+      const std::vector<int64_t> &output_dims, const size_t num_rows,
+      const size_t C,
+      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+
+    std::span<T> out = alloc(output_dims);
+
+    std::function<void(size_t, float *)> fn_weight;
+    // can be parallelized.
+    size_t n_threads = omp_get_max_threads();
+    size_t n_per_threads =
+        std::min(static_cast<size_t>(128),
+                 std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
+
+    auto &w = weights_;
+
+    switch (weighting_criteria_) {
+    case kTF:
+      fn_weight = [](size_t i, float *out) { out[i] += 1.0f; };
+      break;
+    case kIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](size_t i, float *out) { out[i] = w[i]; };
+      } else {
+        fn_weight = [](size_t i, float *out) { out[i] = 1.0f; };
+      }
+      break;
+    case kTFIDF:
+      if (!w.empty()) {
+        fn_weight = [&w](size_t i, float *out) { out[i] += w[i]; };
+      } else {
+        fn_weight = [](size_t i, float *out) { out[i] += 1.0f; };
+      }
+      break;
+    case kNone: // fall-through
+    default:
+      EXT_THROW("Unexpected weight type configuration for TfIdfVectorizer.");
+    }
+
+    TryBatchParallelFor2i(
+        n_threads, n_per_threads, num_rows,
+        [this, X, C, &out, &fn_weight](int, ptrdiff_t row_start,
+                                       ptrdiff_t row_end) {
+          auto begin = out.data() + row_start * this->output_size_;
+          auto end = out.data() + row_end * this->output_size_;
+          std::fill(begin, end, 0);
+          for (auto row_num = row_start; row_num < row_end;
+               ++row_num, begin += this->output_size_) {
+            ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);
+          }
+        });
+  }
+
   template <typename F, typename C>
   void ComputeImpl(const int64_t *X_data, size_t row_size, C out,
                    F &fn_weight) const {
