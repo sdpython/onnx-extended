@@ -36,7 +36,10 @@ def documentation() -> List[str]:
 
     See `onnx TfIdfVectorizer
     <https://onnx.ai/onnx/operators/onnx_aionnxml_TfIdfVectorizer.html>`_.
-    The implementation does not support string labels.
+    The implementation does not support string labels. It is adding one attribute.
+    
+    * sparse: INT64, default is 0, the output and the computation are sparse,
+      see 
 
     **Inputs**
     

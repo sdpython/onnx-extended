@@ -406,7 +406,8 @@ private:
     std::span<T> out = alloc(sparse_dims);
     std::memcpy(static_cast<void *>(out.data()), static_cast<void *>(&sp),
                 sizeof(sp) - 4);
-    onnx_sparse::sparse_struct *spmoved = (onnx_sparse::sparse_struct *)(out.data());
+    onnx_sparse::sparse_struct *spmoved =
+        (onnx_sparse::sparse_struct *)(out.data());
     uint32_t *p_indices = spmoved->indices();
     T *p_values = spmoved->values();
     for (size_t i = 0; i < indices.size(); ++i) {
@@ -419,7 +420,7 @@ private:
   }
 
   template <typename F, typename C>
-  void ComputeImpl(const int64_t *X_data, size_t row_size, C out,
+  void ComputeImpl(const int64_t *X_data, size_t row_size, C &out,
                    F &fn_weight) const {
 
     const auto elem_size = sizeof(int64_t);
