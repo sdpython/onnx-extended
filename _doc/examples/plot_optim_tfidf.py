@@ -6,13 +6,16 @@ Measuring performance of TfIdfVectorizer
 
 The banchmark measures the performance of a TfIdfVectizer along two
 parameters, the vocabulary size, the batch size whether. It measures
-the benefit of using sparse implementation.
+the benefit of using sparse implementation. Example
+:ref:`l-plot-optim-tfidf-memory` measures the memory peak.
 
 A simple model
 ++++++++++++++
 
 We start with a model including only one node TfIdfVectorizer.
 """
+import gc
+import time
 import itertools
 from typing import Tuple
 import numpy as np
@@ -23,6 +26,7 @@ from onnx.helper import make_attribute
 from tqdm import tqdm
 from onnxruntime import InferenceSession, SessionOptions
 from onnx_extended.ext_test_case import measure_time, unit_test_going
+from onnx_extended.memory_peak import start_spying_on
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 
@@ -121,6 +125,7 @@ data = []
 for voc_size, batch_size in tqdm(confs):
     onx = make_onnx(voc_size)
     ref, cus, sparse = make_sessions(onx)
+    gc.collect()
 
     feeds = dict(
         X=(np.arange(batch_size * 10) % voc_size)
@@ -128,47 +133,79 @@ for voc_size, batch_size in tqdm(confs):
         .astype(np.int64)
     )
 
-    # reference
-    ref.run(None, feeds)
-    obs = measure_time(lambda: ref.run(None, feeds), max_time=1)
-    obs["name"] = "ref"
-    obs.update(dict(voc_size=voc_size, batch_size=batch_size))
-    data.append(obs)
-
-    # custom
-    cus.run(None, feeds)
-    obs = measure_time(lambda: cus.run(None, feeds), max_time=1)
-    obs["name"] = "custom"
-    obs.update(dict(voc_size=voc_size, batch_size=batch_size))
-    data.append(obs)
-
     # sparse
+    p = start_spying_on(delay=0.0001)
     sparse.run(None, feeds)
     obs = measure_time(lambda: sparse.run(None, feeds), max_time=1)
+    mem = p.stop()
+    obs["peak"] = mem["max_peak"] - mem["begin"]
     obs["name"] = "sparse"
     obs.update(dict(voc_size=voc_size, batch_size=batch_size))
     data.append(obs)
+    time.sleep(0.1)
+
+    # reference
+    p = start_spying_on(delay=0.0001)
+    ref.run(None, feeds)
+    obs = measure_time(lambda: ref.run(None, feeds), max_time=1)
+    mem = p.stop()
+    obs["peak"] = mem["max_peak"] - mem["begin"]
+    obs["name"] = "ref"
+    obs.update(dict(voc_size=voc_size, batch_size=batch_size))
+    data.append(obs)
+    time.sleep(0.1)
+
+    # custom
+    p = start_spying_on(delay=0.0001)
+    cus.run(None, feeds)
+    obs = measure_time(lambda: cus.run(None, feeds), max_time=1)
+    mem = p.stop()
+    obs["peak"] = mem["max_peak"] - mem["begin"]
+    obs["name"] = "custom"
+    obs.update(dict(voc_size=voc_size, batch_size=batch_size))
+    data.append(obs)
+    time.sleep(0.1)
+
+    del sparse
+    del cus
+    del ref
+    del feeds
 
 df = pandas.DataFrame(data)
+df["time"] = df["average"]
 df.to_csv("plot_optim_tfidf.csv", index=False)
 print(df.head())
 
 
 #####################################
-# Plots
-# +++++
+# Processing time
+# +++++++++++++++
 
 piv = pandas.pivot_table(
     df, index=["voc_size", "name"], columns="batch_size", values="average"
 )
 print(piv)
 
+#####################################
+# Memory peak
+# +++++++++++
+#
+# It is always difficult to estimate. A second process is started to measure
+# the physical memory peak during the execution every ms. The figures
+# is the difference between this peak and the memory when the measurement
+# began.
+
+piv = pandas.pivot_table(
+    df, index=["voc_size", "name"], columns="batch_size", values="peak"
+)
+print(piv / 2**20)
 
 ############################
-# Graphs.
+# Graphs
+# ++++++
 
 
-def histograms(df):
+def histograms(df, metric):
     batch_sizes = list(sorted(set(df.batch_size)))
     voc_sizes = list(sorted(set(df.voc_size)))
     B = len(batch_sizes)
@@ -181,11 +218,10 @@ def histograms(df):
         for v in range(V):
             aa = ax[v, b]
             sub = df[(df.batch_size == batch_sizes[b]) & (df.voc_size == voc_sizes[v])][
-                ["name", "average"]
+                ["name", metric]
             ].set_index("name")
             if 0 in sub.shape:
                 continue
-            sub.columns = ["time"]
             sub["time"].plot.bar(
                 ax=aa, logy=True, rot=0, color=["blue", "orange", "green"]
             )
@@ -199,5 +235,5 @@ def histograms(df):
     return fig
 
 
-fig = histograms(df)
+fig = histograms(df, "time")
 fig.savefig("plot_optim_tfidf.png")

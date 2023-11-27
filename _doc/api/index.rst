@@ -8,6 +8,7 @@ API
 
     check
     ext_test_case
+    memory_peak
     helper
     ortcy
     ortops
