@@ -159,7 +159,7 @@ class TestCSVM(ExtTestCase):
         X, y = iris.data, iris.target
         X = _modify_dimension(X, 20)
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = SVC(probability=True)
+        clr = SVC(probability=True, random_state=15)
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(
