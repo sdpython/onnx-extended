@@ -63,3 +63,23 @@ to register the extension in the setup.
 
 Function `find_cuda()` executes :epkg:`nvidia-smi` to check
 the installation of CUDA.
+
+Possible errors
++++++++++++++++
+
+CMAKE_CUDA_COMPILER_VERSION=11.5.119 < 12.1, nvcc is not setup properly
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On Linux, the following error may happen:
+
+::
+
+    CMake Error at externals/FindCudaExtension.cmake:60 (message):
+    CMAKE_CUDA_COMPILER_VERSION=11.5.119 < 12.1, nvcc is not setup properly.
+    Try 'whereis nvcc' and chack the version.
+    Call Stack (most recent call first):
+    load_externals.cmake:9 (find_package)
+    CMakeLists.txt:19 (include)
+
+It can be fixed by adding `--cuda-nvcc=<path ot nvcc>`. An example:
+`--cuda-nvcc=/usr/local/cuda-12.1/bin/nvcc`.

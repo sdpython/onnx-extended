@@ -253,6 +253,11 @@ class cmake_build_class_extension(Command):
             "STATIC",
         ),
         (
+            "cuda-nvcc=",
+            None,
+            "Path to nvcc, sets variable CMAKE_CUDA_COMPILER",
+        ),
+        (
             "manylinux=",
             None,
             "Enforces the compilation with manylinux, default is set to 0.",
@@ -284,6 +289,7 @@ class cmake_build_class_extension(Command):
         self.cuda_link = "STATIC"
         self.noverbose = None
         self.cfg = None
+        self.cuda_nvcc = None
 
         self._parent.initialize_options(self)
 
@@ -361,6 +367,12 @@ class cmake_build_class_extension(Command):
                 continue
             print(f"-- setup: option {name}={v}")
 
+        if self.cuda_nvcc in (None, ""):
+            self.cuda_nvcc = None
+        else:
+            if not os.path.exists(self.cuda_nvcc):
+                raise FileNotFoundError(f"Unable to find nvcc: {self.cuda_nvcc!r}.")
+
     def get_cmake_args(self, cfg: str) -> List[str]:
         """
         Returns the argument for cmake.
@@ -431,6 +443,8 @@ class cmake_build_class_extension(Command):
         if self.use_cuda:
             cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
             cmake_args.append(f"-DCUDA_LINK={self.cuda_link}")
+            if self.cuda_nvcc:
+                cmake_args.append(f"-DCMAKE_CUDA_COMPILER={self.cuda_nvcc}")
         cuda_version = self.cuda_version
         if cuda_version not in (None, ""):
             cmake_args.append(f"-DCUDA_VERSION={cuda_version}")

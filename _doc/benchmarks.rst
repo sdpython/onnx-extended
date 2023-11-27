@@ -9,6 +9,15 @@ Shows the list of benchmarks implemented the :ref:`l-example-gallery`.
 CPU
 ===
 
+plot_bench_tfidf
+++++++++++++++++
+
+See :ref:`l-plot-optim-tfidf`.
+
+This benchmark measures the computation time when the kernel outputs
+sparse tensors.
+
+
 plot_optim_tree_ensemble
 ++++++++++++++++++++++++
 

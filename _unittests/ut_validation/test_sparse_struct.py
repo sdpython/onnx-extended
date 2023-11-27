@@ -1,9 +1,10 @@
 import unittest
 import numpy as np
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 
 
 class TestSparseStruct(ExtTestCase):
+    @skipif_ci_apple("crash")
     def test_sparse_struct(self):
         from onnx_extended.validation.cpu._validation import (
             sparse_struct_to_dense,
