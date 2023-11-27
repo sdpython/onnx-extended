@@ -150,7 +150,7 @@ for voc_size, batch_size in tqdm(confs):
     data.append(obs)
 
 df = pandas.DataFrame(data)
-df.to_csv("plot_optim_tdidf.csv", index=False)
+df.to_csv("plot_optim_tfidf.csv", index=False)
 print(df.head())
 
 
@@ -163,6 +163,41 @@ piv = pandas.pivot_table(
 )
 print(piv)
 
-fig, ax = plt.subplots(1, 1)
-piv.plot(ax=ax, logy=True, logx=True)
+
+############################
+# Graphs.
+
+
+def histograms(df):
+    batch_sizes = list(sorted(set(df.batch_size)))
+    voc_sizes = list(sorted(set(df.voc_size)))
+    B = len(batch_sizes)
+    V = len(voc_sizes)
+
+    fig, ax = plt.subplots(V, B, figsize=(B * 2, V * 2), sharex=True, sharey=True)
+    fig.suptitle("Compares Implementations of TfIdfVectorizer")
+
+    for b in range(B):
+        for v in range(V):
+            aa = ax[v, b]
+            sub = df[(df.batch_size == batch_sizes[b]) & (df.voc_size == voc_sizes[v])][
+                ["name", "average"]
+            ].set_index("name")
+            if 0 in sub.shape:
+                continue
+            sub.columns = ["time"]
+            sub["time"].plot.bar(
+                ax=aa, logy=True, rot=0, color=["blue", "orange", "green"]
+            )
+            if b == 0:
+                aa.set_ylabel(f"vocabulary={voc_sizes[v]}")
+            if v == V - 1:
+                aa.set_xlabel(f"batch_size={batch_sizes[b]}")
+            aa.grid(True)
+
+    fig.tight_layout()
+    return fig
+
+
+fig = histograms(df)
 fig.savefig("plot_optim_tfidf.png")
