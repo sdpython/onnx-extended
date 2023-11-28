@@ -1,9 +1,8 @@
 #include "custom_tree_assembly.h"
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__MACOSX__)
+#define USE_DLFCN
 #include <dlfcn.h>
-// #include <cstdint>
-// #include <iostream>
-// #include <stdexcept>
-// #include <string>
+#endif
 
 namespace ortops {
 
@@ -26,26 +25,42 @@ class TreebeardSORunner {
   void CallFuncAndGetIntValueFromSo(const std::string &functionName,
                                     int32_t &field) {
     using GetFunc_t = int32_t (*)();
+#ifdef USE_DLFCN
     auto get = reinterpret_cast<GetFunc_t>(dlsym(so, functionName.c_str()));
     field = get();
+#else
+    EXT_THROW("CallFuncAndGetIntValueFromSo: only works on linux.");
+#endif
   }
 
 public:
   TreebeardSORunner(const char *soFilePath) {
+#ifdef USE_DLFCN
     so = dlopen(soFilePath, RTLD_NOW);
+#else
+    so = nullptr;
+#endif
     if (!so) {
       EXT_THROW("Failed to load so '", soFilePath, "'.");
     }
+#ifdef USE_DLFCN
     auto initModelFnPtr = (InitModelFn)dlsym(so, "Init_model");
+#endif
     if (!initModelFnPtr) {
-      EXT_THROW("Failed to load Init_model function from so '", soFilePath,
+      EXT_THROW("Failed to load 'Init_model' function from so '", soFilePath,
                 ".");
     }
     initModelFnPtr();
     CallFuncAndGetIntValueFromSo("GetBatchSize", batchSize);
     CallFuncAndGetIntValueFromSo("GetRowSize", rowSize);
 
+#ifdef USE_DLFCN
     predFnPtr = dlsym(so, "Prediction_Function");
+#endif
+    if (!predFnPtr) {
+      EXT_THROW("Failed to load 'Prediction_Function' function from so '",
+                soFilePath, ".");
+    }
   }
 
   ~TreebeardSORunner() { dlclose(so); }
