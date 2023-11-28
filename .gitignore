@@ -10,6 +10,8 @@
 *.cmake
 *.whl
 *.def
+*.ll
+*.s
 /*.png
 /*.onnx
 .build_path.txt

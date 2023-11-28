@@ -14,7 +14,7 @@ namespace onnx_c_ops {
 #define InlinedVector std::vector
 #define InlinedHashSet std::unordered_set
 
-#if defined(_WIN32) || defined(WIN32)
+#if defined(_WIN32)
 
 inline bool _isnan_(float x) { return _isnanf(x); }
 inline bool _isnan_(double x) { return _isnan(x); }
@@ -166,8 +166,8 @@ std::size_t write_scores(std::vector<NTYPE> &scores,
 
 template <typename NTYPE, typename T>
 std::size_t write_scores(std::size_t n_classes, NTYPE *scores,
-                    POST_EVAL_TRANSFORM post_transform, T *Z,
-                    int add_second_class) {
+                         POST_EVAL_TRANSFORM post_transform, T *Z,
+                         int add_second_class) {
   if (n_classes >= 2) {
     NTYPE *end = scores + n_classes;
     switch (post_transform) {
@@ -238,8 +238,8 @@ std::size_t write_scores(std::size_t n_classes, NTYPE *scores,
 }
 
 template <typename NTYPE, typename T>
-std::size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
-                     int add_second_class) {
+std::size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform,
+                          T *Z, int add_second_class) {
   switch (post_transform) {
   case POST_EVAL_TRANSFORM::PROBIT:
     Z[0] = ComputeProbit(scores[0]);

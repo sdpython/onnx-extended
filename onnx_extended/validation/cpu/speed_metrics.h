@@ -6,7 +6,7 @@
 
 namespace validation {
 
-#if defined(_WIN32) || defined(WIN32)
+#if defined(_WIN32)
 
 inline bool _isnan_(float x) { return _isnanf(x); }
 inline bool _isnan_(double x) { return _isnan(x); }

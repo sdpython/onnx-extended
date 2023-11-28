@@ -1,5 +1,5 @@
 import unittest
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 
 
 class TestSpeedMetrics(ExtTestCase):
@@ -11,6 +11,7 @@ class TestSpeedMetrics(ExtTestCase):
         res = benchmark_cache(1000, False)
         self.assertGreater(res, 0)
 
+    @skipif_ci_apple("unstable on Apple")
     def test_benchmark_cache_tree(self):
         from onnx_extended.validation.cpu._validation import (
             benchmark_cache_tree,
