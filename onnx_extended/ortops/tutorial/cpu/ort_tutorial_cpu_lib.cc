@@ -4,8 +4,8 @@
 #include <mutex>
 #include <vector>
 
-#include "custom_gemm.h"
 #include "ortapi_version.h"
+#include "custom_gemm.h"
 #include "custom_tree_assembly.h"
 #include "dynamic_quantize_linear.h"
 #include "my_kernel.h"

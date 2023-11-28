@@ -231,5 +231,4 @@ class TestOrtOpTutorialCpuTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOrtOpTutorialCpu().test_dynamic_quantize_linear()
     unittest.main(verbosity=2)

@@ -4,11 +4,11 @@
 #include <mutex>
 #include <vector>
 
+#include "ortapi_version.h"
 #include "ort_optim_cpu_lib.h"
 #include "ort_svm.hpp"
 #include "ort_tfidf_vectorizer.hpp"
 #include "ort_tree_ensemble.hpp"
-#include "ortapi_version.h"
 
 static const char *c_OpDomain = "onnx_extented.ortops.optim.cpu";
 
