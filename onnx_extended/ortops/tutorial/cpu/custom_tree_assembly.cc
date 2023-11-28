@@ -65,7 +65,11 @@ public:
     }
   }
 
-  ~TreebeardSORunner() { dlclose(so); }
+  ~TreebeardSORunner() {
+#ifdef USE_DLFCN
+    dlclose(so);
+#endif
+  }
 
   int32_t GetBatchSize() const { return batchSize; }
   int32_t GetRowSize() const { return rowSize; }
