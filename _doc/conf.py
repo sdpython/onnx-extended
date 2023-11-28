@@ -145,6 +145,7 @@ epkg_dictionary = {
     "opt-einsum": "https://optimized-einsum.readthedocs.io/en/stable/",
     "pandas": "https://pandas.pydata.org/",
     "protobuf": "https://github.com/protocolbuffers/protobuf",
+    "psutil": "https://psutil.readthedocs.io/en/latest/",
     "pybind11": "https://github.com/pybind/pybind11",
     "pyinstrument": "https://github.com/joerick/pyinstrument",
     "python": "https://www.python.org/",
