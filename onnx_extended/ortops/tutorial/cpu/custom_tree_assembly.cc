@@ -44,7 +44,9 @@ public:
       EXT_THROW("Failed to load so '", soFilePath, "'.");
     }
 #ifdef USE_DLFCN
-    auto initModelFnPtr = (InitModelFn)dlsym(so, "Init_model");
+    InitModelFn initModelFnPtr = (InitModelFn)dlsym(so, "Init_model");
+#else
+    InitModelFn initModelFnPtr = nullptr;
 #endif
     if (!initModelFnPtr) {
       EXT_THROW("Failed to load 'Init_model' function from so '", soFilePath,
