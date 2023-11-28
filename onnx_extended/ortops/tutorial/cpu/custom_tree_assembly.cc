@@ -165,7 +165,7 @@ void CustomTreeAssemblyKernel::Compute(OrtKernelContext *context) {
   EXT_ENFORCE(tree_runner != nullptr);
   EXT_ENFORCE(dimensions.size() == 2, "Input shape must have two dimensions.")
   EXT_ENFORCE(dimensions[0] == tree_runner->GetBatchSize() &&
-                  dimensions[1] != tree_runner->GetRowSize(),
+                  dimensions[1] == (tree_runner->GetRowSize()),
               "The assembly was compiled for an input shape stricly equal to ",
               tree_runner->GetBatchSize(), "x", tree_runner->GetRowSize(),
               " but input shape is ", dimensions[0], "x", dimensions[1]);
