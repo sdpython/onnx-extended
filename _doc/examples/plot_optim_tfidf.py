@@ -6,8 +6,8 @@ Measuring performance of TfIdfVectorizer
 
 The banchmark measures the performance of a TfIdfVectizer along two
 parameters, the vocabulary size, the batch size whether. It measures
-the benefit of using sparse implementation. Example
-:ref:`l-plot-optim-tfidf-memory` measures the memory peak.
+the benefit of using sparse implementation through the computation
+time and the memory peak.
 
 A simple model
 ++++++++++++++
@@ -121,7 +121,7 @@ if unit_test_going():
     batch_sizes = [10, 20]
 else:
     vocabulary_sizes = [100, 1000, 5000, 10000]
-    batch_sizes = [500, 1000, 2000]
+    batch_sizes = [1, 10, 500, 1000, 2000]
 confs = list(itertools.product(vocabulary_sizes, batch_sizes))
 
 data = []
@@ -240,3 +240,9 @@ def histograms(df, metric):
 
 fig = histograms(df, "time")
 fig.savefig("plot_optim_tfidf.png")
+
+###############################################
+# Take away
+# +++++++++
+#
+# Sparse works better when the sparsity is big enough and the batch size as well.
