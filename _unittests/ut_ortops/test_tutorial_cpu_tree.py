@@ -51,7 +51,14 @@ def compile_tree(
     compiler_options.SetNumberOfCores(multiprocessing.cpu_count())
     compiler_options.SetMakeAllLeavesSameDepth(1)
     compiler_options.SetReorderTreesByDepth(True)
-    assert 8 < batch_size
+    if 8 < batch_size:
+        raise ValueError(f"batch_size={batch_size} must be > 8.")
+    if tree_tile_size >= batch_size:
+        raise ValueError(
+            f"batch_size={batch_size} must be >= tree_tile_size={tree_tile_size}."
+        )
+    if (batch_size - 1) ^ batch_size != batch_size * 2 - 1:
+        raise ValueError(f"batch_size={batch_size} must be a power of 2.")
     compiler_options.SetPipelineWidth(8)
 
     if verbose:
