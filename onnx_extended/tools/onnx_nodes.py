@@ -57,51 +57,6 @@ def _make_att_graph(name: str, new_body: GraphProto) -> AttributeProto:
     return attr
 
 
-def _make_node(
-    op_type: str,
-    inputs: List[str],
-    outputs: List[str],
-    name: Optional[str] = None,
-    doc_string: Optional[str] = None,
-    domain: str = "",
-    attributes: Optional[Dict[str, Any]] = None,
-) -> NodeProto:
-    """
-    Constructs a NodeProto.
-
-    :param op_type: (string): The name of the operator to construct
-    :param inputs: list of input names
-    :param outputs: list of output names
-    :param name: optional unique identifier for NodeProto
-    :param doc_string: optional documentation
-        string for NodeProto
-    :param domain: optional domain for NodeProto.
-        If it's None, we will just use default domain (which is empty)
-    :param attributes: the attributes of the node. The acceptable values
-        are documented in `make_attribute`.
-    :return: node
-    """
-    node = NodeProto()
-    node.op_type = op_type
-    node.input.extend(inputs)
-    node.output.extend(outputs)
-    if name:
-        node.name = name
-    if doc_string:
-        node.doc_string = doc_string
-    if domain is not None:
-        node.domain = domain
-    if isinstance(attributes, dict):
-        if attributes:
-            node.attribute.extend(
-                make_attribute(key, value) for key, value in sorted(attributes.items())
-            )
-    elif attributes:
-        for att in attributes:
-            node.attribute.extend([att])
-    return node
-
-
 def _apply_optimisation_on_graph(
     fct: Callable,
     onnx_model: Union[ModelProto, GraphProto, FunctionProto],
@@ -125,7 +80,12 @@ def _apply_optimisation_on_graph(
             debug_info = []
         graph = fct(onnx_model.graph, debug_info=debug_info + ["GRAPH"], **kwargs)
         functions = [
-            fct(f, debug_info=debug_info + [f"FUNCTION {f.name}"], **kwargs)
+            fct(
+                f,
+                debug_info=debug_info + [f"FUNCTION {f.name}"],
+                recursive=recursive,
+                **kwargs,
+            )
             for f in onnx_model.functions
         ]
         if hasattr(onnx_model, "value_info"):
@@ -147,81 +107,6 @@ def _apply_optimisation_on_graph(
     raise TypeError(
         f"This function only works on 'ModelProto' anod not not on {type(onnx_model)}."
     )
-
-
-def _apply_remove_node_fct_node(
-    fct: Callable, node: NodeProto, recursive: bool, debug_info: str
-) -> NodeProto:
-    """
-    Applies an optimizing function on a subgraphs.
-
-    :param node: onnx node
-    :param recursive: does it in subgraphs as well
-    :return: new node
-    """
-    if not hasattr(node, "attribute"):
-        return node
-    modified = 0
-    new_atts = []
-    for att in node.attribute:
-        if att.name in ("body", "then_branch", "else_branch"):
-            new_body = fct(
-                att.g, recursive=recursive, debug_info=debug_info + [att.name]
-            )
-            new_atts.append(_make_att_graph(att.name, new_body))
-            modified += 1
-        else:
-            new_atts.append(att)
-    if modified > 0:
-        new_node = _make_node(
-            node.op_type, node.input, node.output, name=node.name, attributes=new_atts
-        )
-        return new_node
-    return node
-
-
-def _process_node(
-    node: NodeProto,
-    data: Dict,
-    edges: Dict,
-    paths: Dict,
-    prefix: str = "",
-    sep: str = ":X:",
-    path: Optional[List[str]] = None,
-):
-    node_name = prefix + node.name
-    data[node_name, 1] = node
-    path = [] if path is None else path.copy()
-    paths[node_name, 1] = path
-    path = path.copy()
-    path.append(node_name)
-    for inp in node.input:
-        data[inp, 0] = node
-        edges[(inp, 0), (node_name, 1)] = node
-        paths[inp, 0] = path
-        if sep in node_name:
-            # We need to link an input to the parent node
-            # if the node is part of subgraph.
-            # path_r = paths[inp, 0]
-            if len(path) <= 1:
-                raise RuntimeError(
-                    f"Unexpected path {path!r}, this may happen "
-                    f"if sep={sep!r} is already used in the original model."
-                )
-            edges[(inp, 0), (path[-2], 1)] = node
-
-    for out in node.output:
-        data[out, 0] = node
-        paths[out, 0] = node_name
-        edges[(node_name, 1), (out, 0)] = node
-    if node.attribute:
-        for att in node.attribute:
-            if not hasattr(att, "g"):
-                continue
-            if not isinstance(att.g, GraphProto):
-                continue
-            for no in att.g.node:
-                _process_node(no, data, edges, paths, prefix=node_name + sep, path=path)
 
 
 def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **options):
@@ -254,48 +139,56 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     graph = onnx_model
     logger.debug("onnx_remove_node_unused:begin with %d nodes.", len(graph.node))
     is_function = isinstance(graph, FunctionProto)
-    data = {}
-    valid = {}
-    edges = {}
-    paths = {}
+
+    # mark outputs
+    marked = {o.name: set() for o in graph.output}
+    nodes = list(graph.node)
+
+    # Handles subgraphs.
+    sub_graphs = []
+    for node in nodes:
+        for att in node.attribute:
+            if att.type == AttributeProto.GRAPH:
+                sub_graphs.append(node)
+                break
+
+    if sub_graphs:
+        raise NotImplementedError(
+            "Remove unused is not implemented when there are subgraphs."
+        )
+
+    # mark node output
+    for node in reversed(nodes):
+        used = False
+        for o in node.output:
+            if o in marked:
+                for i in node.input:
+                    marked[o].add(i)
+                    used = True
+        if used:
+            for i in node.input:
+                marked[i] = set()
+
+    # removed nodes
+    removed = set()
+    marked_set = set(marked)
+    for ind, node in enumerate(nodes):
+        if not (set(node.output) & marked_set):
+            removed.add(ind)
 
     if not is_function:
-        for init in graph.initializer:
-            data[init.name, 0] = init
+        initializers = [i for i in graph.initializer if i.name not in marked]
+        sparse_initializers = [
+            i for i in graph.sparse_initializer if i.name not in marked
+        ]
+    new_nodes = [node for i, node in enumerate(nodes) if i not in removed]
 
-    for node in graph.node:
-        _process_node(node, data, edges, paths)
-
-    for out in graph.output:
-        valid[out if is_function else out.name, 0] = True
-
-    modif = 1
-    while modif > 0:
-        modif = 0
-        for e1, e2 in edges:
-            if valid.get(e2, False) and not valid.get(e1, False):
-                valid[e1] = True
-                modif += 1
-
-    new_nodes = [n for n in graph.node if (n.name, 1) in valid]
-    if not is_function:
-        new_inits = [n for n in graph.initializer if (n.name, 0) in valid]
-
-    if recursive:
-        # Handles subgraphs.
-        for i in range(len(new_nodes)):
-            node = new_nodes[i]
-            if node is None or not (node.attribute):
-                continue
-            new_nodes[i] = _apply_remove_node_fct_node(
-                onnx_remove_node_unused,
-                node,
-                recursive=True,
-                debug_info=debug_info + [node.name],
-            )
+    if sub_graphs and recursive:
+        raise NotImplementedError(
+            "Remove unused is not implemented when there are subgraphs."
+        )
 
     # Finally create the new graph.
-    nodes = list(filter(lambda n: n is not None, new_nodes))
     if is_function:
         logger.debug("onnx_remove_node_unused:end function with %d nodes.", len(nodes))
         return make_function(
@@ -303,13 +196,18 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             onnx_model.name,
             onnx_model.input,
             onnx_model.output,
-            nodes,
+            new_nodes,
             opset_imports=onnx_model.opset_import,
             attributes=onnx_model.attribute,
             doc_string=onnx_model.doc_string,
         )
     graph = make_graph(
-        nodes, onnx_model.name, onnx_model.input, onnx_model.output, new_inits
+        new_nodes,
+        onnx_model.name,
+        onnx_model.input,
+        onnx_model.output,
+        initializers,
+        sparse_initializers,
     )
     graph.value_info.extend(onnx_model.value_info)
     logger.debug("onnx_remove_node_unused:end graph with %d nodes.", len(nodes))
