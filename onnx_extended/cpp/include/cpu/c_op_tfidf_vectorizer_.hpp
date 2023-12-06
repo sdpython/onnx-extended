@@ -15,6 +15,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <map>
 
 #include <omp.h>
 
@@ -315,8 +316,7 @@ private:
       const size_t C,
       std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
 
-    std::function<void(uint32_t, std::unordered_map<uint32_t, T> & out)>
-        fn_weight;
+    std::function<void(uint32_t, std::map<uint32_t, T> & out)> fn_weight;
     // can be parallelized.
     size_t n_threads = omp_get_max_threads();
     size_t n_per_threads =
@@ -327,7 +327,7 @@ private:
 
     switch (weighting_criteria_) {
     case kTF:
-      fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+      fn_weight = [](uint32_t i, std::map<uint32_t, T> &out) {
         auto it = out.find(i);
         if (it == out.end())
           out[i] = 1;
@@ -337,18 +337,18 @@ private:
       break;
     case kIDF:
       if (!w.empty()) {
-        fn_weight = [&w](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+        fn_weight = [&w](uint32_t i, std::map<uint32_t, T> &out) {
           out[i] = w[i];
         };
       } else {
-        fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+        fn_weight = [](uint32_t i, std::map<uint32_t, T> &out) {
           out[i] = 1.0f;
         };
       }
       break;
     case kTFIDF:
       if (!w.empty()) {
-        fn_weight = [&w](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+        fn_weight = [&w](uint32_t i, std::map<uint32_t, T> &out) {
           auto it = out.find(i);
           if (it == out.end())
             out[i] = w[i];
@@ -356,7 +356,7 @@ private:
             it->second += w[i];
         };
       } else {
-        fn_weight = [](uint32_t i, std::unordered_map<uint32_t, T> &out) {
+        fn_weight = [](uint32_t i, std::map<uint32_t, T> &out) {
           auto it = out.find(i);
           if (it == out.end())
             out[i] = 1.0f;
@@ -378,7 +378,8 @@ private:
         [this, X, C, &indices, &values, &fn_weight](int, ptrdiff_t row_start,
                                                     ptrdiff_t row_end) {
           for (auto row_num = row_start; row_num < row_end; ++row_num) {
-            std::unordered_map<uint32_t, T> out;
+            // indices should be ordered
+            std::map<uint32_t, T> out;
             ComputeImpl(X.data() + row_num * C, C, out, fn_weight);
             indices[row_num].resize(out.size());
             values[row_num].resize(out.size());
