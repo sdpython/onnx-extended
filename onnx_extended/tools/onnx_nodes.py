@@ -141,7 +141,10 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     is_function = isinstance(graph, FunctionProto)
 
     # mark outputs
-    marked = {o.name: set() for o in graph.output}
+    if is_function:
+        marked = {o: set() for o in graph.output}
+    else:
+        marked = {o.name: set() for o in graph.output}
     nodes = list(graph.node)
 
     # Handles subgraphs.
@@ -177,10 +180,8 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             removed.add(ind)
 
     if not is_function:
-        initializers = [i for i in graph.initializer if i.name not in marked]
-        sparse_initializers = [
-            i for i in graph.sparse_initializer if i.name not in marked
-        ]
+        initializers = [i for i in graph.initializer if i.name in marked]
+        sparse_initializers = [i for i in graph.sparse_initializer if i.name in marked]
     new_nodes = [node for i, node in enumerate(nodes) if i not in removed]
 
     if sub_graphs and recursive:
