@@ -50,9 +50,9 @@ class TestOptimOnnxUnused(ExtTestCase):
         n0, i0 = len(model_def0.graph.node), len(model_def0.graph.initializer)
         n2, i2 = len(model_def.graph.node), len(model_def.graph.initializer)
         n3, i3 = len(new_model.graph.node), len(new_model.graph.initializer)
-        self.assertEqual((n0, i0), (5, 3))
-        self.assertEqual((n2, i2), (1, 3))
-        self.assertEqual((n3, i3), (1, 1))
+        self.assertEqual((5, 3), (n0, i0))
+        self.assertEqual((1, 3), (n2, i2))
+        self.assertEqual((1, 1), (n3, i3))
 
     def test_onnx_remove_unused_function(self):
         dtype = numpy.float32
