@@ -174,6 +174,11 @@ It assumes both vectors have the same dimensions (no broadcast).).
         R"pbdoc(Converts a sparse structure stored in a float tensor
 into a dense vector.)pbdoc");
 
+  m.def("sparse_struct_to_unordered_map", &sparse_struct_to_unordered_map,
+        py::arg("v"),
+        R"pbdoc(Converts a sparse structure stored in a float tensor
+into a list of dictionaries. The sparse tensor needs to be 2D.)pbdoc");
+
   m.def("dense_to_sparse_struct", &dense_to_sparse_struct, py::arg("v"),
         R"pbdoc(Converts a dense float tensor into a sparse structure
 stored in a float tensor.)pbdoc");
