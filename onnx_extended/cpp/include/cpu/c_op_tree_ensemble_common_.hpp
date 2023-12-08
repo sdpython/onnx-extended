@@ -193,7 +193,7 @@ protected:
                        typename FeatureType::RowAccessor row) const;
   const TreeNodeElement<ThresholdType> *
   ProcessTreeNodeLeave3(std::size_t root_id,
-                        FeatureType::RowAccessor row) const;
+                        typename FeatureType::RowAccessor row) const;
 
   template <typename AGG>
   void ComputeAgg(const FeatureType &data, OutputType *Y, int64_t *labels,
