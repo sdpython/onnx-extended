@@ -21,9 +21,11 @@ namespace onnx_c_ops {
 /////////////////////////////////////////////
 
 template <typename NTYPE>
-class RuntimeTreeEnsembleRegressor : public RuntimeTreeEnsembleCommon<NTYPE> {
+class RuntimeTreeEnsembleRegressor
+    : public RuntimeTreeEnsembleCommon<DenseFeatureAccessor<NTYPE>> {
 public:
-  RuntimeTreeEnsembleRegressor() : RuntimeTreeEnsembleCommon<NTYPE>() {}
+  RuntimeTreeEnsembleRegressor()
+      : RuntimeTreeEnsembleCommon<DenseFeatureAccessor<NTYPE>>() {}
 };
 
 class RuntimeTreeEnsembleRegressorFloat
@@ -40,17 +42,17 @@ public:
 };
 
 class RuntimeTreeEnsembleClassifierFloat
-    : public RuntimeTreeEnsembleClassifier<float> {
+    : public RuntimeTreeEnsembleClassifier<DenseFeatureAccessor<float>> {
 public:
   RuntimeTreeEnsembleClassifierFloat()
-      : RuntimeTreeEnsembleClassifier<float>() {}
+      : RuntimeTreeEnsembleClassifier<DenseFeatureAccessor<float>>() {}
 };
 
 class RuntimeTreeEnsembleClassifierDouble
-    : public RuntimeTreeEnsembleClassifier<double> {
+    : public RuntimeTreeEnsembleClassifier<DenseFeatureAccessor<double>> {
 public:
   RuntimeTreeEnsembleClassifierDouble()
-      : RuntimeTreeEnsembleClassifier<double>() {}
+      : RuntimeTreeEnsembleClassifier<DenseFeatureAccessor<double>>() {}
 };
 
 } // namespace onnx_c_ops

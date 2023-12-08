@@ -5,12 +5,14 @@
 
 namespace onnx_c_ops {
 
-template <typename NTYPE>
+template <typename FeatureType>
 class RuntimeTreeEnsembleClassifier
-    : public TreeEnsembleCommonClassifier<NTYPE, NTYPE, NTYPE> {
+    : public TreeEnsembleCommonClassifier<FeatureType, typename FeatureType::ValueType, typename FeatureType::ValueType> {
 public:
+  typedef FeatureType::ValueType NTYPE;
+
   RuntimeTreeEnsembleClassifier()
-      : TreeEnsembleCommonClassifier<NTYPE, NTYPE, NTYPE>() {}
+      : TreeEnsembleCommonClassifier<FeatureType, typename FeatureType::ValueType, typename FeatureType::ValueType>() {}
   ~RuntimeTreeEnsembleClassifier() {}
 
   void init(const std::string &aggregate_function, // only classifier

@@ -10,88 +10,98 @@ namespace ortops {
 
 // Regressor
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-void *TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::CreateKernel(
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+void *TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::CreateKernel(
     const OrtApi &api, const OrtKernelInfo *info) const {
-  return std::make_unique<TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>>(api, info)
+  return std::make_unique<TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>>(api,
+                                                                          info)
       .release();
 };
 
 template <>
-const char *TreeEnsembleRegressor<float, float, float>::GetName() const {
+const char *TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>,
+                                  float, float>::GetName() const {
   return "TreeEnsembleRegressor";
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 const char *
-TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::GetExecutionProviderType() const {
+TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetExecutionProviderType()
+    const {
   return "CPUExecutionProvider";
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-size_t TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::GetInputTypeCount() const {
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+size_t
+TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetInputTypeCount() const {
   return 1;
 };
 
 template <>
 ONNXTensorElementDataType
-TreeEnsembleRegressor<float, float, float>::GetInputType(
-    std::size_t /* index */) const {
+TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float,
+                      float>::GetInputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-size_t TreeEnsembleRegressor<ITYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+size_t
+TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
   return 1;
 };
 
 template <>
 ONNXTensorElementDataType
-TreeEnsembleRegressor<float, float, float>::GetOutputType(
-    std::size_t /* index */) const {
+TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float,
+                      float>::GetOutputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
 // Classifier
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-void *TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::CreateKernel(
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+void *TreeEnsembleClassifier<IFEATURETYPE, TTYPE, OTYPE>::CreateKernel(
     const OrtApi &api, const OrtKernelInfo *info) const {
-  return std::make_unique<TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>>(api, info)
+  return std::make_unique<TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>>(api,
+                                                                          info)
       .release();
 };
 
 template <>
-const char *TreeEnsembleClassifier<float, float, float>::GetName() const {
+const char *TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>,
+                                   float, float>::GetName() const {
   return "TreeEnsembleClassifier";
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 const char *
-TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetExecutionProviderType() const {
+TreeEnsembleClassifier<IFEATURETYPE, TTYPE, OTYPE>::GetExecutionProviderType()
+    const {
   return "CPUExecutionProvider";
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-size_t TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetInputTypeCount() const {
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+size_t
+TreeEnsembleClassifier<IFEATURETYPE, TTYPE, OTYPE>::GetInputTypeCount() const {
   return 1;
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 ONNXTensorElementDataType
-TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetInputType(
+TreeEnsembleClassifier<IFEATURETYPE, TTYPE, OTYPE>::GetInputType(
     std::size_t /* index */) const {
-  return CTypeToOnnxType<ITYPE>().onnx_type();
+  return CTypeToOnnxType<typename IFEATURETYPE::ValueType>().onnx_type();
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-size_t TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+size_t
+TreeEnsembleClassifier<IFEATURETYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
   return 2;
 };
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 ONNXTensorElementDataType
-TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetOutputType(
+TreeEnsembleClassifier<IFEATURETYPE, TTYPE, OTYPE>::GetOutputType(
     std::size_t index) const {
   switch (index) {
   case 0:
@@ -107,8 +117,8 @@ TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>::GetOutputType(
 // Kernel initialization
 ////////////////////////
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
     const OrtApi &api, const OrtKernelInfo *info) {
   reg_type_type_type = nullptr;
 
@@ -230,8 +240,8 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
               ", nodes_modes=", nodes_modes_single, ".");
   EXT_ENFORCE(n_targets_or_classes > 0);
 
-  std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<ITYPE, TTYPE, OTYPE>> ptr(
-      new onnx_c_ops::TreeEnsembleCommon<ITYPE, TTYPE, OTYPE>());
+  std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>>
+      ptr(new onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>());
   reg_type_type_type.swap(ptr);
   auto status = reg_type_type_type->Init(
       aggregate_function, base_values, n_targets_or_classes, nodes_falsenodeids,
@@ -262,8 +272,8 @@ TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
 // Kernel Implementation
 ////////////////////////
 
-template <typename ITYPE, typename TTYPE, typename OTYPE>
-void TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::Compute(
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
+void TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::Compute(
     OrtKernelContext *context) {
 
   Ort::KernelContext ctx(context);
@@ -289,7 +299,8 @@ void TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>::Compute(
     p_labels = labels.GetTensorMutableData<int64_t>();
   }
 
-  const ITYPE *X = input_X.GetTensorData<ITYPE>();
+  const typename IFEATURETYPE::ValueType *X =
+      input_X.GetTensorData<typename IFEATURETYPE::ValueType>();
   OTYPE *out = output.GetTensorMutableData<OTYPE>();
   reg_type_type_type->Compute(dimensions_in[0], dimensions_in[1], X, out,
                               p_labels);

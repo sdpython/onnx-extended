@@ -4,11 +4,11 @@
 #include <mutex>
 #include <vector>
 
-#include "ortapi_version.h"
 #include "ort_optim_cpu_lib.h"
 #include "ort_svm.hpp"
 #include "ort_tfidf_vectorizer.hpp"
 #include "ort_tree_ensemble.hpp"
+#include "ortapi_version.h"
 
 static const char *c_OpDomain = "onnx_extented.ortops.optim.cpu";
 
@@ -27,9 +27,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::SVMClassifier<float> c_SVMClassifier;
   static ortops::SVMRegressor<float> c_SVMRegressor;
-  static ortops::TreeEnsembleRegressor<float, float, float>
+  static ortops::TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>,
+                                       float, float>
       c_TreeEnsembleRegressor;
-  static ortops::TreeEnsembleClassifier<float, float, float>
+  static ortops::TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>,
+                                        float, float>
       c_TreeEnsembleClassifier;
   static ortops::TfIdfVectorizer<int64_t, float> c_TfIdfVectorizer;
 
