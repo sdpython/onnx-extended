@@ -50,6 +50,13 @@ TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float,
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
+template <>
+ONNXTensorElementDataType
+TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float,
+                      float>::GetInputType(std::size_t /* index */) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+};
+
 template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 size_t
 TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
@@ -59,6 +66,13 @@ TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
 template <>
 ONNXTensorElementDataType
 TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float,
+                      float>::GetOutputType(std::size_t /* index */) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+};
+
+template <>
+ONNXTensorElementDataType
+TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float,
                       float>::GetOutputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
