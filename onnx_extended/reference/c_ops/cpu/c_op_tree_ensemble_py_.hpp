@@ -37,7 +37,7 @@ class RuntimeTreeEnsembleCommon
     : public TreeEnsembleCommon<FeatureType, typename FeatureType::ValueType,
                                 typename FeatureType::ValueType> {
 public:
-  typedef FeatureType::ValueType NTYPE;
+  typedef typename FeatureType::ValueType NTYPE;
 
   RuntimeTreeEnsembleCommon()
       : TreeEnsembleCommon<FeatureType, NTYPE, NTYPE>() {}

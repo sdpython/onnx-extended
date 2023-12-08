@@ -9,7 +9,7 @@ template <typename FeatureType>
 class RuntimeTreeEnsembleClassifier
     : public TreeEnsembleCommonClassifier<FeatureType, typename FeatureType::ValueType, typename FeatureType::ValueType> {
 public:
-  typedef FeatureType::ValueType NTYPE;
+  typedef typename FeatureType::ValueType NTYPE;
 
   RuntimeTreeEnsembleClassifier()
       : TreeEnsembleCommonClassifier<FeatureType, typename FeatureType::ValueType, typename FeatureType::ValueType>() {}
