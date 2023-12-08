@@ -18,7 +18,7 @@ except ImportError:
     SessionOptions, InferenceSession = None, None
 
 
-class TestOrtOpOptimCpu(ExtTestCase):
+class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
     def test_get_ort_ext_libs(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 
@@ -411,7 +411,5 @@ if __name__ == "__main__":
 
     logger = logging.getLogger("skl2onnx")
     logger.setLevel(logging.ERROR)
-
-    TestOrtOpOptimCpu().test_random_forest_regressor_as_tensor()
 
     unittest.main(verbosity=2)

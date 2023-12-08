@@ -91,6 +91,40 @@ def documentation() -> List[str]:
     * T3: int64
     """,
                 """
+    onnx_extented.ortops.option.cpu.TreeEnsembleClassifierSparse
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    It does the sum of two tensors.
+
+    **Provider**
+    
+    CPUExecutionProvider
+
+    **Attributes**
+
+    See `onnx TreeEnsembleClassifier
+    <https://onnx.ai/onnx/operators/onnx_aionnxml_TreeEnsembleClassifier.html>`_.
+    The implementation does not support string labels.
+    The only change:
+
+    nodes_modes: string contenation with `,`
+
+    **Inputs**
+    
+    * X (T1): tensor of type T1 (sparse)
+
+    **Outputs**
+
+    * label (T3): labels of type T3
+    * Y (T2): probabilities of type T2
+
+    **Constraints**
+
+    * T1: float, double
+    * T2: float, double
+    * T3: int64
+    """,
+                """
     onnx_extented.ortops.option.cpu.TreeEnsembleRegressor
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -111,6 +145,37 @@ def documentation() -> List[str]:
     **Inputs**
     
     * X (T1): tensor of type T1
+
+    **Outputs**
+
+    * Y (T2): prediction of type T2
+
+    **Constraints**
+
+    * T1: float, double
+    * T2: float, double
+    """,
+                """
+    onnx_extented.ortops.option.cpu.TreeEnsembleRegressorSparse
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    It does the sum of two tensors.
+
+    **Provider**
+    
+    CPUExecutionProvider    
+
+    **Attributes**
+
+    See `onnx TreeEnsembleRegressor
+    <https://onnx.ai/onnx/operators/onnx_aionnxml_TreeEnsembleRegressor.html>`_.
+    The only change:
+
+    nodes_modes: string contenation with `,`
+
+    **Inputs**
+    
+    * X (T1): tensor of type T1 (sparse)
 
     **Outputs**
 

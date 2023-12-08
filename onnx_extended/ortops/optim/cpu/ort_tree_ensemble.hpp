@@ -24,6 +24,12 @@ const char *TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>,
   return "TreeEnsembleRegressor";
 };
 
+template <>
+const char *TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>,
+                                  float, float>::GetName() const {
+  return "TreeEnsembleRegressorSparse";
+};
+
 template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 const char *
 TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetExecutionProviderType()
@@ -71,6 +77,12 @@ template <>
 const char *TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>,
                                    float, float>::GetName() const {
   return "TreeEnsembleClassifier";
+};
+
+template <>
+const char *TreeEnsembleClassifier<onnx_c_ops::SparseFeatureAccessor<float>,
+                                   float, float>::GetName() const {
+  return "TreeEnsembleClassifierSparse";
 };
 
 template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>

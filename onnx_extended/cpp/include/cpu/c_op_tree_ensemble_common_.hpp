@@ -7,8 +7,11 @@
 #include "c_op_tree_ensemble_common_agg_.hpp"
 #include "common/c_op_allocation.h"
 #include "common/c_op_common_parallel.hpp"
+#include "common/sparse_tensor.h"
 #include "onnx_extended_helpers.h"
+
 #include <deque>
+#include <limits>
 #include <unordered_map>
 
 // #define DEBUG_CHECK
@@ -60,6 +63,46 @@ template <class Tp> struct TreeAlloc {
   void deallocate(Tp *p, std::size_t) { AllocatorDefaultFree(p); }
 };
 
+template <typename T> struct FeatureAccessor {
+  typedef T ValueType;
+  const T *data;
+  int64_t n_rows;
+  int64_t n_features;
+  inline FeatureAccessor(const T *ptr, int64_t n, int64_t c)
+      : data(ptr), n_rows(n), n_features(c) {}
+};
+
+template <typename T> struct DenseFeatureAccessor : public FeatureAccessor<T> {
+  struct RowAccessor {
+    const T *ptr;
+    inline T get(int64_t col) { return ptr[col]; }
+  };
+  inline DenseFeatureAccessor(const T *ptr, int64_t n, int64_t c)
+      : FeatureAccessor<T>(ptr, n, c) {}
+  inline RowAccessor get(int64_t row) const {
+    return RowAccessor{this->data + row * this->n_features};
+  }
+};
+
+template <typename T> struct SparseFeatureAccessor : public FeatureAccessor<T> {
+  const onnx_sparse::sparse_struct *sp;
+  std::vector<std::unordered_map<uint32_t, T>> maps;
+  struct RowAccessor {
+    const std::unordered_map<uint32_t, T> *ptr;
+    inline T get(int64_t col) {
+      auto it = ptr->find(static_cast<uint32_t>(col));
+      return it == ptr->end() ? std::numeric_limits<T>::quiet_NaN()
+                              : it->second;
+    }
+  };
+  inline SparseFeatureAccessor(const T *ptr, int64_t n, int64_t c)
+      : FeatureAccessor<T>(ptr, n, c) {
+    sp = (const onnx_sparse::sparse_struct *)ptr;
+    sp->to_unordered_maps(maps);
+  }
+  inline RowAccessor get(int64_t row) const { return RowAccessor{&maps[row]}; }
+};
+
 class TreeEnsembleCommonAttributes {
 public:
   TreeEnsembleCommonAttributes() {
@@ -109,27 +152,6 @@ protected:
   int batch_size_tree_;
   int batch_size_rows_;
   int use_node3_;
-};
-
-template <typename T> struct FeatureAccessor {
-  typedef T ValueType;
-  const T *data;
-  int64_t n_rows;
-  int64_t n_features;
-  inline FeatureAccessor(const T *ptr, int64_t n, int64_t c)
-      : data(ptr), n_rows(n), n_features(c) {}
-};
-
-template <typename T> struct DenseFeatureAccessor : public FeatureAccessor<T> {
-  struct RowAccessor {
-    const T *ptr;
-    inline T get(int64_t col) { return ptr[col]; }
-  };
-  inline DenseFeatureAccessor(const T *ptr, int64_t n, int64_t c)
-      : FeatureAccessor<T>(ptr, n, c) {}
-  inline RowAccessor get(int64_t row) const {
-    return RowAccessor{this->data + row * this->n_features};
-  }
 };
 
 template <typename FeatureType, typename ThresholdType, typename OutputType>
@@ -689,12 +711,12 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
         DEBUG_PRINT_STEP("S:N1:TN-P")
         std::vector<ScoreValue<ThresholdType>> scores(
             static_cast<std::size_t>(n_trees_), {0, 0});
-        TryBatchParallelFor(
-            max_n_threads, this->batch_size_tree_, n_trees_,
-            [this, &scores, &agg, &features](int64_t j) {
-              agg.ProcessTreeNodePrediction1(
-                  scores[j], *ProcessTreeNodeLeave(j, features.get(0)));
-            });
+        TryBatchParallelFor(max_n_threads, this->batch_size_tree_, n_trees_,
+                            [this, &scores, &agg, &features](int64_t j) {
+                              agg.ProcessTreeNodePrediction1(
+                                  scores[j],
+                                  *ProcessTreeNodeLeave(j, features.get(0)));
+                            });
 
         for (auto it = scores.cbegin(); it != scores.cend(); ++it) {
           agg.MergePrediction1(score, *it);
