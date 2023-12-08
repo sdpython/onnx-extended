@@ -21,7 +21,7 @@ protected:
 
 public:
   Status Compute(int64_t n_rows, int64_t n_features,
-                 const typenemae TreeEnsembleCommon<FeatureType, ThresholdType,
+                 const typename TreeEnsembleCommon<FeatureType, ThresholdType,
                                                     OutputType>::InputType *X,
                  OutputType *Y, int64_t *label) const {
     FeatureType features(X, n_rows, n_features);
