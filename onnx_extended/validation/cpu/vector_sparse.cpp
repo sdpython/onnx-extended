@@ -23,7 +23,7 @@ py_array_float dense_to_sparse_struct(const py_array_float &v) {
   }
   std::size_t size_float =
       onnx_sparse::sparse_struct::size_float(n_elements, 1);
-  
+
   std::vector<int64_t> out_dims{static_cast<int64_t>(size_float)};
   py_array_float result = py::array_t<float>(out_dims);
   py::buffer_info br = result.request();
@@ -66,6 +66,23 @@ py_array_float sparse_struct_to_dense(const py_array_float &v) {
     pr[indices[pos]] = values[pos];
   }
   return result;
+}
+
+py::list sparse_struct_to_unordered_map(const py_array_float &v) {
+  py::buffer_info br = v.request();
+  float *pr = static_cast<float *>(br.ptr);
+  onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)pr;
+  std::vector<std::unordered_map<uint32_t, float>> maps;
+  sp->to_unordered_maps(maps);
+  py::list res;
+  for (auto it : maps) {
+    py::dict d;
+    for (auto pair : it) {
+      d[py::int_(pair.first)] = pair.second;
+    }
+    res.append(d);
+  }
+  return res;
 }
 
 } // namespace validation

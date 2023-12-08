@@ -2,6 +2,7 @@
 
 #include "onnx_extended_helpers.h"
 #include <cstring>
+#include <unordered_map>
 #include <vector>
 
 namespace onnx_sparse {
@@ -94,6 +95,25 @@ struct sparse_struct {
     out_indices = indices();
     out_values = values();
     n = n_elements;
+  }
+
+  void
+  to_unordered_maps(std::vector<std::unordered_map<uint32_t, float>> &maps) {
+    EXT_ENFORCE(n_dims == 2, "to_unordered_maps only works with 2D matrices.");
+    maps.resize(shape[0]);
+    for (auto it : maps)
+      it.clear();
+    // The implementation could be parallelized.
+    uint32_t row, col, pos;
+    const uint32_t *ind = indices();
+    const float *val = values();
+    for (uint32_t i = 0; i < n_elements; ++i) {
+      pos = ind[i];
+      row = pos / shape[1];
+      col = pos % shape[1];
+      // EXT_ENFORCE(row < shape[0]);
+      maps[row][col] = val[i];
+    }
   }
 };
 
