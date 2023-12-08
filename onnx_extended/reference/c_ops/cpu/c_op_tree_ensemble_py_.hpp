@@ -32,11 +32,15 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(
   return Z.mutable_unchecked<1>();
 }
 
-template <typename NTYPE>
+template <typename FeatureType>
 class RuntimeTreeEnsembleCommon
-    : public TreeEnsembleCommon<NTYPE, NTYPE, NTYPE> {
+    : public TreeEnsembleCommon<FeatureType, typename FeatureType::ValueType,
+                                typename FeatureType::ValueType> {
 public:
-  RuntimeTreeEnsembleCommon() : TreeEnsembleCommon<NTYPE, NTYPE, NTYPE>() {}
+  typedef typename FeatureType::ValueType NTYPE;
+
+  RuntimeTreeEnsembleCommon()
+      : TreeEnsembleCommon<FeatureType, NTYPE, NTYPE>() {}
   ~RuntimeTreeEnsembleCommon() {}
 
   void init(const std::string &aggregate_function, // only classifier
@@ -111,25 +115,26 @@ public:
            ttarget_class_treeids, // 18
            ttarget_class_weights  // 19
     );
-}
+  }
 
-  void init_c(const std::string &aggregate_function,          // only classifier
-              const std::vector<NTYPE> &base_values,          // 4
-              int64_t n_targets_or_classes,                   // 5
-              const std::vector<int64_t> &nodes_falsenodeids, // 6
-              const std::vector<int64_t> &nodes_featureids,   // 7
-              const std::vector<NTYPE> &nodes_hitrates,       // 8
-              const std::vector<int64_t> &nodes_missing_value_tracks_true, // 9
-              const std::vector<std::string> &nodes_modes,                 // 10
-              const std::vector<int64_t> &nodes_nodeids,                   // 11
-              const std::vector<int64_t> &nodes_treeids,                   // 12
-              const std::vector<int64_t> &nodes_truenodeids,               // 13
-              const std::vector<NTYPE> &nodes_values,                      // 14
-              const std::string &post_transform,                           // 15
-              const std::vector<int64_t> &target_class_ids,                // 16
-              const std::vector<int64_t> &target_class_nodeids,            // 17
-              const std::vector<int64_t> &target_class_treeids,            // 18
-              const std::vector<NTYPE> &target_class_weights               // 19
+  void
+  init_c(const std::string &aggregate_function, // only classifier
+         const std::vector<typename FeatureType::ValueType> &base_values, // 4
+         int64_t n_targets_or_classes,                                    // 5
+         const std::vector<int64_t> &nodes_falsenodeids,                  // 6
+         const std::vector<int64_t> &nodes_featureids,                    // 7
+         const std::vector<NTYPE> &nodes_hitrates,                        // 8
+         const std::vector<int64_t> &nodes_missing_value_tracks_true,     // 9
+         const std::vector<std::string> &nodes_modes,                     // 10
+         const std::vector<int64_t> &nodes_nodeids,                       // 11
+         const std::vector<int64_t> &nodes_treeids,                       // 12
+         const std::vector<int64_t> &nodes_truenodeids,                   // 13
+         const std::vector<NTYPE> &nodes_values,                          // 14
+         const std::string &post_transform,                               // 15
+         const std::vector<int64_t> &target_class_ids,                    // 16
+         const std::vector<int64_t> &target_class_nodeids,                // 17
+         const std::vector<int64_t> &target_class_treeids,                // 18
+         const std::vector<NTYPE> &target_class_weights                   // 19
   ) {
     this->Init(aggregate_function,              // 3
                base_values,                     // 4

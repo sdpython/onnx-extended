@@ -11,23 +11,26 @@
 
 namespace onnx_c_ops {
 
-template <typename InputType, typename ThresholdType, typename OutputType>
+template <typename FeatureType, typename ThresholdType, typename OutputType>
 class TreeEnsembleCommonClassifier
-    : public TreeEnsembleCommon<InputType, ThresholdType, OutputType> {
+    : public TreeEnsembleCommon<FeatureType, ThresholdType, OutputType> {
 protected:
   bool weights_are_all_positive_;
   bool binary_case_;
   std::vector<int64_t> class_labels_;
 
 public:
-  Status Compute(int64_t n_rows, int64_t n_features, const InputType *X,
+  Status Compute(int64_t n_rows, int64_t n_features,
+                 const typename TreeEnsembleCommon<FeatureType, ThresholdType,
+                                                    OutputType>::InputType *X,
                  OutputType *Y, int64_t *label) const {
+    FeatureType features(X, n_rows, n_features);
     switch (this->aggregate_function_) {
     case AGGREGATE_FUNCTION::SUM:
       DEBUG_PRINT("ComputeCl SUM")
       ComputeAggClassifier(
-          n_rows, n_features, X, Y, label,
-          TreeAggregatorSum<InputType, ThresholdType, OutputType>(
+          features, Y, label,
+          TreeAggregatorSum<FeatureType, ThresholdType, OutputType>(
               this->roots_.size(), this->n_targets_or_classes_,
               this->post_transform_, this->base_values_));
       return Status::OK();
@@ -54,7 +57,7 @@ public:
               const std::vector<int64_t> &class_treeids,                   // 18
               const std::vector<ThresholdType> &class_weights              // 19
   ) {
-    TreeEnsembleCommon<InputType, ThresholdType, OutputType>::Init(
+    TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
         aggregate_function,              // 3
         base_values,                     // 4
         n_targets_or_classes,            // 5
@@ -90,13 +93,12 @@ public:
 
 protected:
   template <typename AGG>
-  void ComputeAggClassifier(int64_t n_rows, int64_t n_features,
-                            const InputType *X, OutputType *Y, int64_t *labels,
-                            const AGG & /* agg */) const {
+  void ComputeAggClassifier(const FeatureType &data, OutputType *Y,
+                            int64_t *labels, const AGG & /* agg */) const {
     DEBUG_PRINT("ComputeAggClassifier")
     this->ComputeAgg(
-        n_rows, n_features, X, Y, labels,
-        TreeAggregatorClassifier<InputType, ThresholdType, OutputType>(
+        data, Y, labels,
+        TreeAggregatorClassifier<FeatureType, ThresholdType, OutputType>(
             this->roots_.size(), this->n_targets_or_classes_,
             this->post_transform_, this->base_values_, binary_case_,
             weights_are_all_positive_));
