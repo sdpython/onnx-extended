@@ -135,7 +135,7 @@ template <typename T> struct DenseFeatureAccessor : public FeatureAccessor<T> {
 template <typename FeatureType, typename ThresholdType, typename OutputType>
 class TreeEnsembleCommon : public TreeEnsembleCommonAttributes {
 public:
-  typedef FeatureType::ValueType InputType;
+  typedef typename FeatureType::ValueType InputType;
 
 protected:
   std::vector<ThresholdType> base_values_;
@@ -691,7 +691,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
             static_cast<std::size_t>(n_trees_), {0, 0});
         TryBatchParallelFor(
             max_n_threads, this->batch_size_tree_, n_trees_,
-            [this, &scores, &agg, max_n_threads, &features](int64_t j) {
+            [this, &scores, &agg, &features](int64_t j) {
               agg.ProcessTreeNodePrediction1(
                   scores[j], *ProcessTreeNodeLeave(j, features.get(0)));
             });
@@ -828,8 +828,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       DEBUG_PRINT_STEP("S:NN-P:TN")
       TryBatchParallelFor(
           max_n_threads, batch_size_rows_, N,
-          [this, &agg, z_data, label_data, &features,
-           max_n_threads](int64_t i) {
+          [this, &agg, z_data, label_data, &features](int64_t i) {
             ScoreValue<ThresholdType> score = {0, 0};
             for (std::size_t j = 0; j < static_cast<std::size_t>(n_trees_);
                  ++j) {
@@ -1018,7 +1017,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       auto n_batches = N / n_threads + 1;
       TrySimpleParallelFor(
           n_threads, n_batches,
-          [this, &agg, n_threads, z_data, label_data, N, &features,
+          [this, &agg, z_data, label_data, N, &features,
            n_batches](int64_t batch_num) {
             auto work = PartitionWork(batch_num, n_batches, N);
             for (int64_t i = work.start; i < work.end; ++i) {

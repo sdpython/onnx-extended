@@ -239,7 +239,7 @@ std::size_t write_scores(std::size_t n_classes, NTYPE *scores,
 
 template <typename NTYPE, typename T>
 std::size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform,
-                          T *Z, int add_second_class) {
+                          T *Z, int /* add_second_class */) {
   switch (post_transform) {
   case POST_EVAL_TRANSFORM::PROBIT:
     Z[0] = ComputeProbit(scores[0]);
