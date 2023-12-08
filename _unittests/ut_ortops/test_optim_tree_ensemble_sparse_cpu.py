@@ -63,11 +63,12 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
             onx,
             op_type="TreeEnsembleRegressor",
             op_domain="ai.onnx.ml",
+            new_op_type="TreeEnsembleRegressorSparse",
             new_op_domain="onnx_extented.ortops.optim.cpu",
             nodes_modes=modes,
-            new_op_type="TreeEnsembleRegressor",
         )
         self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+        self.assertIn("TreeEnsembleRegressorSparse", str(onx2))
 
         # check with onnxruntime + custom op
         feeds = {"X": dense_to_sparse_struct(X[80:])}
