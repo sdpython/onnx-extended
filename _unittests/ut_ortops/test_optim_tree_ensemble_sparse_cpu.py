@@ -1,5 +1,7 @@
 import unittest
 import numpy
+from onnx import TensorProto
+from onnx.helper import make_tensor_value_info
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
 from onnx_extended.ortops.optim.cpu import documentation
@@ -67,6 +69,8 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
             new_op_domain="onnx_extented.ortops.optim.cpu",
             nodes_modes=modes,
         )
+        del onx2.graph.input[:]
+        onx2.graph.input.append(make_tensor_value_info("X", TensorProto.FLOAT, (None,)))
         self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
         self.assertIn("TreeEnsembleRegressorSparse", str(onx2))
 

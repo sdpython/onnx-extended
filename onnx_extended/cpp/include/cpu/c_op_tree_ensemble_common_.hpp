@@ -63,6 +63,8 @@ template <class Tp> struct TreeAlloc {
   void deallocate(Tp *p, std::size_t) { AllocatorDefaultFree(p); }
 };
 
+enum FeatureRepresentation { NONE, DENSE, SPARSE };
+
 template <typename T> struct FeatureAccessor {
   typedef T ValueType;
   const T *data;
@@ -70,23 +72,36 @@ template <typename T> struct FeatureAccessor {
   int64_t n_features;
   inline FeatureAccessor(const T *ptr, int64_t n, int64_t c)
       : data(ptr), n_rows(n), n_features(c) {}
+  static inline FeatureRepresentation FeatureType() {
+    return FeatureRepresentation::NONE;
+  }
 };
 
 template <typename T> struct DenseFeatureAccessor : public FeatureAccessor<T> {
   struct RowAccessor {
     const T *ptr;
     inline T get(int64_t col) { return ptr[col]; }
+    static inline FeatureRepresentation FeatureType() {
+      return FeatureRepresentation::DENSE;
+    }
   };
+
   inline DenseFeatureAccessor(const T *ptr, int64_t n, int64_t c)
       : FeatureAccessor<T>(ptr, n, c) {}
+
   inline RowAccessor get(int64_t row) const {
     return RowAccessor{this->data + row * this->n_features};
+  }
+
+  static inline FeatureRepresentation FeatureType() {
+    return FeatureRepresentation::DENSE;
   }
 };
 
 template <typename T> struct SparseFeatureAccessor : public FeatureAccessor<T> {
   const onnx_sparse::sparse_struct *sp;
   std::vector<std::unordered_map<uint32_t, T>> maps;
+
   struct RowAccessor {
     const std::unordered_map<uint32_t, T> *ptr;
     inline T get(int64_t col) {
@@ -94,13 +109,34 @@ template <typename T> struct SparseFeatureAccessor : public FeatureAccessor<T> {
       return it == ptr->end() ? std::numeric_limits<T>::quiet_NaN()
                               : it->second;
     }
+    static inline FeatureRepresentation FeatureType() {
+      return FeatureRepresentation::SPARSE;
+    }
   };
+
   inline SparseFeatureAccessor(const T *ptr, int64_t n, int64_t c)
       : FeatureAccessor<T>(ptr, n, c) {
     sp = (const onnx_sparse::sparse_struct *)ptr;
+    if (sp->n_dims == 2) {
+      this->n_rows = sp->shape[0];
+      this->n_features = sp->shape[1];
+    } else if (sp->n_dims == 1) {
+      this->n_rows = sp->shape[0];
+      this->n_features = 1;
+    } else {
+      this->n_rows = 1;
+      for (uint32_t i = 0; i < sp->n_dims - 1; ++i)
+        this->n_rows *= sp->shape[i];
+      this->n_features = sp->shape[sp->n_dims - 1];
+    }
     sp->to_unordered_maps(maps);
   }
+
   inline RowAccessor get(int64_t row) const { return RowAccessor{&maps[row]}; }
+
+  static inline FeatureRepresentation FeatureType() {
+    return FeatureRepresentation::SPARSE;
+  }
 };
 
 class TreeEnsembleCommonAttributes {

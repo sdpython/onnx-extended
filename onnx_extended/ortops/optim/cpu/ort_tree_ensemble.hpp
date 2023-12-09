@@ -304,10 +304,34 @@ void TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::Compute(
 
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_X = ctx.GetInput(0);
-  std::vector<int64_t> dimensions_in =
-      input_X.GetTensorTypeAndShapeInfo().GetShape();
-  EXT_ENFORCE(dimensions_in.size() == 2, "TreeEnsemble only allows 2D inputs.");
-  std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
+  int64_t n_rows, n_features;
+  const typename IFEATURETYPE::ValueType *X =
+      input_X.GetTensorData<typename IFEATURETYPE::ValueType>();
+
+  if (IFEATURETYPE::FeatureType() == onnx_c_ops::FeatureRepresentation::DENSE) {
+    std::vector<int64_t> dimensions_in =
+        input_X.GetTensorTypeAndShapeInfo().GetShape();
+    EXT_ENFORCE(dimensions_in.size() == 2,
+                "TreeEnsemble only allows 2D inputs.");
+    n_rows = dimensions_in[0];
+    n_features = dimensions_in[1];
+  } else if (IFEATURETYPE::FeatureType() ==
+             onnx_c_ops::FeatureRepresentation::SPARSE) {
+    std::vector<int64_t> dims_x =
+        input_X.GetTensorTypeAndShapeInfo().GetShape();
+    EXT_ENFORCE(dims_x.size() == 1, "Sparse input should be 1D.");
+    onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)X;
+    EXT_ENFORCE(dims_x[0] == static_cast<int64_t>(sp->size_float()),
+                "Dimensions mismatch, input tensor has a different length (",
+                dims_x[0], ") than the expected one (", sp->size_float(), ").");
+    EXT_ENFORCE(sp->n_dims == 2, "TreeEnsemble only allows 2D inputs.");
+    n_rows = sp->shape[0];
+    n_features = 0; // unused
+  } else {
+    EXT_THROW("Unexpected FeatureType class.");
+  }
+
+  std::vector<int64_t> dimensions_out{n_rows, n_targets_or_classes};
   Ort::UnownedValue output =
       ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
 
@@ -320,16 +344,13 @@ void TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::Compute(
 
   int64_t *p_labels = nullptr;
   if (is_classifier) {
-    std::vector<int64_t> dimensions_label{dimensions_in[0]};
+    std::vector<int64_t> dimensions_label{n_rows};
     Ort::UnownedValue labels = ctx.GetOutput(0, dimensions_label);
     p_labels = labels.GetTensorMutableData<int64_t>();
   }
 
-  const typename IFEATURETYPE::ValueType *X =
-      input_X.GetTensorData<typename IFEATURETYPE::ValueType>();
   OTYPE *out = output.GetTensorMutableData<OTYPE>();
-  reg_type_type_type->Compute(dimensions_in[0], dimensions_in[1], X, out,
-                              p_labels);
+  reg_type_type_type->Compute(n_rows, n_features, X, out, p_labels);
 }
 
 } // namespace ortops
