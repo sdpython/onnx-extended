@@ -22,16 +22,18 @@ class TreebeardSORunner {
   int32_t batchSize;
   int32_t rowSize;
 
+#ifdef USE_DLFCN
   void CallFuncAndGetIntValueFromSo(const std::string &functionName,
                                     int32_t &field) {
     using GetFunc_t = int32_t (*)();
-#ifdef USE_DLFCN
     auto get = reinterpret_cast<GetFunc_t>(dlsym(so, functionName.c_str()));
     field = get();
-#else
-    EXT_THROW("CallFuncAndGetIntValueFromSo: only works on linux.");
-#endif
   }
+#else
+  void CallFuncAndGetIntValueFromSo(const std::string &, int32_t &) {
+    EXT_THROW("CallFuncAndGetIntValueFromSo: only works on linux.");
+  }
+#endif
 
 public:
   TreebeardSORunner(const char *soFilePath) {

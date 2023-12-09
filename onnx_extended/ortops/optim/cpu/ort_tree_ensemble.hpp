@@ -323,7 +323,8 @@ void TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::Compute(
     onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)X;
     EXT_ENFORCE(dims_x[0] == static_cast<int64_t>(sp->size_float()),
                 "Dimensions mismatch, input tensor has a different length (",
-                dims_x[0], ") than the expected one (", sp->size_float(), ").");
+                dims_x[0], ") than the expected one (",
+                static_cast<int64_t>(sp->size_float()), ").");
     EXT_ENFORCE(sp->n_dims == 2, "TreeEnsemble only allows 2D inputs.");
     n_rows = sp->shape[0];
     n_features = 0; // unused

@@ -93,11 +93,9 @@ void DynamicQuantizeLinearKernel::Compute(OrtKernelContext *context) {
 }
 
 template <typename T>
-void DynamicQuantizeLinearKernel_ComputeInternal(int64_t n_elements,
-                                                 const T *input,
-                                                 uint8_t *output, float &scale,
-                                                 uint8_t &zero_point,
-                                                 int64_t to) {
+void DynamicQuantizeLinearKernel_ComputeInternal(
+    int64_t /* n_elements */, const T * /* input */, uint8_t * /* output */,
+    float & /* scale */, uint8_t & /* zero_point */, int64_t /* to */) {
   EXT_THROW("ComputeInternal must be specialized for type ", typeid(T).name(),
             ".");
 }

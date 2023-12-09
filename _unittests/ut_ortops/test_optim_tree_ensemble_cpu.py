@@ -263,7 +263,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             random_state=32,
         )
         X = X.astype(numpy.float32)
-        y = y.astype(numpy.float32)
+        y = y.astype(numpy.int64)
         self.assertEqual(len(set(y)), 3)
 
         rf = RandomForestClassifier(500, max_depth=2, random_state=32)

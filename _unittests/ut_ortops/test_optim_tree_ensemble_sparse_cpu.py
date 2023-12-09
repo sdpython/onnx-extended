@@ -2,8 +2,8 @@ import unittest
 import numpy
 from onnx import TensorProto
 from onnx.helper import make_tensor_value_info
-from sklearn.datasets import make_regression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.datasets import make_classification, make_regression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from onnx_extended.ortops.optim.cpu import documentation
 from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
@@ -85,6 +85,71 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
         )
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(expected, got, atol=1e-5)
+
+    @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    def test_random_forest_classifier_sparse(self):
+        from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+        from onnx_extended.validation.cpu._validation import dense_to_sparse_struct
+        from skl2onnx import to_onnx
+
+        X, y = make_classification(
+            100,
+            3,
+            n_classes=3,
+            n_informative=2,
+            n_redundant=1,
+            n_clusters_per_class=1,
+            random_state=32,
+        )
+        X = X.astype(numpy.float32)
+        y = y.astype(numpy.int64)
+        self.assertEqual(len(set(y)), 3)
+
+        rf = RandomForestClassifier(500, max_depth=2, random_state=32)
+        rf.fit(X[:80], y[:80])
+        expected = rf.predict(X[80:]).astype(numpy.int64)
+        expected_proba = rf.predict_proba(X[80:]).astype(numpy.float32)
+        onx = to_onnx(rf, X[:1], options={"zipmap": False})
+        feeds = {"X": X[80:]}
+
+        # check with onnxruntime
+        sess = InferenceSession(
+            onx.SerializeToString(), providers=["CPUExecutionProvider"]
+        )
+        got = sess.run(None, feeds)
+        self.assertEqualArray(expected, got[0])
+        self.assertEqualArray(expected_proba, got[1], atol=1e-5)
+
+        # transformation
+        att = get_node_attribute(onx.graph.node[0], "nodes_modes")
+        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
+            "BRANCH_", ""
+        )
+        onx2 = change_onnx_operator_domain(
+            onx,
+            op_type="TreeEnsembleClassifier",
+            op_domain="ai.onnx.ml",
+            new_op_type="TreeEnsembleClassifierSparse",
+            new_op_domain="onnx_extented.ortops.optim.cpu",
+            nodes_modes=modes,
+        )
+        del onx2.graph.input[:]
+        onx2.graph.input.append(make_tensor_value_info("X", TensorProto.FLOAT, (None,)))
+        self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+        self.assertIn("TreeEnsembleClassifierSparse", str(onx2))
+
+        # check with onnxruntime + custom op
+        feeds = {"X": dense_to_sparse_struct(X[80:])}
+        r = get_ort_ext_libs()
+        self.assertExists(r[0])
+        opts = SessionOptions()
+        opts.register_custom_ops_library(r[0])
+        sess = InferenceSession(
+            onx2.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+        )
+        got = sess.run(None, feeds)
+        self.assertEqualArray(expected_proba, got[1], atol=1e-5)
+        self.assertEqualArray(expected, got[0])
 
 
 if __name__ == "__main__":
