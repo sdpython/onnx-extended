@@ -268,6 +268,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
 
         rf = RandomForestClassifier(500, max_depth=2, random_state=32)
         rf.fit(X[:80], y[:80])
+        expected_labels = rf.predict(X[80:]).astype(numpy.int64)
         expected = rf.predict_proba(X[80:]).astype(numpy.float32)
         onx = to_onnx(rf, X[:1], options={"zipmap": False})
 
@@ -321,12 +322,14 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             )
 
             feeds = {"X": X[80:81]}
-            got = sess.run(None, feeds)[1]
-            self.assertEqualArray(expected[:1], got, atol=1e-4)
+            got = sess.run(None, feeds)
+            self.assertEqualArray(expected[:1], got[1], atol=1e-4)
+            self.assertEqualArray(expected_labels[:1], got[0], atol=1e-4)
 
             feeds = {"X": X[80:]}
-            got = sess.run(None, feeds)[1]
-            self.assertEqualArray(expected, got, atol=1e-4)
+            got = sess.run(None, feeds)
+            self.assertEqualArray(expected, got[1], atol=1e-4)
+            self.assertEqualArray(expected_labels, got[0], atol=1e-4)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_random_forest_regressor_as_tensor(self):

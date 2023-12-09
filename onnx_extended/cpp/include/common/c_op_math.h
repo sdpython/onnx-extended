@@ -4,6 +4,7 @@
 #include <cfloat>
 #include <cmath>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace onnx_c_ops {

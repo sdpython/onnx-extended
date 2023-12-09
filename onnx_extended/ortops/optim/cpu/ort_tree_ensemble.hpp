@@ -147,6 +147,7 @@ template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
     const OrtApi &api, const OrtKernelInfo *info) {
   reg_type_type_type = nullptr;
+  cls_type_type_type = nullptr;
 
   std::string aggregate_function = KernelInfoGetOptionalAttributeString(
       api, info, "aggregate_function", "SUM");
@@ -260,22 +261,42 @@ TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   EXT_ENFORCE(n_targets_or_classes > 0);
   EXT_ENFORCE(nodes_values.size() > 0);
   EXT_ENFORCE(nodes_nodeids.size() > 0);
-  EXT_ENFORCE(nodes_modes.size() == nodes_falsenodeids.size(),
-              " nodes_modes.size()==", (uint64_t)nodes_modes.size(),
-              "!=", (uint64_t)nodes_falsenodeids.size(),
-              ", nodes_modes=", nodes_modes_single, ".");
+  EXT_ENFORCE(
+      nodes_modes.size() == nodes_falsenodeids.size(),
+      " nodes_modes.size()==", static_cast<uint64_t>(nodes_modes.size()),
+      "!=", static_cast<uint64_t>(nodes_falsenodeids.size()),
+      ", nodes_modes=", nodes_modes_single, ".");
   EXT_ENFORCE(n_targets_or_classes > 0);
 
-  std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>>
-      ptr(new onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>());
-  reg_type_type_type.swap(ptr);
-  auto status = reg_type_type_type->Init(
-      aggregate_function, base_values, n_targets_or_classes, nodes_falsenodeids,
-      nodes_featureids, nodes_hitrates, nodes_missing_value_tracks_true,
-      nodes_modes, nodes_nodeids, nodes_treeids, nodes_truenodeids,
-      nodes_values, post_transform, target_class_ids, target_class_nodeids,
-      target_class_treeids, target_class_weights);
-  EXT_ENFORCE(status.IsOK(), "The tree ensemble initialisation failed.");
+  if (is_classifier) {
+    std::unique_ptr<
+        onnx_c_ops::TreeEnsembleCommonClassifier<IFEATURETYPE, TTYPE, OTYPE>>
+        ptr(new onnx_c_ops::TreeEnsembleCommonClassifier<IFEATURETYPE, TTYPE,
+                                                         OTYPE>());
+    cls_type_type_type.swap(ptr);
+    auto status = cls_type_type_type->Init(
+        aggregate_function, base_values, n_targets_or_classes,
+        nodes_falsenodeids, nodes_featureids, nodes_hitrates,
+        nodes_missing_value_tracks_true, nodes_modes, nodes_nodeids,
+        nodes_treeids, nodes_truenodeids, nodes_values, post_transform,
+        target_class_ids, target_class_nodeids, target_class_treeids,
+        target_class_weights);
+    EXT_ENFORCE(status.IsOK(),
+                "The TreeEnsembleClassifier initialisation failed.");
+  } else {
+    std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>>
+        ptr(new onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>());
+    reg_type_type_type.swap(ptr);
+    auto status = reg_type_type_type->Init(
+        aggregate_function, base_values, n_targets_or_classes,
+        nodes_falsenodeids, nodes_featureids, nodes_hitrates,
+        nodes_missing_value_tracks_true, nodes_modes, nodes_nodeids,
+        nodes_treeids, nodes_truenodeids, nodes_values, post_transform,
+        target_class_ids, target_class_nodeids, target_class_treeids,
+        target_class_weights);
+    EXT_ENFORCE(status.IsOK(),
+                "The TreeEnsembleRegressor initialisation failed.");
+  }
 
   int64_t parallel_tree = KernelInfoGetOptionalAttribute(
       api, info, "parallel_tree", static_cast<int64_t>(80));
@@ -290,8 +311,13 @@ TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   int64_t use_node3 = KernelInfoGetOptionalAttribute(api, info, "use_node3",
                                                      static_cast<int64_t>(0));
 
-  reg_type_type_type->set(parallel_tree, parallel_tree_N, parallel_N,
-                          batch_size_tree, batch_size_rows, use_node3);
+  if (is_classifier) {
+    cls_type_type_type->set(parallel_tree, parallel_tree_N, parallel_N,
+                            batch_size_tree, batch_size_rows, use_node3);
+  } else {
+    reg_type_type_type->set(parallel_tree, parallel_tree_N, parallel_N,
+                            batch_size_tree, batch_size_rows, use_node3);
+  }
 }
 
 ////////////////////////
@@ -335,23 +361,30 @@ void TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::Compute(
   std::vector<int64_t> dimensions_out{n_rows, n_targets_or_classes};
   Ort::UnownedValue output =
       ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
+  OTYPE *out = output.GetTensorMutableData<OTYPE>();
 
-  EXT_ENFORCE(reg_type_type_type.get() != nullptr,
-              "No implementation yet for input type=",
-              (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
-              " and output type=",
-              (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
-              ".");
-
-  int64_t *p_labels = nullptr;
   if (is_classifier) {
+    EXT_ENFORCE(cls_type_type_type.get() != nullptr,
+                "No implementation yet for input type=",
+                (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
+                " and output type=",
+                (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
+                ".");
+
     std::vector<int64_t> dimensions_label{n_rows};
     Ort::UnownedValue labels = ctx.GetOutput(0, dimensions_label);
-    p_labels = labels.GetTensorMutableData<int64_t>();
-  }
+    int64_t *p_labels = labels.GetTensorMutableData<int64_t>();
+    cls_type_type_type->Compute(n_rows, n_features, X, out, p_labels);
+  } else {
+    EXT_ENFORCE(reg_type_type_type.get() != nullptr,
+                "No implementation yet for input type=",
+                (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
+                " and output type=",
+                (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
+                ".");
 
-  OTYPE *out = output.GetTensorMutableData<OTYPE>();
-  reg_type_type_type->Compute(n_rows, n_features, X, out, p_labels);
+    reg_type_type_type->Compute(n_rows, n_features, X, out, nullptr);
+  }
 }
 
 } // namespace ortops
