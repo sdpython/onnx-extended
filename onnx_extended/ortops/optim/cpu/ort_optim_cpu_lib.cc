@@ -33,6 +33,12 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>,
                                         float, float>
       c_TreeEnsembleClassifier;
+  static ortops::TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>,
+                                       float, float>
+      c_TreeEnsembleRegressorSparse;
+  static ortops::TreeEnsembleClassifier<
+      onnx_c_ops::SparseFeatureAccessor<float>, float, float>
+      c_TreeEnsembleClassifierSparse;
   static ortops::TfIdfVectorizer<int64_t, float> c_TfIdfVectorizer;
 
   try {
@@ -40,8 +46,10 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_SVMClassifier);
     domain.Add(&c_SVMRegressor);
-    domain.Add(&c_TreeEnsembleRegressor);
     domain.Add(&c_TreeEnsembleClassifier);
+    domain.Add(&c_TreeEnsembleClassifierSparse);
+    domain.Add(&c_TreeEnsembleRegressor);
+    domain.Add(&c_TreeEnsembleRegressorSparse);
     domain.Add(&c_TfIdfVectorizer);
 
     session_options.Add(domain);

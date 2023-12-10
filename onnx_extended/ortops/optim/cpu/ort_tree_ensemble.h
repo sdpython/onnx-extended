@@ -2,6 +2,7 @@
 
 #include "common/common_kernels.h"
 #include "cpu/c_op_tree_ensemble_common_.hpp"
+#include "cpu/c_op_tree_ensemble_common_classifier_.hpp"
 
 namespace ortops {
 
@@ -14,6 +15,9 @@ struct TreeEnsembleKernel {
   int64_t n_targets_or_classes;
   std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>>
       reg_type_type_type;
+  std::unique_ptr<
+      onnx_c_ops::TreeEnsembleCommonClassifier<IFEATURETYPE, TTYPE, OTYPE>>
+      cls_type_type_type;
   bool is_classifier;
 };
 

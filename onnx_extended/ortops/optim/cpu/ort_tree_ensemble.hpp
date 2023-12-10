@@ -24,6 +24,12 @@ const char *TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>,
   return "TreeEnsembleRegressor";
 };
 
+template <>
+const char *TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>,
+                                  float, float>::GetName() const {
+  return "TreeEnsembleRegressorSparse";
+};
+
 template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 const char *
 TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetExecutionProviderType()
@@ -44,6 +50,13 @@ TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float,
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
 
+template <>
+ONNXTensorElementDataType
+TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float,
+                      float>::GetInputType(std::size_t /* index */) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+};
+
 template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 size_t
 TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
@@ -53,6 +66,13 @@ TreeEnsembleRegressor<IFEATURETYPE, TTYPE, OTYPE>::GetOutputTypeCount() const {
 template <>
 ONNXTensorElementDataType
 TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float,
+                      float>::GetOutputType(std::size_t /* index */) const {
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+};
+
+template <>
+ONNXTensorElementDataType
+TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float,
                       float>::GetOutputType(std::size_t /* index */) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 };
@@ -71,6 +91,12 @@ template <>
 const char *TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>,
                                    float, float>::GetName() const {
   return "TreeEnsembleClassifier";
+};
+
+template <>
+const char *TreeEnsembleClassifier<onnx_c_ops::SparseFeatureAccessor<float>,
+                                   float, float>::GetName() const {
+  return "TreeEnsembleClassifierSparse";
 };
 
 template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
@@ -121,6 +147,7 @@ template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
 TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
     const OrtApi &api, const OrtKernelInfo *info) {
   reg_type_type_type = nullptr;
+  cls_type_type_type = nullptr;
 
   std::string aggregate_function = KernelInfoGetOptionalAttributeString(
       api, info, "aggregate_function", "SUM");
@@ -234,22 +261,42 @@ TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   EXT_ENFORCE(n_targets_or_classes > 0);
   EXT_ENFORCE(nodes_values.size() > 0);
   EXT_ENFORCE(nodes_nodeids.size() > 0);
-  EXT_ENFORCE(nodes_modes.size() == nodes_falsenodeids.size(),
-              " nodes_modes.size()==", (uint64_t)nodes_modes.size(),
-              "!=", (uint64_t)nodes_falsenodeids.size(),
-              ", nodes_modes=", nodes_modes_single, ".");
+  EXT_ENFORCE(
+      nodes_modes.size() == nodes_falsenodeids.size(),
+      " nodes_modes.size()==", static_cast<uint64_t>(nodes_modes.size()),
+      "!=", static_cast<uint64_t>(nodes_falsenodeids.size()),
+      ", nodes_modes=", nodes_modes_single, ".");
   EXT_ENFORCE(n_targets_or_classes > 0);
 
-  std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>>
-      ptr(new onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>());
-  reg_type_type_type.swap(ptr);
-  auto status = reg_type_type_type->Init(
-      aggregate_function, base_values, n_targets_or_classes, nodes_falsenodeids,
-      nodes_featureids, nodes_hitrates, nodes_missing_value_tracks_true,
-      nodes_modes, nodes_nodeids, nodes_treeids, nodes_truenodeids,
-      nodes_values, post_transform, target_class_ids, target_class_nodeids,
-      target_class_treeids, target_class_weights);
-  EXT_ENFORCE(status.IsOK(), "The tree ensemble initialisation failed.");
+  if (is_classifier) {
+    std::unique_ptr<
+        onnx_c_ops::TreeEnsembleCommonClassifier<IFEATURETYPE, TTYPE, OTYPE>>
+        ptr(new onnx_c_ops::TreeEnsembleCommonClassifier<IFEATURETYPE, TTYPE,
+                                                         OTYPE>());
+    cls_type_type_type.swap(ptr);
+    auto status = cls_type_type_type->Init(
+        aggregate_function, base_values, n_targets_or_classes,
+        nodes_falsenodeids, nodes_featureids, nodes_hitrates,
+        nodes_missing_value_tracks_true, nodes_modes, nodes_nodeids,
+        nodes_treeids, nodes_truenodeids, nodes_values, post_transform,
+        target_class_ids, target_class_nodeids, target_class_treeids,
+        target_class_weights);
+    EXT_ENFORCE(status.IsOK(),
+                "The TreeEnsembleClassifier initialisation failed.");
+  } else {
+    std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>>
+        ptr(new onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>());
+    reg_type_type_type.swap(ptr);
+    auto status = reg_type_type_type->Init(
+        aggregate_function, base_values, n_targets_or_classes,
+        nodes_falsenodeids, nodes_featureids, nodes_hitrates,
+        nodes_missing_value_tracks_true, nodes_modes, nodes_nodeids,
+        nodes_treeids, nodes_truenodeids, nodes_values, post_transform,
+        target_class_ids, target_class_nodeids, target_class_treeids,
+        target_class_weights);
+    EXT_ENFORCE(status.IsOK(),
+                "The TreeEnsembleRegressor initialisation failed.");
+  }
 
   int64_t parallel_tree = KernelInfoGetOptionalAttribute(
       api, info, "parallel_tree", static_cast<int64_t>(80));
@@ -264,8 +311,13 @@ TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(
   int64_t use_node3 = KernelInfoGetOptionalAttribute(api, info, "use_node3",
                                                      static_cast<int64_t>(0));
 
-  reg_type_type_type->set(parallel_tree, parallel_tree_N, parallel_N,
-                          batch_size_tree, batch_size_rows, use_node3);
+  if (is_classifier) {
+    cls_type_type_type->set(parallel_tree, parallel_tree_N, parallel_N,
+                            batch_size_tree, batch_size_rows, use_node3);
+  } else {
+    reg_type_type_type->set(parallel_tree, parallel_tree_N, parallel_N,
+                            batch_size_tree, batch_size_rows, use_node3);
+  }
 }
 
 ////////////////////////
@@ -278,32 +330,61 @@ void TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::Compute(
 
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_X = ctx.GetInput(0);
-  std::vector<int64_t> dimensions_in =
-      input_X.GetTensorTypeAndShapeInfo().GetShape();
-  EXT_ENFORCE(dimensions_in.size() == 2, "TreeEnsemble only allows 2D inputs.");
-  std::vector<int64_t> dimensions_out{dimensions_in[0], n_targets_or_classes};
-  Ort::UnownedValue output =
-      ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
-
-  EXT_ENFORCE(reg_type_type_type.get() != nullptr,
-              "No implementation yet for input type=",
-              (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
-              " and output type=",
-              (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
-              ".");
-
-  int64_t *p_labels = nullptr;
-  if (is_classifier) {
-    std::vector<int64_t> dimensions_label{dimensions_in[0]};
-    Ort::UnownedValue labels = ctx.GetOutput(0, dimensions_label);
-    p_labels = labels.GetTensorMutableData<int64_t>();
-  }
-
+  int64_t n_rows, n_features;
   const typename IFEATURETYPE::ValueType *X =
       input_X.GetTensorData<typename IFEATURETYPE::ValueType>();
+
+  if (IFEATURETYPE::FeatureType() == onnx_c_ops::FeatureRepresentation::DENSE) {
+    std::vector<int64_t> dimensions_in =
+        input_X.GetTensorTypeAndShapeInfo().GetShape();
+    EXT_ENFORCE(dimensions_in.size() == 2,
+                "TreeEnsemble only allows 2D inputs.");
+    n_rows = dimensions_in[0];
+    n_features = dimensions_in[1];
+  } else if (IFEATURETYPE::FeatureType() ==
+             onnx_c_ops::FeatureRepresentation::SPARSE) {
+    std::vector<int64_t> dims_x =
+        input_X.GetTensorTypeAndShapeInfo().GetShape();
+    EXT_ENFORCE(dims_x.size() == 1, "Sparse input should be 1D.");
+    onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)X;
+    EXT_ENFORCE(dims_x[0] == static_cast<int64_t>(sp->size_float()),
+                "Dimensions mismatch, input tensor has a different length (",
+                dims_x[0], ") than the expected one (",
+                static_cast<int64_t>(sp->size_float()), ").");
+    EXT_ENFORCE(sp->n_dims == 2, "TreeEnsemble only allows 2D inputs.");
+    n_rows = sp->shape[0];
+    n_features = 0; // unused
+  } else {
+    EXT_THROW("Unexpected FeatureType class.");
+  }
+
+  std::vector<int64_t> dimensions_out{n_rows, n_targets_or_classes};
+  Ort::UnownedValue output =
+      ctx.GetOutput(is_classifier ? 1 : 0, dimensions_out);
   OTYPE *out = output.GetTensorMutableData<OTYPE>();
-  reg_type_type_type->Compute(dimensions_in[0], dimensions_in[1], X, out,
-                              p_labels);
+
+  if (is_classifier) {
+    EXT_ENFORCE(cls_type_type_type.get() != nullptr,
+                "No implementation yet for input type=",
+                (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
+                " and output type=",
+                (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
+                ".");
+
+    std::vector<int64_t> dimensions_label{n_rows};
+    Ort::UnownedValue labels = ctx.GetOutput(0, dimensions_label);
+    int64_t *p_labels = labels.GetTensorMutableData<int64_t>();
+    cls_type_type_type->Compute(n_rows, n_features, X, out, p_labels);
+  } else {
+    EXT_ENFORCE(reg_type_type_type.get() != nullptr,
+                "No implementation yet for input type=",
+                (uint64_t)input_X.GetTensorTypeAndShapeInfo().GetElementType(),
+                " and output type=",
+                (uint64_t)output.GetTensorTypeAndShapeInfo().GetElementType(),
+                ".");
+
+    reg_type_type_type->Compute(n_rows, n_features, X, out, nullptr);
+  }
 }
 
 } // namespace ortops

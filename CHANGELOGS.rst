@@ -4,7 +4,8 @@ Change Logs
 0.2.4
 +++++
 
-* :pr:`120`:  use onnxruntime==1.16.3 as default
+* :pr:`129`: support sparse features for TreeEnsemble
+* :pr:`120`: use onnxruntime==1.16.3 as default
 * :pr:`115`, :pr:`116`, :pr:`118`: adds C implementation of SVMRegressor, SVMClassifier
   reference operator based on it, and custom kernels for onnxruntime as well
 * :pr:`111`, :pr:`117`, :pr:`119`: adds C implementation of TfIdfVectorizer +
