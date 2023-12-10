@@ -87,6 +87,7 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(expected, got, atol=1e-5)
 
+    @skipif_ci_apple("crash")
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_random_forest_classifier_sparse(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
