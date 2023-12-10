@@ -16,8 +16,7 @@ private:
 };
 
 struct MyCustomOpWithAttributes
-    : Ort::CustomOpBase<MyCustomOpWithAttributes,
-                        MyCustomKernelWithAttributes> {
+    : Ort::CustomOpBase<MyCustomOpWithAttributes, MyCustomKernelWithAttributes> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;

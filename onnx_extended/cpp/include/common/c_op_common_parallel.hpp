@@ -11,8 +11,7 @@ struct WorkInfo {
   int64_t end{0};
 };
 
-inline WorkInfo PartitionWork(int64_t batch_idx, int64_t num_batches,
-                              int64_t total_work) {
+inline WorkInfo PartitionWork(int64_t batch_idx, int64_t num_batches, int64_t total_work) {
   int64_t work_per_batch = total_work / num_batches;
   int64_t work_per_batch_extra = total_work % num_batches;
 
@@ -32,8 +31,7 @@ inline WorkInfo PartitionWork(int64_t batch_idx, int64_t num_batches,
 }
 
 template <typename F>
-inline void TrySimpleParallelFor(int64_t n_threads, int64_t n_iterations,
-                                 F &&fn) {
+inline void TrySimpleParallelFor(int64_t n_threads, int64_t n_iterations, F &&fn) {
   if (n_threads != omp_get_max_threads()) {
     throw std::runtime_error("TryBatchParallelFor not implemented when "
                              "n_threads != omp_get_max_threads().");
@@ -60,8 +58,7 @@ inline void TrySimpleParallelFor(int64_t n_threads, int64_t n_iterations,
 }
 
 template <typename F>
-inline void TryBatchParallelFor(int64_t n_threads, int64_t batch_size,
-                                int64_t total, F &&fn) {
+inline void TryBatchParallelFor(int64_t n_threads, int64_t batch_size, int64_t total, F &&fn) {
   if (n_threads != omp_get_max_threads()) {
     throw std::runtime_error("TryBatchParallelFor not implemented when "
                              "n_threads != omp_get_max_threads().");
@@ -88,8 +85,7 @@ inline void TryBatchParallelFor(int64_t n_threads, int64_t batch_size,
 }
 
 template <typename F>
-inline void TryBatchParallelFor2(int64_t n_threads, int64_t batch_size,
-                                 int64_t total, F &&fn) {
+inline void TryBatchParallelFor2(int64_t n_threads, int64_t batch_size, int64_t total, F &&fn) {
   if (n_threads != omp_get_max_threads()) {
     throw std::runtime_error("TryBatchParallelFor2 not implemented when "
                              "n_threads != omp_get_max_threads().");
@@ -112,8 +108,8 @@ inline void TryBatchParallelFor2(int64_t n_threads, int64_t batch_size,
 }
 
 template <typename F>
-inline void TryBatchParallelFor2i(int64_t n_threads, int64_t batch_size,
-                                  int64_t total, F &&fn) {
+inline void TryBatchParallelFor2i(int64_t n_threads, int64_t batch_size, int64_t total,
+                                  F &&fn) {
   if (n_threads != omp_get_max_threads()) {
     throw std::runtime_error("TryBatchParallelFor2i not implemented when "
                              "n_threads != omp_get_max_threads().");

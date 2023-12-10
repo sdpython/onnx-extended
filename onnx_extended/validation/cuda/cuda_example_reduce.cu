@@ -11,10 +11,10 @@
 
 namespace cuda_example {
 
-#define reduce6_block_and_sync(I, I2)                                          \
-  if ((blockSize >= I) && (tid < I2)) {                                        \
-    sdata[tid] = mySum = mySum + sdata[tid + I2];                              \
-  }                                                                            \
+#define reduce6_block_and_sync(I, I2)                                                          \
+  if ((blockSize >= I) && (tid < I2)) {                                                        \
+    sdata[tid] = mySum = mySum + sdata[tid + I2];                                              \
+  }                                                                                            \
   __syncthreads();
 
 template <typename T, unsigned int blockSize, bool nIsPow2>
@@ -79,14 +79,12 @@ bool isPow2(unsigned int n) {
   return (n & (n - 1)) == 0;
 }
 
-#define case_vector_sum_6_block(T, I, B)                                       \
-  case I:                                                                      \
-    kernel_reduce6<T, I, B>                                                    \
-        <<<dimGrid, dimBlock, smemSize>>>(gpu_ptr, gpu_block_ptr, size);       \
+#define case_vector_sum_6_block(T, I, B)                                                       \
+  case I:                                                                                      \
+    kernel_reduce6<T, I, B><<<dimGrid, dimBlock, smemSize>>>(gpu_ptr, gpu_block_ptr, size);    \
     break;
 
-float kernel_vector_sum_6(unsigned int size, const float *gpu_ptr,
-                          int maxThreads) {
+float kernel_vector_sum_6(unsigned int size, const float *gpu_ptr, int maxThreads) {
 
   int threads = (size < maxThreads) ? nextPow2(size) : maxThreads;
   int blocks = (size + threads - 1) / threads;
@@ -94,8 +92,7 @@ float kernel_vector_sum_6(unsigned int size, const float *gpu_ptr,
   dim3 dimGrid(blocks, 1, 1);
   float *gpu_block_ptr;
   checkCudaErrors(cudaMalloc(&gpu_block_ptr, blocks * sizeof(float)));
-  int smemSize =
-      (threads <= 32) ? 2 * threads * sizeof(float) : threads * sizeof(float);
+  int smemSize = (threads <= 32) ? 2 * threads * sizeof(float) : threads * sizeof(float);
 
   if (isPow2(size)) {
     switch (threads) {
@@ -128,8 +125,8 @@ float kernel_vector_sum_6(unsigned int size, const float *gpu_ptr,
   // the last reduction happens on CPU, the first step is to move
   // the data from GPU to CPU.
   float *cpu_ptr = new float[blocks];
-  checkCudaErrors(cudaMemcpy(cpu_ptr, gpu_block_ptr, blocks * sizeof(float),
-                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(
+      cudaMemcpy(cpu_ptr, gpu_block_ptr, blocks * sizeof(float), cudaMemcpyDeviceToHost));
   float gpu_result = 0;
   for (int i = 0; i < blocks; ++i) {
     gpu_result += cpu_ptr[i];
@@ -139,15 +136,13 @@ float kernel_vector_sum_6(unsigned int size, const float *gpu_ptr,
   return gpu_result;
 }
 
-float vector_sum6(unsigned int size, const float *ptr, int maxThreads,
-                  int cudaDevice) {
+float vector_sum6(unsigned int size, const float *ptr, int maxThreads, int cudaDevice) {
   // copy memory from CPU memory to CUDA memory
   NVTX_SCOPE("vector_sum6")
   float *gpu_ptr;
   checkCudaErrors(cudaSetDevice(cudaDevice));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
-  checkCudaErrors(
-      cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(gpu_ptr, ptr, size * sizeof(float), cudaMemcpyHostToDevice));
 
   // execute the code
   float result = kernel_vector_sum_6(size, gpu_ptr, maxThreads);

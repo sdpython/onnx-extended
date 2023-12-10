@@ -10,25 +10,22 @@
 
 namespace py = pybind11;
 
-#define py_array_t_int64_t                                                     \
-  py::array_t<int64_t, py::array::c_style | py::array::forcecast>
-#define py_array_t_ntype_t                                                     \
-  py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
+#define py_array_t_int64_t py::array_t<int64_t, py::array::c_style | py::array::forcecast>
+#define py_array_t_ntype_t py::array_t<NTYPE, py::array::c_style | py::array::forcecast>
 
 namespace onnx_c_ops {
 
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(
-    py::array_t<float, py::array::c_style | py::array::forcecast> &Z) {
+py::detail::unchecked_mutable_reference<float, 1>
+_mutable_unchecked1(py::array_t<float, py::array::c_style | py::array::forcecast> &Z) {
   return Z.mutable_unchecked<1>();
 }
 
-py::detail::unchecked_mutable_reference<int64_t, 1>
-_mutable_unchecked1(py_array_t_int64_t &Z) {
+py::detail::unchecked_mutable_reference<int64_t, 1> _mutable_unchecked1(py_array_t_int64_t &Z) {
   return Z.mutable_unchecked<1>();
 }
 
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(
-    py::array_t<double, py::array::c_style | py::array::forcecast> &Z) {
+py::detail::unchecked_mutable_reference<double, 1>
+_mutable_unchecked1(py::array_t<double, py::array::c_style | py::array::forcecast> &Z) {
   return Z.mutable_unchecked<1>();
 }
 
@@ -39,16 +36,15 @@ class RuntimeTreeEnsembleCommon
 public:
   typedef typename FeatureType::ValueType NTYPE;
 
-  RuntimeTreeEnsembleCommon()
-      : TreeEnsembleCommon<FeatureType, NTYPE, NTYPE>() {}
+  RuntimeTreeEnsembleCommon() : TreeEnsembleCommon<FeatureType, NTYPE, NTYPE>() {}
   ~RuntimeTreeEnsembleCommon() {}
 
-  void init(const std::string &aggregate_function, // only classifier
-            py_array_t_ntype_t base_values,        // 4
-            int64_t n_targets_or_classes,          // 5
-            py_array_t_int64_t nodes_falsenodeids, // 6
-            py_array_t_int64_t nodes_featureids,   // 7
-            py_array_t_ntype_t nodes_hitrates,     // 8
+  void init(const std::string &aggregate_function,              // only classifier
+            py_array_t_ntype_t base_values,                     // 4
+            int64_t n_targets_or_classes,                       // 5
+            py_array_t_int64_t nodes_falsenodeids,              // 6
+            py_array_t_int64_t nodes_featureids,                // 7
+            py_array_t_ntype_t nodes_hitrates,                  // 8
             py_array_t_int64_t nodes_missing_value_tracks_true, // 9
             const std::vector<std::string> &nodes_modes,        // 10
             py_array_t_int64_t nodes_nodeids,                   // 11
@@ -77,8 +73,7 @@ public:
     array2vector(tnodes_falsenodeids, nodes_falsenodeids, int64_t);
     array2vector(tnodes_featureids, nodes_featureids, int64_t);
     array2vector(tnodes_hitrates, nodes_hitrates, NTYPE);
-    array2vector(tmissing_tracks_true, nodes_missing_value_tracks_true,
-                 int64_t);
+    array2vector(tmissing_tracks_true, nodes_missing_value_tracks_true, int64_t);
     array2vector(tnodes_truenodeids, nodes_truenodeids, int64_t);
     // nodes_modes_names_ = nodes_modes;
     array2vector(tnodes_nodeids, nodes_nodeids, int64_t);
@@ -117,24 +112,23 @@ public:
     );
   }
 
-  void
-  init_c(const std::string &aggregate_function, // only classifier
-         const std::vector<typename FeatureType::ValueType> &base_values, // 4
-         int64_t n_targets_or_classes,                                    // 5
-         const std::vector<int64_t> &nodes_falsenodeids,                  // 6
-         const std::vector<int64_t> &nodes_featureids,                    // 7
-         const std::vector<NTYPE> &nodes_hitrates,                        // 8
-         const std::vector<int64_t> &nodes_missing_value_tracks_true,     // 9
-         const std::vector<std::string> &nodes_modes,                     // 10
-         const std::vector<int64_t> &nodes_nodeids,                       // 11
-         const std::vector<int64_t> &nodes_treeids,                       // 12
-         const std::vector<int64_t> &nodes_truenodeids,                   // 13
-         const std::vector<NTYPE> &nodes_values,                          // 14
-         const std::string &post_transform,                               // 15
-         const std::vector<int64_t> &target_class_ids,                    // 16
-         const std::vector<int64_t> &target_class_nodeids,                // 17
-         const std::vector<int64_t> &target_class_treeids,                // 18
-         const std::vector<NTYPE> &target_class_weights                   // 19
+  void init_c(const std::string &aggregate_function, // only classifier
+              const std::vector<typename FeatureType::ValueType> &base_values, // 4
+              int64_t n_targets_or_classes,                                    // 5
+              const std::vector<int64_t> &nodes_falsenodeids,                  // 6
+              const std::vector<int64_t> &nodes_featureids,                    // 7
+              const std::vector<NTYPE> &nodes_hitrates,                        // 8
+              const std::vector<int64_t> &nodes_missing_value_tracks_true,     // 9
+              const std::vector<std::string> &nodes_modes,                     // 10
+              const std::vector<int64_t> &nodes_nodeids,                       // 11
+              const std::vector<int64_t> &nodes_treeids,                       // 12
+              const std::vector<int64_t> &nodes_truenodeids,                   // 13
+              const std::vector<NTYPE> &nodes_values,                          // 14
+              const std::string &post_transform,                               // 15
+              const std::vector<int64_t> &target_class_ids,                    // 16
+              const std::vector<int64_t> &target_class_nodeids,                // 17
+              const std::vector<int64_t> &target_class_treeids,                // 18
+              const std::vector<NTYPE> &target_class_weights                   // 19
   ) {
     this->Init(aggregate_function,              // 3
                base_values,                     // 4
@@ -181,8 +175,8 @@ public:
 
 private:
   void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t /* N */,
-                        int64_t /* stride */, py_array_t_ntype_t &X,
-                        py_array_t_ntype_t &Z, py_array_t_int64_t * /* Y */) {
+                        int64_t /* stride */, py_array_t_ntype_t &X, py_array_t_ntype_t &Z,
+                        py_array_t_int64_t * /* Y */) {
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(std::size_t)1>();
     const NTYPE *x_data = X.data(0);
     NTYPE *z_data = (NTYPE *)Z_.data(0);

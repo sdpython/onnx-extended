@@ -17,8 +17,7 @@
 namespace onnx_c_ops {
 
 template <typename NTYPE>
-NTYPE vector_dot_product_pointer(const NTYPE *pa, const NTYPE *pb,
-                                 std::size_t len) {
+NTYPE vector_dot_product_pointer(const NTYPE *pa, const NTYPE *pb, std::size_t len) {
   NTYPE s = 0;
   for (; len > 0; ++pa, ++pb, --len)
     s += *pa * *pb;
@@ -55,11 +54,9 @@ public:
   RuntimeSVMCommon() {}
   ~RuntimeSVMCommon() {}
 
-  void init(const std::vector<NTYPE> &coefficients,
-            const std::vector<NTYPE> &kernel_params,
+  void init(const std::vector<NTYPE> &coefficients, const std::vector<NTYPE> &kernel_params,
             const std::string &kernel_type, const std::string &post_transform,
-            const std::vector<NTYPE> &rho,
-            const std::vector<NTYPE> &support_vectors,
+            const std::vector<NTYPE> &rho, const std::vector<NTYPE> &support_vectors,
             // regressor
             int64_t n_supports, int64_t one_class,
             // classifier
@@ -88,8 +85,8 @@ public:
       vector_count_ = n_supports;
 
       if (vector_count_ > 0) {
-        feature_count_ = support_vectors_.size() /
-                         vector_count_; // length of each support vector
+        feature_count_ =
+            support_vectors_.size() / vector_count_; // length of each support vector
         mode_ = SVM_TYPE::SVM_SVC;
       } else {
         feature_count_ = coefficients_.size();
@@ -111,11 +108,10 @@ public:
         vector_count_ += vectors_per_class_[i];
       }
 
-      class_count_ =
-          classlabels_ints_.size() > 0 ? classlabels_ints_.size() : 1;
+      class_count_ = classlabels_ints_.size() > 0 ? classlabels_ints_.size() : 1;
       if (vector_count_ > 0) {
-        feature_count_ = support_vectors_.size() /
-                         vector_count_; // length of each support vector
+        feature_count_ =
+            support_vectors_.size() / vector_count_; // length of each support vector
         mode_ = SVM_TYPE::SVM_SVC;
       } else {
         feature_count_ = coefficients_.size() / class_count_; // liblinear mode
@@ -132,23 +128,22 @@ public:
     }
   }
 
-  void compute_regressor(const std::vector<int64_t> & /* x_dims */, int64_t N,
-                         int64_t stride, const NTYPE *x_data,
-                         NTYPE *z_data) const {
+  void compute_regressor(const std::vector<int64_t> & /* x_dims */, int64_t N, int64_t stride,
+                         const NTYPE *x_data, NTYPE *z_data) const {
 #pragma omp parallel for
     for (int64_t n = 0; n < N; ++n) {
       int64_t current_weight_0 = n * stride;
       NTYPE sum = 0;
       if (mode_ == SVM_TYPE::SVM_SVC) {
         for (int64_t j = 0; j < vector_count_; ++j) {
-          sum += coefficients_[j] *
-                 kernel_dot(x_data, current_weight_0, support_vectors_,
-                            feature_count_ * j, feature_count_, kernel_type_);
+          sum +=
+              coefficients_[j] * kernel_dot(x_data, current_weight_0, support_vectors_,
+                                            feature_count_ * j, feature_count_, kernel_type_);
         }
         sum += rho_[0];
       } else if (mode_ == SVM_TYPE::SVM_LINEAR) {
-        sum = kernel_dot(x_data, current_weight_0, coefficients_, 0,
-                         feature_count_, kernel_type_);
+        sum = kernel_dot(x_data, current_weight_0, coefficients_, 0, feature_count_,
+                         kernel_type_);
         sum += rho_[0];
       }
       z_data[n] = one_class_ ? (sum > 0 ? 1 : -1) : sum;
@@ -163,9 +158,8 @@ public:
     return n_columns;
   }
 
-  void compute_classifier(const std::vector<int64_t> & /* x_dims */, int64_t N,
-                          int64_t stride, const NTYPE *x_data0,
-                          int64_t *y_data0, NTYPE *z_data0,
+  void compute_classifier(const std::vector<int64_t> & /* x_dims */, int64_t N, int64_t stride,
+                          const NTYPE *x_data0, int64_t *y_data0, NTYPE *z_data0,
                           int64_t n_columns) const {
 
 #pragma omp parallel for
@@ -183,9 +177,8 @@ public:
       if (vector_count_ == 0 && mode_ == SVM_TYPE::SVM_LINEAR) {
         scores.resize(class_count_);
         for (int64_t j = 0; j < class_count_; j++) { // for each class
-          scores[j] =
-              rho_[0] + kernel_dot(x_data, 0, coefficients_, feature_count_ * j,
-                                   feature_count_, kernel_type_);
+          scores[j] = rho_[0] + kernel_dot(x_data, 0, coefficients_, feature_count_ * j,
+                                           feature_count_, kernel_type_);
         }
       } else {
         EXT_ENFORCE(vector_count_ > 0, "No support vectors.");
@@ -193,9 +186,8 @@ public:
 
         kernels.resize(vector_count_);
         for (int64_t j = 0; j < vector_count_; j++) {
-          kernels[j] =
-              kernel_dot(x_data, 0, support_vectors_, feature_count_ * j,
-                         feature_count_, kernel_type_);
+          kernels[j] = kernel_dot(x_data, 0, support_vectors_, feature_count_ * j,
+                                  feature_count_, kernel_type_);
         }
         votes.resize(class_count_, 0);
         scores.reserve(class_count_ * (class_count_ - 1) / 2);
@@ -237,10 +229,8 @@ public:
         for (int64_t i = 0; i < class_count_; ++i) {
           int64_t p1 = i * class_count_ + i + 1;
           int64_t p2 = (i + 1) * class_count_ + i;
-          for (int64_t j = i + 1; j < class_count_;
-               ++j, ++index, ++p1, p2 += class_count_) {
-            val1 = sigmoid_probability(scores[index], proba_[index],
-                                       probb_[index]);
+          for (int64_t j = i + 1; j < class_count_; ++j, ++index, ++p1, p2 += class_count_) {
+            val1 = sigmoid_probability(scores[index], proba_[index], probb_[index]);
             val2 = std::max(val1, (NTYPE)1.0e-7);
             val2 = std::min(val2, (NTYPE)(1 - 1.0e-7));
             probsp2[p1] = val2;
@@ -267,8 +257,7 @@ public:
       // onnx specs expects one column per class.
       int write_additional_scores = -1;
       if (rho_.size() == 1) {
-        write_additional_scores =
-            _set_score_svm(y_data, max_weight, maxclass, 0, 1, 0);
+        write_additional_scores = _set_score_svm(y_data, max_weight, maxclass, 0, 1, 0);
       } else if (classlabels_ints_.size() > 0) { // multiclass
         *y_data = classlabels_ints_[maxclass];
       } else {
@@ -280,8 +269,8 @@ public:
   }
 
 protected:
-  NTYPE kernel_dot(const NTYPE *A, int64_t a, const std::vector<NTYPE> &B,
-                   int64_t b, int64_t len, KERNEL k) const {
+  NTYPE kernel_dot(const NTYPE *A, int64_t a, const std::vector<NTYPE> &B, int64_t b,
+                   int64_t len, KERNEL k) const {
     double sum = 0;
     double val;
     const NTYPE *pA = A + a;
@@ -325,13 +314,11 @@ protected:
     return (NTYPE)sum;
   }
 
-  int _set_score_svm(int64_t *output_data, NTYPE max_weight,
-                     const int64_t maxclass, const int64_t n, int64_t posclass,
-                     int64_t negclass) const {
+  int _set_score_svm(int64_t *output_data, NTYPE max_weight, const int64_t maxclass,
+                     const int64_t n, int64_t posclass, int64_t negclass) const {
     int write_additional_scores = -1;
     if (classlabels_ints_.size() == 2) {
-      write_additional_scores =
-          post_transform_ == POST_EVAL_TRANSFORM::NONE ? 2 : 0;
+      write_additional_scores = post_transform_ == POST_EVAL_TRANSFORM::NONE ? 2 : 0;
       if (proba_.size() == 0) {
         if (weights_are_all_positive_ && max_weight >= 0.5)
           output_data[n] = classlabels_ints_[1];
@@ -404,8 +391,7 @@ protected:
         ii = i * classcount + i;
         diff = (-Qp[i] + pQp) / Q[ii];
         p[i] += diff;
-        pQp =
-            (pQp + diff * (diff * Q[ii] + 2 * Qp[i])) / (1 + diff) / (1 + diff);
+        pQp = (pQp + diff * (diff * Q[ii] + 2 * Qp[i])) / (1 + diff) / (1 + diff);
         ij = i * classcount;
         for (int64_t j = 0; j < classcount; ++j, ++ij) {
           Qp[j] = (Qp[j] + diff * Q[ij]) / (1 + diff);

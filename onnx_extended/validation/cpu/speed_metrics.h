@@ -21,9 +21,7 @@ inline bool _isnan_(double x) {
     double f;
   } ieee754;
   ieee754.f = x;
-  return ((unsigned)(ieee754.u >> 32) & 0x7fffffff) +
-             ((unsigned)ieee754.u != 0) >
-         0x7ff00000;
+  return ((unsigned)(ieee754.u >> 32) & 0x7fffffff) + ((unsigned)ieee754.u != 0) > 0x7ff00000;
 }
 
 inline bool _isnan_(float x) {
@@ -47,9 +45,8 @@ typedef struct ElementTime {
 } ElementTime;
 
 double benchmark_cache(int64_t arr_size, bool verbose);
-std::vector<ElementTime>
-benchmark_cache_tree(int64_t n_rows, int64_t n_features, int64_t n_trees,
-                     int64_t tree_size, int64_t max_depth,
-                     int64_t search_step = 64);
+std::vector<ElementTime> benchmark_cache_tree(int64_t n_rows, int64_t n_features,
+                                              int64_t n_trees, int64_t tree_size,
+                                              int64_t max_depth, int64_t search_step = 64);
 
 } // namespace validation

@@ -15,8 +15,7 @@ template <typename T> struct SVMKernel {
   bool is_classifier;
 };
 
-template <typename T>
-struct SVMRegressor : Ort::CustomOpBase<SVMRegressor<T>, SVMKernel<T>> {
+template <typename T> struct SVMRegressor : Ort::CustomOpBase<SVMRegressor<T>, SVMKernel<T>> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
@@ -26,8 +25,7 @@ struct SVMRegressor : Ort::CustomOpBase<SVMRegressor<T>, SVMKernel<T>> {
   ONNXTensorElementDataType GetOutputType(std::size_t index) const;
 };
 
-template <typename T>
-struct SVMClassifier : Ort::CustomOpBase<SVMClassifier<T>, SVMKernel<T>> {
+template <typename T> struct SVMClassifier : Ort::CustomOpBase<SVMClassifier<T>, SVMKernel<T>> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;

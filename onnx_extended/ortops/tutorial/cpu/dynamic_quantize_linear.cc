@@ -10,8 +10,8 @@ namespace ortops {
 // Operator definition
 //////////////////////
 
-void *DynamicQuantizeLinearOp::CreateKernel(
-    const OrtApi &api, const OrtKernelInfo *info) const noexcept {
+void *DynamicQuantizeLinearOp::CreateKernel(const OrtApi &api,
+                                            const OrtKernelInfo *info) const noexcept {
   return std::make_unique<DynamicQuantizeLinearKernel>(api, info).release();
 };
 
@@ -23,21 +23,16 @@ const char *DynamicQuantizeLinearOp::GetExecutionProviderType() const noexcept {
   return "CPUExecutionProvider";
 }
 
-size_t DynamicQuantizeLinearOp::GetInputTypeCount() const noexcept {
-  return 1;
-};
+size_t DynamicQuantizeLinearOp::GetInputTypeCount() const noexcept { return 1; };
 
 ONNXTensorElementDataType
 DynamicQuantizeLinearOp::GetInputType(std::size_t /* index */) const noexcept {
   return input_type_;
 }
 
-size_t DynamicQuantizeLinearOp::GetOutputTypeCount() const noexcept {
-  return 3;
-};
+size_t DynamicQuantizeLinearOp::GetOutputTypeCount() const noexcept { return 3; };
 
-ONNXTensorElementDataType
-DynamicQuantizeLinearOp::GetOutputType(std::size_t index) const {
+ONNXTensorElementDataType DynamicQuantizeLinearOp::GetOutputType(std::size_t index) const {
   switch (index) {
   case 0:
     return quant_type_;
@@ -54,16 +49,15 @@ DynamicQuantizeLinearOp::GetOutputType(std::size_t index) const {
 // Kernel implementation
 ////////////////////////
 
-DynamicQuantizeLinearKernel::DynamicQuantizeLinearKernel(
-    const OrtApi &api, const OrtKernelInfo *info) {
+DynamicQuantizeLinearKernel::DynamicQuantizeLinearKernel(const OrtApi &api,
+                                                         const OrtKernelInfo *info) {
   ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "to", &to_));
 }
 
 void DynamicQuantizeLinearKernel::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
   Ort::ConstValue input_X = ctx.GetInput(0);
-  Ort::TensorTypeAndShapeInfo type_shape_info =
-      input_X.GetTensorTypeAndShapeInfo();
+  Ort::TensorTypeAndShapeInfo type_shape_info = input_X.GetTensorTypeAndShapeInfo();
   int64_t elem_type = type_shape_info.GetElementType();
   int64_t count = type_shape_info.GetElementCount();
 
@@ -93,17 +87,17 @@ void DynamicQuantizeLinearKernel::Compute(OrtKernelContext *context) {
 }
 
 template <typename T>
-void DynamicQuantizeLinearKernel_ComputeInternal(
-    int64_t /* n_elements */, const T * /* input */, uint8_t * /* output */,
-    float & /* scale */, uint8_t & /* zero_point */, int64_t /* to */) {
-  EXT_THROW("ComputeInternal must be specialized for type ", typeid(T).name(),
-            ".");
+void DynamicQuantizeLinearKernel_ComputeInternal(int64_t /* n_elements */,
+                                                 const T * /* input */, uint8_t * /* output */,
+                                                 float & /* scale */,
+                                                 uint8_t & /* zero_point */, int64_t /* to */) {
+  EXT_THROW("ComputeInternal must be specialized for type ", typeid(T).name(), ".");
 }
 
 template <>
-void DynamicQuantizeLinearKernel_ComputeInternal<float>(
-    int64_t n_elements, const float *input, uint8_t *output, float &scale,
-    uint8_t &zero_point, int64_t to) {
+void DynamicQuantizeLinearKernel_ComputeInternal<float>(int64_t n_elements, const float *input,
+                                                        uint8_t *output, float &scale,
+                                                        uint8_t &zero_point, int64_t to) {
 
   switch (to) {
   case 17 /* ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN */: {
@@ -117,8 +111,7 @@ void DynamicQuantizeLinearKernel_ComputeInternal<float>(
     scale = std::sqrt(x2) / std8;
 
     if (zero_point != 0) {
-      EXT_THROW("zero_point must be null not ", zero_point,
-                " for type FLOAT8E4M3FN.");
+      EXT_THROW("zero_point must be null not ", zero_point, " for type FLOAT8E4M3FN.");
     }
     float_to_e4m3fn(n_elements, input, output, scale);
   } break;
@@ -128,12 +121,11 @@ void DynamicQuantizeLinearKernel_ComputeInternal<float>(
 }
 
 template <typename T>
-void DynamicQuantizeLinearKernel::ComputeInternal(int64_t n_elements,
-                                                  const T *input,
+void DynamicQuantizeLinearKernel::ComputeInternal(int64_t n_elements, const T *input,
                                                   uint8_t *output, float &scale,
                                                   uint8_t &zero_point) {
-  DynamicQuantizeLinearKernel_ComputeInternal<T>(n_elements, input, output,
-                                                 scale, zero_point, to_);
+  DynamicQuantizeLinearKernel_ComputeInternal<T>(n_elements, input, output, scale, zero_point,
+                                                 to_);
 }
 
 } // namespace ortops

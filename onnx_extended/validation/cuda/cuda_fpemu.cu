@@ -45,36 +45,22 @@ typedef union ufloat32 {
  *  http://prng.di.unimi.it/xoshiro128plusplus.c
  *  main page: http://prng.di.unimi.it/
  */
-__device__ static uint32_t s1[4] = {1387366120, 279844183, 888998500,
-                                    1099633400};
-__device__ static uint32_t s2[4] = {2034269327, 2125325156, 1209715489,
-                                    193165672};
+__device__ static uint32_t s1[4] = {1387366120, 279844183, 888998500, 1099633400};
+__device__ static uint32_t s2[4] = {2034269327, 2125325156, 1209715489, 193165672};
 __device__ static uint32_t s3[4] = {1555452618, 650181557, 883695203, 62767784};
-__device__ static uint32_t s4[4] = {419524804, 2146478152, 480059239,
-                                    1468956197};
-__device__ static uint32_t s5[4] = {1252084877, 500390994, 977516591,
-                                    1950666000};
-__device__ static uint32_t s6[4] = {393659750, 834151069, 1477014702,
-                                    734008143};
-__device__ static uint32_t s7[4] = {1983400973, 116410309, 2110188261,
-                                    2019272068};
+__device__ static uint32_t s4[4] = {419524804, 2146478152, 480059239, 1468956197};
+__device__ static uint32_t s5[4] = {1252084877, 500390994, 977516591, 1950666000};
+__device__ static uint32_t s6[4] = {393659750, 834151069, 1477014702, 734008143};
+__device__ static uint32_t s7[4] = {1983400973, 116410309, 2110188261, 2019272068};
 __device__ static uint32_t s8[4] = {187709636, 28336299, 419632041, 1774181187};
-__device__ static uint32_t s9[4] = {702309618, 407781555, 1512057936,
-                                    1868769368};
-__device__ static uint32_t s10[4] = {510001215, 966559856, 776583255,
-                                     147562106};
-__device__ static uint32_t s11[4] = {127180605, 1881312534, 478635452,
-                                     814821902};
-__device__ static uint32_t s12[4] = {733990058, 1889991804, 1108257970,
-                                     1093480892};
-__device__ static uint32_t s13[4] = {427374380, 416747337, 558000409,
-                                     1594848927};
-__device__ static uint32_t s14[4] = {444870959, 1595722866, 1064124488,
-                                     363710254};
-__device__ static uint32_t s15[4] = {703721499, 389640783, 1002360059,
-                                     1427395742};
-__device__ static uint32_t s16[4] = {1295231497, 1254972431, 1423497865,
-                                     861918264};
+__device__ static uint32_t s9[4] = {702309618, 407781555, 1512057936, 1868769368};
+__device__ static uint32_t s10[4] = {510001215, 966559856, 776583255, 147562106};
+__device__ static uint32_t s11[4] = {127180605, 1881312534, 478635452, 814821902};
+__device__ static uint32_t s12[4] = {733990058, 1889991804, 1108257970, 1093480892};
+__device__ static uint32_t s13[4] = {427374380, 416747337, 558000409, 1594848927};
+__device__ static uint32_t s14[4] = {444870959, 1595722866, 1064124488, 363710254};
+__device__ static uint32_t s15[4] = {703721499, 389640783, 1002360059, 1427395742};
+__device__ static uint32_t s16[4] = {1295231497, 1254972431, 1423497865, 861918264};
 
 __device__ static uint32_t *sptr[16] = {s1, s2,  s3,  s4,  s5,  s6,  s7,  s8,
                                         s9, s10, s11, s12, s13, s14, s15, s16};
@@ -83,8 +69,7 @@ __device__ __forceinline__ uint32_t rotl_(const uint32_t x, int k) {
   return (x << k) | (x >> (32 - k));
 }
 
-__device__ __forceinline__ uint32_t
-_rand_xorshft128plus_with_seed(uint32_t *ps) {
+__device__ __forceinline__ uint32_t _rand_xorshft128plus_with_seed(uint32_t *ps) {
   const uint32_t result_plus = ps[0] + ps[3];
   const uint32_t t = ps[1] << 9;
 
@@ -129,8 +114,7 @@ __device__ __forceinline__ unsigned short __anyfloat2half_rn(scalar_t f_) {
   return h_;
 }
 
-template <typename scalar_t>
-__device__ __forceinline__ float __anyfloat2float_rn(scalar_t a_) {
+template <typename scalar_t> __device__ __forceinline__ float __anyfloat2float_rn(scalar_t a_) {
   float f_;
 
   if (std::is_same<scalar_t, double>::value) {
@@ -165,8 +149,8 @@ __device__ void absmax_block(const scalar_t *in, float *sdata, const int size) {
 
 template <typename scalar_t>
 __global__ void E4M3_Kernel(scalar_t *__restrict__ in_out, const int size,
-                            const scalar_t in_scale, bool block_norm, int mbits,
-                            int exp_bits, int rmode) {
+                            const scalar_t in_scale, bool block_norm, int mbits, int exp_bits,
+                            int rmode) {
   int non_mant_bits = exp_bits + 1; /* exponent + sign */
   int lshift = 10 - (mbits - non_mant_bits);
 
@@ -248,19 +232,17 @@ __global__ void E4M3_Kernel(scalar_t *__restrict__ in_out, const int size,
       if (sr_mask) {
         /* stochastic with 16 seeds */
         int seed_index = (gid / 16);
-        unsigned short rand = (unsigned short)_rand_xorshft128plus_with_seed(
-            sptr[(seed_index % 16)]);
+        unsigned short rand =
+            (unsigned short)_rand_xorshft128plus_with_seed(sptr[(seed_index % 16)]);
         /* apply stochastic rounding before truncation if sr_mask is enabled */
         mantissa_h += can_round * is_normal * (rand & 0x7F);
         /* stochastic round:  denormals --> rne rounding */
         mantissa_h +=
-            can_round * is_denorm *
-            (((rnmask > 0x0040) || (rnmask_tie == rne_tie)) << lshift);
+            can_round * is_denorm * (((rnmask > 0x0040) || (rnmask_tie == rne_tie)) << lshift);
       } else {
         /* round to nearest even, if rne_mask is enabled */
         mantissa_h +=
-            can_round * rne_mask *
-            (((rnmask > 0x0040) || (rnmask_tie == rne_tie)) << lshift);
+            can_round * rne_mask * (((rnmask > 0x0040) || (rnmask_tie == rne_tie)) << lshift);
         /* round to nearest away from zero, if rnaz_mask is enabled */
         mantissa_h += can_round * rnaz_mask * ((rnmask >= 0x0040) << lshift);
         /* round to nearest towards zero, if rntz_mask is enabled */
@@ -285,9 +267,9 @@ __global__ void E4M3_Kernel(scalar_t *__restrict__ in_out, const int size,
   }
 }
 
-void fpemu_cuda_forward(const int size, const float *input, float *output,
-                        FpemuMode mode, bool inplace, float scale,
-                        bool block_norm, int block_size, int cuda_device) {
+void fpemu_cuda_forward(const int size, const float *input, float *output, FpemuMode mode,
+                        bool inplace, float scale, bool block_norm, int block_size,
+                        int cuda_device) {
 
   int threads = CUBLOCK_SIZE;
   const dim3 blocks((size + (threads - 1)) / threads);
@@ -296,19 +278,16 @@ void fpemu_cuda_forward(const int size, const float *input, float *output,
 
   checkCudaErrors(cudaSetDevice(cuda_device));
   checkCudaErrors(cudaMalloc(&gpu_ptr, size * sizeof(float)));
-  checkCudaErrors(
-      cudaMemcpy(gpu_ptr, input, size * sizeof(float), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(gpu_ptr, input, size * sizeof(float), cudaMemcpyHostToDevice));
 
   if (mode == FpemuMode::E4M3_RNE) {
-    E4M3_Kernel<float><<<blocks, threads>>>(gpu_ptr, size, scale, block_norm, 8,
-                                            4, ROUND_RNE);
+    E4M3_Kernel<float><<<blocks, threads>>>(gpu_ptr, size, scale, block_norm, 8, 4, ROUND_RNE);
     checkCudaErrors(cudaDeviceSynchronize());
   } else {
-    NVTE_CHECK(false, onnx_extended_helpers::MakeString(
-                          "Unsupported mode ", mode, " for this function."));
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString("Unsupported mode ", mode,
+                                                        " for this function."));
   }
-  checkCudaErrors(cudaMemcpy(output, gpu_ptr, size * sizeof(float),
-                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(output, gpu_ptr, size * sizeof(float), cudaMemcpyDeviceToHost));
 
   checkCudaErrors(cudaFree(gpu_ptr));
 }

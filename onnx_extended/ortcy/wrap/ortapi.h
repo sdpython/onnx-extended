@@ -98,13 +98,12 @@ void session_load_from_bytes(OrtSessionType *, const void *buffer, std::size_t s
 void session_initialize(OrtSessionType *ptr, const char *optimized_file_path,
                         int graph_optimization_level = -1, int enable_cuda = 0,
                         int cuda_device_id = 0, int set_denormal_as_zero = 0,
-                        int intra_op_num_threads = -1,
-                        int inter_op_num_threads = -1,
+                        int intra_op_num_threads = -1, int inter_op_num_threads = -1,
                         char **custom_libs = nullptr);
 size_t session_get_input_count(OrtSessionType *);
 size_t session_get_output_count(OrtSessionType *);
 size_t session_run(OrtSessionType *ptr, std::size_t n_inputs, OrtShape *shapes,
-                   OrtCpuValue *values, std::size_t max_outputs,
-                   OrtShape *out_shapes, OrtCpuValue *out_values);
+                   OrtCpuValue *values, std::size_t max_outputs, OrtShape *out_shapes,
+                   OrtCpuValue *out_values);
 
 } // namespace ortapi

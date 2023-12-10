@@ -39,14 +39,13 @@ int32_t type_size(cudaDataType_t element_type) {
 #endif
     return 1;
   default:
-    NVTE_CHECK(false, onnx_extended_helpers::MakeString(
-                          "Unkown data type ", element_type,
-                          " and this CUDA version ", CUDA_VERSION, "."));
+    NVTE_CHECK(false,
+               onnx_extended_helpers::MakeString("Unkown data type ", element_type,
+                                                 " and this CUDA version ", CUDA_VERSION, "."));
   }
 }
 
-void TensorData::allocate(cudaDataType_t dtype, std::size_t size,
-                          TensorDevice device) {
+void TensorData::allocate(cudaDataType_t dtype, std::size_t size, TensorDevice device) {
   this->dtype = dtype;
   this->size = size;
   this->device = device;
@@ -56,8 +55,8 @@ void TensorData::allocate(cudaDataType_t dtype, std::size_t size,
     break;
   case TensorDevice::CUDA:
     if (cudaMalloc(&dptr, size * type_size(dtype)) != cudaSuccess) {
-      NVTE_ERROR(onnx_extended_helpers::MakeString("Unable to allocate ", size,
-                                                   " bytes on GPU."));
+      NVTE_ERROR(
+          onnx_extended_helpers::MakeString("Unable to allocate ", size, " bytes on GPU."));
     }
     break;
   }
@@ -83,18 +82,16 @@ void TensorData::copy_from_cpu(void *ptr) {
     memcpy(dptr, ptr, type_size(dtype) * size);
     break;
   case TensorDevice::CUDA:
-    NVTE_CHECK_CUDA(
-        cudaMemcpy(dptr, ptr, type_size(dtype) * size, cudaMemcpyHostToDevice));
+    NVTE_CHECK_CUDA(cudaMemcpy(dptr, ptr, type_size(dtype) * size, cudaMemcpyHostToDevice));
     break;
   default:
-    NVTE_CHECK(false, onnx_extended_helpers::MakeString("Unsupported device ",
-                                                        (int)device,
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString("Unsupported device ", (int)device,
                                                         " for copy_from_cpu."));
   }
 }
 
-Tensor::Tensor(const char *name, std::size_t size, cudaDataType_t dtype,
-               TensorDevice device, TensorDevice scale_device) {
+Tensor::Tensor(const char *name, std::size_t size, cudaDataType_t dtype, TensorDevice device,
+               TensorDevice scale_device) {
   this->name = name;
   data.allocate(dtype, size, device);
   if (is_fp8_dtype(dtype)) {
@@ -124,8 +121,8 @@ __global__ void generateRandomFloat16(__half *randomFloat16, int numElements,
   }
 }
 
-__global__ void generateRandomBFloat16(__nv_bfloat16 *randomFloat16,
-                                       int numElements, unsigned int seed) {
+__global__ void generateRandomBFloat16(__nv_bfloat16 *randomFloat16, int numElements,
+                                       unsigned int seed) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid < numElements) {
     curandState state;
@@ -135,8 +132,7 @@ __global__ void generateRandomBFloat16(__nv_bfloat16 *randomFloat16,
   }
 }
 
-__global__ void generateRandomInt8x4(int *randomInt8, int numElements,
-                                     unsigned int seed) {
+__global__ void generateRandomInt8x4(int *randomInt8, int numElements, unsigned int seed) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid < numElements / 4) {
     curandState state;
@@ -148,27 +144,25 @@ __global__ void generateRandomInt8x4(int *randomInt8, int numElements,
 
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
 
-__global__ void generateRandomFloat8E4M3FN(__nv_fp8_storage_t *randomFloat16,
-                                           int numElements, unsigned int seed) {
+__global__ void generateRandomFloat8E4M3FN(__nv_fp8_storage_t *randomFloat16, int numElements,
+                                           unsigned int seed) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid < numElements) {
     curandState state;
     curand_init(seed, tid, 0, &state);
     float randValue = curand_uniform(&state);
-    randomFloat16[tid] =
-        __nv_cvt_float_to_fp8(randValue, __NV_SATFINITE, __NV_E4M3);
+    randomFloat16[tid] = __nv_cvt_float_to_fp8(randValue, __NV_SATFINITE, __NV_E4M3);
   }
 }
 
-__global__ void generateRandomFloat8E5M2(__nv_fp8_storage_t *randomFloat16,
-                                         int numElements, unsigned int seed) {
+__global__ void generateRandomFloat8E5M2(__nv_fp8_storage_t *randomFloat16, int numElements,
+                                         unsigned int seed) {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid < numElements) {
     curandState state;
     curand_init(seed, tid, 0, &state);
     float randValue = curand_uniform(&state);
-    randomFloat16[tid] =
-        __nv_cvt_float_to_fp8(randValue, __NV_SATFINITE, __NV_E5M2);
+    randomFloat16[tid] = __nv_cvt_float_to_fp8(randValue, __NV_SATFINITE, __NV_E5M2);
   }
 }
 
@@ -184,22 +178,21 @@ void Tensor::rnd() {
   case CUDA_R_16F: {
     int blockSize = 256;
     int numBlocks = (data.size + blockSize - 1) / blockSize;
-    generateRandomFloat16<<<numBlocks, blockSize>>>(
-        static_cast<__half *>(data.dptr), data.size, 0);
+    generateRandomFloat16<<<numBlocks, blockSize>>>(static_cast<__half *>(data.dptr), data.size,
+                                                    0);
     cudaDeviceSynchronize();
   } break;
   case CUDA_R_16BF: {
     int blockSize = 256;
     int numBlocks = (data.size + blockSize - 1) / blockSize;
-    generateRandomBFloat16<<<numBlocks, blockSize>>>(
-        static_cast<__nv_bfloat16 *>(data.dptr), data.size, 0);
+    generateRandomBFloat16<<<numBlocks, blockSize>>>(static_cast<__nv_bfloat16 *>(data.dptr),
+                                                     data.size, 0);
     cudaDeviceSynchronize();
   } break;
   case CUDA_R_8I: {
     int blockSize = 256;
     int numBlocks = (data.size + blockSize - 1) / blockSize;
-    generateRandomInt8x4<<<numBlocks, blockSize>>>(
-        static_cast<int *>(data.dptr), data.size, 0);
+    generateRandomInt8x4<<<numBlocks, blockSize>>>(static_cast<int *>(data.dptr), data.size, 0);
     cudaDeviceSynchronize();
   } break;
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 11080
@@ -219,8 +212,8 @@ void Tensor::rnd() {
   } break;
 #endif
   default:
-    NVTE_CHECK(false, onnx_extended_helpers::MakeString(
-                          "Unsupported dtype ", data.dtype, " for rnd."));
+    NVTE_CHECK(false, onnx_extended_helpers::MakeString("Unsupported dtype ", data.dtype,
+                                                        " for rnd."));
   }
   curandDestroyGenerator(gen);
 }

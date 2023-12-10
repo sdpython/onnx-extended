@@ -40,8 +40,7 @@ float vector_sum(int nc, const std::vector<float> &values, bool by_rows) {
   return total;
 }
 
-float vector_sum_array(int nc, const py_array_float &values_array,
-                       bool by_rows) {
+float vector_sum_array(int nc, const py_array_float &values_array, bool by_rows) {
   const float *values = values_array.data(0);
 
   float total = 0;
@@ -68,8 +67,7 @@ float vector_sum_array(int nc, const py_array_float &values_array,
   return total;
 }
 
-float vector_sum_array_parallel(int nc, const py_array_float &values_array,
-                                bool by_rows) {
+float vector_sum_array_parallel(int nc, const py_array_float &values_array, bool by_rows) {
   int n_threads = omp_get_max_threads();
   const float *values = values_array.data(0);
   std::vector<float> totals(n_threads, 0);
@@ -131,8 +129,7 @@ float vector_sum_array_avx(int nc, const py_array_float &values_array) {
   return total;
 }
 
-float vector_sum_array_avx_parallel(int nc,
-                                    const py_array_float &values_array) {
+float vector_sum_array_avx_parallel(int nc, const py_array_float &values_array) {
   // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
   int n_threads = omp_get_max_threads();
   const float *values = values_array.data(0);
@@ -186,7 +183,7 @@ py_array_float vector_add(const py_array_float &v1, const py_array_float &v2) {
 
   const float *p1 = static_cast<const float *>(b1.ptr); // pointer on v1 data
   const float *p2 = static_cast<const float *>(b2.ptr); // pointer on v2 data
-  float *pr = static_cast<float *>(br.ptr); // pointer on result data
+  float *pr = static_cast<float *>(br.ptr);             // pointer on result data
   if (p1 == nullptr || p2 == nullptr || pr == nullptr) {
     throw std::runtime_error("One vector is empty.");
   }

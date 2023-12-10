@@ -27,17 +27,13 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::SVMClassifier<float> c_SVMClassifier;
   static ortops::SVMRegressor<float> c_SVMRegressor;
-  static ortops::TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>,
-                                       float, float>
+  static ortops::TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float, float>
       c_TreeEnsembleRegressor;
-  static ortops::TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>,
-                                        float, float>
+  static ortops::TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>, float, float>
       c_TreeEnsembleClassifier;
-  static ortops::TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>,
-                                       float, float>
+  static ortops::TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
       c_TreeEnsembleRegressorSparse;
-  static ortops::TreeEnsembleClassifier<
-      onnx_c_ops::SparseFeatureAccessor<float>, float, float>
+  static ortops::TreeEnsembleClassifier<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
       c_TreeEnsembleClassifierSparse;
   static ortops::TfIdfVectorizer<int64_t, float> c_TfIdfVectorizer;
 

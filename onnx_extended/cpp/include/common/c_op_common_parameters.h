@@ -34,7 +34,7 @@ enum class AGGREGATE_FUNCTION { AVERAGE, SUM, MIN, MAX };
 
 AGGREGATE_FUNCTION to_AGGREGATE_FUNCTION(const std::string &input);
 
-enum class SVM_TYPE { SVM_LINEAR=1, SVM_SVC=2 };
+enum class SVM_TYPE { SVM_LINEAR = 1, SVM_SVC = 2 };
 
 SVM_TYPE to_SVM_TYPE(const std::string &value);
 
