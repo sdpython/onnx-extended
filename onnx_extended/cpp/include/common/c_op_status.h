@@ -13,12 +13,8 @@ public:
   }
   inline bool IsOK() const { return code == 1; }
   inline int Code() const { return code; }
-  inline bool operator==(const Status &other) const {
-    return code == other.code;
-  }
-  inline bool operator!=(const Status &other) const {
-    return !(*this == other);
-  }
+  inline bool operator==(const Status &other) const { return code == other.code; }
+  inline bool operator!=(const Status &other) const { return !(*this == other); }
   inline static Status OK() { return Status(1); }
 };
 

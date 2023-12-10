@@ -9,13 +9,13 @@
 #include "onnx_extended_helpers.h"
 #include <cstring>
 #include <functional>
+#include <map>
 #include <span>
 #include <sstream>
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <map>
 
 #include <omp.h>
 
@@ -49,8 +49,8 @@ public:
   inline std::string to_string(const std::string &indent = "") const {
     if (leafs_.size() == 0)
       return MakeString("NGramPart(", static_cast<int64_t>(id_), ")");
-    return MakeString("NGramPart(", static_cast<int64_t>(id_), ", ",
-                      leafs_.to_string(indent), ")");
+    return MakeString("NGramPart(", static_cast<int64_t>(id_), ", ", leafs_.to_string(indent),
+                      ")");
   }
 };
 
@@ -100,8 +100,7 @@ inline size_t PopulateGrams(ForwardIter first, size_t ngrams, size_t ngram_size,
   return ngram_id;
 }
 
-inline const void *AdvanceElementPtr(const void *p, size_t elements,
-                                     size_t element_size) {
+inline const void *AdvanceElementPtr(const void *p, size_t elements, size_t element_size) {
   return reinterpret_cast<const uint8_t *>(p) + elements * element_size;
 }
 
@@ -131,8 +130,7 @@ public:
 
   void Init(int max_gram_length, int max_skip_count, int min_gram_length,
             const std::string &mode, const std::vector<int64_t> &ngram_counts,
-            const std::vector<int64_t> &ngram_indexes,
-            const std::vector<int64_t> &pool_int64s,
+            const std::vector<int64_t> &ngram_indexes, const std::vector<int64_t> &pool_int64s,
             const std::vector<T> &weights, bool sparse) {
     if (mode == "TF")
       weighting_criteria_ = kTF;
@@ -148,8 +146,7 @@ public:
     ngram_indexes_ = ngram_indexes;
     sparse_ = sparse;
 
-    auto greatest_hit =
-        std::max_element(ngram_indexes_.cbegin(), ngram_indexes_.cend());
+    auto greatest_hit = std::max_element(ngram_indexes_.cbegin(), ngram_indexes_.cend());
     output_size_ = *greatest_hit + 1;
 
     weights_ = weights;
@@ -162,16 +159,13 @@ public:
     for (size_t i = 0; i < ngram_counts_.size(); ++i) {
 
       size_t start_idx = ngram_counts_[i];
-      size_t end_idx =
-          ((i + 1) < ngram_counts_.size()) ? ngram_counts_[i + 1] : total_items;
+      size_t end_idx = ((i + 1) < ngram_counts_.size()) ? ngram_counts_[i + 1] : total_items;
       auto items = end_idx - start_idx;
       if (items > 0) {
         auto ngrams = items / ngram_size;
-        if ((int)ngram_size >= min_gram_length &&
-            (int)ngram_size <= max_gram_length)
-          ngram_id =
-              PopulateGrams<int64_t>(pool_int64s.begin() + start_idx, ngrams,
-                                     ngram_size, ngram_id, int64_map_);
+        if ((int)ngram_size >= min_gram_length && (int)ngram_size <= max_gram_length)
+          ngram_id = PopulateGrams<int64_t>(pool_int64s.begin() + start_idx, ngrams, ngram_size,
+                                            ngram_id, int64_map_);
         else
           ngram_id += ngrams;
       }
@@ -181,9 +175,8 @@ public:
 
   ~RuntimeTfIdfVectorizer() {}
 
-  void Compute(
-      const std::vector<int64_t> &input_dims, const std::span<const int64_t> &X,
-      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+  void Compute(const std::vector<int64_t> &input_dims, const std::span<const int64_t> &X,
+               std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
     const size_t total_items = flattened_dimension(input_dims);
 
     size_t num_rows = 0;
@@ -231,10 +224,9 @@ public:
         // observations and output_size the is the maximum value in
         // ngram_indexes attribute plus 1.
         std::vector<T> output;
-        onnx_sparse::sparse_struct::copy(output_dims, std::vector<uint32_t>(),
-                                         std::vector<T>(), output);
-        std::span<T> out =
-            alloc(std::vector<int64_t>{static_cast<int64_t>(output.size())});
+        onnx_sparse::sparse_struct::copy(output_dims, std::vector<uint32_t>(), std::vector<T>(),
+                                         output);
+        std::span<T> out = alloc(std::vector<int64_t>{static_cast<int64_t>(output.size())});
         std::memcpy(out.data(), output.data(), output.size() * sizeof(T));
         return;
       }
@@ -256,20 +248,17 @@ public:
   }
 
 private:
-  void ComputeDense(
-      const std::span<const int64_t> &X,
-      const std::vector<int64_t> &output_dims, const size_t num_rows,
-      const size_t C,
-      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+  void ComputeDense(const std::span<const int64_t> &X, const std::vector<int64_t> &output_dims,
+                    const size_t num_rows, const size_t C,
+                    std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
 
     std::span<T> out = alloc(output_dims);
 
     std::function<void(size_t, float *)> fn_weight;
     // can be parallelized.
     size_t n_threads = omp_get_max_threads();
-    size_t n_per_threads =
-        std::min(static_cast<size_t>(128),
-                 std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
+    size_t n_per_threads = std::min(static_cast<size_t>(128),
+                                    std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
 
     auto &w = weights_;
 
@@ -298,8 +287,7 @@ private:
 
     TryBatchParallelFor2i(
         n_threads, n_per_threads, num_rows,
-        [this, X, C, &out, &fn_weight](int, ptrdiff_t row_start,
-                                       ptrdiff_t row_end) {
+        [this, X, C, &out, &fn_weight](int, ptrdiff_t row_start, ptrdiff_t row_end) {
           auto begin = out.data() + row_start * this->output_size_;
           auto end = out.data() + row_end * this->output_size_;
           std::fill(begin, end, 0);
@@ -310,18 +298,15 @@ private:
         });
   }
 
-  void ComputeSparse(
-      const std::span<const int64_t> &X,
-      const std::vector<int64_t> &output_dims, const size_t num_rows,
-      const size_t C,
-      std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+  void ComputeSparse(const std::span<const int64_t> &X, const std::vector<int64_t> &output_dims,
+                     const size_t num_rows, const size_t C,
+                     std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
 
     std::function<void(uint32_t, std::map<uint32_t, T> & out)> fn_weight;
     // can be parallelized.
     size_t n_threads = omp_get_max_threads();
-    size_t n_per_threads =
-        std::min(static_cast<size_t>(128),
-                 std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
+    size_t n_per_threads = std::min(static_cast<size_t>(128),
+                                    std::max(num_rows / n_threads / 2, static_cast<size_t>(1)));
 
     auto &w = weights_;
 
@@ -337,13 +322,9 @@ private:
       break;
     case kIDF:
       if (!w.empty()) {
-        fn_weight = [&w](uint32_t i, std::map<uint32_t, T> &out) {
-          out[i] = w[i];
-        };
+        fn_weight = [&w](uint32_t i, std::map<uint32_t, T> &out) { out[i] = w[i]; };
       } else {
-        fn_weight = [](uint32_t i, std::map<uint32_t, T> &out) {
-          out[i] = 1.0f;
-        };
+        fn_weight = [](uint32_t i, std::map<uint32_t, T> &out) { out[i] = 1.0f; };
       }
       break;
     case kTFIDF:
@@ -373,47 +354,42 @@ private:
     std::vector<std::vector<uint32_t>> indices(num_rows);
     std::vector<std::vector<T>> values(num_rows);
 
-    TryBatchParallelFor2i(
-        n_threads, n_per_threads, num_rows,
-        [this, X, C, &indices, &values, &fn_weight](int, ptrdiff_t row_start,
-                                                    ptrdiff_t row_end) {
-          for (auto row_num = row_start; row_num < row_end; ++row_num) {
-            // indices should be ordered
-            std::map<uint32_t, T> out;
-            ComputeImpl(X.data() + row_num * C, C, out, fn_weight);
-            indices[row_num].resize(out.size());
-            values[row_num].resize(out.size());
-            auto &this_indices = indices[row_num];
-            auto &this_values = values[row_num];
-            size_t i = 0;
-            for (auto it = out.begin(); it != out.end(); ++it, ++i) {
-              this_indices[i] =
-                  it->first + static_cast<uint32_t>(row_num) *
-                                  static_cast<uint32_t>(this->output_size_);
-              this_values[i] = it->second;
-            }
-          }
-        });
+    TryBatchParallelFor2i(n_threads, n_per_threads, num_rows,
+                          [this, X, C, &indices, &values, &fn_weight](int, ptrdiff_t row_start,
+                                                                      ptrdiff_t row_end) {
+                            for (auto row_num = row_start; row_num < row_end; ++row_num) {
+                              // indices should be ordered
+                              std::map<uint32_t, T> out;
+                              ComputeImpl(X.data() + row_num * C, C, out, fn_weight);
+                              indices[row_num].resize(out.size());
+                              values[row_num].resize(out.size());
+                              auto &this_indices = indices[row_num];
+                              auto &this_values = values[row_num];
+                              size_t i = 0;
+                              for (auto it = out.begin(); it != out.end(); ++it, ++i) {
+                                this_indices[i] =
+                                    it->first + static_cast<uint32_t>(row_num) *
+                                                    static_cast<uint32_t>(this->output_size_);
+                                this_values[i] = it->second;
+                              }
+                            }
+                          });
 
     int64_t total = 0;
     for (auto &it : indices)
       total += static_cast<int64_t>(it.size());
 
     onnx_sparse::sparse_struct sp;
-    sp.set(output_dims, total,
-           onnx_sparse::CTypeToElementType<T>().onnx_type());
+    sp.set(output_dims, total, onnx_sparse::CTypeToElementType<T>().onnx_type());
 
     std::vector<int64_t> sparse_dims{static_cast<int64_t>(sp.size_float())};
     std::span<T> out = alloc(sparse_dims);
-    std::memcpy(static_cast<void *>(out.data()), static_cast<void *>(&sp),
-                sizeof(sp) - 4);
-    onnx_sparse::sparse_struct *spmoved =
-        (onnx_sparse::sparse_struct *)(out.data());
+    std::memcpy(static_cast<void *>(out.data()), static_cast<void *>(&sp), sizeof(sp) - 4);
+    onnx_sparse::sparse_struct *spmoved = (onnx_sparse::sparse_struct *)(out.data());
     uint32_t *p_indices = spmoved->indices();
     T *p_values = spmoved->values();
     for (size_t i = 0; i < indices.size(); ++i) {
-      std::memcpy(p_indices, indices[i].data(),
-                  indices[i].size() * sizeof(uint32_t));
+      std::memcpy(p_indices, indices[i].data(), indices[i].size() * sizeof(uint32_t));
       std::memcpy(p_values, values[i].data(), values[i].size() * sizeof(T));
       p_indices += indices[i].size();
       p_values += values[i].size();
@@ -421,28 +397,25 @@ private:
   }
 
   template <typename F, typename C>
-  void ComputeImpl(const int64_t *X_data, size_t row_size, C &out,
-                   F &fn_weight) const {
+  void ComputeImpl(const int64_t *X_data, size_t row_size, C &out, F &fn_weight) const {
 
     const auto elem_size = sizeof(int64_t);
 
     const void *row_begin = AdvanceElementPtr((void *)X_data, 0, elem_size);
-    const void *const row_end =
-        AdvanceElementPtr(row_begin, row_size, elem_size);
+    const void *const row_end = AdvanceElementPtr(row_begin, row_size, elem_size);
 
     const auto max_gram_length = max_gram_length_;
     const auto max_skip_distance = max_skip_count_ + 1; // Convert to distance
     auto start_ngram_size = min_gram_length_;
 
-    for (auto skip_distance = 1; skip_distance <= max_skip_distance;
-         ++skip_distance) {
+    for (auto skip_distance = 1; skip_distance <= max_skip_distance; ++skip_distance) {
       auto ngram_start = row_begin;
       auto const ngram_row_end = row_end;
 
       while (ngram_start < ngram_row_end) {
         // We went far enough so no n-grams of any size can be gathered
-        auto at_least_this = AdvanceElementPtr(
-            ngram_start, skip_distance * (start_ngram_size - 1), elem_size);
+        auto at_least_this =
+            AdvanceElementPtr(ngram_start, skip_distance * (start_ngram_size - 1), elem_size);
         if (at_least_this >= ngram_row_end) {
           break;
         }
@@ -450,10 +423,9 @@ private:
         auto ngram_item = ngram_start;
         const IntMap *int_map = &int64_map_;
         for (auto ngram_size = 1;
-             !int_map->empty() && ngram_size <= max_gram_length &&
-             ngram_item < ngram_row_end;
-             ++ngram_size, ngram_item = AdvanceElementPtr(
-                               ngram_item, skip_distance, elem_size)) {
+             !int_map->empty() && ngram_size <= max_gram_length && ngram_item < ngram_row_end;
+             ++ngram_size,
+                  ngram_item = AdvanceElementPtr(ngram_item, skip_distance, elem_size)) {
           int64_t val = *reinterpret_cast<const int64_t *>(ngram_item);
           auto hit = int_map->find(val);
           if (hit == int_map->end())

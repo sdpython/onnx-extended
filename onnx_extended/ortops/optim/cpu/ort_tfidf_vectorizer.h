@@ -14,8 +14,8 @@ template <typename TIN, typename TOUT> struct TfIdfVectorizerKernel {
 };
 
 template <typename TIN, typename TOUT>
-struct TfIdfVectorizer : Ort::CustomOpBase<TfIdfVectorizer<TIN, TOUT>,
-                                           TfIdfVectorizerKernel<TIN, TOUT>> {
+struct TfIdfVectorizer
+    : Ort::CustomOpBase<TfIdfVectorizer<TIN, TOUT>, TfIdfVectorizerKernel<TIN, TOUT>> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;

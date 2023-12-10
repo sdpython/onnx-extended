@@ -23,8 +23,7 @@ class TreebeardSORunner {
   int32_t rowSize;
 
 #ifdef USE_DLFCN
-  void CallFuncAndGetIntValueFromSo(const std::string &functionName,
-                                    int32_t &field) {
+  void CallFuncAndGetIntValueFromSo(const std::string &functionName, int32_t &field) {
     using GetFunc_t = int32_t (*)();
     auto get = reinterpret_cast<GetFunc_t>(dlsym(so, functionName.c_str()));
     field = get();
@@ -51,8 +50,7 @@ public:
     InitModelFn initModelFnPtr = nullptr;
 #endif
     if (!initModelFnPtr) {
-      EXT_THROW("Failed to load 'Init_model' function from so '", soFilePath,
-                ".");
+      EXT_THROW("Failed to load 'Init_model' function from so '", soFilePath, ".");
     }
     initModelFnPtr();
     CallFuncAndGetIntValueFromSo("GetBatchSize", batchSize);
@@ -62,8 +60,7 @@ public:
     predFnPtr = dlsym(so, "Prediction_Function");
 #endif
     if (!predFnPtr) {
-      EXT_THROW("Failed to load 'Prediction_Function' function from so '",
-                soFilePath, ".");
+      EXT_THROW("Failed to load 'Prediction_Function' function from so '", soFilePath, ".");
     }
   }
 
@@ -79,9 +76,8 @@ public:
   template <typename InputElementType, typename ReturnType>
   int32_t RunInference(InputElementType *input, ReturnType *returnValue) {
     typedef Memref<ReturnType, 1> (*InferenceFunc_t)(
-        InputElementType *, InputElementType *, int64_t, int64_t, int64_t,
-        int64_t, int64_t, ReturnType *, ReturnType *, int64_t, int64_t,
-        int64_t);
+        InputElementType *, InputElementType *, int64_t, int64_t, int64_t, int64_t, int64_t,
+        ReturnType *, ReturnType *, int64_t, int64_t, int64_t);
     auto inferenceFuncPtr = reinterpret_cast<InferenceFunc_t>(predFnPtr);
 
     InputElementType *ptr = input;
@@ -93,9 +89,8 @@ public:
     int64_t offset = 0, stride = 1;
     int64_t resultLen = batchSize;
 
-    inferenceFuncPtr(ptr, alignedPtr, offset, batchSize, rowSize, rowSize,
-                     stride, resultPtr, resultAlignedPtr, offset, resultLen,
-                     stride);
+    inferenceFuncPtr(ptr, alignedPtr, offset, batchSize, rowSize, rowSize, stride, resultPtr,
+                     resultAlignedPtr, offset, resultLen, stride);
     return 0;
   }
 };
@@ -104,15 +99,12 @@ public:
 // CustomTreeAssemblyOp...
 //////////////////
 
-void *CustomTreeAssemblyOp::CreateKernel(const OrtApi &api,
-                                         const OrtKernelInfo *info) const {
-  return std::make_unique<CustomTreeAssemblyKernel>(api, info, classifier_)
-      .release();
+void *CustomTreeAssemblyOp::CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const {
+  return std::make_unique<CustomTreeAssemblyKernel>(api, info, classifier_).release();
 }
 
 const char *CustomTreeAssemblyOp::GetName() const {
-  return classifier_ ? "TreeEnsembleAssemblyClassifier"
-                     : "TreeEnsembleAssemblyRegressor";
+  return classifier_ ? "TreeEnsembleAssemblyClassifier" : "TreeEnsembleAssemblyRegressor";
 }
 
 const char *CustomTreeAssemblyOp::GetExecutionProviderType() const {
@@ -121,8 +113,7 @@ const char *CustomTreeAssemblyOp::GetExecutionProviderType() const {
 
 size_t CustomTreeAssemblyOp::GetInputTypeCount() const { return 1; };
 
-ONNXTensorElementDataType
-CustomTreeAssemblyOp::GetInputType(std::size_t) const {
+ONNXTensorElementDataType CustomTreeAssemblyOp::GetInputType(std::size_t) const {
   return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
 }
 
@@ -131,12 +122,9 @@ CustomTreeAssemblyOp::GetInputCharacteristic(std::size_t) const {
   return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
 }
 
-size_t CustomTreeAssemblyOp::GetOutputTypeCount() const {
-  return classifier_ ? 2 : 1;
-}
+size_t CustomTreeAssemblyOp::GetOutputTypeCount() const { return classifier_ ? 2 : 1; }
 
-ONNXTensorElementDataType
-CustomTreeAssemblyOp::GetOutputType(std::size_t index) const {
+ONNXTensorElementDataType CustomTreeAssemblyOp::GetOutputType(std::size_t index) const {
   if (classifier_) {
     switch (index) {
     case 0:
@@ -161,15 +149,12 @@ CustomTreeAssemblyOp::GetOutputCharacteristic(std::size_t) const {
 // CustomTreeAssemblyKernel
 ///////////////////
 
-CustomTreeAssemblyKernel::CustomTreeAssemblyKernel(const OrtApi &api,
-                                                   const OrtKernelInfo *info,
+CustomTreeAssemblyKernel::CustomTreeAssemblyKernel(const OrtApi &api, const OrtKernelInfo *info,
                                                    bool classifier) {
   classifier_ = classifier;
-  assembly_name_ =
-      KernelInfoGetOptionalAttributeString(api, info, "assembly", "");
+  assembly_name_ = KernelInfoGetOptionalAttributeString(api, info, "assembly", "");
   EXT_ENFORCE(!assembly_name_.empty(), "Parameter 'assembly' cannot be empty.");
-  TreebeardSORunner *tree_runner =
-      new TreebeardSORunner(assembly_name_.c_str());
+  TreebeardSORunner *tree_runner = new TreebeardSORunner(assembly_name_.c_str());
   assembly_runner_ = (void *)tree_runner;
 }
 

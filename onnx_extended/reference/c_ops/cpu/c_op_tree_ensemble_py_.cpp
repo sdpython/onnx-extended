@@ -24,21 +24,17 @@ template <typename NTYPE>
 class RuntimeTreeEnsembleRegressor
     : public RuntimeTreeEnsembleCommon<DenseFeatureAccessor<NTYPE>> {
 public:
-  RuntimeTreeEnsembleRegressor()
-      : RuntimeTreeEnsembleCommon<DenseFeatureAccessor<NTYPE>>() {}
+  RuntimeTreeEnsembleRegressor() : RuntimeTreeEnsembleCommon<DenseFeatureAccessor<NTYPE>>() {}
 };
 
-class RuntimeTreeEnsembleRegressorFloat
-    : public RuntimeTreeEnsembleRegressor<float> {
+class RuntimeTreeEnsembleRegressorFloat : public RuntimeTreeEnsembleRegressor<float> {
 public:
   RuntimeTreeEnsembleRegressorFloat() : RuntimeTreeEnsembleRegressor<float>() {}
 };
 
-class RuntimeTreeEnsembleRegressorDouble
-    : public RuntimeTreeEnsembleRegressor<double> {
+class RuntimeTreeEnsembleRegressorDouble : public RuntimeTreeEnsembleRegressor<double> {
 public:
-  RuntimeTreeEnsembleRegressorDouble()
-      : RuntimeTreeEnsembleRegressor<double>() {}
+  RuntimeTreeEnsembleRegressorDouble() : RuntimeTreeEnsembleRegressor<double>() {}
 };
 
 class RuntimeTreeEnsembleClassifierFloat
@@ -98,8 +94,7 @@ in :epkg:`onnxruntime`. Supports float only.
           "Updates parallelization parameters.");
   rgf.def("compute", &RuntimeTreeEnsembleRegressorFloat::compute,
           "Computes the predictions for the random forest.");
-  rgf.def("omp_get_max_threads",
-          &RuntimeTreeEnsembleRegressorFloat::omp_get_max_threads,
+  rgf.def("omp_get_max_threads", &RuntimeTreeEnsembleRegressorFloat::omp_get_max_threads,
           "Returns omp_get_max_threads from openmp library.");
   rgf.def("__sizeof__", &RuntimeTreeEnsembleRegressorFloat::get_sizeof,
           "Returns the size of the object.");
@@ -125,8 +120,7 @@ in :epkg:`onnxruntime`. Supports double only.
           "Updates parallelization parameters.");
   rgd.def("compute", &RuntimeTreeEnsembleRegressorDouble::compute,
           "Computes the predictions for the random forest.");
-  rgd.def("omp_get_max_threads",
-          &RuntimeTreeEnsembleRegressorDouble::omp_get_max_threads,
+  rgd.def("omp_get_max_threads", &RuntimeTreeEnsembleRegressorDouble::omp_get_max_threads,
           "Returns omp_get_max_threads from openmp library.");
   rgd.def("__sizeof__", &RuntimeTreeEnsembleRegressorDouble::get_sizeof,
           "Returns the size of the object.");
@@ -156,8 +150,7 @@ in :epkg:`onnxruntime`. Supports float only.
           "Updates parallelization parameters.");
   clf.def("compute", &RuntimeTreeEnsembleClassifierFloat::compute,
           "Computes the predictions for the random forest.");
-  clf.def("omp_get_max_threads",
-          &RuntimeTreeEnsembleClassifierFloat::omp_get_max_threads,
+  clf.def("omp_get_max_threads", &RuntimeTreeEnsembleClassifierFloat::omp_get_max_threads,
           "Returns omp_get_max_threads from openmp library.");
   clf.def("__sizeof__", &RuntimeTreeEnsembleClassifierFloat::get_sizeof,
           "Returns the size of the object.");
@@ -183,8 +176,7 @@ in :epkg:`onnxruntime`. Supports double only.
           "Updates parallelization parameters.");
   cld.def("compute", &RuntimeTreeEnsembleClassifierDouble::compute,
           "Computes the predictions for the random forest.");
-  cld.def("omp_get_max_threads",
-          &RuntimeTreeEnsembleClassifierDouble::omp_get_max_threads,
+  cld.def("omp_get_max_threads", &RuntimeTreeEnsembleClassifierDouble::omp_get_max_threads,
           "Returns omp_get_max_threads from openmp library.");
   cld.def("__sizeof__", &RuntimeTreeEnsembleClassifierDouble::get_sizeof,
           "Returns the size of the object.");

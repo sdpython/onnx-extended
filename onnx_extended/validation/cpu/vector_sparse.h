@@ -9,8 +9,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-#define py_array_float                                                         \
-  py::array_t<float, py::array::c_style | py::array::forcecast>
+#define py_array_float py::array_t<float, py::array::c_style | py::array::forcecast>
 
 namespace py = pybind11;
 

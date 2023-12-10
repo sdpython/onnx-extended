@@ -6,8 +6,7 @@
 
 namespace ortops {
 
-template <typename IFEATURETYPE, typename TTYPE, typename OTYPE>
-struct TreeEnsembleKernel {
+template <typename IFEATURETYPE, typename TTYPE, typename OTYPE> struct TreeEnsembleKernel {
   TreeEnsembleKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
 
@@ -15,8 +14,7 @@ struct TreeEnsembleKernel {
   int64_t n_targets_or_classes;
   std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>>
       reg_type_type_type;
-  std::unique_ptr<
-      onnx_c_ops::TreeEnsembleCommonClassifier<IFEATURETYPE, TTYPE, OTYPE>>
+  std::unique_ptr<onnx_c_ops::TreeEnsembleCommonClassifier<IFEATURETYPE, TTYPE, OTYPE>>
       cls_type_type_type;
   bool is_classifier;
 };
@@ -35,9 +33,8 @@ struct TreeEnsembleRegressor
 };
 
 template <typename ITYPE, typename TTYPE, typename OTYPE>
-struct TreeEnsembleClassifier
-    : Ort::CustomOpBase<TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>,
-                        TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>> {
+struct TreeEnsembleClassifier : Ort::CustomOpBase<TreeEnsembleClassifier<ITYPE, TTYPE, OTYPE>,
+                                                  TreeEnsembleKernel<ITYPE, TTYPE, OTYPE>> {
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;

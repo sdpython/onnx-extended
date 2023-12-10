@@ -32,9 +32,8 @@ double benchmark_cache(int64_t arr_size, bool verbose) {
     arr_b[k] = arr_a[k] + 1;
   }
 
-  double performance = std::chrono::duration<double>(
-                           std::chrono::high_resolution_clock::now() - time0)
-                           .count();
+  double performance =
+      std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - time0).count();
   performance /= arr_size;
 
   if (verbose) {
@@ -46,10 +45,9 @@ double benchmark_cache(int64_t arr_size, bool verbose) {
   return performance;
 }
 
-std::vector<ElementTime>
-benchmark_cache_tree(int64_t n_rows, int64_t n_features, int64_t n_trees,
-                     int64_t tree_size, int64_t max_depth,
-                     int64_t search_step) {
+std::vector<ElementTime> benchmark_cache_tree(int64_t n_rows, int64_t n_features,
+                                              int64_t n_trees, int64_t tree_size,
+                                              int64_t max_depth, int64_t search_step) {
 
   std::vector<float> X(n_rows * n_features);
   for (int64_t i = 0; i < static_cast<int64_t>(X.size()); ++i)
@@ -84,9 +82,9 @@ benchmark_cache_tree(int64_t n_rows, int64_t n_features, int64_t n_trees,
       }
     }
 
-    double performance = std::chrono::duration<double>(
-                             std::chrono::high_resolution_clock::now() - time0)
-                             .count();
+    double performance =
+        std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - time0)
+            .count();
     if (step == search_step) {
       // first iteration
       for (int64_t i = 0; i < static_cast<int64_t>(times.size()); ++i) {

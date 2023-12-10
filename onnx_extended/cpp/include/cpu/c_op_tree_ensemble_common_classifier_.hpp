@@ -20,19 +20,18 @@ protected:
   std::vector<int64_t> class_labels_;
 
 public:
-  Status Compute(int64_t n_rows, int64_t n_features,
-                 const typename TreeEnsembleCommon<FeatureType, ThresholdType,
-                                                    OutputType>::InputType *X,
-                 OutputType *Y, int64_t *label) const {
+  Status Compute(
+      int64_t n_rows, int64_t n_features,
+      const typename TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::InputType *X,
+      OutputType *Y, int64_t *label) const {
     FeatureType features(X, n_rows, n_features);
     switch (this->aggregate_function_) {
     case AGGREGATE_FUNCTION::SUM:
       DEBUG_PRINT("ComputeCl SUM")
-      ComputeAggClassifier(
-          features, Y, label,
-          TreeAggregatorSum<FeatureType, ThresholdType, OutputType>(
-              this->roots_.size(), this->n_targets_or_classes_,
-              this->post_transform_, this->base_values_));
+      ComputeAggClassifier(features, Y, label,
+                           TreeAggregatorSum<FeatureType, ThresholdType, OutputType>(
+                               this->roots_.size(), this->n_targets_or_classes_,
+                               this->post_transform_, this->base_values_));
       return Status::OK();
     default:
       EXT_THROW("Unknown aggregation function in TreeEnsemble.");
@@ -86,22 +85,20 @@ public:
       if (weights_are_all_positive_ && (class_weights[i] < 0))
         weights_are_all_positive_ = false;
     }
-    binary_case_ =
-        this->n_targets_or_classes_ == 2 && weights_classes.size() == 1;
+    binary_case_ = this->n_targets_or_classes_ == 2 && weights_classes.size() == 1;
     return Status::OK();
   }
 
 protected:
   template <typename AGG>
-  void ComputeAggClassifier(const FeatureType &data, OutputType *Y,
-                            int64_t *labels, const AGG & /* agg */) const {
+  void ComputeAggClassifier(const FeatureType &data, OutputType *Y, int64_t *labels,
+                            const AGG & /* agg */) const {
     DEBUG_PRINT("ComputeAggClassifier")
-    this->ComputeAgg(
-        data, Y, labels,
-        TreeAggregatorClassifier<FeatureType, ThresholdType, OutputType>(
-            this->roots_.size(), this->n_targets_or_classes_,
-            this->post_transform_, this->base_values_, binary_case_,
-            weights_are_all_positive_));
+    this->ComputeAgg(data, Y, labels,
+                     TreeAggregatorClassifier<FeatureType, ThresholdType, OutputType>(
+                         this->roots_.size(), this->n_targets_or_classes_,
+                         this->post_transform_, this->base_values_, binary_case_,
+                         weights_are_all_positive_));
   }
 };
 

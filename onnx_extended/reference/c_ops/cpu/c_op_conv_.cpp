@@ -18,10 +18,8 @@ PYBIND11_MODULE(c_op_conv_, m) {
 in :epkg:`onnxruntime`. Supports float only.)pbdoc");
 
   clf.def(py::init<>());
-  clf.def("init", &ConvFloat::init,
-          "Initializes the runtime with the ONNX attributes.");
-  clf.def("compute", &ConvFloat::compute,
-          "Computes the output for operator Conv.");
+  clf.def("init", &ConvFloat::init, "Initializes the runtime with the ONNX attributes.");
+  clf.def("compute", &ConvFloat::compute, "Computes the output for operator Conv.");
 
   py::class_<ConvDouble> cld(
       m, "ConvDouble",
@@ -30,8 +28,6 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
 in :epkg:`onnxruntime`. Supports double only.)pbdoc");
 
   cld.def(py::init<>());
-  cld.def("init", &ConvDouble::init,
-          "Initializes the runtime with the ONNX attributes.");
-  cld.def("compute", &ConvDouble::compute,
-          "Computes the output for operator Conv.");
+  cld.def("init", &ConvDouble::init, "Initializes the runtime with the ONNX attributes.");
+  cld.def("compute", &ConvDouble::compute, "Computes the output for operator Conv.");
 }

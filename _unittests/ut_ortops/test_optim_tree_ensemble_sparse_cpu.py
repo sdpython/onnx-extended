@@ -9,7 +9,7 @@ from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
     get_node_attribute,
 )
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -33,6 +33,7 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
             self.assertIsInstance(d, str)
         self.assertIn("Sparse", "\n".join(doc))
 
+    @skipif_ci_apple("crash")
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_random_forest_regressor_sparse(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
@@ -86,6 +87,7 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
         got = sess.run(None, feeds)[0]
         self.assertEqualArray(expected, got, atol=1e-5)
 
+    @skipif_ci_apple("crash")
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_random_forest_classifier_sparse(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs

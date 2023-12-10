@@ -22,7 +22,7 @@ struct BenchmarkGemm {
   void to_map(std::unordered_map<std::string, double> &bench);
 };
 
-std::unordered_map<std::string, double>
-gemm_benchmark_test(int test, int N, int m, int n, int k, int lda, int ldb, int ldd);
+std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N, int m, int n,
+                                                            int k, int lda, int ldb, int ldd);
 
 } // namespace cuda_example

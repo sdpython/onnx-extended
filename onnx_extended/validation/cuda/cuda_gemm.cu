@@ -12,15 +12,13 @@ typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_type;
 namespace cuda_example {
 
 void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
-                 const Tensor *inputBias, Tensor *outputPreGelu, int m, int n,
-                 int k, int lda, int ldb, int ldd, cublasOperation_t transa,
-                 cublasOperation_t transb, bool grad, void *workspace,
-                 std::size_t workspaceSize, bool accumulate,
+                 const Tensor *inputBias, Tensor *outputPreGelu, int m, int n, int k, int lda,
+                 int ldb, int ldd, cublasOperation_t transa, cublasOperation_t transb,
+                 bool grad, void *workspace, std::size_t workspaceSize, bool accumulate,
                  bool use_split_accumulator, int math_sm_count,
-                 cublasComputeType_t gemm_compute_type, cudaStream_t stream,
-                 time_type &begin, time_type &heuristic, time_type &end,
-                 time_type &end2, int &i_epilogue, int &i_compute_type,
-                 int &i_algo) {
+                 cublasComputeType_t gemm_compute_type, cudaStream_t stream, time_type &begin,
+                 time_type &heuristic, time_type &end, time_type &end2, int &i_epilogue,
+                 int &i_compute_type, int &i_algo) {
   begin = std::chrono::high_resolution_clock::now();
   void *A = inputA->data.dptr;
   void *A_scale_inverse = inputA->scale_inv.dptr;
@@ -37,8 +35,7 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
 
   void *pre_gelu_out = outputPreGelu->data.dptr;
   const bool gelu = pre_gelu_out != nullptr;
-  const bool use_fp8 =
-      is_fp8_dtype(inputA->data.dtype) || is_fp8_dtype(inputB->data.dtype);
+  const bool use_fp8 = is_fp8_dtype(inputA->data.dtype) || is_fp8_dtype(inputB->data.dtype);
   const cudaDataType_t A_type = get_cuda_dtype(inputA->data.dtype);
   const cudaDataType_t B_type = get_cuda_dtype(inputB->data.dtype);
   const cudaDataType_t D_type = get_cuda_dtype(outputD->data.dtype);
@@ -57,8 +54,7 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
                "fp8 Aux output for gemm + gelu fusion not supported!");
   }
   if (is_fp8_dtype(outputD->data.dtype)) {
-    NVTE_CHECK(!accumulate,
-               "Accumulation mode not supported with FP8 GEMM output!");
+    NVTE_CHECK(!accumulate, "Accumulation mode not supported with FP8 GEMM output!");
   }
 
   float one = 1.0;
@@ -69,32 +65,28 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
   NVTE_CHECK_CUBLAS(cublasLtCreate(&handle));
 
   cublasLtMatmulDesc_t operationDesc = nullptr;
-  cublasLtMatrixLayout_t Adesc = nullptr, Bdesc = nullptr, Cdesc = nullptr,
-                         Ddesc = nullptr;
+  cublasLtMatrixLayout_t Adesc = nullptr, Bdesc = nullptr, Cdesc = nullptr, Ddesc = nullptr;
   cublasLtEpilogue_t epilogue = CUBLASLT_EPILOGUE_DEFAULT;
 
   int64_t ld_gelumat = (int64_t)ldd;
 
   // Create matrix descriptors. Not setting any extra attributes.
-  NVTE_CHECK_CUBLAS(
-      cublasLtMatrixLayoutCreate(&Adesc, A_type, transa == CUBLAS_OP_N ? m : k,
-                                 transa == CUBLAS_OP_N ? k : m, lda));
-  NVTE_CHECK_CUBLAS(
-      cublasLtMatrixLayoutCreate(&Bdesc, B_type, transb == CUBLAS_OP_N ? k : n,
-                                 transb == CUBLAS_OP_N ? n : k, ldb));
+  NVTE_CHECK_CUBLAS(cublasLtMatrixLayoutCreate(&Adesc, A_type, transa == CUBLAS_OP_N ? m : k,
+                                               transa == CUBLAS_OP_N ? k : m, lda));
+  NVTE_CHECK_CUBLAS(cublasLtMatrixLayoutCreate(&Bdesc, B_type, transb == CUBLAS_OP_N ? k : n,
+                                               transb == CUBLAS_OP_N ? n : k, ldb));
   NVTE_CHECK_CUBLAS(cublasLtMatrixLayoutCreate(&Ddesc, D_type, m, n, ldd));
 
-  NVTE_CHECK_CUBLAS(
-      cublasLtMatmulDescCreate(&operationDesc, gemm_compute_type, CUDA_R_32F));
-  NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-      operationDesc, CUBLASLT_MATMUL_DESC_TRANSA, &transa, sizeof(transa)));
-  NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-      operationDesc, CUBLASLT_MATMUL_DESC_TRANSB, &transb, sizeof(transb)));
+  NVTE_CHECK_CUBLAS(cublasLtMatmulDescCreate(&operationDesc, gemm_compute_type, CUDA_R_32F));
+  NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSA,
+                                                   &transa, sizeof(transa)));
+  NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSB,
+                                                   &transb, sizeof(transb)));
   // Set math SM count
   if (math_sm_count != 0) {
-    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_SM_COUNT_TARGET, &math_sm_count,
-        sizeof(math_sm_count)));
+    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(operationDesc,
+                                                     CUBLASLT_MATMUL_DESC_SM_COUNT_TARGET,
+                                                     &math_sm_count, sizeof(math_sm_count)));
   }
 
   // set fp8 attributes -- input and output types should already be set to fp8
@@ -104,33 +96,28 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
     // Split accumulator.
     const int8_t fastAccuMode = (use_split_accumulator) ? 0 : 1;
     NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_FAST_ACCUM, &fastAccuMode,
-        sizeof(fastAccuMode)));
-    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_A_SCALE_POINTER, &A_scale_inverse,
-        sizeof(A_scale_inverse)));
-    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER, &B_scale_inverse,
-        sizeof(B_scale_inverse)));
+        operationDesc, CUBLASLT_MATMUL_DESC_FAST_ACCUM, &fastAccuMode, sizeof(fastAccuMode)));
+    NVTE_CHECK_CUBLAS(
+        cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_A_SCALE_POINTER,
+                                       &A_scale_inverse, sizeof(A_scale_inverse)));
+    NVTE_CHECK_CUBLAS(
+        cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_B_SCALE_POINTER,
+                                       &B_scale_inverse, sizeof(B_scale_inverse)));
     if (is_fp8_dtype(outputD->data.dtype)) {
       // Accumulation mode not supported for FP8 output
       C = nullptr;
       NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-          operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &D_scale,
-          sizeof(D_scale)));
+          operationDesc, CUBLASLT_MATMUL_DESC_D_SCALE_POINTER, &D_scale, sizeof(D_scale)));
       NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-          operationDesc, CUBLASLT_MATMUL_DESC_AMAX_D_POINTER, &D_amax,
-          sizeof(D_amax)));
+          operationDesc, CUBLASLT_MATMUL_DESC_AMAX_D_POINTER, &D_amax, sizeof(D_amax)));
       // For FP8 output, cuBLAS requires C_type to be same as bias_type
-      NVTE_CHECK_CUBLAS(
-          cublasLtMatrixLayoutCreate(&Cdesc, bias_type, m, n, ldd));
+      NVTE_CHECK_CUBLAS(cublasLtMatrixLayoutCreate(&Cdesc, bias_type, m, n, ldd));
     } else {
       NVTE_CHECK_CUBLAS(cublasLtMatrixLayoutCreate(&Cdesc, D_type, m, n, ldd));
     }
     if (bias) {
       NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-          operationDesc, CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE, &bias_type,
-          sizeof(bias_type)));
+          operationDesc, CUBLASLT_MATMUL_DESC_BIAS_DATA_TYPE, &bias_type, sizeof(bias_type)));
     }
   } else {
     NVTE_CHECK_CUBLAS(cublasLtMatrixLayoutCreate(&Cdesc, D_type, m, n, ldd));
@@ -143,14 +130,12 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
       epilogue = CUBLASLT_EPILOGUE_GELU_AUX_BIAS;
     }
     NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_BIAS_POINTER, &bias_ptr,
-        sizeof(bias_ptr)));
+        operationDesc, CUBLASLT_MATMUL_DESC_BIAS_POINTER, &bias_ptr, sizeof(bias_ptr)));
+    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(operationDesc,
+                                                     CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_POINTER,
+                                                     &pre_gelu_out, sizeof(pre_gelu_out)));
     NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_POINTER, &pre_gelu_out,
-        sizeof(pre_gelu_out)));
-    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_LD, &ld_gelumat,
-        sizeof(ld_gelumat)));
+        operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_LD, &ld_gelumat, sizeof(ld_gelumat)));
     const cudaDataType_t aux_type = get_cuda_dtype(outputPreGelu->data.dtype);
     NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
         operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_DATA_TYPE, &aux_type,
@@ -163,38 +148,35 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
       epilogue = CUBLASLT_EPILOGUE_BIAS;
     }
     NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_BIAS_POINTER, &bias_ptr,
-        sizeof(bias_ptr)));
+        operationDesc, CUBLASLT_MATMUL_DESC_BIAS_POINTER, &bias_ptr, sizeof(bias_ptr)));
   } else if (gelu) {
     if (grad) {
       epilogue = CUBLASLT_EPILOGUE_DGELU;
     } else {
       epilogue = CUBLASLT_EPILOGUE_GELU_AUX;
     }
+    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(operationDesc,
+                                                     CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_POINTER,
+                                                     &pre_gelu_out, sizeof(pre_gelu_out)));
     NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_POINTER, &pre_gelu_out,
-        sizeof(pre_gelu_out)));
-    NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-        operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_LD, &ld_gelumat,
-        sizeof(ld_gelumat)));
+        operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE_AUX_LD, &ld_gelumat, sizeof(ld_gelumat)));
   }
   i_epilogue = (int)epilogue;
 
   cublasLtMatmulPreference_t preference = nullptr;
-  NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(
-      operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE, &epilogue,
-      sizeof(epilogue)));
+  NVTE_CHECK_CUBLAS(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE,
+                                                   &epilogue, sizeof(epilogue)));
 
   int returnedResults = 0;
   cublasLtMatmulHeuristicResult_t heuristicResult = {};
   NVTE_CHECK_CUBLAS(cublasLtMatmulPreferenceCreate(&preference));
-  NVTE_CHECK_CUBLAS(cublasLtMatmulPreferenceSetAttribute(
-      preference, CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES, &workspaceSize,
-      sizeof(workspaceSize)));
+  NVTE_CHECK_CUBLAS(
+      cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
+                                           &workspaceSize, sizeof(workspaceSize)));
 
-  NVTE_CHECK_CUBLAS(cublasLtMatmulAlgoGetHeuristic(
-      handle, operationDesc, Adesc, Bdesc, Cdesc, Ddesc, preference, 1,
-      &heuristicResult, &returnedResults));
+  NVTE_CHECK_CUBLAS(cublasLtMatmulAlgoGetHeuristic(handle, operationDesc, Adesc, Bdesc, Cdesc,
+                                                   Ddesc, preference, 1, &heuristicResult,
+                                                   &returnedResults));
 
   if (returnedResults == 0)
     NVTE_ERROR("Unable to find any suitable algorithms");
@@ -202,23 +184,22 @@ void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,
   // D = alpha * (A * B) + beta * C
   std::size_t written;
   NVTE_CHECK_CUBLAS(cublasLtMatmulAlgoConfigGetAttribute(
-      &heuristicResult.algo, CUBLASLT_ALGO_CONFIG_ID, &i_algo, sizeof(int),
-      &written));
+      &heuristicResult.algo, CUBLASLT_ALGO_CONFIG_ID, &i_algo, sizeof(int), &written));
 
   i_compute_type = (int)gemm_compute_type;
 
   heuristic = std::chrono::high_resolution_clock::now();
 
-  NVTE_CHECK_CUBLAS(cublasLtMatmul(
-      handle, operationDesc, static_cast<const void *>(&one), /* alpha */
-      A,                                                      /* A */
-      Adesc, B,                                               /* B */
-      Bdesc, static_cast<const void *>(&beta),                /* beta */
-      C,                                                      /* C */
-      Cdesc, D,                                               /* D */
-      Ddesc, &heuristicResult.algo,                           /* algo */
-      workspace, workspaceSize,                               /* workspace */
-      stream));                                               /* stream */
+  NVTE_CHECK_CUBLAS(cublasLtMatmul(handle, operationDesc,
+                                   static_cast<const void *>(&one),         /* alpha */
+                                   A,                                       /* A */
+                                   Adesc, B,                                /* B */
+                                   Bdesc, static_cast<const void *>(&beta), /* beta */
+                                   C,                                       /* C */
+                                   Cdesc, D,                                /* D */
+                                   Ddesc, &heuristicResult.algo,            /* algo */
+                                   workspace, workspaceSize,                /* workspace */
+                                   stream));                                /* stream */
 
   end = std::chrono::high_resolution_clock::now();
 
@@ -266,10 +247,8 @@ void BenchmarkGemm::to_map(std::unordered_map<std::string, double> &bench) {
   bench["t-total"] = total;
 }
 
-std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
-                                                            int m, int n, int k,
-                                                            int lda, int ldb,
-                                                            int ldd) {
+std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N, int m, int n,
+                                                            int k, int lda, int ldb, int ldd) {
 
   // see
   // https://docs.nvidia.com/cuda/cublas/index.html?highlight=cublasLtMatMul#cublasltmatmul
@@ -383,8 +362,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
     break;
   default:
     NVTE_CHECK(false, onnx_extended_helpers::MakeString(
-                          "Unknown test ", test, " and this CUDA version ",
-                          CUDA_VERSION, "."));
+                          "Unknown test ", test, " and this CUDA version ", CUDA_VERSION, "."));
   }
 
   time_type begin, heuristic, end, end2;
@@ -424,8 +402,7 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N,
                   false,               // bool use_split_accumulator,
                   0,                   // int math_sm_count,
                   type_compute,        // compute_type
-                  stream, begin, heuristic, end, end2, epilogue, compute_type,
-                  algo);
+                  stream, begin, heuristic, end, end2, epilogue, compute_type, algo);
 
       time_type t3 = std::chrono::high_resolution_clock::now();
       NVTE_CHECK_CUDA(cudaStreamSynchronize(stream));

@@ -41,9 +41,7 @@ public:
   TensorData scale_inv;
 
 public:
-  inline Tensor(const char *name) : data(), scale(), amax(), scale_inv() {
-    this->name = name;
-  }
+  inline Tensor(const char *name) : data(), scale(), amax(), scale_inv() { this->name = name; }
   Tensor(const char *name, std::size_t size, cudaDataType_t dtype = CUDA_R_32F,
          TensorDevice device = TensorDevice::CUDA,
          TensorDevice scale_device = TensorDevice::CUDA);

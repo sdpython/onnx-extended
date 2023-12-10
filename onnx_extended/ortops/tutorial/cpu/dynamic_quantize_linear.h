@@ -10,23 +10,20 @@ struct DynamicQuantizeLinearKernel {
 
 private:
   template <typename T>
-  void ComputeInternal(int64_t n_elements, const T *input, uint8_t *output,
-                       float &scale, uint8_t &zero_point);
+  void ComputeInternal(int64_t n_elements, const T *input, uint8_t *output, float &scale,
+                       uint8_t &zero_point);
 
   int64_t to_;
 };
 
 struct DynamicQuantizeLinearOp
     : Ort::CustomOpBase<DynamicQuantizeLinearOp, DynamicQuantizeLinearKernel> {
-  typedef Ort::CustomOpBase<DynamicQuantizeLinearOp,
-                            DynamicQuantizeLinearKernel>
-      parent_type;
+  typedef Ort::CustomOpBase<DynamicQuantizeLinearOp, DynamicQuantizeLinearKernel> parent_type;
   DynamicQuantizeLinearOp(ONNXTensorElementDataType input_type,
                           ONNXTensorElementDataType quant_type)
       : parent_type(), input_type_(input_type), quant_type_(quant_type) {}
 
-  void *CreateKernel(const OrtApi &api,
-                     const OrtKernelInfo *info) const noexcept;
+  void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const noexcept;
   const char *GetName() const noexcept;
   const char *GetExecutionProviderType() const noexcept;
 
