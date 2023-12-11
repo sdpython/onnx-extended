@@ -181,6 +181,12 @@ def transform_model(model, use_sparse=False, **kwargs):
     )
     if use_sparse and "new_op_type" not in kwargs:
         kwargs["new_op_type"] = "TreeEnsembleRegressorSparse"
+    if use_sparse:
+        # with sparse tensor, missing value means 0
+        att = get_node_attribute(onx.graph.node[0], "nodes_values")
+        thresholds = numpy.array(att.floats, dtype=numpy.float32)
+        missing_true = (thresholds >= 0).astype(numpy.int64)
+        kwargs["nodes_missing_value_tracks_true"] = missing_true
     new_onx = change_onnx_operator_domain(
         onx,
         op_type="TreeEnsembleRegressor",
@@ -339,7 +345,7 @@ print("Full list of optimization parameters:")
 print(" ".join(cmds))
 
 ##################################
-# Then the optimization.
+# Then the optimization for dense
 
 
 def create_session(onx):
@@ -370,10 +376,32 @@ res = optimize_model(
     n_tries=script_args.tries,
 )
 
+##################################
+# Then the optimization for sparse
+
+res_sparse = optimize_model(
+    onx,
+    feeds={"X": Xb_sp},
+    transform=lambda *args, **kwargs: transform_model(*args, use_sparse=True, **kwargs),
+    session=create_session,
+    params=optim_params,
+    verbose=True,
+    number=script_args.number,
+    repeat=script_args.repeat,
+    warmup=script_args.warmup,
+    sleep=script_args.sleep,
+    n_tries=script_args.tries,
+)
+
+
 ###############################
 # And the results.
 
-df = DataFrame(res)
+df_dense = DataFrame(res)
+df_dense["input"] = "dense"
+df_sparse = DataFrame(res_sparse)
+df_sparse["input"] = "sparse"
+df = concat([df_dense, df_sparse], axis=0)
 df.to_csv("plot_op_tree_ensemble_sparse.csv", index=False)
 df.to_excel("plot_op_tree_ensemble_sparse.xlsx", index=False)
 print(df.columns)
@@ -409,23 +437,27 @@ print(small_df.tail(n=10))
 # ++++
 
 dfm = (
-    df[["name", "average"]]
-    .groupby(["name"], as_index=False)
+    df[["input", "name", "average"]]
+    .groupby(["input", "name"], as_index=False)
     .agg(["mean", "min", "max"])
     .copy()
 )
 if dfm.shape[1] == 3:
     dfm = dfm.reset_index(drop=False)
-dfm.columns = ["name", "average", "min", "max"]
+dfm.columns = ["input", "name", "average", "min", "max"]
 dfi = (
-    dfm[["name", "average", "min", "max"]].sort_values("average").reset_index(drop=True)
+    dfm[["input", "name", "average", "min", "max"]]
+    .sort_values("average")
+    .reset_index(drop=True)
 )
 baseline = dfi[dfi["name"].str.contains("baseline")]
 not_baseline = dfi[~dfi["name"].str.contains("baseline")].reset_index(drop=True)
 if not_baseline.shape[0] > 50:
     not_baseline = not_baseline[:50]
 merged = concat([baseline, not_baseline], axis=0)
-merged = merged.sort_values("average").reset_index(drop=True).set_index("name")
+merged = (
+    merged.sort_values("average").reset_index(drop=True).set_index(["input", "name"])
+)
 skeys = ",".join(optim_params.keys())
 print(merged.columns)
 

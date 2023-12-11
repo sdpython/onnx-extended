@@ -67,12 +67,12 @@ py_array_float sparse_struct_to_dense(const py_array_float &v) {
   return result;
 }
 
-py::list sparse_struct_to_unordered_map(const py_array_float &v) {
+py::list sparse_struct_to_maps(const py_array_float &v) {
   py::buffer_info br = v.request();
   float *pr = static_cast<float *>(br.ptr);
   onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)pr;
-  std::vector<std::unordered_map<uint32_t, float>> maps;
-  sp->to_unordered_maps(maps);
+  std::vector<std::map<uint32_t, float>> maps;
+  sp->to_maps(maps);
   py::list res;
   for (auto it : maps) {
     py::dict d;
