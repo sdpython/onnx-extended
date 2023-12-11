@@ -16,13 +16,13 @@ fast. Many more parameters can be tried.
 
 ::
 
-    python plot_op_tree_ensemble_sparse --scenario=LONG
+    python plot_op_tree_ensemble_optim --scenario=LONG
 
 To change the training parameters:
 
 ::
 
-    python plot_op_tree_ensemble_sparse.py
+    python plot_op_tree_ensemble_optim.py
         --n_trees=100
         --max_depth=10
         --n_features=50
@@ -30,7 +30,7 @@ To change the training parameters:
     
 Another example with a full list of parameters:
 
-    python plot_op_tree_ensemble_sparse.py
+    python plot_op_tree_ensemble_optim.py
         --n_trees=100
         --max_depth=10
         --n_features=50
@@ -48,7 +48,7 @@ Another example:
 
 ::
 
-    python plot_op_tree_ensemble_sparse.py
+    python plot_op_tree_ensemble_optim.py
         --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
 """
 import logging
@@ -78,7 +78,7 @@ from onnx_extended.ext_test_case import get_parsed_args, unit_test_going
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 
 script_args = get_parsed_args(
-    "plot_op_tree_ensemble_sparse",
+    "plot_op_tree_ensemble_optim",
     description=__doc__,
     scenarios={
         "SHORT": "short optimization (default)",
@@ -110,7 +110,7 @@ n_trees = script_args.n_trees
 max_depth = script_args.max_depth
 
 filename = (
-    f"plot_op_tree_ensemble_sparse-f{n_features}-" f"t{n_trees}-d{max_depth}.onnx"
+    f"plot_op_tree_ensemble_optim-f{n_features}-" f"t{n_trees}-d{max_depth}.onnx"
 )
 if not os.path.exists(filename):
     X, y = make_regression(
@@ -337,8 +337,8 @@ res = optimize_model(
 # And the results.
 
 df = DataFrame(res)
-df.to_csv("plot_op_tree_ensemble_sparse.csv", index=False)
-df.to_excel("plot_op_tree_ensemble_sparse.xlsx", index=False)
+df.to_csv("plot_op_tree_ensemble_optim.csv", index=False)
+df.to_excel("plot_op_tree_ensemble_optim.xlsx", index=False)
 print(df.columns)
 print(df.head(5))
 
@@ -412,4 +412,4 @@ ax.set_xlim(
 # ax.set_xscale("log")
 
 fig.tight_layout()
-fig.savefig("plot_op_tree_ensemble_sparse.png")
+fig.savefig("plot_op_tree_ensemble_optim.png")
