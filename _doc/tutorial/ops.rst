@@ -28,3 +28,4 @@ Focus on operators optimization
     :caption: TreeEnsemble
 
     ../auto_examples/plot_op_tree_ensemble_optim
+    ../auto_examples/plot_op_tree_ensemble_sparse

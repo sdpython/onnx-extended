@@ -30,6 +30,18 @@ This scripts tries many values to select the best one
 for trees trains with :epkg:`scikit-learn` and a 
 :class:`sklearn.ensemble.RandomForestRegressor`.
 
+plot_op_tree_ensemble_sparse
+++++++++++++++++++++++++++++
+
+See :ref:`l-plot-optim-tree-ensemble-sparse`.
+
+This packages implements a custom kernel for
+:epkg:`TreeEnsembleRegressor` and :epkg:`TreeEnsembleClassifier`
+and let the users choose the parallelization parameters.
+This scripts tries many values to select the best one
+for trees trains with :epkg:`scikit-learn` and a 
+:class:`sklearn.ensemble.RandomForestRegressor`.
+
 plot_op_einsum
 ++++++++++++++
 
