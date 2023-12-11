@@ -85,7 +85,7 @@ class TestDocumentationExamples(ExtTestCase):
             if OrtSession is None and name in {"plot_bench_cypy_ort.py"}:
                 # The build went wrong.
                 continue
-            if name in {"plot_optim_tfidf.py"}:
+            if name in {"plot_op_tfidfvectorizer_sparse.py"}:
                 if sys.platform in {"darwin", "win32"}:
                     # Stuck due to the creation of a secondary process.
                     continue

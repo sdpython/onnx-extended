@@ -139,7 +139,9 @@ for voc_size, batch_size in tqdm(confs):
     # sparse
     p = start_spying_on(delay=0.0001)
     sparse.run(None, feeds)
-    obs = measure_time(lambda: sparse.run(None, feeds), max_time=1)
+    obs = measure_time(
+        lambda sparse=sparse, feeds=feeds: sparse.run(None, feeds), max_time=1
+    )
     mem = p.stop()
     obs["peak"] = mem["max_peak"] - mem["begin"]
     obs["name"] = "sparse"
@@ -150,7 +152,7 @@ for voc_size, batch_size in tqdm(confs):
     # reference
     p = start_spying_on(delay=0.0001)
     ref.run(None, feeds)
-    obs = measure_time(lambda: ref.run(None, feeds), max_time=1)
+    obs = measure_time(lambda ref=ref, feeds=feeds: ref.run(None, feeds), max_time=1)
     mem = p.stop()
     obs["peak"] = mem["max_peak"] - mem["begin"]
     obs["name"] = "ref"
@@ -161,7 +163,7 @@ for voc_size, batch_size in tqdm(confs):
     # custom
     p = start_spying_on(delay=0.0001)
     cus.run(None, feeds)
-    obs = measure_time(lambda: cus.run(None, feeds), max_time=1)
+    obs = measure_time(lambda cus=cus, feeds=feeds: cus.run(None, feeds), max_time=1)
     mem = p.stop()
     obs["peak"] = mem["max_peak"] - mem["begin"]
     obs["name"] = "custom"
@@ -176,7 +178,7 @@ for voc_size, batch_size in tqdm(confs):
 
 df = pandas.DataFrame(data)
 df["time"] = df["average"]
-df.to_csv("plot_optim_tfidf.csv", index=False)
+df.to_csv("plot_op_tfidfvectorizer_sparse.csv", index=False)
 print(df.head())
 
 
@@ -239,7 +241,7 @@ def histograms(df, metric):
 
 
 fig = histograms(df, "time")
-fig.savefig("plot_optim_tfidf.png")
+fig.savefig("plot_op_tfidfvectorizer_sparse.png")
 
 ###############################################
 # Take away

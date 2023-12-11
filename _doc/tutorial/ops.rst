@@ -27,4 +27,4 @@ Focus on operators optimization
     :maxdepth: 1
     :caption: TreeEnsemble
 
-    ../auto_examples/plot_optim_tree_ensemble
+    ../auto_examples/plot_op_tree_ensemble_sparse

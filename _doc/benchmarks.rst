@@ -18,8 +18,8 @@ This benchmark measures the computation time when the kernel outputs
 sparse tensors.
 
 
-plot_optim_tree_ensemble
-++++++++++++++++++++++++
+plot_op_tree_ensemble_sparse
+++++++++++++++++++++++++++++
 
 See :ref:`l-plot-optim-tree-ensemble`.
 
