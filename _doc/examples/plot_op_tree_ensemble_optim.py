@@ -54,6 +54,7 @@ Another example:
 import logging
 import os
 import timeit
+from typing import Tuple
 import numpy
 import onnx
 from onnx.helper import make_graph, make_model
@@ -104,44 +105,49 @@ script_args = get_parsed_args(
 # Training a model
 # ++++++++++++++++
 
+
+def train_model(
+    batch_size: int, n_features: int, n_trees: int, max_depth: int
+) -> Tuple[str, numpy.ndarray, numpy.ndarray]:
+    filename = f"plot_op_tree_ensemble_optim-f{n_features}-{n_trees}-d{max_depth}.onnx"
+    if not os.path.exists(filename):
+        X, y = make_regression(
+            batch_size + max(batch_size, 2 ** (max_depth + 1)),
+            n_features=n_features,
+            n_targets=1,
+        )
+        print(f"Training to get {filename!r} with X.shape={X.shape}")
+        X, y = X.astype(numpy.float32), y.astype(numpy.float32)
+        # To be faster, we train only 1 tree.
+        model = RandomForestRegressor(
+            1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
+        )
+        model.fit(X[:-batch_size], y[:-batch_size])
+        onx = to_onnx(model, X[:1])
+
+        # And wd multiply the trees.
+        node = multiply_tree(onx.graph.node[0], n_trees)
+        onx = make_model(
+            make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
+            domain=onx.domain,
+            opset_imports=onx.opset_import,
+        )
+
+        with open(filename, "wb") as f:
+            f.write(onx.SerializeToString())
+    else:
+        X, y = make_regression(batch_size, n_features=n_features, n_targets=1)
+        X, y = X.astype(numpy.float32), y.astype(numpy.float32)
+    Xb, yb = X[-batch_size:].copy(), y[-batch_size:].copy()
+    return filename, Xb, yb
+
+
 batch_size = script_args.batch_size
 n_features = script_args.n_features
 n_trees = script_args.n_trees
 max_depth = script_args.max_depth
 
-filename = (
-    f"plot_op_tree_ensemble_optim-f{n_features}-" f"t{n_trees}-d{max_depth}.onnx"
-)
-if not os.path.exists(filename):
-    X, y = make_regression(
-        batch_size + max(batch_size, 2 ** (max_depth + 1)),
-        n_features=n_features,
-        n_targets=1,
-    )
-    print(f"Training to get {filename!r} with X.shape={X.shape}")
-    X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-    # To be faster, we train only 1 tree.
-    model = RandomForestRegressor(
-        1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
-    )
-    model.fit(X[:-batch_size], y[:-batch_size])
-    onx = to_onnx(model, X[:1])
-
-    # And wd multiply the trees.
-    node = multiply_tree(onx.graph.node[0], n_trees)
-    onx = make_model(
-        make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
-        domain=onx.domain,
-        opset_imports=onx.opset_import,
-    )
-
-    with open(filename, "wb") as f:
-        f.write(onx.SerializeToString())
-else:
-    X, y = make_regression(batch_size, n_features=n_features, n_targets=1)
-    X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-
-Xb, yb = X[-batch_size:].copy(), y[-batch_size:].copy()
+filename, Xb, yb = train_model(batch_size, n_features, n_trees, max_depth)
 
 #######################################
 # Rewrite the onnx file to use a different kernel
