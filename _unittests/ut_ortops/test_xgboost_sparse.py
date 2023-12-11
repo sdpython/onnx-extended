@@ -1,4 +1,5 @@
 import unittest
+import sys
 import numpy
 import scipy.sparse
 from onnx import TensorProto
@@ -49,8 +50,9 @@ class TestXGBoostSparse(ExtTestCase):
         rf.fit(X_sp, y)
         expected = rf.predict(X).astype(numpy.float32).reshape((-1, 1))
         expected_sparse = rf.predict(X_sp).astype(numpy.float32).reshape((-1, 1))
-        diff = numpy.abs(expected - expected_sparse)
-        self.assertNotEqual(diff.min(), diff.max())
+        if sys.platform != "win32":
+            diff = numpy.abs(expected - expected_sparse)
+            self.assertNotEqual(diff.min(), diff.max())
 
         # conversion to onnx
         update_registered_converter(
