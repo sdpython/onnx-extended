@@ -94,16 +94,23 @@ template <typename T> struct DenseFeatureAccessor : public FeatureAccessor<T> {
 };
 
 template <typename T> struct SparseFeatureAccessor : public FeatureAccessor<T> {
-  typedef std::map<uint32_t, T> map_type; // map or unoredered_map
   const onnx_sparse::sparse_struct *sp;
-  std::vector<map_type> maps;
+  const uint32_t *indices;
+  std::vector<uint32_t> row_indices;
+  std::vector<uint32_t> element_indices;
 
   struct RowAccessor {
-    const map_type *ptr;
+    const onnx_sparse::sparse_struct *sp;
+    const uint32_t *root;
+    const uint32_t *begin;
+    const uint32_t *end;
+
     inline T get(int64_t col) const {
-      auto it = ptr->find(static_cast<uint32_t>(col));
-      return it == ptr->end() ? std::numeric_limits<T>::quiet_NaN() : it->second;
+      auto it = std::lower_bound(begin, end, static_cast<uint32_t>(col));
+      return (it != end && col == *it) ? sp->values()[it - root]
+                                       : std::numeric_limits<T>::quiet_NaN();
     }
+
     static inline FeatureRepresentation FeatureType() { return FeatureRepresentation::SPARSE; }
   };
 
@@ -122,10 +129,13 @@ template <typename T> struct SparseFeatureAccessor : public FeatureAccessor<T> {
         this->n_rows *= sp->shape[i];
       this->n_features = sp->shape[sp->n_dims - 1];
     }
-    sp->to_maps<std::vector<map_type>>(maps);
+    ((onnx_sparse::sparse_struct *)ptr)->csr(row_indices, element_indices);
   }
 
-  inline RowAccessor get(int64_t row) const { return RowAccessor{&maps[row]}; }
+  inline RowAccessor get(int64_t row) const {
+    return RowAccessor{sp, &element_indices[0], element_indices.data() + row_indices[row],
+                       element_indices.data() + row_indices[row + 1]};
+  }
 
   static inline FeatureRepresentation FeatureType() { return FeatureRepresentation::SPARSE; }
 };

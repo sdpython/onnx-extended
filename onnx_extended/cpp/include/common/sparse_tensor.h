@@ -106,6 +106,76 @@ struct sparse_struct {
       maps[row][col] = val[i];
     }
   }
-};
+
+  inline int64_t flatten_shape(int last = -1) const {
+    int64_t res = 1;
+    std::size_t end = last == -1 ? n_dims : static_cast<std::size_t>(last);
+    for (std::size_t i = 0; i < end; ++i)
+      res *= shape[i];
+    return res;
+  }
+
+  void csr(std::vector<uint32_t> &rows_index) const {
+    if (n_elements == 0) {
+      rows_index.reserve(1);
+      rows_index.push_back(static_cast<uint32_t>(0));
+      return;
+    }
+    uint32_t *ind = indices();
+    uint32_t last_dim = static_cast<uint32_t>(shape[n_dims - 1]);
+    std::size_t expected =
+        static_cast<std::size_t>(n_dims == 2 ? shape[0] : flatten_shape(n_dims - 1));
+    rows_index.reserve(expected + 1);
+    uint32_t row, new_row;
+    // The implementation could be parallelized assuming rows have
+    // approxatively the same amount of values.
+    new_row = ind[0] / last_dim;
+    for (row = -1; row != new_row; ++row) {
+      rows_index.push_back(static_cast<uint32_t>(0));
+    }
+    for (uint32_t i = 1; i < n_elements; ++i) {
+      new_row = ind[i] / last_dim;
+      EXT_ENFORCE(ind[i] < ind[i + 1], "indices are not sorted.");
+      for (; row != new_row; ++row) {
+        rows_index.push_back(static_cast<uint32_t>(i));
+      }
+    }
+    while (rows_index.size() <= expected)
+      rows_index.push_back(static_cast<uint32_t>(n_elements));
+  }
+
+  void csr(std::vector<uint32_t> &rows_index, std::vector<uint32_t> &element_indices) const {
+    if (n_elements == 0) {
+      rows_index.reserve(1);
+      rows_index.push_back(static_cast<uint32_t>(0));
+      return;
+    }
+    element_indices.resize(n_elements);
+    uint32_t *ind = indices();
+    uint32_t last_dim = static_cast<uint32_t>(shape[n_dims - 1]);
+    std::size_t expected =
+        static_cast<std::size_t>(n_dims == 2 ? shape[0] : flatten_shape(n_dims - 1));
+    rows_index.reserve(expected + 1);
+    uint32_t row, new_row;
+    // The implementation could be parallelized assuming rows have
+    // approxatively the same amount of values.
+    new_row = ind[0] / last_dim;
+    for (row = -1; row != new_row; ++row) {
+      rows_index.push_back(static_cast<uint32_t>(0));
+    }
+    element_indices[0] = ind[0] - row * last_dim;
+    for (uint32_t i = 1; i < n_elements; ++i) {
+      new_row = ind[i] / last_dim;
+      EXT_ENFORCE(ind[i] < ind[i + 1], "indices are not sorted.");
+      for (; row != new_row; ++row) {
+        rows_index.push_back(static_cast<uint32_t>(i));
+      }
+      element_indices[i] = ind[i] - row * last_dim;
+    }
+    while (rows_index.size() <= expected)
+      rows_index.push_back(static_cast<uint32_t>(n_elements));
+  }
+
+}; // struct sparse_struct
 
 } // namespace onnx_sparse

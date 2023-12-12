@@ -35,9 +35,12 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
 
     @skipif_ci_apple("crash")
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
-    def test_random_forest_regressor_sparse(self):
+    def test_random_forest_aregressor_sparse(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
-        from onnx_extended.validation.cpu._validation import dense_to_sparse_struct
+        from onnx_extended.validation.cpu._validation import (
+            dense_to_sparse_struct,
+            sparse_struct_indices_values,
+        )
         from skl2onnx import to_onnx
 
         X, y = make_regression(100, 2, n_informative=1, random_state=32)
@@ -76,7 +79,10 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
         self.assertIn("TreeEnsembleRegressorSparse", str(onx2))
 
         # check with onnxruntime + custom op
-        feeds = {"X": dense_to_sparse_struct(X[80:])}
+        sp = dense_to_sparse_struct(X[80:])
+        indices, values = sparse_struct_indices_values(sp)
+        self.assertEqualArray(numpy.arange(indices.size).astype(numpy.uint32), indices)
+        feeds = {"X": sp}
         r = get_ort_ext_libs()
         self.assertExists(r[0])
         opts = SessionOptions()
@@ -85,6 +91,9 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
             onx2.SerializeToString(), opts, providers=["CPUExecutionProvider"]
         )
         got = sess.run(None, feeds)[0]
+        indices2, values2 = sparse_struct_indices_values(sp)
+        self.assertEqualArray(indices, indices2)
+        self.assertEqualArray(values, values2)
         self.assertEqualArray(expected, got, atol=1e-5)
 
     @skipif_ci_apple("crash")
