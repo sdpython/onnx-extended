@@ -22,7 +22,6 @@ import time
 import itertools
 from typing import Tuple
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas
 from onnx import ModelProto
 from onnx.helper import make_attribute
