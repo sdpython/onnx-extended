@@ -13,6 +13,7 @@
 #include <deque>
 #include <limits>
 #include <map>
+#include <unordered_map>
 
 // #define DEBUG_CHECK
 // #define DEBUG_STEP
