@@ -437,9 +437,7 @@ print(small_df.tail(n=10))
 # ++++
 
 skeys = ",".join(optim_params.keys())
-title = (
-    f"TreeEnsemble tuning, n_tries={script_args.tries}" f"\n{skeys}\nlower is better"
-)
-ax = hhistograms(df, title=title)
+title = f"TreeEnsemble tuning, n_tries={script_args.tries}\n{skeys}\nlower is better"
+ax = hhistograms(df, title=title, keys=("input", "name"))
 fig = ax.get_figure()
 fig.savefig("plot_op_tree_ensemble_sparse.png")

@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 
 def vhistograms(
@@ -69,7 +69,7 @@ def vhistograms(
 
 def hhistograms(
     df: "pandas.DataFrame",  # noqa: F821
-    keys: Tuple[str, ...] = ("input", "name"),
+    keys: Union[str, Tuple[str, ...]] = "name",
     metric: str = "average",
     baseline: str = "baseline",
     title: str = "Benchmark",
@@ -102,7 +102,7 @@ def hhistograms(
         from onnx_extended.plotting.benchmark import hhistograms
 
         df = pandas.DataFrame(hhistograms_data())
-        hhistograms(df)
+        hhistograms(df, keys=("input", "name"))
     """
     import pandas
 

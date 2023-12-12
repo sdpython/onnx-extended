@@ -11,7 +11,17 @@ class TestCReferenceEvaluator(ExtTestCase):
 
         plt.clf()
         df = pandas.DataFrame(hhistograms_data())
-        ax = hhistograms(df)
+        ax = hhistograms(df, keys=("input", "name"))
+        self.assertNotEmpty(ax)
+
+    def test_plotting_hhistograms2(self):
+        import matplotlib.pyplot as plt
+
+        plt.clf()
+        df = pandas.DataFrame(hhistograms_data())
+        df = df[df.input == "dense"]
+        df = df.drop("input", axis=1)
+        ax = hhistograms(df, keys="name")
         self.assertNotEmpty(ax)
 
     def test_plotting_vhistograms(self):
