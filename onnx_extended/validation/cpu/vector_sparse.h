@@ -24,6 +24,6 @@ py_array_float dense_to_sparse_struct(const py_array_float &v);
 
 py::list sparse_struct_to_maps(const py_array_float &v);
 
-py_array_uint32 sparse_struct_to_csr(const py_array_float &v, bool update);
+py::tuple sparse_struct_to_csr(const py_array_float &v);
 
 } // namespace validation

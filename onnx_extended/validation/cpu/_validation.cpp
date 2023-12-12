@@ -176,11 +176,10 @@ into a list of dictionaries. The sparse tensor needs to be 2D.)pbdoc");
         R"pbdoc(Converts a dense float tensor into a sparse structure
 stored in a float tensor.)pbdoc");
 
-  m.def("sparse_struct_to_csr", &sparse_struct_to_csr, py::arg("v"), py::arg("update") = false,
+  m.def("sparse_struct_to_csr", &sparse_struct_to_csr, py::arg("v"),
         R"pbdoc(Returns the position of the first elements of each row.
 The array has n+1 elements if n is the number of non null elements.
-If *update* is True, every index is modified to become the column index
-of each element.)pbdoc");
+The second array stores the column index for every element.)pbdoc");
 
   m.def("sparse_struct_indices_values", &sparse_struct_indices_values, py::arg("v"),
         R"pbdoc(Returns the indices and the values from a sparse structure

@@ -55,22 +55,22 @@ class TestSparseStruct(ExtTestCase):
         self.assertLess(sp.size, dense.size)
 
         expected = [0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3]
-        csr = sparse_struct_to_csr(sp)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
 
-        csr = sparse_struct_to_csr(sp)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
 
         sp0 = sp.copy()
-        csr = sparse_struct_to_csr(sp, update=True)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
-        self.assertNotEqual(sp0.tolist(), sp.tolist())
+        self.assertEqual(sp0.tolist(), sp.tolist())
 
     @skipif_ci_apple("crash")
     def test_sparse_struct_csr_ext0(self):
@@ -87,16 +87,16 @@ class TestSparseStruct(ExtTestCase):
         self.assertLess(sp.size, dense.size)
 
         expected = [0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 3]
-        csr = sparse_struct_to_csr(sp)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
 
-        csr = sparse_struct_to_csr(sp)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual(expected, csr.tolist())
 
-        csr = sparse_struct_to_csr(sp, update=True)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
@@ -117,12 +117,12 @@ class TestSparseStruct(ExtTestCase):
         self.assertLess(sp.size, dense.size)
 
         expected = [0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3]
-        csr = sparse_struct_to_csr(sp)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
 
-        csr = sparse_struct_to_csr(sp)
+        csr, _ = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
@@ -130,12 +130,13 @@ class TestSparseStruct(ExtTestCase):
         indices, values = sparse_struct_indices_values(sp)
         self.assertEqual(indices.tolist(), [0, 74, 93])
         self.assertEqual(values.tolist(), [777, 555, 888])
-        csr = sparse_struct_to_csr(sp, update=True)
+        csr, ind = sparse_struct_to_csr(sp)
         self.assertIsInstance(csr, np.ndarray)
         self.assertEqual((dense.shape[0] + 1,), csr.shape)
         self.assertEqual(expected, csr.tolist())
         indices, values = sparse_struct_indices_values(sp)
-        self.assertEqual(indices.tolist(), [0, 8, 5])
+        self.assertEqual([0, 8, 5], ind.tolist())
+        self.assertEqual(indices.tolist(), [0, 74, 93])
         self.assertEqual(values.tolist(), [777, 555, 888])
 
 

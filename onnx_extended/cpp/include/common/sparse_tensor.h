@@ -116,10 +116,6 @@ struct sparse_struct {
   }
 
   void csr(std::vector<uint32_t> &rows_index) const {
-    ((sparse_struct *)this)->csr(rows_index, false);
-  }
-
-  void csr(std::vector<uint32_t> &rows_index, bool update) {
     if (n_elements == 0) {
       rows_index.reserve(1);
       rows_index.push_back(static_cast<uint32_t>(0));
@@ -137,16 +133,44 @@ struct sparse_struct {
     for (row = -1; row != new_row; ++row) {
       rows_index.push_back(static_cast<uint32_t>(0));
     }
-    if (update)
-      ind[0] -= row * last_dim;
     for (uint32_t i = 1; i < n_elements; ++i) {
       new_row = ind[i] / last_dim;
       EXT_ENFORCE(ind[i] < ind[i + 1], "indices are not sorted.");
       for (; row != new_row; ++row) {
         rows_index.push_back(static_cast<uint32_t>(i));
       }
-      if (update)
-        ind[i] -= row * last_dim;
+    }
+    while (rows_index.size() <= expected)
+      rows_index.push_back(static_cast<uint32_t>(n_elements));
+  }
+
+  void csr(std::vector<uint32_t> &rows_index, std::vector<uint32_t> &element_indices) const {
+    if (n_elements == 0) {
+      rows_index.reserve(1);
+      rows_index.push_back(static_cast<uint32_t>(0));
+      return;
+    }
+    element_indices.resize(n_elements);
+    uint32_t *ind = indices();
+    uint32_t last_dim = static_cast<uint32_t>(shape[n_dims - 1]);
+    std::size_t expected =
+        static_cast<std::size_t>(n_dims == 2 ? shape[0] : flatten_shape(n_dims - 1));
+    rows_index.reserve(expected + 1);
+    uint32_t row, new_row;
+    // The implementation could be parallelized assuming rows have
+    // approxatively the same amount of values.
+    new_row = ind[0] / last_dim;
+    for (row = -1; row != new_row; ++row) {
+      rows_index.push_back(static_cast<uint32_t>(0));
+    }
+    element_indices[0] = ind[0] - row * last_dim;
+    for (uint32_t i = 1; i < n_elements; ++i) {
+      new_row = ind[i] / last_dim;
+      EXT_ENFORCE(ind[i] < ind[i + 1], "indices are not sorted.");
+      for (; row != new_row; ++row) {
+        rows_index.push_back(static_cast<uint32_t>(i));
+      }
+      element_indices[i] = ind[i] - row * last_dim;
     }
     while (rows_index.size() <= expected)
       rows_index.push_back(static_cast<uint32_t>(n_elements));
