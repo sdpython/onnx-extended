@@ -45,7 +45,7 @@ class TestXGBoostSparse(ExtTestCase):
         X = X.astype(numpy.float32)
 
         rf = xgboost.XGBRegressor(
-            n_estimators=3, max_depth=4, random_state=0, base_score=0.5
+            n_estimators=5 max_depth=3, random_state=0, base_score=0.5
         )
         rf.fit(X_sp, y)
         expected = rf.predict(X).astype(numpy.float32).reshape((-1, 1))
