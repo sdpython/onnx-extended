@@ -10,15 +10,20 @@
 #include <pybind11/pybind11.h>
 
 #define py_array_float py::array_t<float, py::array::c_style | py::array::forcecast>
+#define py_array_uint32 py::array_t<uint32_t, py::array::c_style | py::array::forcecast>
 
 namespace py = pybind11;
 
 namespace validation {
+
+py::tuple sparse_struct_indices_values(const py_array_float &v);
 
 py_array_float sparse_struct_to_dense(const py_array_float &v);
 
 py_array_float dense_to_sparse_struct(const py_array_float &v);
 
 py::list sparse_struct_to_maps(const py_array_float &v);
+
+py_array_uint32 sparse_struct_to_csr(const py_array_float &v, bool update);
 
 } // namespace validation

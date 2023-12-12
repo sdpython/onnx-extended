@@ -67,6 +67,24 @@ py_array_float sparse_struct_to_dense(const py_array_float &v) {
   return result;
 }
 
+py::tuple sparse_struct_indices_values(const py_array_float &v) {
+  py::buffer_info br = v.request();
+  float *pr = static_cast<float *>(br.ptr);
+  onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)pr;
+
+  py_array_uint32 rind =
+      py::array_t<uint32_t>(std::vector<int64_t>{static_cast<int64_t>(sp->n_elements)});
+  py::buffer_info brout = rind.request();
+  std::memcpy(brout.ptr, sp->indices(), sp->n_elements * sizeof(uint32_t));
+
+  py_array_float rval =
+      py::array_t<float>(std::vector<int64_t>{static_cast<int64_t>(sp->n_elements)});
+  py::buffer_info broutv = rval.request();
+  std::memcpy(broutv.ptr, sp->values(), sp->n_elements * sizeof(float));
+
+  return py::make_tuple(rind, rval);
+}
+
 py::list sparse_struct_to_maps(const py_array_float &v) {
   py::buffer_info br = v.request();
   float *pr = static_cast<float *>(br.ptr);
@@ -82,6 +100,21 @@ py::list sparse_struct_to_maps(const py_array_float &v) {
     res.append(d);
   }
   return res;
+}
+
+py_array_uint32 sparse_struct_to_csr(const py_array_float &v, bool update) {
+  py::buffer_info br = v.request();
+  float *pr = static_cast<float *>(br.ptr);
+  onnx_sparse::sparse_struct *sp = (onnx_sparse::sparse_struct *)pr;
+  std::vector<uint32_t> indices;
+  sp->csr(indices, update);
+
+  // The copy should be avoided but this function is more useful in C.
+  py_array_uint32 result =
+      py::array_t<uint32_t>(std::vector<int64_t>{static_cast<int64_t>(indices.size())});
+  py::buffer_info brout = result.request();
+  std::memcpy(brout.ptr, indices.data(), indices.size() * sizeof(uint32_t));
+  return result;
 }
 
 } // namespace validation
