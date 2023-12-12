@@ -233,6 +233,23 @@ class ExtTestCase(unittest.TestCase):
             value = numpy.array(value).astype(expected.dtype)
         self.assertEqualArray(expected, value, atol=atol, rtol=rtol)
 
+    def assertNotAlmostEqual(
+        self,
+        expected: numpy.ndarray,
+        value: numpy.ndarray,
+        atol: float = 0,
+        rtol: float = 0,
+    ):
+        if not isinstance(expected, numpy.ndarray):
+            expected = numpy.array(expected)
+        if not isinstance(value, numpy.ndarray):
+            value = numpy.array(value).astype(expected.dtype)
+        try:
+            self.assertEqualArray(expected, value, atol=atol, rtol=rtol)
+            raise AssertionError("Arrays are equal.")
+        except AssertionError:
+            pass
+
     def assertRaise(self, fct: Callable, exc_type: type[Exception]):
         try:
             fct()

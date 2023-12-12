@@ -24,7 +24,7 @@ class TestSparseStruct(ExtTestCase):
     def test_sparse_struct_maps(self):
         from onnx_extended.validation.cpu._validation import (
             dense_to_sparse_struct,
-            sparse_struct_to_unordered_map,
+            sparse_struct_to_maps,
         )
 
         dense = np.zeros((10, 11), dtype=np.float32)
@@ -33,7 +33,7 @@ class TestSparseStruct(ExtTestCase):
         dense[6, 3] = 555
         sp = dense_to_sparse_struct(dense)
         self.assertLess(sp.size, dense.size)
-        maps = sparse_struct_to_unordered_map(sp)
+        maps = sparse_struct_to_maps(sp)
         self.assertIsInstance(maps, list)
         self.assertIsInstance(maps[0], dict)
         self.assertEqual(

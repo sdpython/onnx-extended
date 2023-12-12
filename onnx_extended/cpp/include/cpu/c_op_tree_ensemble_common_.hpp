@@ -12,6 +12,7 @@
 
 #include <deque>
 #include <limits>
+#include <map>
 #include <unordered_map>
 
 // #define DEBUG_CHECK
@@ -93,12 +94,13 @@ template <typename T> struct DenseFeatureAccessor : public FeatureAccessor<T> {
 };
 
 template <typename T> struct SparseFeatureAccessor : public FeatureAccessor<T> {
+  typedef std::map<uint32_t, T> map_type; // map or unoredered_map
   const onnx_sparse::sparse_struct *sp;
-  std::vector<std::unordered_map<uint32_t, T>> maps;
+  std::vector<map_type> maps;
 
   struct RowAccessor {
-    const std::unordered_map<uint32_t, T> *ptr;
-    inline T get(int64_t col) {
+    const map_type *ptr;
+    inline T get(int64_t col) const {
       auto it = ptr->find(static_cast<uint32_t>(col));
       return it == ptr->end() ? std::numeric_limits<T>::quiet_NaN() : it->second;
     }
@@ -120,7 +122,7 @@ template <typename T> struct SparseFeatureAccessor : public FeatureAccessor<T> {
         this->n_rows *= sp->shape[i];
       this->n_features = sp->shape[sp->n_dims - 1];
     }
-    sp->to_unordered_maps(maps);
+    sp->to_maps<std::vector<map_type>>(maps);
   }
 
   inline RowAccessor get(int64_t row) const { return RowAccessor{&maps[row]}; }

@@ -290,7 +290,7 @@ private:
         [this, X, C, &out, &fn_weight](int, ptrdiff_t row_start, ptrdiff_t row_end) {
           auto begin = out.data() + row_start * this->output_size_;
           auto end = out.data() + row_end * this->output_size_;
-          std::fill(begin, end, 0);
+          std::fill(begin, end, static_cast<T>(0));
           for (auto row_num = row_start; row_num < row_end;
                ++row_num, begin += this->output_size_) {
             ComputeImpl(X.data() + row_num * C, C, begin, fn_weight);

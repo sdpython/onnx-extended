@@ -2,7 +2,7 @@
 
 #include "onnx_extended_helpers.h"
 #include <cstring>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 namespace onnx_sparse {
@@ -88,8 +88,9 @@ struct sparse_struct {
     n = n_elements;
   }
 
-  void to_unordered_maps(std::vector<std::unordered_map<uint32_t, float>> &maps) const {
-    EXT_ENFORCE(n_dims == 2, "to_unordered_maps only works with 2D matrices.");
+  template <typename T> // std::vector<std::unordered_map<uint32_t, float>>
+  void to_maps(T &maps) const {
+    EXT_ENFORCE(n_dims == 2, "to_maps only works with 2D matrices.");
     maps.resize(shape[0]);
     for (auto it : maps)
       it.clear();

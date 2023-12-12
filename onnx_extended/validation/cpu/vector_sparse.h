@@ -19,6 +19,6 @@ py_array_float sparse_struct_to_dense(const py_array_float &v);
 
 py_array_float dense_to_sparse_struct(const py_array_float &v);
 
-py::list sparse_struct_to_unordered_map(const py_array_float &v);
+py::list sparse_struct_to_maps(const py_array_float &v);
 
 } // namespace validation

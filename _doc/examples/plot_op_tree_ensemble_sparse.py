@@ -1,40 +1,36 @@
 """
-.. _l-plot-optim-tree-ensemble:
+.. _l-plot-optim-tree-ensemble-sparse:
 
-TreeEnsemble optimization
-=========================
+TreeEnsemble, dense, and sparse
+===============================
 
-The execution of a TreeEnsembleRegressor can lead to very different results
-depending on how the computation is parallelized. By trees,
-by rows, by both, for only one row, for a short batch of rows, a longer one.
-The implementation in :epkg:`onnxruntime` does not let the user changed
-the predetermined settings but a custom kernel might. That's what this example
-is measuring.
-
+The example benchmarks the sparse implementation for TreeEnsemble.
 The default set of optimized parameters is very short and is meant to be executed
 fast. Many more parameters can be tried.
 
 ::
 
-    python plot_optim_tree_ensemble --scenario=LONG
+    python plot_op_tree_ensemble_sparse --scenario=LONG
 
 To change the training parameters:
 
 ::
 
-    python plot_optim_tree_ensemble.py
+    python plot_op_tree_ensemble_sparse.py
         --n_trees=100
         --max_depth=10
         --n_features=50
+        --sparsity=0.9
         --batch_size=100000
     
 Another example with a full list of parameters:
 
-    python plot_optim_tree_ensemble.py
+    python plot_op_tree_ensemble_sparse.py
         --n_trees=100
         --max_depth=10
         --n_features=50
         --batch_size=100000
+        --sparsity=0.9
         --tries=3
         --scenario=CUSTOM
         --parallel_tree=80,40
@@ -48,16 +44,17 @@ Another example:
 
 ::
 
-    python plot_optim_tree_ensemble.py
+    python plot_op_tree_ensemble_sparse.py
         --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
 """
 import logging
 import os
 import timeit
+from typing import Tuple
 import numpy
 import onnx
-from onnx.helper import make_graph, make_model
-from onnx.reference import ReferenceEvaluator
+from onnx import ModelProto, TensorProto
+from onnx.helper import make_graph, make_model, make_tensor_value_info
 import matplotlib.pyplot as plt
 from pandas import DataFrame, concat
 from sklearn.datasets import make_regression
@@ -65,7 +62,6 @@ from sklearn.ensemble import RandomForestRegressor
 from skl2onnx import to_onnx
 from onnxruntime import InferenceSession, SessionOptions
 from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
-from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
 from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
@@ -73,19 +69,21 @@ from onnx_extended.ortops.optim.optimize import (
     optimize_model,
 )
 from onnx_extended.tools.onnx_nodes import multiply_tree
+from onnx_extended.validation.cpu._validation import dense_to_sparse_struct
 from onnx_extended.ext_test_case import get_parsed_args, unit_test_going
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 
 script_args = get_parsed_args(
-    "plot_optim_tree_ensemble",
+    "plot_op_tree_ensemble_sparse",
     description=__doc__,
     scenarios={
         "SHORT": "short optimization (default)",
         "LONG": "test more options",
         "CUSTOM": "use values specified by the command line",
     },
-    n_features=(2 if unit_test_going() else 5, "number of features to generate"),
+    sparsity=(0.99, "input sparsity"),
+    n_features=(2 if unit_test_going() else 50, "number of features to generate"),
     n_trees=(3 if unit_test_going() else 10, "number of trees to train"),
     max_depth=(2 if unit_test_going() else 5, "max_depth"),
     batch_size=(1000 if unit_test_going() else 10000, "batch size"),
@@ -104,42 +102,58 @@ script_args = get_parsed_args(
 # Training a model
 # ++++++++++++++++
 
+
+def train_model(
+    batch_size: int, n_features: int, n_trees: int, max_depth: int, sparsity: float
+) -> Tuple[str, numpy.ndarray, numpy.ndarray]:
+    filename = (
+        f"plot_op_tree_ensemble_sparse-f{n_features}-{n_trees}-"
+        f"d{max_depth}-s{sparsity}.onnx"
+    )
+    if not os.path.exists(filename):
+        X, y = make_regression(
+            batch_size + max(batch_size, 2 ** (max_depth + 1)),
+            n_features=n_features,
+            n_targets=1,
+        )
+        mask = numpy.random.rand(*X.shape) <= sparsity
+        X[mask] = 0
+        X, y = X.astype(numpy.float32), y.astype(numpy.float32)
+
+        print(f"Training to get {filename!r} with X.shape={X.shape}")
+        # To be faster, we train only 1 tree.
+        model = RandomForestRegressor(
+            1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
+        )
+        model.fit(X[:-batch_size], y[:-batch_size])
+        onx = to_onnx(model, X[:1])
+
+        # And wd multiply the trees.
+        node = multiply_tree(onx.graph.node[0], n_trees)
+        onx = make_model(
+            make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
+            domain=onx.domain,
+            opset_imports=onx.opset_import,
+        )
+
+        with open(filename, "wb") as f:
+            f.write(onx.SerializeToString())
+    else:
+        X, y = make_regression(batch_size, n_features=n_features, n_targets=1)
+        mask = numpy.random.rand(*X.shape) <= sparsity
+        X[mask] = 0
+        X, y = X.astype(numpy.float32), y.astype(numpy.float32)
+    Xb, yb = X[-batch_size:].copy(), y[-batch_size:].copy()
+    return filename, Xb, yb
+
+
 batch_size = script_args.batch_size
 n_features = script_args.n_features
 n_trees = script_args.n_trees
 max_depth = script_args.max_depth
+sparsity = script_args.sparsity
 
-filename = f"plot_optim_tree_ensemble-f{n_features}-" f"t{n_trees}-d{max_depth}.onnx"
-if not os.path.exists(filename):
-    X, y = make_regression(
-        batch_size + max(batch_size, 2 ** (max_depth + 1)),
-        n_features=n_features,
-        n_targets=1,
-    )
-    print(f"Training to get {filename!r} with X.shape={X.shape}")
-    X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-    # To be faster, we train only 1 tree.
-    model = RandomForestRegressor(
-        1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
-    )
-    model.fit(X[:-batch_size], y[:-batch_size])
-    onx = to_onnx(model, X[:1])
-
-    # And wd multiply the trees.
-    node = multiply_tree(onx.graph.node[0], n_trees)
-    onx = make_model(
-        make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
-        domain=onx.domain,
-        opset_imports=onx.opset_import,
-    )
-
-    with open(filename, "wb") as f:
-        f.write(onx.SerializeToString())
-else:
-    X, y = make_regression(batch_size, n_features=n_features, n_targets=1)
-    X, y = X.astype(numpy.float32), y.astype(numpy.float32)
-
-Xb, yb = X[-batch_size:].copy(), y[-batch_size:].copy()
+filename, Xb, yb = train_model(batch_size, n_features, n_trees, max_depth, sparsity)
 
 #######################################
 # Rewrite the onnx file to use a different kernel
@@ -158,12 +172,22 @@ print(onnx_simple_text_plot(onx))
 # And then the modified model.
 
 
-def transform_model(onx, **kwargs):
+def transform_model(model, use_sparse=False, **kwargs):
+    onx = ModelProto()
+    onx.ParseFromString(model.SerializeToString())
     att = get_node_attribute(onx.graph.node[0], "nodes_modes")
     modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
         "BRANCH_", ""
     )
-    return change_onnx_operator_domain(
+    if use_sparse and "new_op_type" not in kwargs:
+        kwargs["new_op_type"] = "TreeEnsembleRegressorSparse"
+    if use_sparse:
+        # with sparse tensor, missing value means 0
+        att = get_node_attribute(onx.graph.node[0], "nodes_values")
+        thresholds = numpy.array(att.floats, dtype=numpy.float32)
+        missing_true = (thresholds >= 0).astype(numpy.int64)
+        kwargs["nodes_missing_value_tracks_true"] = missing_true
+    new_onx = change_onnx_operator_domain(
         onx,
         op_type="TreeEnsembleRegressor",
         op_domain="ai.onnx.ml",
@@ -171,6 +195,12 @@ def transform_model(onx, **kwargs):
         nodes_modes=modes,
         **kwargs,
     )
+    if use_sparse:
+        del new_onx.graph.input[:]
+        new_onx.graph.input.append(
+            make_tensor_value_info("X", TensorProto.FLOAT, (None,))
+        )
+    return new_onx
 
 
 print("Tranform model to add a custom node.")
@@ -180,6 +210,18 @@ with open(filename + "modified.onnx", "wb") as f:
     f.write(onx_modified.SerializeToString())
 print("done.")
 print(onnx_simple_text_plot(onx_modified))
+
+############################
+# Same with sparse.
+
+
+print("Same transformation but with sparse.")
+onx_modified_sparse = transform_model(onx, use_sparse=True)
+print(f"Save into {filename + 'modified.sparse.onnx'!r}.")
+with open(filename + "modified.sparse.onnx", "wb") as f:
+    f.write(onx_modified_sparse.SerializeToString())
+print("done.")
+print(onnx_simple_text_plot(onx_modified_sparse))
 
 #######################################
 # Comparing onnxruntime and the custom kernel
@@ -199,10 +241,22 @@ sess_cus = InferenceSession(
     onx_modified.SerializeToString(), opts, providers=["CPUExecutionProvider"]
 )
 
+print(f"Loading modified sparse {filename!r}")
+sess_cus_sparse = InferenceSession(
+    onx_modified_sparse.SerializeToString(), opts, providers=["CPUExecutionProvider"]
+)
+
+
 print(f"Running once with shape {Xb.shape}.")
 base = sess_ort.run(None, {"X": Xb})[0]
+
 print(f"Running modified with shape {Xb.shape}.")
 got = sess_cus.run(None, {"X": Xb})[0]
+print("done.")
+
+Xb_sp = dense_to_sparse_struct(Xb)
+print(f"Running modified sparse with shape {Xb_sp.shape}.")
+got_sparse = sess_cus_sparse.run(None, {"X": Xb_sp})[0]
 print("done.")
 
 #######################################
@@ -210,6 +264,9 @@ print("done.")
 
 diff = numpy.abs(base - got).max()
 print(f"Discrepancies: {diff}")
+
+diff = numpy.abs(base - got_sparse).max()
+print(f"Discrepancies sparse: {diff}")
 
 ########################################
 # Simple verification
@@ -225,21 +282,9 @@ t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": Xb}), number=50)
 print(f"new time: {t2}")
 
 #################################
-# The same implementation but ran from the onnx python backend.
-ref = CReferenceEvaluator(filename)
-ref.run(None, {"X": Xb})
-t3 = timeit.timeit(lambda: ref.run(None, {"X": Xb}), number=50)
-print(f"CReferenceEvaluator: {t3}")
-
-#################################
-# The python implementation but from the onnx python backend.
-if n_trees < 50:
-    # It is usully slow.
-    ref = ReferenceEvaluator(filename)
-    ref.run(None, {"X": Xb})
-    t4 = timeit.timeit(lambda: ref.run(None, {"X": Xb}), number=5)
-    print(f"ReferenceEvaluator: {t4} (only 5 times instead of 50)")
-
+# The custom sparse implementation.
+t3 = timeit.timeit(lambda: sess_cus_sparse.run(None, {"X": Xb_sp}), number=50)
+print(f"new time sparse: {t3}")
 
 #############################################
 # Time for comparison
@@ -300,7 +345,7 @@ print("Full list of optimization parameters:")
 print(" ".join(cmds))
 
 ##################################
-# Then the optimization.
+# Then the optimization for dense
 
 
 def create_session(onx):
@@ -331,12 +376,34 @@ res = optimize_model(
     n_tries=script_args.tries,
 )
 
+##################################
+# Then the optimization for sparse
+
+res_sparse = optimize_model(
+    onx,
+    feeds={"X": Xb_sp},
+    transform=lambda *args, **kwargs: transform_model(*args, use_sparse=True, **kwargs),
+    session=create_session,
+    params=optim_params,
+    verbose=True,
+    number=script_args.number,
+    repeat=script_args.repeat,
+    warmup=script_args.warmup,
+    sleep=script_args.sleep,
+    n_tries=script_args.tries,
+)
+
+
 ###############################
 # And the results.
 
-df = DataFrame(res)
-df.to_csv("plot_optim_tree_ensemble.csv", index=False)
-df.to_excel("plot_optim_tree_ensemble.xlsx", index=False)
+df_dense = DataFrame(res)
+df_dense["input"] = "dense"
+df_sparse = DataFrame(res_sparse)
+df_sparse["input"] = "sparse"
+df = concat([df_dense, df_sparse], axis=0)
+df.to_csv("plot_op_tree_ensemble_sparse.csv", index=False)
+df.to_excel("plot_op_tree_ensemble_sparse.xlsx", index=False)
 print(df.columns)
 print(df.head(5))
 
@@ -370,23 +437,27 @@ print(small_df.tail(n=10))
 # ++++
 
 dfm = (
-    df[["name", "average"]]
-    .groupby(["name"], as_index=False)
+    df[["input", "name", "average"]]
+    .groupby(["input", "name"], as_index=False)
     .agg(["mean", "min", "max"])
     .copy()
 )
 if dfm.shape[1] == 3:
     dfm = dfm.reset_index(drop=False)
-dfm.columns = ["name", "average", "min", "max"]
+dfm.columns = ["input", "name", "average", "min", "max"]
 dfi = (
-    dfm[["name", "average", "min", "max"]].sort_values("average").reset_index(drop=True)
+    dfm[["input", "name", "average", "min", "max"]]
+    .sort_values("average")
+    .reset_index(drop=True)
 )
 baseline = dfi[dfi["name"].str.contains("baseline")]
 not_baseline = dfi[~dfi["name"].str.contains("baseline")].reset_index(drop=True)
 if not_baseline.shape[0] > 50:
     not_baseline = not_baseline[:50]
 merged = concat([baseline, not_baseline], axis=0)
-merged = merged.sort_values("average").reset_index(drop=True).set_index("name")
+merged = (
+    merged.sort_values("average").reset_index(drop=True).set_index(["input", "name"])
+)
 skeys = ",".join(optim_params.keys())
 print(merged.columns)
 
@@ -410,4 +481,4 @@ ax.set_xlim(
 # ax.set_xscale("log")
 
 fig.tight_layout()
-fig.savefig("plot_optim_tree_ensemble.png")
+fig.savefig("plot_op_tree_ensemble_sparse.png")

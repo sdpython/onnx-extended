@@ -190,10 +190,8 @@ The command line is:
 
 ::
 
-    python plot_optim_tree_ensemble.py --n_features=50 --n_trees=100 --max_depth=10 --scenario=CUSTOM
+    python plot_op_tree_ensemble_optim.py --n_features=50 --n_trees=100 --max_depth=10 --scenario=CUSTOM
         --parallel_tree=160,120,80,40 --parallel_tree_N=192,128,64 --parallel_N=100,50,25
         --batch_size_tree=1 --batch_size_rows=1 --use_node3=0 
 
 .. image:: images/plot_optim_tree_ensemble.png
-
-    

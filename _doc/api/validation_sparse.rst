@@ -15,17 +15,17 @@ from dense from/to sparse.
 Functions
 =========
 
+onnx_extended.validation.cpu._validation.dense_to_sparse_struct
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. autofunction:: onnx_extended.validation.cpu._validation.dense_to_sparse_struct
+
 onnx_extended.validation.cpu._validation.sparse_struct_to_dense
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. autofunction:: onnx_extended.validation.cpu._validation.sparse_struct_to_dense
 
-onnx_extended.validation.cpu._validation.sparse_struct_to_unordered_map
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+onnx_extended.validation.cpu._validation.sparse_struct_to_maps
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-.. autofunction:: onnx_extended.validation.cpu._validation.sparse_struct_to_unordered_map
-
-onnx_extended.validation.cpu._validation.dense_to_sparse_struct
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-.. autofunction:: onnx_extended.validation.cpu._validation.dense_to_sparse_struct
+.. autofunction:: onnx_extended.validation.cpu._validation.sparse_struct_to_maps
