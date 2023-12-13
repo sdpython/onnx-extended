@@ -28,13 +28,13 @@ class Monitor:
         self.end = 0
 
     def to_dict(self, unit: int = 1):
-        unit = float(unit)
+        funit = float(unit)
         return dict(
-            peak=self.max_peak / unit,
-            mean=self.average * 1.0 / self.n_measures / unit,
-            n=self.n_measures / unit,
-            begin=self.begin / unit,
-            end=self.end / unit,
+            peak=self.max_peak / funit,
+            mean=self.average * 1.0 / self.n_measures / funit,
+            n=self.n_measures / funit,
+            begin=self.begin / funit,
+            end=self.end / funit,
         )
 
     def __repr__(self):
