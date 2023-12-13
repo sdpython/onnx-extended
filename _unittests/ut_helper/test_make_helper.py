@@ -21,7 +21,7 @@ from onnx_extended._common import pick
 
 class TestMakeHelper(ExtTestCase):
     def test_pick_exc(self):
-        self.assertRaise(lambda: pick([None]), ValueError)
+        self.assertRaise(lambda: pick(None, None), ValueError)
 
     def test_matmul_reshape_transpose_function_proto_exc(self):
         self.assertRaise(
