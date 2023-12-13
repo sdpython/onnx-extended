@@ -136,6 +136,7 @@ class MemorySpy:
 
     :param pid: process id  of the process to spy on
     :param delay: spy on every delay seconds
+    :param cuda: enable cuda monitoring
     """
 
     def __init__(self, pid: int, delay: float = 0.01, cuda: bool = False):
