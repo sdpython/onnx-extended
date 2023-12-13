@@ -19,6 +19,46 @@ def get_memory_rss(pid: int) -> int:
     return mem
 
 
+class Monitor:
+    def __init__(self):
+        self.max_peak = 0
+        self.average = 0
+        self.n_measures = 0
+        self.begin = 0
+        self.end = 0
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(peak={self.max_peak}, "
+            f"average={self.average}, n={self.n_measures})"
+        )
+
+    def update(self, mem):
+        if self.n_measures == 0:
+            self.begin = mem
+        self.max_peak = max(mem, self.max_peak)
+        self.average += mem
+        self.end = mem
+        self.n_measures += 1
+
+    def send(self, conn):
+        conn.send(self.max_peak)
+        conn.send(self.average)
+        conn.send(self.n_measures)
+        conn.send(self.begin)
+        conn.send(self.end)
+
+    @classmethod
+    def recv(cls, conn):
+        m = cls()
+        m.max_peak = conn.recv()
+        m.average = conn.recv()
+        m.n_measures = conn.recv()
+        m.begin = conn.recv()
+        m.end = conn.recv()
+        return m
+
+
 def _process_memory_spy(conn):
     # Sends the value it started.
     conn.send(-2)
@@ -29,36 +69,54 @@ def _process_memory_spy(conn):
     # delay between two measures
     timeout = conn.recv()
 
+    # do CUDA
+    cuda = conn.recv()
+
     import psutil
 
     process = psutil.Process(pid)
 
+    if cuda:
+        from onnx_extended.validation.cuda.cuda_monitor import (
+            cuda_devices_memory,
+            cuda_device_count,
+        )
+
+        gpus = [Monitor() for i in range(cuda_device_count())]
+    else:
+        gpus = []
+
     begin = process.memory_info().rss
-    max_peak = 0
-    average = 0
-    n_measures = 0
+    cpu = Monitor()
 
     conn.send(-2)
 
+    # loop
     while True:
         mem = process.memory_info().rss
-        max_peak = max(mem, max_peak)
-        average += mem
-        n_measures += 1
+        cpu.update(mem)
+        if cuda:
+            res = cuda_devices_memory()
+            for r, g in zip(res, gpus):
+                g.update(r[1] - r[0])
         if conn.poll(timeout=timeout):
             code = conn.recv()
             if code == -3:
                 break
 
+    # final iteration
     end = process.memory_info().rss
-    average += end
-    n_measures += 1
-    max_peak = max(max_peak, n_measures)
-    conn.send(max_peak)
-    conn.send(average)
-    conn.send(n_measures)
-    conn.send(begin)
-    conn.send(end)
+    cpu.update(end)
+    if cuda:
+        res = cuda_devices_memory()
+        for r, g in zip(res, gpus):
+            g.update(r[1] - r[0])
+
+    # send
+    cpu.send(conn)
+    conn.send(len(gpus))
+    for g in gpus:
+        g.send(conn)
     conn.close()
 
 
@@ -71,9 +129,10 @@ class MemorySpy:
     :param delay: spy on every delay seconds
     """
 
-    def __init__(self, pid: int, delay: float = 0.01):
+    def __init__(self, pid: int, delay: float = 0.01, cuda: bool = False):
         self.pid = pid
         self.delay = delay
+        self.cuda = cuda
         self.start()
 
     def start(self) -> "MemorySpy":
@@ -92,6 +151,7 @@ class MemorySpy:
             )
         self.parent_conn.send(self.pid)
         self.parent_conn.send(self.delay)
+        self.parent_conn.send(1 if self.cuda else 0)
         data = self.parent_conn.recv()
         if data != -2:
             raise RuntimeError(
@@ -104,29 +164,32 @@ class MemorySpy:
         Stops spying on.
         """
         self.parent_conn.send(-3)
-        max_peak = self.parent_conn.recv()
-        average = self.parent_conn.recv()
-        n_measures = self.parent_conn.recv()
-        begin = self.parent_conn.recv()
-        end = self.parent_conn.recv()
+
+        cpu = Monitor.recv(self.parent_conn)
+
+        n_gpus = self.parent_conn.recv()
+        gpus = []
+        for i in range(n_gpus):
+            gpus.append(Monitor.recv(self.parent_conn))
+
         self.parent_conn.close()
         self.child_process.join()
-        return dict(
-            max_peak=max_peak,
-            average=average,
-            n_measures=n_measures,
-            begin=begin,
-            end=end,
-        )
+        res = dict(cpu=cpu)
+        if self.cuda:
+            res["gpus"] = gpus
+        return res
 
 
-def start_spying_on(pid: Optional[int] = None, delay: float = 0.01) -> MemorySpy:
+def start_spying_on(
+    pid: Optional[int] = None, delay: float = 0.01, cuda: bool = False
+) -> MemorySpy:
     """
     Starts the memory spy. The function starts another
     process spying on the one sent as an argument.
 
     :param pid: process id to spy or the the current one.
     :param delay: delay between two measures.
+    :param cuda: True or False to get memory for cuda devices
 
     Example::
 
@@ -143,4 +206,4 @@ def start_spying_on(pid: Optional[int] = None, delay: float = 0.01) -> MemorySpy
     """
     if pid is None:
         pid = os.getpid()
-    return MemorySpy(pid, delay)
+    return MemorySpy(pid, delay, cuda)

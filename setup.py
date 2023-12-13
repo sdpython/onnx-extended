@@ -673,7 +673,11 @@ def get_ext_modules():
                     CMakeExtension(
                         "onnx_extended.validation.cuda.cuda_example_py",
                         f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
-                    )
+                    ),
+                    CMakeExtension(
+                        "onnx_extended.validation.cuda.cuda_monitor",
+                        f"onnx_extended/validation/cuda/cuda_monitor.{ext}",
+                    ),
                 ]
             )
     elif "--use-cuda=1" in sys.argv or "--use-cuda" in sys.argv:
