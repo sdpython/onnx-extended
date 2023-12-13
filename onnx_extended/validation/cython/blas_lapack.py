@@ -7,12 +7,9 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
     """
     Pure python implementatin of GEMM.
     """
-    if len(A.shape) != 1:
-        raise ValueError("A must be a vector.")
-    if len(B.shape) != 1:
-        raise ValueError("B must be a vector.")
-    if len(C.shape) != 1:
-        raise ValueError("C must be a vector.")
+    assert len(A.shape) == 1, "A must be a vector."
+    assert len(B.shape) == 1, "B must be a vector."
+    assert len(C.shape) == 1, "C must be a vector."
     if A.shape[0] != M * K:
         raise ValueError(
             f"Dimension mismatch for A.shape={A.shape!r} M={M!r} N={N!r} K={K!r}."
@@ -91,14 +88,11 @@ def gemm_dot(A, B, transA=False, transB=False):
     :param transA: is first matrix transposed?
     :param transB: is second matrix transposed?
     """
-    if A.dtype != B.dtype:
-        raise TypeError(
-            f"Matrices A and B must have the same dtype not {A.dtype!r}, {B.dtype!r}."
-        )
-    if len(A.shape) != 2:
-        raise ValueError(f"Matrix A does not have 2 dimensions but {len(A.shape)}.")
-    if len(B.shape) != 2:
-        raise ValueError(f"Matrix B does not have 2 dimensions but {len(B.shape)}.")
+    assert (
+        A.dtype == B.dtype
+    ), f"Matrices A and B must have the same dtype not {A.dtype!r}, {B.dtype!r}."
+    assert len(A.shape) == 2, f"Matrix A does not have 2 dimensions but {len(A.shape)}."
+    assert len(B.shape) == 2, f"Matrix B does not have 2 dimensions but {len(B.shape)}."
 
     def _make_contiguous_(A, B):
         if not A.flags["C_CONTIGUOUS"]:

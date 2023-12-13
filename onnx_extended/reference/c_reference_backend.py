@@ -130,9 +130,9 @@ class Runner:
             if att.startswith("test_"):
                 test = getattr(tests, att)
                 methods.append((att, test))
-        if not methods:
-            msg = "\n".join(dir(tests))
-            raise RuntimeError(f"No test was detected. Available tests are:\n{msg}")
+        assert (
+            methods
+        ), f"No test was detected. Available tests are:\n{', '.join(dir(tests))}"
 
         if verbose:
             from tqdm import tqdm

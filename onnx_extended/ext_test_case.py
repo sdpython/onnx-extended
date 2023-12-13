@@ -62,8 +62,7 @@ def ignore_warnings(warns: List[Warning]) -> Callable:
     """
 
     def wrapper(fct):
-        if warns is None:
-            raise AssertionError(f"warns cannot be None for '{fct}'.")
+        assert warns is not None, f"warns cannot be None for '{fct}'."
 
         def call_f(self):
             with warnings.catch_warnings():
@@ -115,10 +114,9 @@ def measure_time(
     The function returns a duration corresponding to
     *number* times the execution of the main statement.
     """
-    if not callable(stmt) and not isinstance(stmt, str):
-        raise TypeError(
-            f"stmt is not callable or a string but is of type {type(stmt)!r}."
-        )
+    assert callable(stmt) or isinstance(
+        stmt, str
+    ), f"stmt is not callable or a string but is of type {type(stmt)!r}."
     if context is None:
         context = {}
 
@@ -133,10 +131,9 @@ def measure_time(
         warmup_time = 0
 
     if max_time is not None:
-        if not div_by_number:
-            raise ValueError(
-                "div_by_number must be set to True of max_time is defined."
-            )
+        assert (
+            div_by_number
+        ), "div_by_number must be set to True of max_time is defined."
         i = 1
         total_time = 0.0
         results = []
@@ -202,8 +199,7 @@ class ExtTestCase(unittest.TestCase):
     _warns: List[Tuple[str, int, Warning]] = []
 
     def assertExists(self, name):
-        if not os.path.exists(name):
-            raise AssertionError(f"File or folder {name!r} does not exists.")
+        assert os.path.exists(name), f"File or folder {name!r} does not exists."
 
     def assertEqualArray(
         self,

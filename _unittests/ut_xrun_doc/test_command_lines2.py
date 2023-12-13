@@ -21,6 +21,7 @@ from onnxruntime import InferenceSession, SessionOptions
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended._command_lines_parser import (
     get_parser_bench,
+    get_parser_check,
     get_parser_cvt,
     get_parser_merge,
     get_parser_plot,
@@ -37,6 +38,14 @@ class TestCommandLines2(ExtTestCase):
             get_parser_plot().print_help()
         text = st.getvalue()
         self.assertIn("kind", text)
+        self.assertIn("verbose", text)
+
+    def test_parser_check(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_check().print_help()
+        text = st.getvalue()
+        self.assertIn("ortops", text)
         self.assertIn("verbose", text)
 
     def test_command_store(self):

@@ -21,7 +21,7 @@ class Tokenizer(OpRun):
         stops_ = set(stopwords or [])
         try:
             str_separators_ = set(_ for _ in (separators or ""))
-        except AttributeError as e:  # pragma: no cover
+        except AttributeError as e:
             raise TypeError(f"Unable to interpret separators {separators!r}.") from e
         if tokenexp not in (None, ""):
             tokenexp_ = re.compile(tokenexp)
@@ -37,7 +37,7 @@ class Tokenizer(OpRun):
             return self._run_regex_tokenization(
                 text, stops_, tokenexp_, tokenexpsplit, mark, pad_value
             )
-        raise RuntimeError(  # pragma: no cover
+        raise RuntimeError(
             "Unable to guess which tokenization to use, sep={}, "
             "tokenexp='{}'.".format(separators, tokenexp)
         )
@@ -83,7 +83,7 @@ class Tokenizer(OpRun):
                         row.append(pad_value)
             res = np.array(res)
         else:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 f"Only vector or matrices are supported not shape {text.shape}."
             )
         return (res,)
