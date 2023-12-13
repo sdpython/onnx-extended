@@ -143,7 +143,7 @@ for voc_size, batch_size in tqdm(confs):
         lambda sparse=sparse, feeds=feeds: sparse.run(None, feeds), max_time=1
     )
     mem = p.stop()
-    obs["peak"] = mem["max_peak"] - mem["begin"]
+    obs["peak"] = mem["cpu"].max_peak - mem["cpu"].begin
     obs["name"] = "sparse"
     obs.update(dict(voc_size=voc_size, batch_size=batch_size))
     data.append(obs)
@@ -154,7 +154,7 @@ for voc_size, batch_size in tqdm(confs):
     ref.run(None, feeds)
     obs = measure_time(lambda ref=ref, feeds=feeds: ref.run(None, feeds), max_time=1)
     mem = p.stop()
-    obs["peak"] = mem["max_peak"] - mem["begin"]
+    obs["peak"] = mem["cpu"].max_peak - mem["cpu"].begin
     obs["name"] = "ref"
     obs.update(dict(voc_size=voc_size, batch_size=batch_size))
     data.append(obs)
@@ -165,7 +165,7 @@ for voc_size, batch_size in tqdm(confs):
     cus.run(None, feeds)
     obs = measure_time(lambda cus=cus, feeds=feeds: cus.run(None, feeds), max_time=1)
     mem = p.stop()
-    obs["peak"] = mem["max_peak"] - mem["begin"]
+    obs["peak"] = mem["cpu"].max_peak - mem["cpu"].begin
     obs["name"] = "custom"
     obs.update(dict(voc_size=voc_size, batch_size=batch_size))
     data.append(obs)
