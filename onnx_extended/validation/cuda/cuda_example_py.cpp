@@ -36,6 +36,54 @@ PYBIND11_MODULE(cuda_example_py, m) {
 #endif
 
   m.def(
+      "cuda_device_count",
+      []() -> int {
+        int devices;
+        auto status = cudaGetDeviceCount(&devices);
+        if (status != cudaSuccess)
+          throw std::runtime_error(std::string("Unable to retrieve the number of devices ") +
+                                   std::string(cudaGetErrorString(status)));
+        return devices;
+      },
+      "Returns the number of cuda devices.");
+
+  m.def(
+      "cuda_device_memory",
+      [](int device) -> py::tuple {
+        cudaSetDevice(device);
+        size_t free_memory, total_memory;
+        auto status = cudaMemGetInfo(&free_memory, &total_memory);
+        if (status != cudaSuccess)
+          throw std::runtime_error(std::string("Unable to retrieve the memory for a device ") +
+                                   std::string(cudaGetErrorString(status)));
+        return py::make_tuple(free_memory, total_memory);
+      },
+      py::arg("device") = 0, "Returns the free and total memory for a particular device.");
+
+  m.def(
+      "cuda_devices_memory",
+      []() -> py::list {
+        int devices;
+        auto status = cudaGetDeviceCount(&devices);
+        if (status != cudaSuccess)
+          throw std::runtime_error(std::string("Unable to retrieve the number of devices ") +
+                                   std::string(cudaGetErrorString(status)));
+        py::list res;
+        size_t free_memory, total_memory;
+        for (int i = 0; i < devices; ++i) {
+          cudaSetDevice(i);
+          status = cudaMemGetInfo(&free_memory, &total_memory);
+          if (status != cudaSuccess)
+            throw std::runtime_error(
+                std::string("Unable to retrieve the memory for a device ") +
+                std::string(cudaGetErrorString(status)));
+          res.append(py::make_tuple(free_memory, total_memory));
+        }
+        return res;
+      },
+      "Returns the free and total memory for all devices.");
+
+  m.def(
       "get_device_prop",
       [](int device_id) -> py::dict {
         cudaDeviceProp prop;
