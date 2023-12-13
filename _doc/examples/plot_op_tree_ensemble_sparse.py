@@ -55,7 +55,6 @@ import numpy
 import onnx
 from onnx import ModelProto, TensorProto
 from onnx.helper import make_graph, make_model, make_tensor_value_info
-import matplotlib.pyplot as plt
 from pandas import DataFrame, concat
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
@@ -70,6 +69,7 @@ from onnx_extended.ortops.optim.optimize import (
 )
 from onnx_extended.tools.onnx_nodes import multiply_tree
 from onnx_extended.validation.cpu._validation import dense_to_sparse_struct
+from onnx_extended.plotting.benchmark import hhistograms
 from onnx_extended.ext_test_case import get_parsed_args, unit_test_going
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
@@ -436,49 +436,8 @@ print(small_df.tail(n=10))
 # Plot
 # ++++
 
-dfm = (
-    df[["input", "name", "average"]]
-    .groupby(["input", "name"], as_index=False)
-    .agg(["mean", "min", "max"])
-    .copy()
-)
-if dfm.shape[1] == 3:
-    dfm = dfm.reset_index(drop=False)
-dfm.columns = ["input", "name", "average", "min", "max"]
-dfi = (
-    dfm[["input", "name", "average", "min", "max"]]
-    .sort_values("average")
-    .reset_index(drop=True)
-)
-baseline = dfi[dfi["name"].str.contains("baseline")]
-not_baseline = dfi[~dfi["name"].str.contains("baseline")].reset_index(drop=True)
-if not_baseline.shape[0] > 50:
-    not_baseline = not_baseline[:50]
-merged = concat([baseline, not_baseline], axis=0)
-merged = (
-    merged.sort_values("average").reset_index(drop=True).set_index(["input", "name"])
-)
 skeys = ",".join(optim_params.keys())
-print(merged.columns)
-
-fig, ax = plt.subplots(1, 1, figsize=(10, merged.shape[0] / 2))
-err_min = merged["average"] - merged["min"]
-err_max = merged["max"] - merged["average"]
-merged[["average"]].plot.barh(
-    ax=ax,
-    title=f"TreeEnsemble tuning, n_tries={script_args.tries}"
-    f"\n{skeys}\nlower is better",
-    xerr=[err_min, err_max],
-)
-b = df.loc[df["name"] == "baseline", "average"].mean()
-ax.plot([b, b], [0, df.shape[0]], "r--")
-ax.set_xlim(
-    [
-        (df["min_exec"].min() + df["average"].min()) / 2,
-        (df["average"].max() + df["average"].max()) / 2,
-    ]
-)
-# ax.set_xscale("log")
-
-fig.tight_layout()
+title = f"TreeEnsemble tuning, n_tries={script_args.tries}\n{skeys}\nlower is better"
+ax = hhistograms(df, title=title, keys=("input", "name"))
+fig = ax.get_figure()
 fig.savefig("plot_op_tree_ensemble_sparse.png")

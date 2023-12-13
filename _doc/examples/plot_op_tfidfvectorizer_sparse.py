@@ -22,7 +22,6 @@ import time
 import itertools
 from typing import Tuple
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas
 from onnx import ModelProto
 from onnx.helper import make_attribute
@@ -32,6 +31,7 @@ from onnx_extended.ext_test_case import measure_time, unit_test_going
 from onnx_extended.memory_peak import start_spying_on
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
+from onnx_extended.plotting.benchmark import vhistograms
 
 
 def make_onnx(n_words: int) -> ModelProto:
@@ -209,38 +209,8 @@ print(piv / 2**20)
 # Graphs
 # ++++++
 
-
-def histograms(df, metric):
-    batch_sizes = list(sorted(set(df.batch_size)))
-    voc_sizes = list(sorted(set(df.voc_size)))
-    B = len(batch_sizes)
-    V = len(voc_sizes)
-
-    fig, ax = plt.subplots(V, B, figsize=(B * 2, V * 2), sharex=True, sharey=True)
-    fig.suptitle("Compares Implementations of TfIdfVectorizer")
-
-    for b in range(B):
-        for v in range(V):
-            aa = ax[v, b]
-            sub = df[(df.batch_size == batch_sizes[b]) & (df.voc_size == voc_sizes[v])][
-                ["name", metric]
-            ].set_index("name")
-            if 0 in sub.shape:
-                continue
-            sub["time"].plot.bar(
-                ax=aa, logy=True, rot=0, color=["blue", "orange", "green"]
-            )
-            if b == 0:
-                aa.set_ylabel(f"vocabulary={voc_sizes[v]}")
-            if v == V - 1:
-                aa.set_xlabel(f"batch_size={batch_sizes[b]}")
-            aa.grid(True)
-
-    fig.tight_layout()
-    return fig
-
-
-fig = histograms(df, "time")
+ax = vhistograms(df)
+fig = ax[0, 0].get_figure()
 fig.savefig("plot_op_tfidfvectorizer_sparse.png")
 
 ###############################################

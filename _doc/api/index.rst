@@ -12,6 +12,7 @@ API
     helper
     ortcy
     ortops
+    plotting
     reference
     validation
     tools
