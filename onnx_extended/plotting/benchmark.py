@@ -17,7 +17,7 @@ def vhistograms(
     :param name: experiment name
     :param batch_size: first column for the variations
     :param voc_size: second column for the variations
-    :param sub_title: figure title
+    :param sup_title: figure title
     :return: axes
 
     .. runpython::
