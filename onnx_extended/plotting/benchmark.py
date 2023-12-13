@@ -22,6 +22,7 @@ def vhistograms(
 
     .. runpython::
 
+        import pandas
         from onnx_extended.plotting.data import vhistograms_data
 
         df = pandas.DataFrame(vhistograms_data())
@@ -29,6 +30,7 @@ def vhistograms(
 
     .. plot::
 
+        import pandas
         from onnx_extended.plotting.data import vhistograms_data
         from onnx_extended.plotting.benchmark import vhistograms
 
@@ -91,6 +93,7 @@ def hhistograms(
 
     .. runpython::
 
+        import pandas
         from onnx_extended.plotting.data import hhistograms_data
 
         df = pandas.DataFrame(hhistograms_data())
@@ -98,6 +101,7 @@ def hhistograms(
 
     .. plot::
 
+        import pandas
         from onnx_extended.plotting.data import hhistograms_data
         from onnx_extended.plotting.benchmark import hhistograms
 
