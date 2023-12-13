@@ -108,7 +108,7 @@ class TestBlasLapack(ExtTestCase):
             lambda: pygemm(
                 False, False, 1, 1, 1, 1.0, b.ravel(), 1, a.ravel(), 1, 0.0, c, 1
             ),
-            ValueError,
+            AssertionError,
         )
         c = numpy.empty((1,), dtype=a.dtype)
         self.assertRaise(

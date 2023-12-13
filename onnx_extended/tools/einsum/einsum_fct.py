@@ -49,8 +49,9 @@ class OnnxMicroRuntime:
         :param inputs: dictionary
         :return: all intermediates results and output as a dictionary
         """
-        if not isinstance(inputs, dict):
-            raise TypeError(f"inputs must be a dictionary not {type(inputs)!r}.")
+        assert isinstance(
+            inputs, dict
+        ), f"inputs must be a dictionary not {type(inputs)!r}."
         results = inputs.copy()
 
         for init in self.model_onnx.graph.initializer:
@@ -124,10 +125,12 @@ class OnnxMicroRuntime:
                 o += c * beta
             return o
 
-        if not isinstance(transA, (int, bool, numpy.int64)):
-            raise TypeError(f"Unexpected type for transA: {type(transA)!r}.")
-        if not isinstance(transB, (int, bool, numpy.int64)):
-            raise TypeError(f"Unexpected type for transA: {type(transB)!r}.")
+        assert isinstance(
+            transA, (int, bool, numpy.int64)
+        ), f"Unexpected type for transA: {type(transA)!r}."
+        assert isinstance(
+            transB, (int, bool, numpy.int64)
+        ), f"Unexpected type for transA: {type(transB)!r}."
         if transA:
             fct = _gemm11 if transB else _gemm10
         else:
@@ -317,10 +320,9 @@ class CachedEinsum:
 
     def _build_optimize(self) -> str:
         # loops over all permutations
-        if self.equation.lower() != self.equation:
-            raise RuntimeError(
-                f"Only lower equation can be optimized, {self.equation!r} is not."
-            )
+        assert (
+            self.equation.lower() == self.equation
+        ), f"Only lower equation can be optimized, {self.equation!r} is not."
         letters = list(sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
@@ -372,10 +374,9 @@ class CachedEinsum:
 
     def _build_optimize_ml(self) -> str:
         # loops over all permutations
-        if self.equation.lower() != self.equation:
-            raise RuntimeError(
-                f"Only lower equation can be optimized, {self.equation!r} is not."
-            )
+        assert (
+            self.equation.lower() == self.equation
+        ), f"Only lower equation can be optimized, {self.equation!r} is not."
         letters = list(sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
@@ -526,8 +527,7 @@ class CachedEinsum:
         """
         Calls the runtime `self.runtime_`.
         """
-        if not hasattr(self, "runtime_"):
-            raise RuntimeError("Method build_runtime was not called.")
+        assert hasattr(self, "runtime_"), "Method 'build_runtime' was not called."
         return self.runtime_(*inputs)
 
     @staticmethod
@@ -928,15 +928,12 @@ def einsum(
         print(root)
         print(clean(res[1]))
     """
-    if not inputs:
-        raise ValueError("No inputs found.")
+    assert inputs, "No inputs found."
     dtypes = set(i.dtype for i in inputs)
-    if len(dtypes) != 1:
-        raise ValueError(
-            "All inputs do not have the same type (%r), "
-            "all of them should be cast before called einsum."
-            "" % dtypes
-        )
+    assert len(dtypes) == 1, (
+        f"All inputs do not have the same type ({dtypes!r}), "
+        f"all of them should be cast before called einsum."
+    )
     cached = optimize_decompose_einsum_equation(
         equation,
         inputs[0].dtype,

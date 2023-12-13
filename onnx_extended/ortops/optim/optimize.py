@@ -133,11 +133,10 @@ def change_onnx_operator_domain(
 
     if new_op_domain is None:
         new_op_domain = op_domain
-    if new_op_domain == op_domain and new_opset is not None:
-        raise ValueError(
-            f"If new_op_domain=={new_op_domain!r}, "
-            f"new_opset must be None not {new_opset}."
-        )
+    assert new_op_domain != op_domain or new_opset is None, (
+        f"If new_op_domain=={new_op_domain!r}, "
+        f"new_opset must be None not {new_opset}."
+    )
     opsets = list(onx.opset_import)
     if new_op_domain != op_domain:
         opsets.append(make_opsetid(new_op_domain, new_opset or 1))
@@ -198,8 +197,7 @@ def optimize_model(
 
     See example :ref:`l-plot-optim-tree-ensemble` for an example.
     """
-    if sleep >= 1:
-        raise ValueError(f"sleep={sleep} >= 1, probably a mistake.")
+    assert sleep < 1, f"sleep={sleep} >= 1, probably a mistake."
     keys = ["TRY"] + list(params.keys())
     sets = [list(range(n_tries))] + [params[k] for k in keys[1:]]
     loops = list(product(*sets))
