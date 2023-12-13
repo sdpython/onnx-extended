@@ -24,6 +24,7 @@ class TestMemoryPeak(ExtTestCase):
         self.assertIsInstance(pres, dict)
         self.assertLessEqual(pres["cpu"].end, pres["cpu"].max_peak)
         self.assertLessEqual(pres["cpu"].begin, pres["cpu"].max_peak)
+        self.assertIsInstance(pres["cpu"].to_dict(), dict)
 
     @unittest.skipIf(not has_cuda(), reason="CUDA not here")
     def test_spy_cuda(self):

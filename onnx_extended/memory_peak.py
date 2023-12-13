@@ -27,6 +27,16 @@ class Monitor:
         self.begin = 0
         self.end = 0
 
+    def to_dict(self, unit: int = 1):
+        unit = float(unit)
+        return dict(
+            peak=self.max_peak / unit,
+            mean=self.average * 1.0 / self.n_measures / unit,
+            n=self.n_measures / unit,
+            begin=self.begin / unit,
+            end=self.end / unit,
+        )
+
     def __repr__(self):
         return (
             f"{self.__class__.__name__}(peak={self.max_peak}, "
@@ -86,7 +96,6 @@ def _process_memory_spy(conn):
     else:
         gpus = []
 
-    begin = process.memory_info().rss
     cpu = Monitor()
 
     conn.send(-2)
