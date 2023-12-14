@@ -87,10 +87,19 @@ def _process_memory_spy(conn):
     process = psutil.Process(pid)
 
     if cuda:
-        from onnx_extended.validation.cuda.cuda_monitor import (
-            cuda_devices_memory,
-            cuda_device_count,
+        from onnx_extended.validation.cuda.cuda_monitor import cuda_device_count
+        from pynvml import (
+            nvmlInit,
+            nvmlDeviceGetHandleByIndex,
+            nvmlDeviceGetMemoryInfo,
+            nvmlShutdown,
         )
+
+        nvmlInit()
+        handles = [nvmlDeviceGetHandleByIndex(i) for i in range(cuda_device_count())]
+
+        def gpu_used():
+            return [nvmlDeviceGetMemoryInfo(h).used for h in handles]
 
         gpus = [Monitor() for i in range(cuda_device_count())]
     else:
@@ -105,9 +114,8 @@ def _process_memory_spy(conn):
         mem = process.memory_info().rss
         cpu.update(mem)
         if cuda:
-            res = cuda_devices_memory()
-            for r, g in zip(res, gpus):
-                g.update(r[1] - r[0])
+            for r, g in zip(gpu_used(), gpus):
+                g.update(r)
         if conn.poll(timeout=timeout):
             code = conn.recv()
             if code == -3:
@@ -117,15 +125,16 @@ def _process_memory_spy(conn):
     end = process.memory_info().rss
     cpu.update(end)
     if cuda:
-        res = cuda_devices_memory()
-        for r, g in zip(res, gpus):
-            g.update(r[1] - r[0])
+        for r, g in zip(gpu_used(), gpus):
+            g.update(r)
 
     # send
     cpu.send(conn)
     conn.send(len(gpus))
     for g in gpus:
         g.send(conn)
+    if cuda:
+        nvmlShutdown()
     conn.close()
 
 
