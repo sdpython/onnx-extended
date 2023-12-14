@@ -2,7 +2,11 @@
 #include "common/c_op_helpers.h"
 
 #include <omp.h>
+#if __cpluscplus >= 202002L
 #include <span>
+#else
+#include "common/simple_span.h"
+#endif
 
 // source: https://stackoverflow.com/questions/9412585/
 // see-the-cache-missess-simple-c-cache-benchmark
@@ -54,7 +58,11 @@ py_array_float sparse_struct_to_dense(const py_array_float &v) {
   const int64_t *shape;
   uint32_t n_elements;
   sp->unmake(n_dims, n_elements, shape, indices, values);
+#if __cpluscplus >= 202002L
   std::span<int64_t> out_shape((int64_t *)shape, n_dims);
+#else
+  std_::span<int64_t> out_shape((int64_t *)shape, n_dims);
+#endif
 
   py_array_float result = py::array_t<float>(out_shape);
   py::buffer_info brout = result.request();
@@ -120,7 +128,7 @@ py::tuple sparse_struct_to_csr(const py_array_float &v) {
       py::array_t<uint32_t>(std::vector<int64_t>{static_cast<int64_t>(element_indices.size())});
   py::buffer_info broute = aels.request();
   std::memcpy(broute.ptr, element_indices.data(), element_indices.size() * sizeof(uint32_t));
-  return py::make_tuple(arow,   aels);
+  return py::make_tuple(arow, aels);
 }
 
 } // namespace validation

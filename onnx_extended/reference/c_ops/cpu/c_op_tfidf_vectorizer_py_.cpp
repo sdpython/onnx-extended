@@ -36,16 +36,17 @@ public:
     arrayshape2vector(input_shape, X);
     std::size_t total_dims = static_cast<std::size_t>(flattened_dimension(input_shape));
     const int64_t *p = X.data();
-    std::span<const int64_t> sp{p, total_dims};
+    onnx_c_ops::RuntimeTfIdfVectorizer<float>::span_type_int64 sp{p, total_dims};
     std::vector<int64_t> output_dims;
     std::vector<float> out;
     tfidf_.Compute(input_shape, sp,
-                   [&dims = output_dims,
-                    &o = out](const std::vector<int64_t> &out_dims) -> std::span<float> {
+                   [&dims = output_dims, &o = out](const std::vector<int64_t> &out_dims)
+                       -> onnx_c_ops::RuntimeTfIdfVectorizer<float>::span_type {
                      dims = out_dims;
                      int64_t total = flattened_dimension(out_dims);
                      o.resize(total);
-                     return std::span{o.data(), static_cast<size_t>(total)};
+                     return onnx_c_ops::RuntimeTfIdfVectorizer<float>::span_type{
+                         o.data(), static_cast<size_t>(total)};
                    });
     return as_pyarray<std::vector<float>>(output_dims, std::move(out));
   }

@@ -106,12 +106,12 @@ void TfIdfVectorizerKernel<TIN, TOUT>::Compute(OrtKernelContext *context) {
 
   std::vector<TOUT> out;
   const TIN *X = input_X.GetTensorData<TIN>();
-  std::span<const int64_t> sp{X, static_cast<size_t>(size)};
+  span_type_int64 sp{X, static_cast<size_t>(size)};
   tfidf_typed->Compute(
-      dimensions_in, sp, [&c = ctx](const std::vector<int64_t> &dim_out) -> std::span<float> {
+      dimensions_in, sp, [&c = ctx](const std::vector<int64_t> &dim_out) -> span_type_tout {
         Ort::UnownedValue output = c.GetOutput(0, dim_out);
         int64_t size = onnx_c_ops::flattened_dimension(dim_out);
-        return std::span<TOUT>{output.GetTensorMutableData<TOUT>(), static_cast<size_t>(size)};
+        return span_type_tout{output.GetTensorMutableData<TOUT>(), static_cast<size_t>(size)};
       });
 }
 

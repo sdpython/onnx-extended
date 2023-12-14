@@ -1,7 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#if __cpluscplus >= 202002L
 #include <span>
+#else
+#include "common/simple_span.h"
+#endif
 #include <vector>
 
 namespace onnx_c_ops {
@@ -34,7 +38,11 @@ template <class NTYPE> NTYPE flattened_dimension(const std::vector<NTYPE> &value
   return r;
 }
 
+#if __cpluscplus >= 202002L
 template <class NTYPE> NTYPE flattened_dimension(const std::span<NTYPE> &values) {
+#else
+template <class NTYPE> NTYPE flattened_dimension(const std_::span<NTYPE> &values) {
+#endif
   NTYPE r = 1;
   for (auto it = values.begin(); it != values.end(); ++it)
     r *= *it;

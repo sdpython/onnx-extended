@@ -7,6 +7,14 @@
 namespace ortops {
 
 template <typename TIN, typename TOUT> struct TfIdfVectorizerKernel {
+
+  #if __cpluscplus >= 202002L
+  typedef std::span<TOUT> span_type_tout;
+  typedef std::span<const int64_t> span_type_int64;
+#else
+  typedef std_::span<TOUT> span_type_tout;
+  typedef std_::span<const int64_t> span_type_int64;
+#endif
   TfIdfVectorizerKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
 
