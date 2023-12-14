@@ -51,7 +51,6 @@ class TestCudaMonitor(ExtTestCase):
         info = nvml_device_get_memory_info()
         self.assertIsInstance(info, tuple)
         self.assertEqual(len(info), 3)
-        print(info)
         self.assertTrue(info[-1] >= max(info[:-1]))
         nvml_shutdown()
 
