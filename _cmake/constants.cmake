@@ -104,14 +104,14 @@ else()
     elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "11")
       # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
       set(CMAKE_CXX_STANDARD 20)
-    # elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "9")
+    elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "9")
       # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-    #   set(CMAKE_CXX_STANDARD 17)
+      set(CMAKE_CXX_STANDARD 17)
     # elseif(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL "6")
       # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
     #   set(CMAKE_CXX_STANDARD 14)
     else()
-      message(FATAL_ERROR "gcc>=6.0 is needed but "
+      message(FATAL_ERROR "gcc>=11.0 is better, gcc>=9 is required but "
                           "${CMAKE_C_COMPILER_VERSION} was detected.")
     endif()
     # needed to build many linux build

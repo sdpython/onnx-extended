@@ -10,7 +10,11 @@
 #include <cstring>
 #include <functional>
 #include <map>
+#if __cpluscplus >= 202002L
 #include <span>
+#else
+#include "common/simple_span.h"
+#endif
 #include <sstream>
 #include <stdint.h>
 #include <string>
@@ -120,6 +124,14 @@ enum WeightingCriteria { kNone = 0, kTF = 1, kIDF = 2, kTFIDF = 3 };
 template <typename T> class RuntimeTfIdfVectorizer {
 
 public:
+#if __cpluscplus >= 202002L
+  typedef std::span<T> span_type;
+  typedef std::span<const int64_t> span_type_int64;
+#else
+  typedef std_::span<T> span_type;
+  typedef std_::span<const int64_t> span_type_int64;
+#endif
+
   RuntimeTfIdfVectorizer() {
     weighting_criteria_ = WeightingCriteria::kNone;
     max_gram_length_ = 0;
@@ -175,8 +187,8 @@ public:
 
   ~RuntimeTfIdfVectorizer() {}
 
-  void Compute(const std::vector<int64_t> &input_dims, const std::span<const int64_t> &X,
-               std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+  void Compute(const std::vector<int64_t> &input_dims, const span_type_int64 &X,
+               std::function<span_type(const std::vector<int64_t> &)> alloc) const {
     const size_t total_items = flattened_dimension(input_dims);
 
     size_t num_rows = 0;
@@ -226,7 +238,7 @@ public:
         std::vector<T> output;
         onnx_sparse::sparse_struct::copy(output_dims, std::vector<uint32_t>(), std::vector<T>(),
                                          output);
-        std::span<T> out = alloc(std::vector<int64_t>{static_cast<int64_t>(output.size())});
+        span_type out = alloc(std::vector<int64_t>{static_cast<int64_t>(output.size())});
         std::memcpy(out.data(), output.data(), output.size() * sizeof(T));
         return;
       }
@@ -239,7 +251,7 @@ public:
         // {b_dim, output_size} when b_dim is the number of received
         // observations and output_size the is the maximum value in
         // ngram_indexes attribute plus 1.
-        std::span<T> out = alloc(output_dims);
+        span_type out = alloc(output_dims);
         std::memset(out.data(), 0, out.size() * sizeof(T));
         return;
       }
@@ -248,11 +260,11 @@ public:
   }
 
 private:
-  void ComputeDense(const std::span<const int64_t> &X, const std::vector<int64_t> &output_dims,
+  void ComputeDense(const span_type_int64 &X, const std::vector<int64_t> &output_dims,
                     const size_t num_rows, const size_t C,
-                    std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+                    std::function<span_type(const std::vector<int64_t> &)> alloc) const {
 
-    std::span<T> out = alloc(output_dims);
+    span_type out = alloc(output_dims);
 
     std::function<void(size_t, float *)> fn_weight;
     // can be parallelized.
@@ -298,9 +310,9 @@ private:
         });
   }
 
-  void ComputeSparse(const std::span<const int64_t> &X, const std::vector<int64_t> &output_dims,
+  void ComputeSparse(const span_type_int64 &X, const std::vector<int64_t> &output_dims,
                      const size_t num_rows, const size_t C,
-                     std::function<std::span<T>(const std::vector<int64_t> &)> alloc) const {
+                     std::function<span_type(const std::vector<int64_t> &)> alloc) const {
 
     std::function<void(uint32_t, std::map<uint32_t, T> & out)> fn_weight;
     // can be parallelized.
@@ -383,7 +395,7 @@ private:
     sp.set(output_dims, total, onnx_sparse::CTypeToElementType<T>().onnx_type());
 
     std::vector<int64_t> sparse_dims{static_cast<int64_t>(sp.size_float())};
-    std::span<T> out = alloc(sparse_dims);
+    span_type out = alloc(sparse_dims);
     std::memcpy(static_cast<void *>(out.data()), static_cast<void *>(&sp), sizeof(sp) - 4);
     onnx_sparse::sparse_struct *spmoved = (onnx_sparse::sparse_struct *)(out.data());
     uint32_t *p_indices = spmoved->indices();
