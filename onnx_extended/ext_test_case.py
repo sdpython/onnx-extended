@@ -201,6 +201,15 @@ class ExtTestCase(unittest.TestCase):
     def assertExists(self, name):
         assert os.path.exists(name), f"File or folder {name!r} does not exists."
 
+    def assertIns(self, sub: Tuple[Any, ...], s: str):
+        """
+        Checks that one of the substrings in sub is part of s.
+        """
+        for t in sub:
+            if t in s:
+                return
+        raise AssertionError(f"None of the substring in {sub} is part of {s!r}.")
+
     def assertEqualArray(
         self,
         expected: numpy.ndarray,

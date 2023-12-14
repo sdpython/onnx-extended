@@ -87,21 +87,22 @@ def _process_memory_spy(conn):
     process = psutil.Process(pid)
 
     if cuda:
-        from onnx_extended.validation.cuda.cuda_monitor import cuda_device_count
         from pynvml import (
             nvmlInit,
+            nvmlDeviceGetCount,
             nvmlDeviceGetHandleByIndex,
             nvmlDeviceGetMemoryInfo,
             nvmlShutdown,
         )
 
         nvmlInit()
-        handles = [nvmlDeviceGetHandleByIndex(i) for i in range(cuda_device_count())]
+        n_gpus = nvmlDeviceGetCount()
+        handles = [nvmlDeviceGetHandleByIndex(i) for i in range(n_gpus)]
 
         def gpu_used():
             return [nvmlDeviceGetMemoryInfo(h).used for h in handles]
 
-        gpus = [Monitor() for i in range(cuda_device_count())]
+        gpus = [Monitor() for i in range(n_gpus)]
     else:
         gpus = []
 
