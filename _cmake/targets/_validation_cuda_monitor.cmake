@@ -10,6 +10,6 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/validation/cuda/cuda_monitor.cpp)
 
   target_include_directories(cuda_monitor PRIVATE ${ROOT_INCLUDE_PATH})
-  target_link_libraries(cuda_monitor PRIVATE common)
+  target_link_libraries(cuda_monitor PRIVATE common CUDA::nvml)
 
 endif()
