@@ -8,6 +8,9 @@ if has_cuda():
         cuda_device_count,
         cuda_device_memory,
         cuda_devices_memory,
+        nvml_device_get_memory_info,
+        nvml_init,
+        nvml_shutdown,
     )
 else:
     get_device_prop = None
@@ -41,6 +44,16 @@ class TestCudaMonitor(ExtTestCase):
         self.assertEqual(len(r), n)
         self.assertIsInstance(r[0], tuple)
         self.assertEqual(len(r[0]), 2)
+
+    @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
+    def test_nvml(self):
+        nvml_init()
+        info = nvml_device_get_memory_info()
+        self.assertIsInstance(info, tuple)
+        self.assertEqual(len(info), 3)
+        print(info)
+        self.assertTrue(info[-1] >= max(info[:-1]))
+        nvml_shutdown()
 
 
 if __name__ == "__main__":
