@@ -21,10 +21,16 @@ cuda_example_py
         )
 
     names = [
+        "cuda_device_count",
+        "cuda_device_memory",
+        "cuda_devices_memory",
+        "cuda_version",
+        "get_device_prop",
+        "gemm_benchmark_test",
         "FpemuMode",
         "fpemu_cuda_forward",
-        "gemm_benchmark_test",
         "vector_add",
+        "vector_sum_atomic",
         "vector_sum0",
         "vector_sum6",
     ]
@@ -64,16 +70,15 @@ cuda_monitor
         )
 
     names = [
-        "FpemuMode",
-        "fpemu_cuda_forward",
-        "gemm_benchmark_test",
-        "vector_add",
-        "vector_sum0",
-        "vector_sum6",
+        "cuda_version",
+        "nvml_device_get_count",
+        "nvml_device_get_memory_info",
+        "nvml_init",
+        "nvml_shutdown",
     ]
     names.sort()
-    classes = {"FpemuMode"}
-    noindex = {"gemm_benchmark_test"}
+    noindex = {}
+    classes = {}
 
     prefix = "onnx_extended.validation.cuda.cuda_monitor."
     if has_cuda():
