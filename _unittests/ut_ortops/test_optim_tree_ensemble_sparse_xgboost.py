@@ -45,7 +45,7 @@ class TestXGBoostSparse(ExtTestCase):
         X = X.astype(numpy.float32)
 
         rf = xgboost.XGBRegressor(
-            n_estimators=5, max_depth=3, random_state=0, base_score=0.5
+            n_estimators=5, max_depth=4, random_state=0, base_score=0.5
         )
         rf.fit(X_sp, y)
         expected = rf.predict(X).astype(numpy.float32).reshape((-1, 1))
@@ -94,9 +94,7 @@ class TestXGBoostSparse(ExtTestCase):
         onx2.graph.input.append(make_tensor_value_info("X", TensorProto.FLOAT, (None,)))
         for att in onx2.graph.node[0].attribute:
             if att.name == "nodes_missing_value_tracks_true":
-                ints = att.ints
-                self.assertEqual(min(ints), 0)
-                self.assertEqual(max(ints), 1)
+                self.assertEqual({0, 1}, set(att.ints))
 
         # check with onnxruntime + custom op
         feeds = {"X": dense_to_sparse_struct(X)}
