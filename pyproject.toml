@@ -157,8 +157,12 @@ module = ["onnx_extended._command_lines_parser"]
 disable_error_code = ["arg-type", "name-defined"]
 
 [[tool.mypy.overrides]]
+module = ["onnx_extended.args"]
+disable_error_code = ["index"]
+
+[[tool.mypy.overrides]]
 module = ["onnx_extended.ext_test_case"]
-disable_error_code = ["override", "index"]
+disable_error_code = ["override"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.ortops.optim.optimize"]
