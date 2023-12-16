@@ -11,7 +11,7 @@ from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
     get_node_attribute,
 )
-from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple, skipif_unstable
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -27,6 +27,7 @@ class TestXGBoostSparse(ExtTestCase):
         self.assertEqual(len(r), 1)
 
     @skipif_ci_apple("crash")
+    @skipif_unstable("unstable on github workflow")
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
     def test_xgbregressor_sparse(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs

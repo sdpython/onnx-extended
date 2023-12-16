@@ -74,7 +74,8 @@ from onnx_extended.ortops.optim.optimize import (
     optimize_model,
 )
 from onnx_extended.tools.onnx_nodes import multiply_tree
-from onnx_extended.ext_test_case import get_parsed_args, unit_test_going
+from onnx_extended.args import get_parsed_args
+from onnx_extended.ext_test_case import unit_test_going
 from onnx_extended.plotting.benchmark import hhistograms
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)

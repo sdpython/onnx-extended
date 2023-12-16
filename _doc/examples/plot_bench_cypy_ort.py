@@ -24,7 +24,8 @@ from onnx.helper import (
 from onnx.checker import check_model
 from onnxruntime import InferenceSession
 from onnx_extended.ortcy.wrap.ortinf import OrtSession
-from onnx_extended.ext_test_case import measure_time, unit_test_going, get_parsed_args
+from onnx_extended.args import get_parsed_args
+from onnx_extended.ext_test_case import measure_time, unit_test_going
 
 
 script_args = get_parsed_args(

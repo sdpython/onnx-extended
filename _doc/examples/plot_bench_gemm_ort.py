@@ -48,7 +48,8 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.ext_test_case import unit_test_going, measure_time, get_parsed_args
+from onnx_extended.args import get_parsed_args
+from onnx_extended.ext_test_case import unit_test_going, measure_time
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
