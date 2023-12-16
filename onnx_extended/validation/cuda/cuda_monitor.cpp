@@ -104,5 +104,5 @@ PYBIND11_MODULE(cuda_monitor, m) {
         return py::make_tuple(memoryInfo.free, memoryInfo.used, memoryInfo.total);
       },
       py::arg("device") = 0,
-      "Returns the free memory, the total memory, the used memory for a GPU device.");
+      "Returns the free memory, the used memory, the total memory for a GPU device.");
 }
