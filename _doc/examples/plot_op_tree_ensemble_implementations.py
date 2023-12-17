@@ -1,8 +1,12 @@
 """
+.. _l-plot_op_tree_ensemble_implementations:
+
 Evaluate different implementation of TreeEnsemble
 =================================================
 
 This is a simplified bencharmk to compare TreeEnsemble implementations.
+Run `python plot_op_tree_ensemble_implementations.py --help` to change the tree
+dimension.
 
 Sparse Data
 +++++++++++
