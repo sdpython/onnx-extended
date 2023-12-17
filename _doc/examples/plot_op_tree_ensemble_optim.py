@@ -149,7 +149,18 @@ n_features = script_args.n_features
 n_trees = script_args.n_trees
 max_depth = script_args.max_depth
 
+print(f"batch_size={batch_size}")
+print(f"n_features={n_features}")
+print(f"n_trees={n_trees}")
+print(f"max_depth={max_depth}")
+
+##############################
+# training
+
 filename, Xb, yb = train_model(batch_size, n_features, n_trees, max_depth)
+
+print(f"Xb.shape={Xb.shape}")
+print(f"yb.shape={yb.shape}")
 
 #######################################
 # Rewrite the onnx file to use a different kernel
