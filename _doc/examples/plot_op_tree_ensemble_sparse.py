@@ -86,8 +86,8 @@ script_args = get_parsed_args(
     sparsity=(0.99, "input sparsity"),
     n_features=(2 if unit_test_going() else 500, "number of features to generate"),
     n_trees=(3 if unit_test_going() else 10, "number of trees to train"),
-    max_depth=(2 if unit_test_going() else 5, "max_depth"),
-    batch_size=(1000 if unit_test_going() else 10000, "batch size"),
+    max_depth=(2 if unit_test_going() else 10, "max_depth"),
+    batch_size=(1000 if unit_test_going() else 1000, "batch size"),
     parallel_tree=("80,160,40", "values to try for parallel_tree"),
     parallel_tree_N=("256,128,64", "values to try for parallel_tree_N"),
     parallel_N=("100,50,25", "values to try for parallel_N"),
@@ -148,6 +148,11 @@ def train_model(
     return filename, Xb, yb
 
 
+def measure_sparsity(x):
+    f = x.flatten()
+    return float((f == 0).astype(numpy.int64).sum()) / float(x.size)
+
+
 batch_size = script_args.batch_size
 n_features = script_args.n_features
 n_trees = script_args.n_trees
@@ -167,6 +172,7 @@ filename, Xb, yb = train_model(batch_size, n_features, n_trees, max_depth, spars
 
 print(f"Xb.shape={Xb.shape}")
 print(f"yb.shape={yb.shape}")
+print(f"measured sparsity={measure_sparsity(Xb)}")
 
 #######################################
 # Rewrite the onnx file to use a different kernel
