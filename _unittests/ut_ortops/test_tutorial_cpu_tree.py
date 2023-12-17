@@ -37,6 +37,9 @@ def compile_tree(
     tree_tile_size: int = 8,
     verbose: int = 0,
 ) -> str:
+    """
+    Compiles a tree with `TreeBeard <https://github.com/asprasad/treebeard>`_.
+    """
     if verbose:
         print("[compile_tree] import treebeard")
     import treebeard
