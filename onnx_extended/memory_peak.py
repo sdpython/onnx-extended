@@ -163,18 +163,14 @@ class MemorySpy:
         )
         self.child_process.start()
         data = self.parent_conn.recv()
-        if data != -2:
-            raise RuntimeError(
-                f"The child processing is supposed to send -2 not {data}."
-            )
+        assert data == -2, f"The child processing is supposed to send -2 not {data}."
         self.parent_conn.send(self.pid)
         self.parent_conn.send(self.delay)
         self.parent_conn.send(1 if self.cuda else 0)
         data = self.parent_conn.recv()
-        if data != -2:
-            raise RuntimeError(
-                f"The child processing is supposed to send -2 again not {data}."
-            )
+        assert (
+            data == -2
+        ), "The child processing is supposed to send -2 again not {data}."
         return self
 
     def stop(self):

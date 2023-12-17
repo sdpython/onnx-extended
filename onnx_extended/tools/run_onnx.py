@@ -327,8 +327,7 @@ def _run_cmd(args: List[str]) -> str:
 def _extract_version(out: str) -> str:
     reg = re.compile("Version: ([0-9][0-9.]*)")
     r = reg.findall(out)
-    if not r:
-        raise RuntimeError(f"Unable to find a version in\n{out}")
+    assert r, "Unable to find a version in\n{out}"
     return r[0]
 
 
@@ -382,7 +381,7 @@ def bench_virtual(
         if verbose > 2:
             print(out)
         if not os.path.exists(exe):
-            raise RuntimeError(f"The virtual environment was not created:\n{out}")
+            raise FileNotFoundError(f"The virtual environment was not created:\n{out}")
         get_pip = os.path.join(virtual_path, "get_pip.py")
         if not os.path.exists(get_pip):
             if verbose > 2:

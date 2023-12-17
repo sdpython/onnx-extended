@@ -113,7 +113,7 @@ def change_onnx_operator_domain(
         )
 
     if isinstance(onx, FunctionProto):
-        raise NotImplementedError()
+        raise NotImplementedError("onx is FunctionProto, not implemented yet.")
 
     if not isinstance(onx, ModelProto):
         raise TypeError(f"Unexpected type for onx {type(onx)}.")

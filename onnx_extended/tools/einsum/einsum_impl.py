@@ -46,11 +46,9 @@ def analyse_einsum_equation(
 
     rev = {c: i for i, c in enumerate(letters)}
     for c in output:
-        if c not in letters:
-            raise ValueError(
-                "Output contains one unexpected letter %r in "
-                "equation %r." % (c, equation)
-            )
+        assert (
+            c in letters
+        ), "Output contains one unexpected letter %r in " "equation %r." % (c, equation)
     mat = numpy.full((len(inputs) + 1, len(letters)), -1, dtype=numpy.int8)
     for i, inp in enumerate(inputs):
         for k, c in enumerate(inp):
@@ -212,17 +210,23 @@ def is_transpose_identity(perm: Tuple[int, ...]) -> bool:
 def _basic_verification(
     lengths: List[int], shapes: List[Tuple[int, ...]], equation: str
 ):
-    if len(lengths) - 1 != len(shapes):
-        raise ValueError(
-            "Equation %r has %d inputs but %d shapes are given."
-            "" % (equation, len(lengths), len(shapes))
-        )
+    assert len(lengths) - 1 == len(
+        shapes
+    ), "Equation %r has %d inputs but %d shapes are given." "" % (
+        equation,
+        len(lengths),
+        len(shapes),
+    )
     for i, (le, sh) in enumerate(zip(lengths, shapes)):
-        if le != len(sh):
-            raise ValueError(
-                "Inputs %d has %d dimensions but shapes %r has %d "
-                " in equation %r." % (i, le, sh, len(sh), equation)
-            )
+        assert le == len(
+            sh
+        ), "Inputs %d has %d dimensions but shapes %r has %d " " in equation %r." % (
+            i,
+            le,
+            sh,
+            len(sh),
+            equation,
+        )
 
 
 def _apply_transpose_reshape(
@@ -298,10 +302,9 @@ def _apply_einsum_matmul(
     *op_matmul* (see :func:`decompose_einsum_equation`).
     """
     allowed = {"matmul", "batch_dot", "dot"}
-    if op_matmul not in allowed:
-        raise ValueError(
-            f"Unknown operator op_matmul={op_matmul!r} not in {allowed!r}."
-        )
+    assert (
+        op_matmul in allowed
+    ), f"Unknown operator op_matmul={op_matmul!r} not in {allowed!r}."
     if op_matmul == "matmul":
         if verbose:
             print(f"  -- MATMUL -> matmul axes={axes!r} left={left!r} right={right!r}")
@@ -427,10 +430,9 @@ def _decompose_einsum_equation_simple(
         *reduce_sum*, or just *dot*
     """
     letters, mat, lengths, duplicates = analyse_einsum_equation(equation)
-    if len(letters) != mat.shape[1]:
-        raise RuntimeError(
-            f"Unexpected number of letters {letters!r}, shape={mat.shape!r}."
-        )
+    assert (
+        len(letters) == mat.shape[1]
+    ), f"Unexpected number of letters {letters!r}, shape={mat.shape!r}."
     if not shapes:
         shapes = [(2,) * le for le in lengths[:-1]]
     _basic_verification(lengths, shapes, equation)

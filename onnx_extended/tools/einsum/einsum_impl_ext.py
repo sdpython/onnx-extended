@@ -92,18 +92,16 @@ def _numpy_extended_dot_equation(
         # Same einsum computation written in a different way.
         print(numpy.einsum('kix,kxj->xij', a, b))
     """
-    if m1_dim != m2_dim:
-        raise RuntimeError(
-            "Matrices m1 and m2 must have the same number of dimensions, "
-            "m1=%r, m2=%r." % (m1_dim, m2_dim)
-        )
+    assert m1_dim == m2_dim, (
+        "Matrices m1 and m2 must have the same number of dimensions, "
+        "m1=%r, m2=%r." % (m1_dim, m2_dim)
+    )
     total = set(axes) | set(left) | set(right)
-    if len(total) > m1_dim:
-        raise ValueError(
-            "Whole set of involved axes should be inferior to the number "
-            "of dimensions: %r = {%r} | {%r} | {%r} has more than %d elements"
-            "." % (total, axes, left, right, m1_dim)
-        )
+    assert len(total) <= m1_dim, (
+        "Whole set of involved axes should be inferior to the number "
+        "of dimensions: %r = {%r} | {%r} | {%r} has more than %d elements"
+        "." % (total, axes, left, right, m1_dim)
+    )
 
     def _check_(axs, n):
         for a in axs:
@@ -149,24 +147,21 @@ def _common_check_numpy_extended_dot(
     :func:`numpy_extended_dot
      <onnx_extended.tools.einsum.einsum_impl_ext.numpy_extended_dot>`.
     """
-    if m1.dtype != m2.dtype:
-        raise TypeError(
-            f"Both matrices should share the same dtype {m1.dtype!r} != {m2.dtype!r}."
-        )
+    assert (
+        m1.dtype == m2.dtype
+    ), f"Both matrices should share the same dtype {m1.dtype!r} != {m2.dtype!r}."
     m1_dim = len(m1.shape)
     m2_dim = len(m2.shape)
-    if m1_dim != m2_dim:
-        raise RuntimeError(
-            "Matrices m1 and m2 must have the same number of dimensions, "
-            "m1=%r, m2=%r." % (m1_dim, m2_dim)
-        )
+    assert m1_dim == m2_dim, (
+        "Matrices m1 and m2 must have the same number of dimensions, "
+        "m1=%r, m2=%r." % (m1_dim, m2_dim)
+    )
     total = set(axes) | set(left) | set(right)
-    if len(total) > m1_dim:
-        raise ValueError(
-            "Whole set of involved axes should be inferior to the number "
-            "of dimensions: %r = {%r} | {%r} | {%r} has more than %d elements"
-            "." % (total, axes, left, right, m1_dim)
-        )
+    assert len(total) <= m1_dim, (
+        "Whole set of involved axes should be inferior to the number "
+        "of dimensions: %r = {%r} | {%r} | {%r} has more than %d elements"
+        "." % (total, axes, left, right, m1_dim)
+    )
 
 
 def numpy_extended_dot(
@@ -431,8 +426,9 @@ def _numpy_extended_dot_python_update_broadcast(
             print(f"    B0 l1={l1!r}, l2={l2!r} l3={l3!r}")
         if (kind[i] & 4) > 0:
             # Summation axis is part of the output.
-            if let[inp] is None:
-                raise RuntimeError(f"Unexpected value for let[{inp}] in let={let}.")
+            assert (
+                let[inp] is not None
+            ), f"Unexpected value for let[{inp}] in let={let}."
             if let[inp].lower() == let[inp]:
                 let[inp] = let[inp].upper()
             else:
@@ -446,8 +442,9 @@ def _numpy_extended_dot_python_update_broadcast(
                 print(f"    B1 l1={l1!r}, l2={l2!r} l3={l3!r}")
         else:
             # Summation axis is not part of the output.
-            if let[inp] is None:
-                raise RuntimeError(f"Unexpected value for let[{inp}] in let={let}.")
+            assert (
+                let[inp] is not None
+            ), f"Unexpected value for let[{inp}] in let={let}."
             if let[inp].lower() == let[inp]:
                 let[inp] = let[inp].upper()
             else:
@@ -799,12 +796,11 @@ def numpy_extended_dot_matrix(
                 "last_shape=%r" % (current_shape, final_shape, res.shape)
             )
 
-        if len(current_shape) != len(final_shape):
-            raise RuntimeError(
-                "Shapes mismatch %r > %r, "
-                "shape1=%r shape2=%r axes=%r left=%r right=%r."
-                % (current_shape, final_shape, m1.shape, m2.shape, axes, left, right)
-            )
+        assert len(current_shape) == len(final_shape), (
+            "Shapes mismatch %r > %r, "
+            "shape1=%r shape2=%r axes=%r left=%r right=%r."
+            % (current_shape, final_shape, m1.shape, m2.shape, axes, left, right)
+        )
 
         res = res.reshape(current_shape)
 

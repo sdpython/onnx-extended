@@ -26,8 +26,7 @@ def _type_shape(
             "([a-z][a-z0-9]*)?([(]([ a-zA-Z,0-9]+)[)])?(:([A-Z][A-Z0-9]*))?"
         )
         search = reg.match(input_def)
-        if search is None:
-            raise ValueError(f"Unable to interpret string {input_def!r}.")
+        assert search is not None, f"Unable to interpret string {input_def!r}."
         grs = search.groups()
         dtype = grs[0]
         shape = None if grs[2] is None else grs[2].replace(" ", "").split(",")
@@ -148,11 +147,10 @@ def store_intermediate_results(
     else:
         inst = cls_runtime(model, save_intermediate=out, verbose=iv)
     names = inst.input_names
-    if len(names) < len(inputs):
-        raise RuntimeError(
-            f"There are more inputs ({len(inputs)}) "
-            f"than names ({len(names)}). Names are {names}."
-        )
+    assert len(names) >= len(inputs), (
+        f"There are more inputs ({len(inputs)}) "
+        f"than names ({len(names)}). Names are {names}."
+    )
 
     dims = {}
     feeds = {}
@@ -200,14 +198,15 @@ def display_intermediate_results(
 
     if save is not None:
         ext = os.path.splitext(save)[-1]
-        if ext not in {".csv", ".xlsx"}:
-            raise ValueError(f"Unexpected format {save!r}, extension is {ext!r}.")
+        assert ext in {
+            ".csv",
+            ".xlsx",
+        }, f"Unexpected format {save!r}, extension is {ext!r}."
     else:
         exts = None
 
     def _fixed(s, length=10):
-        if not isinstance(s, str):
-            raise TypeError(f"Unexpected type {type(s)}: {s!r}.")
+        assert isinstance(s, str), "Unexpected type {type(s)}: {s!r}."
         return (
             (s[: length - 1] + " ")
             if len(s) >= length - 1
@@ -217,8 +216,7 @@ def display_intermediate_results(
     n_rows = 0
     rows = []
     for obs in enumerate_onnx_node_types(model, external=external):
-        if "level" not in obs:
-            raise RuntimeError(f"Unexpected value obs={obs!r}.")
+        assert "level" in obs, "Unexpected value obs={obs!r}."
         indent = " " * obs["level"] * tab
         values = [
             indent,
@@ -298,8 +296,7 @@ def print_proto(proto: str, fmt: str = "raw", external: bool = True):
     else:
         proto_loaded = proto
 
-    if proto_loaded is None:
-        raise ValueError(f"Filename {proto!r} could not be loaded.")
+    assert proto_loaded is not None, "Filename {proto!r} could not be loaded."
     print(f"Type: {type(proto_loaded)}")
     if fmt == "raw":
         print(proto_loaded)

@@ -72,11 +72,10 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
                 raise IndexError("C: %d >= %d" % (c_index, C.shape[0]))
             C[c_index] = alpha * total + beta * C[c_index]
 
-    if n_loop != M * N * K:
-        raise RuntimeError(
-            "Unexpected number of loops: %d != %d = (%d * %d * %d) "
-            "lda=%d ldb=%d ldc=%d" % (n_loop, M * N * K, M, N, K, lda, ldb, ldc)
-        )
+    assert n_loop == M * N * K, (
+        "Unexpected number of loops: %d != %d = (%d * %d * %d) "
+        "lda=%d ldb=%d ldc=%d" % (n_loop, M * N * K, M, N, K, lda, ldb, ldc)
+    )
 
 
 def gemm_dot(A, B, transA=False, transB=False):

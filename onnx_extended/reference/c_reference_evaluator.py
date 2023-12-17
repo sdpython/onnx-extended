@@ -315,11 +315,10 @@ class CReferenceEvaluator(ReferenceEvaluator):
         # return the results
         list_results: list[Any] = []
         for name in output_names:
-            if name not in results:
-                raise RuntimeError(
-                    f"Unable to find output name {name!r} "
-                    f"in {sorted(results)}, proto is\n{self.proto_}"
-                )
+            assert name in results, (
+                f"Unable to find output name {name!r} "
+                f"in {sorted(results)}, proto is\n{self.proto_}"
+            )
             list_results.append(results[name])
         return list_results
 

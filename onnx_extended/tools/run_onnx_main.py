@@ -66,8 +66,7 @@ def main(argv):
         spl = args.runtime.split(".")
         op_name = spl[0].replace("Custom", "")
         params = [int(a) for a in spl[1:]]
-        if len(params) > 6:
-            raise ValueError(f"Unexpected runtime {args.runtime!r}.")
+        assert len(params) <= 6, "Unexpected runtime {args.runtime!r}."
 
         optim_params = {}
         for i, k in enumerate(

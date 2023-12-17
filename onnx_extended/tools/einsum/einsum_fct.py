@@ -23,10 +23,9 @@ class OnnxMicroRuntime:
     """
 
     def __init__(self, model_onnx):
-        if not hasattr(model_onnx, "graph"):
-            raise TypeError(
-                f"model_onnx is not an ONNX graph but {type(model_onnx)!r}."
-            )
+        assert hasattr(
+            model_onnx, "graph"
+        ), f"model_onnx is not an ONNX graph but {type(model_onnx)!r}."
         self.model_onnx = model_onnx
 
     @property
