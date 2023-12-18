@@ -4570,11 +4570,11 @@ class TestEinsumGenericdot(ExtTestCase):
     def test_exc(self):
         self.assertRaise(lambda: numpy_diagonal(None, 6, (8, 9)), RuntimeError)
         self.assertRaise(
-            lambda: _numpy_extended_dot_equation(4, 5, None, None, None), RuntimeError
+            lambda: _numpy_extended_dot_equation(4, 5, None, None, None), AssertionError
         )
         self.assertRaise(
             lambda: _numpy_extended_dot_equation(1, 1, (4, 5), (6, 7), (8, 9)),
-            ValueError,
+            AssertionError,
         )
         self.assertRaise(
             lambda: _numpy_extended_dot_equation(10, 10, (-4, 5), (6, 7), (8, 9)),
@@ -4588,7 +4588,7 @@ class TestEinsumGenericdot(ExtTestCase):
                 None,
                 None,
             ),
-            TypeError,
+            AssertionError,
         )
 
     def test_verbose(self):

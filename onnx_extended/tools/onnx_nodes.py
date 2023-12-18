@@ -926,7 +926,7 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
     :param n: number of times the existing trees must be multiplied
     :return: the new trees
     """
-    assert isinstance(node, NodeProto), "node is not a NodeProto but {type(node)}."
+    assert isinstance(node, NodeProto), f"node is not a NodeProto but {type(node)}."
     assert node.op_type.startswith(
         "TreeEnsemble"
     ), "Unexpected node type {node.op_type!r}."

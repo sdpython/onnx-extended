@@ -319,7 +319,7 @@ class TestOnnxTools(ExtTestCase):
         model = DecisionTreeRegressor(max_depth=2)
         model.fit(X[:-batch_size], y[:-batch_size])
         onx = to_onnx(model, X[:1])
-        self.assertRaise(lambda: multiply_tree(onx, 2), TypeError)
+        self.assertRaise(lambda: multiply_tree(onx, 2), AssertionError)
         onx2 = multiply_tree(onx.graph.node[0], 2)
 
         new_model = make_model(

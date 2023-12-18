@@ -48,7 +48,7 @@ def analyse_einsum_equation(
     for c in output:
         assert (
             c in letters
-        ), "Output contains one unexpected letter %r in " "equation %r." % (c, equation)
+        ), f"Output contains one unexpected letter {c!r} in equation {equation!r}, letters={letters!r}."
     mat = numpy.full((len(inputs) + 1, len(letters)), -1, dtype=numpy.int8)
     for i, inp in enumerate(inputs):
         for k, c in enumerate(inp):

@@ -45,7 +45,7 @@ def enumerate_nodes(
         for i, node in enumerate(onx.node):
             assert isinstance(
                 node, NodeProto
-            ), "A NodeProto is expected not {type(node)}."
+            ), f"A NodeProto is expected not {type(node)}."
             if node.op_type == "Constant":
                 yield (node.output[0],), onx, node
             else:
