@@ -91,6 +91,13 @@ std::vector<std::string> SplitString(const std::string &input, char delimiter) {
   std::string::size_type start = 0;
   std::string::size_type end = input.find(delimiter);
 
+  std::size_t n = 0;
+  for (auto it : input) {
+    if (it == delimiter)
+      ++n;
+  }
+  parts.reserve(n + 1);
+
   while (end != std::string::npos) {
     parts.push_back(input.substr(start, end - start));
     start = end + 1;

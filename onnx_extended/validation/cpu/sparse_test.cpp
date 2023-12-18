@@ -103,7 +103,8 @@ _test_sparse_sparse(std::vector<int64_t> &pos, int64_t n_elements, const float *
   EXT_ENFORCE(sp->shape[1] == n_cols, "Mismatch dimension 1, ", sp->shape[1], "!=", n_cols,
               ".");
   EXT_ENFORCE(n_elements == static_cast<int64_t>(sp->size_float()),
-              "Unexpected number of elements, ", n_elements, "!=", sp->size_float(), ".");
+              "Unexpected number of elements, ", n_elements,
+              "!=", static_cast<int64_t>(sp->size_float()), ".");
 
   double performance = 0;
   double init = 0;
