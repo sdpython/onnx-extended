@@ -143,9 +143,33 @@ class TestSparseStruct(ExtTestCase):
         from onnx_extended.validation.cpu._validation import evaluate_sparse
 
         tensor = np.random.rand(20, 10).astype(np.float32)
-        r = evaluate_sparse(tensor, tensor.shape[0], tensor.shape[1], 4, 5, 7, True)
+        r = evaluate_sparse(tensor, tensor.shape[0], tensor.shape[1], 4, 5, 7, 1)
+        self.assertIsInstance(r, list)
+        self.assertEqual(len(r), 1)
+        r = r[0]
         self.assertIsInstance(r, tuple)
+        self.assertEqual(len(r), 3)
+
+    def test_evaluate_sparse_sparse(self):
+        from onnx_extended.validation.cpu._validation import evaluate_sparse, dense_to_sparse_struct
+
+        tensor = np.random.rand(20, 10).astype(np.float32)
+        sp = dense_to_sparse_struct(tensor)
+        r = evaluate_sparse(sp, tensor.shape[0], tensor.shape[1], 4, 5, 7, 2)
+        self.assertIsInstance(r, list)
+        self.assertEqual(len(r), 1)
+        r = r[0]
+        self.assertIsInstance(r, tuple)
+        self.assertEqual(len(r), 3)
+
+    def test_evaluate_sparse_dense_sparse(self):
+        from onnx_extended.validation.cpu._validation import evaluate_sparse
+
+        tensor = np.random.rand(20, 10).astype(np.float32)
+        r = evaluate_sparse(tensor, tensor.shape[0], tensor.shape[1], 4, 5, 7, 3)
+        self.assertIsInstance(r, list)
         self.assertEqual(len(r), 2)
+        self.assertEqual(r[0][2], r[1][2])
 
 
 if __name__ == "__main__":

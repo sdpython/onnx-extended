@@ -135,7 +135,8 @@ struct sparse_struct {
     }
     for (uint32_t i = 1; i < n_elements; ++i) {
       new_row = ind[i] / last_dim;
-      EXT_ENFORCE(ind[i] < ind[i + 1], "indices are not sorted.");
+      EXT_ENFORCE(ind[i] < ind[i + 1], "indices are not sorted,", ind[i], ">=", ind[i + 1],
+                  ".");
       for (; row != new_row; ++row) {
         rows_index.push_back(static_cast<uint32_t>(i));
       }

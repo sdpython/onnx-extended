@@ -190,7 +190,7 @@ stored in a float tensor.)pbdoc");
       "evaluate_sparse",
       [](py::array_t<float, py::array::c_style | py::array::forcecast> values_array,
          int64_t n_rows, int64_t n_cols, int random, int number, int repeat,
-         bool dense) -> std::tuple<double, double> {
+         int test) -> std::vector<std::tuple<double, double, double>> {
         EXT_ENFORCE(values_array.size() > 0, "Input tensor is empty.");
         EXT_ENFORCE(n_rows > 0, "Number of rows is null.");
         EXT_ENFORCE(n_cols > 0, "Number of columns is null.");
@@ -199,9 +199,10 @@ stored in a float tensor.)pbdoc");
         EXT_ENFORCE(repeat > 0, "repeat is null.");
         const float *values = values_array.data(0);
         return evaluate_sparse(values_array.size(), values, n_rows, n_cols, random, number,
-                               repeat, dense);
+                               repeat, test);
       },
       py::arg("tensor"), py::arg("n_rows"), py::arg("n_cols"), py::arg("n_random"),
       py::arg("number"), py::arg("repeat"), py::arg("dense"),
-      "Returns number about random access to features.");
+      R"pbdoc(Returns computation time about random access to features dense or sparse, 
+initialization time, loop time, sum of the element from the array based on random indices.)pbdoc");
 }
