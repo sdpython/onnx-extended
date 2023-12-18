@@ -103,6 +103,7 @@ public:
 
       vector_count_ = 0;
       class_count_ = 0;
+      starting_vector_.reserve(vectors_per_class_.size());
       for (std::size_t i = 0; i < vectors_per_class_.size(); ++i) {
         starting_vector_.push_back(vector_count_);
         vector_count_ += vectors_per_class_[i];

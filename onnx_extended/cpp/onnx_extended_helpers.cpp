@@ -99,12 +99,12 @@ std::vector<std::string> SplitString(const std::string &input, char delimiter) {
   parts.reserve(n + 1);
 
   while (end != std::string::npos) {
-    parts.push_back(input.substr(start, end - start));
+    parts.emplace_back(input.substr(start, end - start));
     start = end + 1;
     end = input.find(delimiter, start);
   }
 
-  parts.push_back(input.substr(start));
+  parts.emplace_back(input.substr(start));
   return parts;
 }
 
