@@ -188,21 +188,21 @@ stored in a float tensor.)pbdoc");
 
   m.def(
       "evaluate_sparse",
-      [](py::array_t<float, py::array::c_style | py::array::forcecast> values_array,
-         int64_t n_rows, int64_t n_cols, int random, int number, int repeat,
-         int test) -> std::vector<std::tuple<double, double, double>> {
+      [](py::array_t<float, py::array::c_style | py::array::forcecast> values_array, int random,
+         int repeat, int test) -> std::vector<std::tuple<double, double, double>> {
         EXT_ENFORCE(values_array.size() > 0, "Input tensor is empty.");
-        EXT_ENFORCE(n_rows > 0, "Number of rows is null.");
-        EXT_ENFORCE(n_cols > 0, "Number of columns is null.");
         EXT_ENFORCE(random > 0, "random is null.");
-        EXT_ENFORCE(number > 0, "number is null.");
         EXT_ENFORCE(repeat > 0, "repeat is null.");
         const float *values = values_array.data(0);
-        return evaluate_sparse(values_array.size(), values, n_rows, n_cols, random, number,
-                               repeat, test);
+        std::vector<int64_t> dims(values_array.ndim());
+        for (std::size_t i = 0; i < dims.size(); ++i)
+          dims[i] = (int64_t)values_array.shape(i);
+        EXT_ENFORCE(dims.size() == 2, "2D tensor is expected.");
+        return evaluate_sparse(values_array.data(0), dims[0], dims[1], random, repeat, test);
       },
-      py::arg("tensor"), py::arg("n_rows"), py::arg("n_cols"), py::arg("n_random"),
-      py::arg("number"), py::arg("repeat"), py::arg("dense"),
+      py::arg("tensor"), py::arg("n_random"), py::arg("repeat"), py::arg("dense"),
       R"pbdoc(Returns computation time about random access to features dense or sparse, 
-initialization time, loop time, sum of the element from the array based on random indices.)pbdoc");
+initialization time, loop time, sum of the element from the array based on random indices.
+The goal is to evaluate whether or not it is faster to switch to a dense representation
+or to keep the sparse representation to do random access to the structures.)pbdoc");
 }
