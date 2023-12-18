@@ -139,6 +139,14 @@ class TestSparseStruct(ExtTestCase):
         self.assertEqual(indices.tolist(), [0, 74, 93])
         self.assertEqual(values.tolist(), [777, 555, 888])
 
+    def test_evaluate_sparse_dense(self):
+        from onnx_extended.validation import evaluate_sparse
+
+        tensor = np.random.rand(20, 10).astype(np.float32)
+        r = evaluate_sparse(tensor, tensor.shape[0], tensor.shape[1], 4, 5, 7, True)
+        self.assertIsInstance(r, tuple)
+        self.assertEqual(len(r), 2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -4,6 +4,7 @@
 
 #include "cpu_fpemu.hpp"
 #include "murmur_hash3.h"
+#include "sparse_test.h"
 #include "speed_metrics.h"
 #include "vector_sparse.h"
 #include "vector_sum.h"
@@ -184,4 +185,17 @@ The second array stores the column index for every element.)pbdoc");
   m.def("sparse_struct_indices_values", &sparse_struct_indices_values, py::arg("v"),
         R"pbdoc(Returns the indices and the values from a sparse structure
 stored in a float tensor.)pbdoc");
+
+  m.def(
+      "evaluate_sparse",
+      [](py::array_t<float, py::array::c_style | py::array::forcecast> values_array,
+         int64_t n_row, int64_t n_col, int n_random, int n_number, int n_repeat,
+         bool dense) -> std::tuple<double, double> {
+        const float *values = values_array.data(0);
+        return evaluate_sparse(values_array.size(), values, n_row, n_col, n_random, n_number,
+                               n_repeat, dense);
+      },
+      py::arg("tensor"), py::arg("n_rows"), py::arg("n_cols"), py::arg("n_random"),
+      py::arg("n_number"), py::arg("n_repeat"), py::arg("dense"),
+      "Returns number about random access to features.");
 }
