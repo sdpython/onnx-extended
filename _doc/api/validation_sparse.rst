@@ -20,6 +20,11 @@ onnx_extended.validation.cpu._validation.dense_to_sparse_struct
 
 .. autofunction:: onnx_extended.validation.cpu._validation.dense_to_sparse_struct
 
+onnx_extended.validation.cpu._validation.evaluate_sparse
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. autofunction:: onnx_extended.validation.cpu._validation.evaluate_sparse
+
 onnx_extended.validation.cpu._validation.sparse_struct_indices_values
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

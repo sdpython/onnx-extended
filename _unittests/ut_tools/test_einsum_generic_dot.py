@@ -4524,15 +4524,22 @@ class TestEinsumGenericdot(ExtTestCase):
         m2 = numpy.empty(sh2).ravel()
         m2 = numpy.arange(len(m2)).reshape(sh2).astype(numpy.float64) + 1000
 
-        try:
-            exp = numpy_extended_dot(m1, m2, axes, left, right, verbose=verbose)
-        except ValueError:
-            return False
-        try:
-            dot = fct(m1, m2, axes, left, right, verbose=verbose)
-        except (IndexError, NotImplementedError, ValueError):
-            dot = fct(m1, m2, axes, left, right, verbose=not verbose)
-
+        if verbose:
+            try:
+                exp = numpy_extended_dot(m1, m2, axes, left, right, verbose=verbose)
+            except ValueError:
+                return False
+            try:
+                dot = fct(m1, m2, axes, left, right, verbose=verbose)
+            except (IndexError, NotImplementedError, ValueError):
+                dot = fct(m1, m2, axes, left, right, verbose=not verbose)
+        else:
+            with redirect_stdout(io.StringIO()):
+                try:
+                    exp = numpy_extended_dot(m1, m2, axes, left, right, verbose=True)
+                except ValueError:
+                    return False
+                dot = fct(m1, m2, axes, left, right, verbose=True)
         try:
             self.assertEqualArray(exp, dot)
             redo = False
