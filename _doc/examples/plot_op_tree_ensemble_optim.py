@@ -232,7 +232,8 @@ print("done.")
 # Discrepancies?
 
 d = numpy.abs(base - got)
-print(f"Discrepancies: max={d.max()}, mean={d.mean()}")
+ya = numpy.abs(base).mean()
+print(f"Discrepancies: max={d.max() / ya}, mean={d.mean() / ya} (A={ya})")
 
 ########################################
 # Simple verification

@@ -246,7 +246,7 @@ def optimize_model(
             msg = [f"i={it+1}/{len(loops)}"]
             msg.extend([f"{_s.get(k,k)}={v}" for k, v in zip(keys, values)])
             if min_perf and base_perf:
-                msg += f" ~{min_perf/base_perf:1.1f}"
+                msg.append(f" ~={base_perf/min_perf:1.2f}x")
             loop.set_description(" ".join(msg))
 
         kwargs = dict(zip(keys, values))
