@@ -6,8 +6,8 @@ Focus on operators optimization
     :maxdepth: 1
     :caption: Conv
 
-    ../auto_examples/plot_conv
-    ../auto_examples/plot_conv_denorm
+    ../auto_examples/plot_op_conv_py_vs_c
+    ../auto_examples/plot_op_conv_denorm
 
 .. toctree::
     :maxdepth: 1

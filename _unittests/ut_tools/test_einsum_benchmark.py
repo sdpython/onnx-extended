@@ -16,7 +16,7 @@ class TestEinsumBenchmark(ExtTestCase):
         )
         self.assertRaise(
             lambda: list(einsum_benchmark(shape=5, equation="abc,cd->abD", perm=True)),
-            ValueError,
+            AssertionError,
         )
 
     def test_benchmark2(self):

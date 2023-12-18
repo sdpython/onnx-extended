@@ -43,8 +43,9 @@ def enumerate_nodes(
             for initp in onx.sparse_initializer:
                 yield (initp.indices.name or initp.values.name,), onx, initp
         for i, node in enumerate(onx.node):
-            if not isinstance(node, NodeProto):
-                raise TypeError(f"A NodeProto is expected not {type(node)}.")
+            assert isinstance(
+                node, NodeProto
+            ), f"A NodeProto is expected not {type(node)}."
             if node.op_type == "Constant":
                 yield (node.output[0],), onx, node
             else:
@@ -128,8 +129,7 @@ class _Statistics:
 
     def add(self, name: str, value: Any):
         "Adds one statictics."
-        if name in self._statistics:
-            raise ValueError(f"Statistics {name!r} was already added.")
+        assert name not in self._statistics, f"Statistics {name!r} was already added."
         self._statistics[name] = value
 
     def __iter__(self) -> Iterable[Tuple[str, Any]]:

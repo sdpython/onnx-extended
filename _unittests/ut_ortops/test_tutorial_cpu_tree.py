@@ -34,9 +34,13 @@ def compile_tree(
     filename: str,
     onx: ModelProto,
     batch_size: int,
+    n_features: int,
     tree_tile_size: int = 8,
     verbose: int = 0,
 ) -> str:
+    """
+    Compiles a tree with `TreeBeard <https://github.com/asprasad/treebeard>`_.
+    """
     if verbose:
         print("[compile_tree] import treebeard")
     import treebeard
@@ -50,6 +54,7 @@ def compile_tree(
 
     compiler_options.SetNumberOfCores(multiprocessing.cpu_count())
     compiler_options.SetMakeAllLeavesSameDepth(1)
+    compiler_options.SetNumberOfFeatures(n_features)
     compiler_options.SetReorderTreesByDepth(True)
     assert 8 < batch_size
     compiler_options.SetPipelineWidth(8)
@@ -214,6 +219,7 @@ class TestOrtOpTutorialCpuTree(ExtTestCase):
                 "custom_tree_ensemble.onnx",
                 onx,
                 batch_size,
+                n_features,
                 verbose=1 if __name__ == "__main__" else 0,
             )
             sessions = make_ort_session(onx, assembly_name)

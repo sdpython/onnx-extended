@@ -278,8 +278,9 @@ def enumerate_model_node_outputs(
     :param order: goes through outputs following the graph order
     :return: enumerator
     """
-    if not hasattr(model, "graph"):
-        raise TypeError(f"Parameter model is not an ONNX model but {type(model)}")
+    assert hasattr(
+        model, "graph"
+    ), "Parameter model is not an ONNX model but {type(model)}"
     if order:
         edges = []
         dorder = {}
@@ -387,8 +388,7 @@ def select_model_inputs_outputs(
     for inp in inputs:
         mark_var[inp] = 0
     for out in outputs:
-        if out not in mark_var:
-            raise ValueError(f"Output '{out}' not found in model.")
+        assert out in mark_var, "Output '{out}' not found in model."
         mark_var[out] = 1
 
     nodes = list(model.graph.node[::-1])
@@ -800,8 +800,7 @@ def convert_onnx_model(
             d.version = v
 
     if isinstance(onnx_model, ModelProto):
-        if _from_opset is not None:
-            raise RuntimeError("_from_opset must be None for ModelProto.")
+        assert _from_opset is None, "_from_opset must be None for ModelProto."
         old_opsets = {d.domain: d.version for d in onnx_model.opset_import}
         if verbose > 0:
             print(
@@ -927,10 +926,10 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
     :param n: number of times the existing trees must be multiplied
     :return: the new trees
     """
-    if not isinstance(node, NodeProto):
-        raise TypeError(f"node is not a NodeProto but {type(node)}.")
-    if not node.op_type.startswith("TreeEnsemble"):
-        raise ValueError(f"Unexpected node type {node.op_type!r}.")
+    assert isinstance(node, NodeProto), f"node is not a NodeProto but {type(node)}."
+    assert node.op_type.startswith(
+        "TreeEnsemble"
+    ), "Unexpected node type {node.op_type!r}."
     args = [node.op_type, node.input, node.output]
     kwargs = {"domain": node.domain}
     for att in node.attribute:

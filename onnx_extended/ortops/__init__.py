@@ -27,10 +27,9 @@ def _get_ort_ext_libs(path: str) -> List[str]:
             e = os.path.splitext(name)[-1]
             if e == ext and "ortops" in name:
                 res.append(os.path.join(this, name))
-        if not res:
-            raise RuntimeError(
-                f"Unable to find any kernel library with ext={ext!r} "
-                f"in {this!r} among {files}."
-            )
+        assert res, (
+            f"Unable to find any kernel library with ext={ext!r} "
+            f"in {this!r} among {files}."
+        )
         _ort_ext_libs_pathes[path] = res
     return _ort_ext_libs_pathes[path]

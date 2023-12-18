@@ -225,8 +225,7 @@ def cuda_version() -> str:
     """
     Tells which version of CUDA was used to build the CUDA extensions.
     """
-    if not has_cuda():
-        raise RuntimeError("CUDA extensions are not available.")
+    assert has_cuda(), "CUDA extensions are not available."
     from ._config import CUDA_VERSION
 
     return CUDA_VERSION

@@ -949,10 +949,9 @@ def main(argv: Optional[List[Any]] = None):
                 store=get_parser_store,
             )
             cmd = argv[0]
-            if cmd not in parsers:
-                raise ValueError(
-                    f"Unknown command {cmd!r}, it should be in {list(sorted(parsers))}."
-                )
+            assert (
+                cmd in parsers
+            ), f"Unknown command {cmd!r}, it should be in {list(sorted(parsers))}."
             parser = parsers[cmd]()
             parser.parse_args(argv[1:])
         raise RuntimeError("The programme should have exited before.")

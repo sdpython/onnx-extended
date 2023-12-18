@@ -65,6 +65,7 @@ inline IntMap::~IntMap() {
 
 inline std::string IntMap::to_string(const std::string &indent) const {
   std::vector<std::string> rows;
+  rows.reserve(size());
   rows.push_back("{");
   int irow = 0;
   for (auto pair = cbegin(); pair != cend(); ++pair, ++irow) {

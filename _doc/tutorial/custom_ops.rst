@@ -60,7 +60,7 @@ onnx_extended.ortops.tutorial.cuda
 
     try:
         print(get_ort_ext_libs())
-    except RuntimeError as e:
+    except AssertionError as e:
         print(f"CUDA is not enabled: {e}")
 
 .. runpython::

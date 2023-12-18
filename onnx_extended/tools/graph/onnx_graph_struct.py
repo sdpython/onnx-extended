@@ -651,16 +651,14 @@ class Graph:
         for index in indices:
             if index <= len(self.nodes):
                 node = self.nodes[index]
-                if node is None:
-                    raise RuntimeError(f"Node index {index} was already removed.")
+                assert node is not None, f"Node index {index} was already removed."
                 removed.append((index, self.nodes[index]))
                 self.nodes[index] = None
             elif index not in self.nodes_added:
                 raise RuntimeError(
                     f"Node index {index} does not exists or was already removed."
                 )
-            if index in self.removed:
-                raise RuntimeError(f"Node index {index} was already removed.")
+            assert index not in self.removed, f"Node index {index} was already removed."
 
         kind = None
         for index, node in removed:
@@ -677,19 +675,17 @@ class Graph:
                 del self.index_output[o]
             if node.is_input:
                 ni = node.outputs[0]
-                if ni not in self.graph_inputs:
-                    raise RuntimeError(
-                        f"Removing node {node} but it was not "
-                        f"found in self.graph_inputs."
-                    )
+                assert ni in self.graph_inputs, (
+                    f"Removing node {node} but it was not "
+                    f"found in self.graph_inputs."
+                )
                 del self.graph_inputs[self.graph_inputs.index(ni)]
             elif node.is_output:
                 ni = node.outputs[0]
-                if ni not in self.graph_outputs:
-                    raise RuntimeError(
-                        f"Removing node {node} but it was not "
-                        f"found in self.graph_outputs."
-                    )
+                assert ni in self.graph_outputs, (
+                    f"Removing node {node} but it was not "
+                    f"found in self.graph_outputs."
+                )
                 del self.graph_outputs[self.graph_outputs.index(ni)]
 
         if kind == NodeKind.UNDEFINED:
@@ -778,10 +774,9 @@ class Graph:
 
         :param new_opsets: dictionary { domain: new version }
         """
-        if not isinstance(self.proto, ModelProto):
-            raise RuntimeError(
-                f"Upgrading a model only works on a ModelProto not {type(self.proto)}."
-            )
+        assert isinstance(
+            self.proto, ModelProto
+        ), f"Upgrading a model only works on a ModelProto not {type(self.proto)}."
         if len(new_opsets) != 1 or "" not in new_opsets:
             raise RuntimeError(
                 f"Upgrade an opset only work for domain '' "

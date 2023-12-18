@@ -43,7 +43,7 @@ class TestEinsum(ExtTestCase):
         m2 = m1 + 90
 
         self.assertRaise(
-            lambda: numpy_extended_dot(m1, m2.T, [0], [1], [2]), ValueError
+            lambda: numpy_extended_dot(m1, m2.T, [0], [1], [2]), AssertionError
         )
         dm1 = m1.reshape((2, 2, 1))
         dm2 = m2.reshape((1, 2, 2))
@@ -102,7 +102,7 @@ class TestEinsum(ExtTestCase):
     def test_analyse_einsum_equation(self):
         self.assertRaise(lambda: analyse_einsum_equation("abc"), NotImplementedError)
         self.assertRaise(lambda: analyse_einsum_equation("abc0,ch->ah"), ValueError)
-        self.assertRaise(lambda: analyse_einsum_equation("abc,ch->a0"), ValueError)
+        self.assertRaise(lambda: analyse_einsum_equation("abc,ch->a0"), AssertionError)
         res = analyse_einsum_equation("abc,ch->ah")
         self.assertEqual(len(res), 4)
         letters, mat, lengths, duplicates = res
@@ -141,10 +141,11 @@ class TestEinsum(ExtTestCase):
             TypeError,
         )
         self.assertRaise(
-            lambda: decompose_einsum_equation("abc,ch->ah", (2, 2, 2)), ValueError
+            lambda: decompose_einsum_equation("abc,ch->ah", (2, 2, 2)), AssertionError
         )
         self.assertRaise(
-            lambda: decompose_einsum_equation("abc,ch->ah", (2, 2), (2, 2)), ValueError
+            lambda: decompose_einsum_equation("abc,ch->ah", (2, 2), (2, 2)),
+            AssertionError,
         )
 
     def test_decompose_einsum_equation(self):
@@ -363,10 +364,10 @@ class TestEinsum(ExtTestCase):
         self.assertEqualArray(res1, res2)
 
     def test_einsum_sub_op(self):
-        self.assertRaise(lambda: EinsumSubOp(2, "er", (2, 2)), ValueError)
-        self.assertRaise(lambda: EinsumSubOp(2, "expand_dims"), RuntimeError)
+        self.assertRaise(lambda: EinsumSubOp(2, "er", (2, 2)), AssertionError)
+        self.assertRaise(lambda: EinsumSubOp(2, "expand_dims"), AssertionError)
         self.assertRaise(lambda: EinsumSubOp(2, "matmul", (2, 2)), RuntimeError)
-        self.assertRaise(lambda: EinsumSubOp(2, "id", (2, 2)), TypeError)
+        self.assertRaise(lambda: EinsumSubOp(2, "id", (2, 2)), AssertionError)
 
     def test_case_1_iii_ii_i(self):
         verbose = False
@@ -701,10 +702,10 @@ class TestEinsum(ExtTestCase):
 
     def test_exc(self):
         self.assertRaise(
-            lambda: EinsumSubOp(2, "transpose", 0, perm=(1, 1)), RuntimeError
+            lambda: EinsumSubOp(2, "transpose", 0, perm=(1, 1)), AssertionError
         )
         self.assertRaise(
-            lambda: EinsumSubOp(2, "transpose", 0, perm=(0, 1)), ValueError
+            lambda: EinsumSubOp(2, "transpose", 0, perm=(0, 1)), AssertionError
         )
         self.assertRaise(
             lambda: EinsumSubOp(

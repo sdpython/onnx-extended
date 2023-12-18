@@ -134,11 +134,10 @@ def einsum_benchmark(
         shape_list = [shape]
 
     if perm:
-        if equation.lower() != equation:
-            raise ValueError(
-                "Only equations with lower letters are allowed but equation %r "
-                "is not." % equation
-            )
+        assert equation.lower() == equation, (
+            "Only equations with lower letters are allowed but equation %r "
+            "is not." % equation
+        )
         letters = list(
             sorted(set(c for c in equation if "a" <= c < "z" or "A" <= c < "Z"))
         )
@@ -194,8 +193,7 @@ def einsum_benchmark(
             if dec == "einsum":
                 onx = _make_einsum_model(equation, opset=opset)
             else:
-                if seq is None:
-                    raise RuntimeError("seq must not be None.")
+                assert seq is not None, "seq must not be None."
                 onx = seq.to_onnx(
                     "Y", *["X%d" % i for i in range(len(inputs))], opset=opset
                 )

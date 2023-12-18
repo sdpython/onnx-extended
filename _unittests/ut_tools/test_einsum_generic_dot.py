@@ -4524,15 +4524,22 @@ class TestEinsumGenericdot(ExtTestCase):
         m2 = numpy.empty(sh2).ravel()
         m2 = numpy.arange(len(m2)).reshape(sh2).astype(numpy.float64) + 1000
 
-        try:
-            exp = numpy_extended_dot(m1, m2, axes, left, right, verbose=verbose)
-        except ValueError:
-            return False
-        try:
-            dot = fct(m1, m2, axes, left, right, verbose=verbose)
-        except (IndexError, NotImplementedError, ValueError):
-            dot = fct(m1, m2, axes, left, right, verbose=not verbose)
-
+        if verbose:
+            try:
+                exp = numpy_extended_dot(m1, m2, axes, left, right, verbose=verbose)
+            except ValueError:
+                return False
+            try:
+                dot = fct(m1, m2, axes, left, right, verbose=verbose)
+            except (IndexError, NotImplementedError, ValueError):
+                dot = fct(m1, m2, axes, left, right, verbose=not verbose)
+        else:
+            with redirect_stdout(io.StringIO()):
+                try:
+                    exp = numpy_extended_dot(m1, m2, axes, left, right, verbose=True)
+                except ValueError:
+                    return False
+                dot = fct(m1, m2, axes, left, right, verbose=True)
         try:
             self.assertEqualArray(exp, dot)
             redo = False
@@ -4570,11 +4577,11 @@ class TestEinsumGenericdot(ExtTestCase):
     def test_exc(self):
         self.assertRaise(lambda: numpy_diagonal(None, 6, (8, 9)), RuntimeError)
         self.assertRaise(
-            lambda: _numpy_extended_dot_equation(4, 5, None, None, None), RuntimeError
+            lambda: _numpy_extended_dot_equation(4, 5, None, None, None), AssertionError
         )
         self.assertRaise(
             lambda: _numpy_extended_dot_equation(1, 1, (4, 5), (6, 7), (8, 9)),
-            ValueError,
+            AssertionError,
         )
         self.assertRaise(
             lambda: _numpy_extended_dot_equation(10, 10, (-4, 5), (6, 7), (8, 9)),
@@ -4588,7 +4595,7 @@ class TestEinsumGenericdot(ExtTestCase):
                 None,
                 None,
             ),
-            TypeError,
+            AssertionError,
         )
 
     def test_verbose(self):

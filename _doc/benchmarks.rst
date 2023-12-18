@@ -42,6 +42,12 @@ This scripts tries many values to select the best one
 for trees trains with :epkg:`scikit-learn` and a 
 :class:`sklearn.ensemble.RandomForestRegressor`.
 
+plot_op_tree_ensemble_implementations
++++++++++++++++++++++++++++++++++++++
+
+Test several implementations of TreeEnsemble is more simple way,
+see :ref:`l-plot_op_tree_ensemble_implementations`.
+
 plot_op_einsum
 ++++++++++++++
 

@@ -26,7 +26,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertEqual(len(out), 5)
 
     def test_onnx_micro_runtime_exc1(self):
-        self.assertRaise(lambda: OnnxMicroRuntime(None), TypeError)
+        self.assertRaise(lambda: OnnxMicroRuntime(None), AssertionError)
 
     def test_onnx_micro_runtime_exc2(self):
         from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxPow

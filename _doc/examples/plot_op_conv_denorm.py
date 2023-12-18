@@ -80,7 +80,7 @@ def create_model():
 
 
 onx = create_model()
-onnx_file = "plot_conv_denorm.onnx"
+onnx_file = "plot_op_conv_denorm.onnx"
 with open(onnx_file, "wb") as f:
     f.write(onx.SerializeToString())
 
@@ -245,7 +245,7 @@ df[["n_denorm"]].plot(
 )
 
 fig.tight_layout()
-fig.savefig("plot_conv_denorm.png")
+fig.savefig("plot_op_conv_denorm.png")
 # plt.show()
 
 
