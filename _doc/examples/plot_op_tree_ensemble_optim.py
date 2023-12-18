@@ -231,8 +231,8 @@ print("done.")
 #######################################
 # Discrepancies?
 
-diff = numpy.abs(base - got).max()
-print(f"Discrepancies: {diff}")
+d = numpy.abs(base - got)
+print(f"Discrepancies: max={d.max()}, mean={d.mean()}")
 
 ########################################
 # Simple verification

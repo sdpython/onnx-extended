@@ -227,11 +227,26 @@ def optimize_model(
         obs["TRY"] = 0
         obs["name"] = "baseline"
         res.append(obs)
+        base_perf = obs["average"]
+    else:
+        base_perf = None
+
+    min_perf = None
+    _s = dict(
+        parallel_tree="//tree",
+        parallel_tree_N="//tree_N",
+        parallel_N="//N",
+        batch_size_tree="bs_tree",
+        batch_size_ows="bs_rows",
+        use_node3="n3",
+    )
 
     for it, values in enumerate(loop):
         if verbose:
             msg = [f"i={it+1}/{len(loops)}"]
-            msg.extend([f"{k}={v}" for k, v in zip(keys, values)])
+            msg.extend([f"{_s.get(k,k)}={v}" for k, v in zip(keys, values)])
+            if min_perf and base_perf:
+                msg += f" ~{min_perf/base_perf:1.1f}"
             loop.set_description(" ".join(msg))
 
         kwargs = dict(zip(keys, values))
@@ -246,6 +261,8 @@ def optimize_model(
             repeat=repeat,
             warmup=warmup,
         )
+        if not min_perf or min_perf > obsl["average"]:
+            min_perf = obsl["average"]
         obsl.update(kwargs)
         obsl["n_exp"] = it
         obsl["n_exp_name"] = ",".join(f"{k}={v}" for k, v in zip(keys, values))
