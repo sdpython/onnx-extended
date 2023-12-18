@@ -50,10 +50,10 @@ script_args = get_parsed_args(
         "CUSTOM": "use values specified by the command line",
     },
     sparsity=(0.99, "input sparsity"),
-    n_features=(2 if unit_test_going() else 500, "number of features to generate"),
-    n_trees=(3 if unit_test_going() else 10, "number of trees to train"),
-    max_depth=(2 if unit_test_going() else 10, "max_depth"),
-    batch_size=(1000 if unit_test_going() else 1000, "batch size"),
+    n_features=(2 if unit_test_going() else 512, "number of features to generate"),
+    n_trees=(3 if unit_test_going() else 128, "number of trees to train"),
+    max_depth=(2 if unit_test_going() else 12, "max_depth"),
+    batch_size=(1024 if unit_test_going() else 1024, "batch size"),
     warmup=1 if unit_test_going() else 3,
     parallel_tree=(40, "values to try for parallel_tree"),
     parallel_tree_N=(64, "values to try for parallel_tree_N"),
@@ -150,6 +150,7 @@ def compile_tree(
     filename: str,
     onx: ModelProto,
     batch_size: int,
+    n_features: int,
     tree_tile_size: int = 8,
     verbose: int = 0,
 ) -> str:
@@ -170,6 +171,7 @@ def compile_tree(
     compiler_options.SetNumberOfCores(multiprocessing.cpu_count())
     compiler_options.SetMakeAllLeavesSameDepth(1)
     compiler_options.SetReorderTreesByDepth(True)
+    compiler_options.SetNumberOfFeatures(n_features)
     assert 8 < batch_size
     compiler_options.SetPipelineWidth(8)
 
@@ -238,7 +240,7 @@ def compile_tree(
     return so_file_path
 
 
-def make_ort_assembly_session(onx: ModelProto, batch_size: int) -> Any:
+def make_ort_assembly_session(onx: ModelProto, batch_size: int, n_features: int) -> Any:
     from onnxruntime import InferenceSession, SessionOptions
     from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs as lib_tuto
 
@@ -256,10 +258,12 @@ def make_ort_assembly_session(onx: ModelProto, batch_size: int) -> Any:
         filename,
         onx,
         batch_size,
+        n_features,
         verbose=1 if __name__ == "__main__" else 0,
     )
 
     # assembly
+    print("change")
     for node in onx.graph.node:
         if node.op_type == "TreeEnsembleRegressor":
             node.op_type = "TreeEnsembleAssemblyRegressor"
@@ -353,7 +357,7 @@ def enumerate_implementations(
         Xsp,
     )
 
-    sess = make_ort_assembly_session(onx, batch_size=X.shape[0])
+    sess = make_ort_assembly_session(onx, batch_size=X.shape[0], n_features=X.shape[1])
     yield ("assembly", sess, X)
 
 
@@ -374,7 +378,7 @@ for name, sess, tensor in enumerate_implementations(onx, Xb, **kwargs):
     if sess is None:
         continue
     sessions.append((name, sess, tensor))
-    print(f"run {name!r}")
+    print(f"run {name!r} - shape={tensor.shape}")
     feeds = {"X": tensor}
     sess.run(None, feeds)
 print("done.")
