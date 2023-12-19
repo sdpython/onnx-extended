@@ -105,10 +105,14 @@ fig, ax = plt.subplots(len(nts), 2, figsize=(3 * len(nts), 10))
 for i, nt in enumerate(nts):
     sub = df[df.ntimes == nt]
     sub[["sparsity", "dense", "sparse"]].set_index("sparsity").plot(
-        title=f"Dense vs Sparsity, ntimes={nt}", logy=True, ax=ax[i, 0]
+        title=f"Dense vs Sparsity, ntimes={nt}",
+        logy=True,
+        ax=ax[0] if len(ax.shape) == 1 else ax[i, 0],
     )
     sub[["sparsity", "dense1", "sparse1"]].set_index("sparsity").plot(
-        title="Dense vs Sparsity (access only)", logy=True, ax=ax[i, 1]
+        title="Dense vs Sparsity (access only)",
+        logy=True,
+        ax=ax[1] if len(ax.shape) == 1 else ax[i, 0],
     )
 fig.tight_layout()
 fig.savefig("plot_bench_sparse_access.png")
