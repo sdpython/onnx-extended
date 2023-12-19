@@ -143,7 +143,15 @@ class TestSparseStruct(ExtTestCase):
         from onnx_extended.validation.cpu._validation import evaluate_sparse
 
         tensor = np.random.rand(20, 10).astype(np.float32)
-        r = evaluate_sparse(tensor, 4, 7, 1)
+        r = evaluate_sparse(tensor, 4, 1, 7, 1)
+        self.assertIsInstance(r, list)
+        self.assertEqual(len(r), 1)
+        r = r[0]
+        self.assertIsInstance(r, tuple)
+        self.assertEqual(len(r), 3)
+
+        tensor = np.random.rand(20, 10).astype(np.float32)
+        r = evaluate_sparse(tensor, 4, 17, 7, 1)
         self.assertIsInstance(r, list)
         self.assertEqual(len(r), 1)
         r = r[0]
@@ -154,7 +162,15 @@ class TestSparseStruct(ExtTestCase):
         from onnx_extended.validation.cpu._validation import evaluate_sparse
 
         tensor = np.random.rand(20, 10).astype(np.float32)
-        r = evaluate_sparse(tensor, 4, 7, 2)
+        r = evaluate_sparse(tensor, 4, 1, 7, 2)
+        self.assertIsInstance(r, list)
+        self.assertEqual(len(r), 1)
+        r = r[0]
+        self.assertIsInstance(r, tuple)
+        self.assertEqual(len(r), 3)
+
+        tensor = np.random.rand(20, 10).astype(np.float32)
+        r = evaluate_sparse(tensor, 4, 17, 7, 2)
         self.assertIsInstance(r, list)
         self.assertEqual(len(r), 1)
         r = r[0]
@@ -168,7 +184,13 @@ class TestSparseStruct(ExtTestCase):
         tensor[0, 0] = 0
         tensor[1, 1] = 0
         tensor[2, 2] = 0
-        r = evaluate_sparse(tensor, 4, 7, 3)
+
+        r = evaluate_sparse(tensor, 4, 1, 7, 3)
+        self.assertIsInstance(r, list)
+        self.assertEqual(len(r), 2)
+        self.assertEqual(r[0][2], r[1][2])
+
+        r = evaluate_sparse(tensor, 4, 17, 7, 3)
         self.assertIsInstance(r, list)
         self.assertEqual(len(r), 2)
         self.assertEqual(r[0][2], r[1][2])
