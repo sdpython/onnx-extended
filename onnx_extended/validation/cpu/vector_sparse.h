@@ -26,4 +26,9 @@ py::list sparse_struct_to_maps(const py_array_float &v);
 
 py::tuple sparse_struct_to_csr(const py_array_float &v);
 
+std::vector<std::tuple<double, double, double>> evaluate_sparse(const float *v, int64_t n_rows,
+                                                                int64_t n_cols, int random,
+                                                                int ntimes, int repeat,
+                                                                int test);
+
 } // namespace validation
