@@ -154,11 +154,13 @@ class _inline_mapping(dict):
                 "[_inline_mapping-dict-addkv] %s + %r: %r"
                 % ("  " * self._level, key, value)
             )
-        if key in self:
-            raise RuntimeError(
-                "Key %r was already added (with value %r, new one is %r)."
-                "" % (key, self[key], value)
-            )
+        assert (
+            key not in self
+        ), "Key %r was already added (with value %r, new one is %r)." "" % (
+            key,
+            self[key],
+            value,
+        )
         dict.__setitem__(self, key, value)
 
     def update(self, d: Dict[str, Any]):
@@ -175,8 +177,7 @@ class _inline_mapping(dict):
 
     def remove(self, o: str):
         "Removes one element."
-        if o not in self:
-            raise KeyError(f"Cannot remove a key {o!r}.")
+        assert o in self, f"Cannot remove a key {o!r}."
         self.pop(o)
 
 
@@ -272,15 +273,17 @@ def _onnx_inline_function_graph(
         mod = 0
         inp = []
         for i in node.input:
-            if i in mapping:
-                inp.append(mapping[i])
-                if mapping[i] != i:
-                    mod += 1
-            else:
-                raise RuntimeError(
-                    "Cannot find input %r in %s for node (level=%d)\n%r."
-                    % (i, pprint.pformat(mapping), level, node)
-                )
+            assert (
+                i in mapping
+            ), "Cannot find input %r in %s for node (level=%d)\n%r." % (
+                i,
+                pprint.pformat(mapping),
+                level,
+                node,
+            )
+            inp.append(mapping[i])
+            if mapping[i] != i:
+                mod += 1
         out = []
         for o in node.output:
             new_o = o
@@ -463,11 +466,9 @@ def _onnx_inline_function_node(
     key = node.domain, node.op_type
     if key in protos:
         proto = protos[key]
-        if not isinstance(proto, FunctionProto):
-            raise TypeError(
-                "Prototype for key=%r must be a Function Proto, not %r."
-                % (key, type(proto))
-            )
+        assert isinstance(
+            proto, FunctionProto
+        ), "Prototype for key=%r must be a Function Proto, not %r." % (key, type(proto))
         modified_nodes.append(node)
         new_nodes = []
         mapping = _inline_mapping(verbose, level)
@@ -518,12 +519,11 @@ def _onnx_inline_function_node(
             for att in nn.attribute:
                 if hasattr(att, "ref_attr_name") and att.ref_attr_name:
                     # linked attribute
-                    if att.ref_attr_name not in attributes:
-                        raise ValueError(
-                            f"A linked attribute {att.ref_attr_name!r} "
-                            f"cannot be found in {list(sorted(attributes))} "
-                            f"for operator type {nn.op_type!r} and attribute {att.name!r}."
-                        )
+                    assert att.ref_attr_name in attributes, (
+                        f"A linked attribute {att.ref_attr_name!r} "
+                        f"cannot be found in {list(sorted(attributes))} "
+                        f"for operator type {nn.op_type!r} and attribute {att.name!r}."
+                    )
                     new_att = AttributeProto()
                     new_att.ParseFromString(
                         attributes[att.ref_attr_name].SerializeToString()
@@ -619,11 +619,12 @@ def onnx_inline_function(
             )
     if isinstance(protos, list):
         protos = {(f.domain, f.name): f for f in protos}
-    if not isinstance(protos, dict):
-        raise TypeError(
-            "obj is of type %r and protos must be a dictionary not %r."
-            % (type(obj), type(protos))
-        )
+    assert isinstance(
+        protos, dict
+    ), "obj is of type %r and protos must be a dictionary not %r." % (
+        type(obj),
+        type(protos),
+    )
 
     if isinstance(obj, ModelProto):
         new_graph, m = onnx_inline_function(obj.graph, protos, verbose=verbose)
