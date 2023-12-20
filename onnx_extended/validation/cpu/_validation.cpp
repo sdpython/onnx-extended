@@ -189,20 +189,33 @@ stored in a float tensor.)pbdoc");
   m.def(
       "evaluate_sparse",
       [](py::array_t<float, py::array::c_style | py::array::forcecast> values_array, int random,
-         int repeat, int test) -> std::vector<std::tuple<double, double, double>> {
+         int ntimes, int repeat, int test) -> std::vector<std::tuple<double, double, double>> {
         EXT_ENFORCE(values_array.size() > 0, "Input tensor is empty.");
         EXT_ENFORCE(random > 0, "random is null.");
+        EXT_ENFORCE(ntimes > 0, "ntimes is null.");
         EXT_ENFORCE(repeat > 0, "repeat is null.");
         const float *values = values_array.data(0);
         std::vector<int64_t> dims(values_array.ndim());
         for (std::size_t i = 0; i < dims.size(); ++i)
           dims[i] = (int64_t)values_array.shape(i);
         EXT_ENFORCE(dims.size() == 2, "2D tensor is expected.");
-        return evaluate_sparse(values_array.data(0), dims[0], dims[1], random, repeat, test);
+        return evaluate_sparse(values, dims[0], dims[1], random, ntimes, repeat, test);
       },
-      py::arg("tensor"), py::arg("n_random"), py::arg("repeat"), py::arg("dense"),
+      py::arg("tensor"), py::arg("n_random"), py::arg("n_times"), py::arg("repeat"),
+      py::arg("dense"),
       R"pbdoc(Returns computation time about random access to features dense or sparse, 
 initialization time, loop time, sum of the element from the array based on random indices.
 The goal is to evaluate whether or not it is faster to switch to a dense representation
-or to keep the sparse representation to do random access to the structures.)pbdoc");
+or to keep the sparse representation to do random access to the structures.
+
+:param tensor: dense tensor to access
+:param n_random: number of random access
+:param n_times: number of times to do n_random random accesses
+:param repeat: number of times to repeat the measure
+:param dense: if true, measure the conversion from sparse and then operate
+      random access on a dense structure, if false, operator random access directly
+      into the sparse structures
+:return: 3-tuple, intialization time (conversion to dense, or sparse initialization),
+      measure of the random accesses, control sum
+)pbdoc");
 }
