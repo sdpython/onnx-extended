@@ -917,13 +917,15 @@ def convert_onnx_model(
     return graph
 
 
-def multiply_tree(node: NodeProto, n: int) -> NodeProto:
+def multiply_tree(node: NodeProto, n: int, random: bool = True) -> NodeProto:
     """
     Multiplies the number of trees in TreeEnsemble operator.
-    It replicates the existing trees but permutes features ids.
+    It replicates the existing trees but permutes features ids
+    and node values if random is True.
 
     :param node: tree ensemble operator
     :param n: number of times the existing trees must be multiplied
+    :param random: permutation or thresholds
     :return: the new trees
     """
     assert isinstance(node, NodeProto), f"node is not a NodeProto but {type(node)}."
@@ -961,18 +963,25 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
     for i in range(n):
         new_feature_ids.extend(nodes_featureids.tolist())
         new_nodes_values.extend(nodes_values.tolist())
-        permuted_indices = np.random.permutation(permuted_indices)
-        nodes_featureids[indices] = nodes_featureids[permuted_indices]
-        nodes_values[indices] = nodes_values[permuted_indices]
+        if random:
+            permuted_indices = np.random.permutation(permuted_indices)
+            nodes_featureids[indices] = nodes_featureids[permuted_indices]
+            nodes_values[indices] = nodes_values[permuted_indices]
+    assert len(new_feature_ids) == len(
+        new_nodes_values
+    ), f"Dimension mismatch {len(nodes_featureids)} != {len(nodes_values)}"
+    assert len(nodes_featureids) * n == len(
+        new_nodes_values
+    ), f"Dimension mismatch {len(nodes_featureids) * n} != {len(new_nodes_values)}"
 
     # other attributes
     for att in node.attribute:
         if att.name == "nodes_featureids":
-            kwargs[att.name] = nodes_featureids.tolist()
+            kwargs[att.name] = new_feature_ids
         elif att.name == "nodes_values":
-            kwargs[att.name] = nodes_values.tolist()
+            kwargs[att.name] = new_nodes_values
         elif att.name == "nodes_values_as_tensor":
-            kwargs[att.name] = from_array(nodes_values)
+            kwargs[att.name] = from_array(np.array(new_nodes_values, dtype=np.int64))
         elif att.name in {"aggregate_function", "post_transform"}:
             kwargs[att.name] = att.s
         elif att.name in {"n_targets"}:
