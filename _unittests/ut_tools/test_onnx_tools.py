@@ -310,8 +310,9 @@ class TestOnnxTools(ExtTestCase):
         self.assertIn("model = string2onnx(text)", code)
 
     def test_multiply_trees(self):
-        from skl2onnx import to_onnx
+        from onnx.reference import ReferenceEvaluator
         from onnx_extended.reference import CReferenceEvaluator
+        from skl2onnx import to_onnx
 
         X, y = make_regression(2048, n_features=4, n_targets=1)
         X, y = X.astype(numpy.float32), y.astype(numpy.float32)
@@ -320,7 +321,8 @@ class TestOnnxTools(ExtTestCase):
         model.fit(X[:-batch_size], y[:-batch_size])
         onx = to_onnx(model, X[:1])
         self.assertRaise(lambda: multiply_tree(onx, 2), AssertionError)
-        onx2 = multiply_tree(onx.graph.node[0], 2)
+
+        onx2 = multiply_tree(onx.graph.node[0], 2, random=False)
 
         new_model = make_model(
             make_graph([onx2], onx.graph.name, onx.graph.input, onx.graph.output),
@@ -333,6 +335,20 @@ class TestOnnxTools(ExtTestCase):
         got = sess.run(None, feeds)[0]
         got2 = sess2.run(None, feeds)[0]
         self.assertEqualArray(got * 2, got2)
+
+        onx2 = multiply_tree(onx.graph.node[0], 2, random=True)
+
+        new_model = make_model(
+            make_graph([onx2], onx.graph.name, onx.graph.input, onx.graph.output),
+            domain=onx.domain,
+            opset_imports=onx.opset_import,
+        )
+        sess = ReferenceEvaluator(new_model)
+        sess2 = CReferenceEvaluator(new_model)
+        feeds = {"X": X[:2]}
+        got = sess.run(None, feeds)[0]
+        got2 = sess2.run(None, feeds)[0]
+        self.assertEqualArray(got.ravel(), got2.ravel())
 
 
 if __name__ == "__main__":

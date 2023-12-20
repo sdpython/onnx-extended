@@ -917,13 +917,15 @@ def convert_onnx_model(
     return graph
 
 
-def multiply_tree(node: NodeProto, n: int) -> NodeProto:
+def multiply_tree(node: NodeProto, n: int, random: bool = True) -> NodeProto:
     """
     Multiplies the number of trees in TreeEnsemble operator.
-    It replicates the existing trees.
+    It replicates the existing trees but permutes features ids
+    and node values if random is True.
 
     :param node: tree ensemble operator
     :param n: number of times the existing trees must be multiplied
+    :param random: permutation or thresholds
     :return: the new trees
     """
     assert isinstance(node, NodeProto), f"node is not a NodeProto but {type(node)}."
@@ -932,8 +934,55 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
     ), "Unexpected node type {node.op_type!r}."
     args = [node.op_type, node.input, node.output]
     kwargs = {"domain": node.domain}
+
+    nodes_featureids = None
+    not_leave_mask = None
+    nodes_values = None
     for att in node.attribute:
-        if att.name in {"aggregate_function", "post_transform"}:
+        if att.name == "nodes_modes":
+            not_leave_mask = np.array(att.strings) != "LEAF"
+        elif att.name == "nodes_featureids":
+            nodes_featureids = np.array(att.ints)
+        elif att.name == "nodes_values":
+            nodes_values = np.array(att.floats, dtype=np.float32)
+        elif att.name == "nodes_values_as_tensor":
+            nodes_values = to_array(att)
+    assert not_leave_mask is not None, "Attribute nodes_modes is missing."
+    assert nodes_featureids is not None, "Attribute nodes_featureids is missing."
+    assert (
+        nodes_values is not None
+    ), "Attribute nodes_values or nodes_values_as_tensor is missing."
+
+    # permutation
+    new_nodes_values = []
+    new_feature_ids = []
+    indices = np.array(
+        [i for i, m in zip(np.arange(len(nodes_featureids)), not_leave_mask) if m]
+    )
+    permuted_indices = indices.copy()
+    for i in range(n):
+        new_feature_ids.extend(nodes_featureids.tolist())
+        new_nodes_values.extend(nodes_values.tolist())
+        if random:
+            permuted_indices = np.random.permutation(permuted_indices)
+            nodes_featureids[indices] = nodes_featureids[permuted_indices]
+            nodes_values[indices] = nodes_values[permuted_indices]
+    assert len(new_feature_ids) == len(
+        new_nodes_values
+    ), f"Dimension mismatch {len(nodes_featureids)} != {len(nodes_values)}"
+    assert len(nodes_featureids) * n == len(
+        new_nodes_values
+    ), f"Dimension mismatch {len(nodes_featureids) * n} != {len(new_nodes_values)}"
+
+    # other attributes
+    for att in node.attribute:
+        if att.name == "nodes_featureids":
+            kwargs[att.name] = new_feature_ids
+        elif att.name == "nodes_values":
+            kwargs[att.name] = new_nodes_values
+        elif att.name == "nodes_values_as_tensor":
+            kwargs[att.name] = from_array(np.array(new_nodes_values, dtype=np.int64))
+        elif att.name in {"aggregate_function", "post_transform"}:
             kwargs[att.name] = att.s
         elif att.name in {"n_targets"}:
             kwargs[att.name] = att.i
@@ -949,7 +998,7 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             fs = list(att.floats)
             if fs:
                 kwargs.att[att.name] = fs
-        elif att.name.endswith("_as_tensor"):
+        elif att.name.endswith("_as_tensor") and att.name != "nodes_values_as_tensor":
             v = to_array(att.t)
             if att.name == "base_values_as_tensor":
                 if v.shape:
@@ -960,7 +1009,6 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             "class_ids",
             "class_nodeids",
             "nodes_falsenodeids",
-            "nodes_featureids",
             "nodes_missing_value_tracks_true",
             "nodes_nodeids",
             "nodes_truenodeids",
@@ -979,7 +1027,6 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             kwargs[att.name] = list(att.strings) * n
         elif att.name in {
             "nodes_hitrates",
-            "nodes_values",
             "target_weights",
             "class_weights",
         }:

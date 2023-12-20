@@ -4,9 +4,28 @@
 Evaluate different implementation of TreeEnsemble
 =================================================
 
-This is a simplified bencharmk to compare TreeEnsemble implementations.
+This is a simplified benchmark to compare TreeEnsemble implementations (see below)
 Run `python plot_op_tree_ensemble_implementations.py --help` to change the tree
-dimension.
+dimension. Here are the following implementation:
+
+* **ort**: current onnxruntime implementations
+* **custom**: very close implementation of TreeEnsemble from onnxruntime,
+  it allows more options to parallelize. The default is to use the parallelization
+  settings as onnxruntime.
+* **cusopt**: it calls the same implementations as *custom* but
+  with parallelization settings defined through the command line.
+  These settings can be optimized
+  with function :func:`onnx_extended.ortops.optim.optimize.optimize_model`.
+  It is usually possible to gain 10% to 20%.
+* **sparse**: the input matrix used for this test can be as sparse as desired.
+  The *custom* implementations can leverage this sparsity. It reduces the memory
+  peak but it is usually slower and a dense representation of the features.
+* **assembly**: the tree is compiled with
+  `TreeBeard <https://github.com/asprasad/treebeard>`_ and this assembly
+  is called though a custom kernel implemented for this only purpose.
+  The tree is compiled for a particular machine and once it is compiled,
+  the batch size cannot be changed any more. That's why this benchmark
+  only compares one configuration specified in the command line arguments.
 
 Sparse Data
 +++++++++++
@@ -15,9 +34,10 @@ import logging
 import os
 import subprocess
 import multiprocessing
-from typing import Any, Iterator, Tuple
+from typing import Any, Dict, Iterator, Optional, Tuple, Union
 import warnings
 import numpy
+import matplotlib.pyplot as plt
 import onnx
 from onnx import ModelProto, TensorProto
 from onnx.helper import make_attribute, make_graph, make_model, make_tensor_value_info
@@ -51,13 +71,13 @@ script_args = get_parsed_args(
     },
     sparsity=(0.99, "input sparsity"),
     n_features=(2 if unit_test_going() else 512, "number of features to generate"),
-    n_trees=(3 if unit_test_going() else 128, "number of trees to train"),
+    n_trees=(3 if unit_test_going() else 512, "number of trees to train"),
     max_depth=(2 if unit_test_going() else 12, "max_depth"),
-    batch_size=(1024 if unit_test_going() else 1024, "batch size"),
+    batch_size=(1024 if unit_test_going() else 2048, "batch size"),
     warmup=1 if unit_test_going() else 3,
-    parallel_tree=(40, "values to try for parallel_tree"),
-    parallel_tree_N=(64, "values to try for parallel_tree_N"),
-    parallel_N=(50, "values to try for parallel_N"),
+    parallel_tree=(128, "values to try for parallel_tree"),
+    parallel_tree_N=(256, "values to try for parallel_tree_N"),
+    parallel_N=(64, "values to try for parallel_N"),
     batch_size_tree=(4, "values to try for batch_size_tree"),
     batch_size_rows=(4, "values to try for batch_size_rows"),
     use_node3=(0, "values to try for use_node3"),
@@ -84,6 +104,8 @@ def train_model(
             n_features=n_features,
             n_targets=1,
         )
+        y -= y.mean()
+        y /= y.std()
         mask = numpy.random.rand(*X.shape) <= sparsity
         X[mask] = 0
         X, y = X.astype(numpy.float32), y.astype(numpy.float32)
@@ -152,10 +174,31 @@ def compile_tree(
     batch_size: int,
     n_features: int,
     tree_tile_size: int = 8,
+    pipeline_width: int = 8,
+    reorder_tree_by_depth: bool = True,
+    representation_type: str = "sparse",
+    n_cores: Optional[int] = None,
     verbose: int = 0,
 ) -> str:
     """
     Compiles a tree with `TreeBeard <https://github.com/asprasad/treebeard>`_.
+
+    :param llc_exe: path to `llc <https://llvm.org/docs/CommandGuide/llc.html>`_
+        executable
+    :param filename: assembly name, the outcome of the compilation
+    :param onx: model to compile, it should contain only one node with a
+        TreeEssembleRegressor.
+    :param batch_size: batch size
+    :param n_features: number of features as it cannot be guessed only from the
+        tree definition
+    :param tree_tile_size: compilation parameters
+    :param pipeline_width: compilation parameters
+    :param reorder_tree_by_depth: compilation parameters
+    :param representation_type: compilation parameters
+    :param n_cores: optimized for this number of cores,
+        if unspecified, it uses `multiprocessing.cpu_count()`
+    :param verbose: to show some progress
+    :return: path to the generated assembly
     """
     if verbose:
         print("[compile_tree] import treebeard")
@@ -168,9 +211,9 @@ def compile_tree(
         )
     compiler_options = treebeard.CompilerOptions(batch_size, tree_tile_size)
 
-    compiler_options.SetNumberOfCores(multiprocessing.cpu_count())
-    compiler_options.SetMakeAllLeavesSameDepth(1)
-    compiler_options.SetReorderTreesByDepth(True)
+    compiler_options.SetNumberOfCores(n_cores or multiprocessing.cpu_count())
+    compiler_options.SetMakeAllLeavesSameDepth(pipeline_width)
+    compiler_options.SetReorderTreesByDepth(reorder_tree_by_depth)
     compiler_options.SetNumberOfFeatures(n_features)
     assert 8 < batch_size
     compiler_options.SetPipelineWidth(8)
@@ -196,7 +239,7 @@ def compile_tree(
             f"[compile_tree] treebeard context with onnx_model_path={onnx_model_path!r}"
         )
     tbContext = treebeard.TreebeardContext(onnx_model_path, "", compiler_options)
-    tbContext.SetRepresentationType("sparse")
+    tbContext.SetRepresentationType(representation_type)
     tbContext.SetInputFiletype("onnx_file")
 
     llvm_file_path = f"{os.path.splitext(onnx_model_path)[0]}.ll"
@@ -240,7 +283,21 @@ def compile_tree(
     return so_file_path
 
 
-def make_ort_assembly_session(onx: ModelProto, batch_size: int, n_features: int) -> Any:
+def make_ort_assembly_session(
+    onx: ModelProto, batch_size: int, n_features: int, verbose: bool = False, **kwargs
+) -> Any:
+    """
+    Creates an instance of `onnxruntime.InferenceSession` using an assembly generated
+    by `TreeBeard <https://github.com/asprasad/treebeard>`_.
+
+    :param onx: model to compile
+    :param batch_size: batch size
+    :param n_features: number of features as it cannot be guessed only from the
+        tree definition
+    :param verbose: verbosity
+    :param kwargs: any additional parameters sent to function `compile_tree`
+    :return: `onnxruntime.InferenceSession`
+    """
     from onnxruntime import InferenceSession, SessionOptions
     from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs as lib_tuto
 
@@ -254,12 +311,7 @@ def make_ort_assembly_session(onx: ModelProto, batch_size: int, n_features: int)
         f.write(onx.SerializeToString())
     onx = onnx.load(filename)
     assembly_name = compile_tree(
-        llc_exe,
-        filename,
-        onx,
-        batch_size,
-        n_features,
-        verbose=1 if __name__ == "__main__" else 0,
+        llc_exe, filename, onx, batch_size, n_features, verbose=verbose, **kwargs
     )
 
     # assembly
@@ -318,10 +370,20 @@ def transform_model(model, use_sparse=False, **kwargs):
 
 
 def enumerate_implementations(
-    onx: ModelProto, X: "Tensor", **kwargs  # noqa: F821
-) -> Iterator[Tuple[str, Any, "Tensor"]]:  # noqa: F821
+    onx: ModelProto,
+    X: "Tensor",  # noqa: F821
+    parallel_settings: Optional[Dict[str, int]] = None,
+    treebeard_settings: Optional[Dict[str, Union[int, str]]] = None,
+    verbose: bool = False,
+) -> Iterator[Tuple[str, "onnxruntime.InferenceSession", "Tensor"]]:  # noqa: F821
     """
     Creates all the InferenceSession.
+
+    :param onx: model
+    :param X: example of an input tensor, dimension should not change
+    :param parallel_settings: parallelisation settings for *cusopt*, *sparse*
+    :param treebeard_settings: settings for treebeard compilation
+    :return: see annotation
     """
     providers = ["CPUExecutionProvider"]
     yield (
@@ -342,7 +404,7 @@ def enumerate_implementations(
         X,
     )
 
-    tr = transform_model(onx, **kwargs)
+    tr = transform_model(onx, **parallel_settings)
     yield (
         "cusopt",
         InferenceSession(tr.SerializeToString(), opts, providers=providers),
@@ -350,18 +412,24 @@ def enumerate_implementations(
     )
 
     Xsp = dense_to_sparse_struct(X)
-    tr = transform_model(onx, use_sparse=True, **kwargs)
+    tr = transform_model(onx, use_sparse=True, **parallel_settings)
     yield (
         "sparse",
         InferenceSession(tr.SerializeToString(), opts, providers=providers),
         Xsp,
     )
 
-    sess = make_ort_assembly_session(onx, batch_size=X.shape[0], n_features=X.shape[1])
+    sess = make_ort_assembly_session(
+        onx,
+        batch_size=X.shape[0],
+        n_features=X.shape[1],
+        verbose=verbose,
+        **treebeard_settings,
+    )
     yield ("assembly", sess, X)
 
 
-kwargs = dict(
+parallel_settings = dict(
     parallel_tree=40,
     parallel_tree_N=128,
     parallel_N=50,
@@ -369,12 +437,20 @@ kwargs = dict(
     batch_size_rows=4,
     use_node3=0,
 )
+treebeard_settings = dict()
+
 
 onx = onnx.load(filename)
 sessions = []
 
 print("----- warmup")
-for name, sess, tensor in enumerate_implementations(onx, Xb, **kwargs):
+for name, sess, tensor in enumerate_implementations(
+    onx,
+    Xb,
+    parallel_settings=parallel_settings,
+    treebeard_settings=treebeard_settings,
+    verbose=1 if __name__ == "__main__" else 0,
+):
     if sess is None:
         continue
     sessions.append((name, sess, tensor))
@@ -390,11 +466,21 @@ print("done.")
 
 
 data = []
+baseline = None
 
 print("----- measure time")
 for name, sess, tensor in sessions:
     print(f"run {name!r}")
     feeds = {"X": tensor}
+    output = sess.run(None, feeds)[0]
+    if baseline is None:
+        baseline = output
+        disc = 0
+        max_disc = 0
+    else:
+        diff = numpy.abs(output - baseline).ravel()
+        disc = diff.mean()
+        max_disc = diff.max()
     obs = measure_time(
         lambda: sess.run(None, feeds),
         repeat=script_args.repeat,
@@ -402,6 +488,8 @@ for name, sess, tensor in sessions:
         warmup=script_args.warmup,
     )
     obs["name"] = name
+    obs["disc_mean"] = disc
+    obs["disc_max"] = max_disc
     data.append(obs)
 print("done.")
 
@@ -412,14 +500,16 @@ print(df)
 # Plots.
 print(df.columns)
 
-ax = (
-    df[["name", "average"]]
-    .set_index("name")
-    .plot.barh(
-        title="Compare implementations of TreeEnsemble",
-        xerr=[df["min_exec"], df["max_exec"]],
-    )
+fig, ax = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+df[["name", "average"]].set_index("name").plot.barh(
+    ax=ax[0],
+    title="Compare implementations of TreeEnsemble\nlower is better",
+    xerr=[df["min_exec"], df["max_exec"]],
 )
-fig = ax.get_figure()
+df[["name", "disc_mean"]].set_index("name").plot.barh(
+    ax=ax[1],
+    title="Average discrepancies (L1)\nlower is better",
+    xerr=[df["disc_max"].values * 0, df["disc_max"].values],
+)
 fig.tight_layout()
 fig.savefig("plot_tree_ensemble_implementations.png")
