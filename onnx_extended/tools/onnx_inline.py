@@ -7,6 +7,7 @@ from onnx import (
     GraphProto,
     ModelProto,
     NodeProto,
+    ValueInfoProto,
 )
 from onnx.helper import (
     make_graph,
@@ -98,7 +99,9 @@ def enumerate_onnx_nodes(
                     yield n
 
 
-def _get_new_name(prefix: str, name: str, existing_names: Set[str]) -> str:
+def _get_new_name(
+    prefix: str, name: Union[str, ValueInfoProto], existing_names: Set[str]
+) -> str:
     opt = f"{prefix}_{name}_0"
     i = 0
     while opt in existing_names:
@@ -185,7 +188,9 @@ def _onnx_inline_function_graph(
     verbose: int,
     rename: bool,
     level: int,
-) -> Tuple[Union[FunctionProto, GraphProto, ModelProto], List[NodeProto]]:
+) -> Tuple[
+    Union[FunctionProto, GraphProto, ModelProto], List[Union[ValueInfoProto, NodeProto]]
+]:
     if len(graph.node) == 0:
         # Outputs have still to be renamed.
         graph0 = graph
@@ -440,7 +445,7 @@ def _onnx_inline_function_node(
     existing_names: Set[str],
     verbose: int,
     level: int,
-) -> Tuple[List[NodeProto], List[NodeProto]]:
+) -> Tuple[List[NodeProto], List[Union[ValueInfoProto, NodeProto]]]:
     """
     Inline a node.
 

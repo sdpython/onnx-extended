@@ -262,6 +262,18 @@ module = ["onnx_extended.tools.js_profile"]
 disable_error_code = ["attr-defined", "name-defined"]
 
 [[tool.mypy.overrides]]
+module = ["onnx_extended.tools.onnx_inline"]
+disable_error_code = [
+    "arg-type",
+    "assignment",
+    "attr-defined",
+    "index",
+    "override",
+    "return-value",
+    "union-attr",
+]
+
+[[tool.mypy.overrides]]
 module = ["onnx_extended.tools.onnx_nodes"]
 disable_error_code = [
     "operator",
