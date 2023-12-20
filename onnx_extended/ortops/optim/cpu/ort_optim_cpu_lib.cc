@@ -26,13 +26,14 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
+  static ortops::DenseToSparse<float> c_DenseToSparse;
+  static ortops::SparseToDense<float> c_SparseToDense;
   static ortops::SVMClassifier<float> c_SVMClassifier;
   static ortops::SVMRegressor<float> c_SVMRegressor;
   static ortops::TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float, float>
       c_TreeEnsembleRegressor;
   static ortops::TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>, float, float>
       c_TreeEnsembleClassifier;
-  static ortops::DenseToSparse<float> c_DenseToSparse;
   static ortops::TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
       c_TreeEnsembleRegressorSparse;
   static ortops::TreeEnsembleClassifier<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
@@ -43,6 +44,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     Ort::CustomOpDomain domain{c_OpDomain};
 
     domain.Add(&c_DenseToSparse);
+    domain.Add(&c_SparseToDense);
     domain.Add(&c_SVMClassifier);
     domain.Add(&c_SVMRegressor);
     domain.Add(&c_TreeEnsembleClassifier);

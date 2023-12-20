@@ -23,6 +23,52 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
+    onnx_extented.ortops.option.cpu.DenseToSparse
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Converts a dense tensor into a sparse one.
+    All null values are skipped.
+
+    **Provider**
+    
+    CPUExecutionProvider
+
+    **Inputs**
+    
+    * X (T): 2D tensor
+
+    **Outputs**
+
+    * Y (T): 1D tensor
+
+    **Constraints**
+
+    * T: float
+    """,
+                """
+    onnx_extented.ortops.option.cpu.SparseToDense
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Converts a spadenserse tensor into a sparse one.
+    All missing values are replaced by 0.
+
+    **Provider**
+    
+    CPUExecutionProvider
+
+    **Inputs**
+    
+    * X (T): 1D tensor
+
+    **Outputs**
+
+    * Y (T): 2D tensor
+
+    **Constraints**
+
+    * T: float
+    """,
+                """
     onnx_extented.ortops.option.cpu.TfIdfVectorizer
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
