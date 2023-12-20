@@ -989,7 +989,7 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             fs = list(att.floats)
             if fs:
                 kwargs.att[att.name] = fs
-        elif att.name.endswith("_as_tensor"):
+        elif att.name.endswith("_as_tensor") and att.name != "nodes_values_as_tensor":
             v = to_array(att.t)
             if att.name == "base_values_as_tensor":
                 if v.shape:
