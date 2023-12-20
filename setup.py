@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import distutils
 import os
+import multiprocessing
 import platform
 import shutil
 import subprocess
@@ -434,8 +435,6 @@ class cmake_build_class_extension(Command):
             cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=OFF")
         elif self.verbose:
             cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=ON")
-        if self.parallel is not None:
-            cmake_args.append(f"-j{self.parallel}")
 
         if self.use_nvtx:
             cmake_args.append("-DUSE_NVTX=1")
@@ -507,6 +506,12 @@ class cmake_build_class_extension(Command):
         source_path = os.path.join(this_dir, "_cmake")
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
+
+        if self.parallel is not None:
+            cmake_args.extend(["--", f"-j{self.parallel}"])
+        else:
+            cmake_args.extend(["--", f"-j{multiprocessing.cpu_count()}"])
+
         print(f"-- setup: version={sys.version_info!r}")
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: source_path={source_path!r}")
