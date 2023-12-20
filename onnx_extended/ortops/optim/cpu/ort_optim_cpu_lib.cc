@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ort_optim_cpu_lib.h"
+#include "ort_sparse.hpp"
 #include "ort_svm.hpp"
 #include "ort_tfidf_vectorizer.hpp"
 #include "ort_tree_ensemble.hpp"
@@ -31,6 +32,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
       c_TreeEnsembleRegressor;
   static ortops::TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>, float, float>
       c_TreeEnsembleClassifier;
+  static ortops::DenseToSparse<float> c_DenseToSparse;
   static ortops::TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
       c_TreeEnsembleRegressorSparse;
   static ortops::TreeEnsembleClassifier<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
@@ -40,6 +42,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
+    domain.Add(&c_DenseToSparse);
     domain.Add(&c_SVMClassifier);
     domain.Add(&c_SVMRegressor);
     domain.Add(&c_TreeEnsembleClassifier);
