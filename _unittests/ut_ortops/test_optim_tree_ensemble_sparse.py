@@ -27,7 +27,7 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
-        self.assertEqual(len(doc), 5)
+        self.assertEqual(len(doc), 7)
         for d in doc:
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
