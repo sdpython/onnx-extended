@@ -1,10 +1,12 @@
-from collections import Counter
 import pprint
+from collections import Counter
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 from onnx import (
-    ModelProto,
+    AttributeProto,
     FunctionProto,
     GraphProto,
-    AttributeProto,
+    ModelProto,
+    NodeProto,
 )
 from onnx.helper import (
     make_graph,
@@ -17,7 +19,9 @@ from onnx.helper import (
 )
 
 
-def enumerate_onnx_names(onx):
+def enumerate_onnx_names(
+    onx: Union[FunctionProto, GraphProto, ModelProto]
+) -> Iterator[str]:
     """
     Enumerates all existing names in one ONNX graph
     (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
@@ -58,14 +62,16 @@ def enumerate_onnx_names(onx):
         for att in node.attribute:
             if (
                 att.type == AttributeProto.GRAPH
-                and hasattr(att, "g")  # pylint: disable=E0611,E1101
+                and hasattr(att, "g")
                 and att.g is not None
             ):
                 for n in enumerate_onnx_names(att.g):
                     yield n
 
 
-def enumerate_onnx_nodes(onx):
+def enumerate_onnx_nodes(
+    onx: Union[FunctionProto, GraphProto, ModelProto]
+) -> Iterator[str]:
     """
     Enumerates all nodes in one ONNX graph
     (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
@@ -85,14 +91,14 @@ def enumerate_onnx_nodes(onx):
         for att in node.attribute:
             if (
                 att.type == AttributeProto.GRAPH
-                and hasattr(att, "g")  # pylint: disable=E0611,E1101
+                and hasattr(att, "g")
                 and att.g is not None
             ):
                 for n in enumerate_onnx_nodes(att.g):
                     yield n
 
 
-def _get_new_name(prefix, name, existing_names):
+def _get_new_name(prefix: str, name: str, existing_names: Set[str]) -> str:
     opt = f"{prefix}_{name}_0"
     i = 0
     while opt in existing_names:
@@ -102,7 +108,7 @@ def _get_new_name(prefix, name, existing_names):
     return opt
 
 
-def onnx_subgraphs_level(obj):
+def onnx_subgraphs_level(obj: Union[FunctionProto, GraphProto, ModelProto]) -> int:
     """
     Returns the depth of the graph.
 
@@ -133,53 +139,58 @@ class _inline_mapping(dict):
     :param level: sub graph level
     """
 
-    def __init__(self, verbose, print, level):
+    def __init__(self, verbose: int, level: int):
         dict.__init__(self)
         self._verbose = verbose
-        self._print = print
         self._level = level
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any):
         "Adds a value."
         if self._verbose > 3:
-            self._print(
+            print(
                 "[_inline_mapping-dict-addkv] %s + %r: %r"
                 % ("  " * self._level, key, value)
             )
         if key in self:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Key %r was already added (with value %r, new one is %r)."
                 "" % (key, self[key], value)
             )
         dict.__setitem__(self, key, value)
 
-    def update(self, d):
+    def update(self, d: Dict[str, Any]):
         "Updates many values."
         for k, v in d.items():
             self[k] = v
 
-    def copy(self):
+    def copy(self) -> Dict[str, Any]:
         "Returns a copy."
-        m = _inline_mapping(self._verbose, self._print, self._level)
+        m = _inline_mapping(self._verbose, self._level)
         for k, v in self.items():
             m[k] = v
         return m
 
-    def remove(self, o):
+    def remove(self, o: str):
         "Removes one element."
         if o not in self:
-            raise KeyError(f"Cannot remove a key {o!r}.")  # pragma: no cover
+            raise KeyError(f"Cannot remove a key {o!r}.")
         self.pop(o)
 
 
 def _onnx_inline_function_graph(
-    graph, protos, existing_names, mapping, verbose, print, rename, level
-):
+    graph: GraphProto,
+    protos: Dict[str, FunctionProto],
+    existing_names: Set[str],
+    mapping: _inline_mapping,
+    verbose: int,
+    rename: bool,
+    level: int,
+) -> Tuple[Union[FunctionProto, GraphProto, ModelProto], List[NodeProto]]:
     if len(graph.node) == 0:
         # Outputs have still to be renamed.
         graph0 = graph
         if verbose > 1:
-            print(  # pragma: no cover
+            print(
                 "[onnx_inline_function-graph] %s visit0 graph=%d rename=%r "
                 "len(mapping)=%d begin"
                 % ("  " * level, id(graph), rename, len(mapping))
@@ -215,7 +226,7 @@ def _onnx_inline_function_graph(
             modified_nodes = []
 
         if verbose > 1:
-            print(  # pragma: no cover
+            print(
                 "[onnx_inline_function-graph] %s visit graph=%d end "
                 "changed=%r len(modified_nodes)=%d"
                 % (
@@ -261,7 +272,7 @@ def _onnx_inline_function_graph(
                 if mapping[i] != i:
                     mod += 1
             else:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Cannot find input %r in %s for node (level=%d)\n%r."
                     % (i, pprint.pformat(mapping), level, node)
                 )
@@ -324,7 +335,6 @@ def _onnx_inline_function_graph(
                     protos,
                     existing_names=existing_names,
                     verbose=verbose,
-                    print=print,
                     mapping=mapping,
                     rename=rename,
                     level=level + 1,
@@ -374,7 +384,7 @@ def _onnx_inline_function_graph(
         new_nodes = []
         for node in nodes:
             nnodes, m = _onnx_inline_function_node(
-                node, protos, existing_names, verbose, print, level=level
+                node, protos, existing_names, verbose, level=level
             )
             if len(m) > 0:
                 if verbose > 0:
@@ -424,7 +434,23 @@ def _onnx_inline_function_graph(
     return graph, modified_nodes
 
 
-def _onnx_inline_function_node(node, protos, existing_names, verbose, print, level):
+def _onnx_inline_function_node(
+    node: NodeProto,
+    protos: Dict[str, FunctionProto],
+    existing_names: Set[str],
+    verbose: int,
+    level: int,
+) -> Tuple[List[NodeProto], List[NodeProto]]:
+    """
+    Inline a node.
+
+    :param node: node to inline
+    :param protos: known functions
+    :param existing_names: names which cannot be used
+    :param verbose: verbosity level
+    :param level: level of subgraphs
+    :return: new nodes, modified nodes
+    """
     # The function does not rename input or output
     # of the node, it just replaces the node but a function
     # if the function exists.
@@ -433,13 +459,13 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose, print, lev
     if key in protos:
         proto = protos[key]
         if not isinstance(proto, FunctionProto):
-            raise TypeError(  # pragma: no cover
+            raise TypeError(
                 "Prototype for key=%r must be a Function Proto, not %r."
                 % (key, type(proto))
             )
         modified_nodes.append(node)
         new_nodes = []
-        mapping = _inline_mapping(verbose, print, level)
+        mapping = _inline_mapping(verbose, level)
         prefix = "_inl"
 
         for fr, to in zip(node.input, proto.input):
@@ -453,6 +479,8 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose, print, lev
             if to != n.output[0]:
                 mapping[n.output[0]] = n.output[0]
             new_nodes.append(n)
+
+        attributes = {att.name: att for att in node.attribute}
 
         for nn in proto.node:
             new_input = [mapping[i] for i in nn.input]
@@ -468,7 +496,7 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose, print, lev
             )
             if verbose > 3:
                 print(
-                    "[onnx_inline_function-nnode] %s rep node %r(%r): %r -> %r"
+                    "[onnx_inline_function-nnode]   %s rep node %r(%r): %r -> %r"
                     % ("  " * level, nn.op_type, nn.name, nn.input, nn.output)
                 )
             if verbose > 2:
@@ -483,7 +511,26 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose, print, lev
                     )
                 )
             for att in nn.attribute:
-                if (
+                if hasattr(att, "ref_attr_name") and att.ref_attr_name:
+                    # linked attribute
+                    if att.ref_attr_name not in attributes:
+                        raise ValueError(
+                            f"A linked attribute {att.ref_attr_name!r} "
+                            f"cannot be found in {list(sorted(attributes))} "
+                            f"for operator type {nn.op_type!r} and attribute {att.name!r}."
+                        )
+                    new_att = AttributeProto()
+                    new_att.ParseFromString(
+                        attributes[att.ref_attr_name].SerializeToString()
+                    )
+                    new_att.name = att.name
+                    att = new_att
+                    if verbose > 3:
+                        print(
+                            "[onnx_inline_function-funct]   %s fct=%r att %r linked to %r"
+                            % ("  " * level, key, att.name, att.ref_attr_name)
+                        )
+                elif (
                     att.type == AttributeProto.GRAPH
                     and hasattr(att, "g")
                     and att.g is not None
@@ -499,7 +546,6 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose, print, lev
                         protos,
                         existing_names=existing_names,
                         verbose=verbose,
-                        print=print,
                         mapping=mapping,
                         rename=True,
                         level=level + 1,
@@ -525,7 +571,12 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose, print, lev
     return new_nodes, modified_nodes
 
 
-def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print=None):
+def onnx_inline_function(
+    obj: Union[FunctionProto, GraphProto, ModelProto],
+    protos: Optional[Dict[str, Any]] = None,
+    existing_names: Optional[Set[str]] = None,
+    verbose: int = 0,
+) -> Tuple[Union[FunctionProto, GraphProto, ModelProto], List[NodeProto]]:
     """
     Inlines functions in an ONNX graph.
 
@@ -541,11 +592,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
     :param verbose: verbosity
     :param print: logging function
     :return: modified object, list of modified nodes
-
-    .. versionadded:: 0.9
     """
-    if verbose > 0 and print is None:
-        print = print  # pragma: no cover
     if isinstance(obj, ModelProto):
         if verbose > 0:
             print("[onnx_inline_function] type=%r graph=%d" % (type(obj), id(obj)))
@@ -555,7 +602,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
             if existing_names is not None:
                 ex_names |= existing_names
             return onnx_inline_function(
-                obj, fct, existing_names=ex_names, verbose=verbose, print=print
+                obj, fct, existing_names=ex_names, verbose=verbose
             )
         if isinstance(protos, list):
             ex_names = set(enumerate_onnx_names(obj))
@@ -563,27 +610,25 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
                 ex_names |= existing_names
             protos = {(f.domain, f.name): f for f in obj.functions}
             return onnx_inline_function(
-                obj, protos, existing_names=ex_names, verbose=verbose, print=print
+                obj, protos, existing_names=ex_names, verbose=verbose
             )
     if isinstance(protos, list):
         protos = {(f.domain, f.name): f for f in protos}
     if not isinstance(protos, dict):
-        raise TypeError(  # pragma: no cover
+        raise TypeError(
             "obj is of type %r and protos must be a dictionary not %r."
             % (type(obj), type(protos))
         )
 
     if isinstance(obj, ModelProto):
-        new_graph, m = onnx_inline_function(
-            obj.graph, protos, verbose=verbose, print=print
-        )
+        new_graph, m = onnx_inline_function(obj.graph, protos, verbose=verbose)
         if len(new_graph.initializer) != len(obj.graph.initializer):
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Mismatched number of initializers %d != %d."
                 % (len(new_graph.initializer), len(obj.graph.initializer))
             )
         if len(new_graph.sparse_initializer) != len(obj.graph.sparse_initializer):
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Mismatched number of initializers %d != %d."
                 % (len(new_graph.sparse_initializer), len(obj.graph.sparse_initializer))
             )
@@ -595,7 +640,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
             if key not in protos:
                 new_functions.append(f)
             elif key in distri:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Function %r still appears in the graph, "
                     "distibution=%s." % (key, pprint.pformat(distri))
                 )
@@ -634,7 +679,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
             print(f"[onnx_inline_function] start iteration {n_iter!r}")
 
         # local context
-        mapping = _inline_mapping(verbose, print, level=0)
+        mapping = _inline_mapping(verbose, level=0)
         if isinstance(obj, GraphProto):
             mapping.update({i.name: i.name for i in obj.initializer})
             mapping.update({i.name: i.name for i in obj.sparse_initializer})
@@ -644,9 +689,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
         elif isinstance(obj, FunctionProto):
             mapping.update({i: i for i in obj.input})
         else:
-            raise TypeError(  # pragma: no cover
-                f"Unexpected type for obj: {type(obj)!r}."
-            )
+            raise TypeError(f"Unexpected type for obj: {type(obj)!r}.")
 
         # loop on nodes
         old_nodes = new_nodes
@@ -654,7 +697,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
         new_nodes = []
         for node in old_nodes:
             nnodes, m = _onnx_inline_function_node(
-                node, protos, existing_names, verbose, print, level=0
+                node, protos, existing_names, verbose, level=0
             )
             mapping.update({o: o for o in node.output})
 
@@ -689,7 +732,6 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
                             att.g,
                             protos,
                             verbose=verbose,
-                            print=print,
                             existing_names=existing_names,
                             mapping=mapping,
                             rename=False,
@@ -778,4 +820,4 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, print
             ),
             modified_nodes,
         )
-    raise TypeError(f"Unexpected type for obj {type(obj)!r}.")  # pragma: no cover
+    raise TypeError(f"Unexpected type for obj {type(obj)!r}.")

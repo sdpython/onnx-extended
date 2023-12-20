@@ -1,7 +1,10 @@
+import contextlib
+import os
 import unittest
+from io import StringIO
 import numpy
 from onnx.checker import check_model
-from onnx import TensorProto, helper
+from onnx import TensorProto, helper, load
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.reference import CReferenceEvaluator
 from onnx.inliner import inline_local_functions
@@ -256,7 +259,11 @@ class TestOnnxInline(ExtTestCase):
         got = oinf.run(None, feeds)
         for fi in [onnx_inline_function, inline_local_functions]:
             with self.subTest(f=fi):
-                inlined = fi(model_def)
+                if fi == onnx_inline_function:
+                    with contextlib.redirect_stdout(StringIO()):
+                        inlined = fi(model_def, verbose=10)
+                else:
+                    inlined = fi(model_def)
                 if isinstance(inlined, tuple):
                     inlined = inlined[0]
                 self.assertNotIn("functions {", str(inlined))
@@ -271,6 +278,7 @@ class TestOnnxInline(ExtTestCase):
                 self.assertEqualArray(got[0], goti[0])
                 self.assertEqualArray(got[0], numpy.array([1], dtype=numpy.float32))
 
+    @unittest.skipIf(True, reason="bug in onnxruntime")
     def test_onnx_inline_subgraph_function3_fct(self, log=False):
         # subfct
         X = helper.make_tensor_value_info("X", TensorProto.FLOAT, ["N"])
@@ -388,6 +396,69 @@ class TestOnnxInline(ExtTestCase):
                 oinf3.check_onnx()
                 got3 = oinf3.run(feeds)
                 self.assertEqualArray(got[0], got3[0])
+
+    def test_inline_model(self):
+        import onnxruntime
+
+        model_def = os.path.join(
+            os.path.dirname(__file__), "data", "debug_4700-CPUep.onnx"
+        )
+        oinf = onnxruntime.InferenceSession(model_def)
+        feeds = {}
+        for i in oinf.get_inputs():
+            feeds[i.name] = numpy.random.rand(*i.shape).astype(numpy.float32)
+        model = load(model_def)
+        got = oinf.run(None, feeds)
+        for fi in [onnx_inline_function, inline_local_functions]:
+            with self.subTest(f=fi):
+                inlined = fi(model)
+                if isinstance(inlined, tuple):
+                    inlined = inlined[0]
+                check_model(inlined)
+                # from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
+                # print(onnx_simple_text_plot(inlined))
+                oinf = onnxruntime.InferenceSession(inlined.SerializeToString())
+                goti = oinf.run(None, feeds)
+                self.assertEqualArray(got[0], goti[0])
+
+    def test_inline_model_optim(self):
+        import onnxruntime
+
+        model_def = load(
+            os.path.join(os.path.dirname(__file__), "data", "debug_4700-CPUep.onnx")
+        )
+        new_output = [o for o in model_def.graph.output if o.name == "addmm_2"]
+        assert len(new_output) == 1
+        del model_def.graph.output[:]
+        model_def.graph.output.extend(new_output)
+        oinf = onnxruntime.InferenceSession(model_def.SerializeToString())
+        feeds = {}
+        for i in oinf.get_inputs():
+            feeds[i.name] = numpy.random.rand(*i.shape).astype(numpy.float32)
+        got = oinf.run(None, feeds)
+        for fi in [onnx_inline_function, inline_local_functions]:
+            with self.subTest(f=fi):
+                inlined = fi(model_def)
+                if isinstance(inlined, tuple):
+                    inlined = inlined[0]
+                check_model(inlined)
+                try:
+                    from onnx_array_api.graph_api import GraphBuilder
+
+                    use_builder = True
+                except ImportError:
+                    use_builder = False
+                if use_builder:
+                    with open(f"debug.{fi.__name__}.0.onnx", "wb") as f:
+                        f.write(inlined.SerializeToString())
+                    gr = GraphBuilder(inlined)
+                    gr.optimize()
+                    inlined = gr.to_onnx()
+                    with open(f"debug.{fi.__name__}.1.onnx", "wb") as f:
+                        f.write(inlined.SerializeToString())
+                oinf = onnxruntime.InferenceSession(inlined.SerializeToString())
+                goti = oinf.run(None, feeds)
+                self.assertEqualArray(got[0], goti[0])
 
 
 if __name__ == "__main__":
