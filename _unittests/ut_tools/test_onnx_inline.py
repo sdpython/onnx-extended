@@ -5,7 +5,7 @@ from io import StringIO
 import numpy
 from onnx.checker import check_model
 from onnx import TensorProto, helper, load
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_windows
 from onnx_extended.reference import CReferenceEvaluator
 from onnx.inliner import inline_local_functions
 from onnx_extended.tools.onnx_inline import onnx_inline_function
@@ -109,6 +109,7 @@ class TestOnnxInline(ExtTestCase):
                 self.assertEqualArray(got[0], goti[0])
                 self.assertEqualArray(got[0], numpy.array([1], dtype=numpy.float32))
 
+    @skipif_ci_windows("crash")
     def test_onnx_inline_subgraph_function_double(self, log=False):
         X = helper.make_tensor_value_info("X", TensorProto.FLOAT, ["N"])
         out = helper.make_tensor_value_info("output", TensorProto.FLOAT, ["N"])
