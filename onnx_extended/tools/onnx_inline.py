@@ -25,7 +25,7 @@ def enumerate_onnx_names(
 ) -> Iterator[str]:
     """
     Enumerates all existing names in one ONNX graph
-    (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
+    (ModelProto, FunctionProto, GraphProto).
     The function is recursive.
 
     :param onx: one onnx object
@@ -75,7 +75,7 @@ def enumerate_onnx_nodes(
 ) -> Iterator[str]:
     """
     Enumerates all nodes in one ONNX graph
-    (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
+    (ModelProto, FunctionProto, GraphProto).
     The function is recursive.
 
     :param onx: one onnx object
@@ -585,10 +585,10 @@ def onnx_inline_function(
     """
     Inlines functions in an ONNX graph.
 
-    :param obj: onnx graph, :epkg:`FunctionProto`, :epkg:`GraphProto`,
-        :epkg:`ModelProto`
+    :param obj: onnx graph, FunctionProto, GraphProto,
+        ModelProto
     :param protos: if None, the function assumes *obj* is of type
-        :epkg:`ModelProto` and the goal is to inline every function.
+        ModelProto and the goal is to inline every function.
         If *protos* a list of strings, the function only inlines the
         functions in that list. If *protos* is a dictionary
         `{ (domain, type): FunctionProto }`, the function replaces every
