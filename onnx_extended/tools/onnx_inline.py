@@ -595,7 +595,6 @@ def onnx_inline_function(
         node `(domain, type)` by the code given in this dictionary
     :param existing_names: no new name will be taken in that set
     :param verbose: verbosity
-    :param print: logging function
     :return: modified object, list of modified nodes
     """
     if isinstance(obj, ModelProto):

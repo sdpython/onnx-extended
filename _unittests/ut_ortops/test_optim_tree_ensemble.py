@@ -34,6 +34,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             self.assertIsInstance(d, str)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @skipif_ci_apple("crash")
     def test_random_forest_regressor(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
         from skl2onnx import to_onnx
