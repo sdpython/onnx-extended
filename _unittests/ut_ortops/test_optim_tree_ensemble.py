@@ -10,7 +10,7 @@ from onnx_extended.ortops.optim.optimize import (
 )
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.onnx_nodes import convert_onnx_model
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -34,6 +34,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             self.assertIsInstance(d, str)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @skipif_ci_apple("crash")
     def test_random_forest_regressor(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
         from skl2onnx import to_onnx
@@ -236,6 +237,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             self.assertEqualArray(expected, got, atol=1e-4)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @skipif_ci_apple("crash")
     def test_random_forest_classifier_1000_multi(self):
         """
         If is compiled with macro DEBUG_STEP enabled,

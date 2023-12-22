@@ -10,6 +10,7 @@ tools
     tools_einsum
     tools_graph
     tools_graph_transformer
+    tools_inline
     tools_nodes
     tools_stats
     tools_other
