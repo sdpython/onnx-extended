@@ -781,6 +781,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       int max_n = std::min(N, parallel_tree_n);
       std::vector<ScoreValue<ThresholdType>> scores(
           static_cast<std::size_t>(n_batches * max_n));
+      std::vector<typename FeatureType::RowAccessor> acc(max_n);
       int64_t end_n, begin_n = 0;
       while (begin_n < N) {
         end_n = std::min(N, begin_n + parallel_tree_n);
@@ -795,17 +796,21 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
           }
         });
 
+        TrySimpleParallelFor(n_threads, n_threads * 2,
+                             [n_threads, begin_n, end_n, &acc, &features](int64_t batch_num) {
+                               auto work =
+                                   PartitionWork(batch_num, n_threads * 2, end_n - begin_n);
+                               for (int64_t i = work.start; i < work.end; ++i) {
+                                 acc[i] = features.get(i + begin_n);
+                               }
+                             });
+
         // computing tree predictions
         TrySimpleParallelFor(
             n_threads, n_batches,
-            [this, &agg, &scores, n_batches, &features, begin_n, end_n,
-             max_n](int64_t batch_num) {
+            [this, &agg, &scores, n_batches, &acc, begin_n, end_n, max_n](int64_t batch_num) {
               auto work = PartitionWork(batch_num, n_batches, this->n_trees_);
               int score_index;
-              std::vector<typename FeatureType::RowAccessor> acc(end_n - begin_n);
-              for (int64_t i = begin_n; i < end_n; ++i, ++score_index) {
-                acc[i - begin_n] = features.get(i);
-              }
               for (auto j = work.start; j < work.end; ++j) {
                 score_index = batch_num * max_n;
                 for (int64_t i = begin_n; i < end_n; ++i, ++score_index) {
