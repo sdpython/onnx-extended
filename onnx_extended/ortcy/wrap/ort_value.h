@@ -21,7 +21,7 @@ struct DLPackOrtValue {
   void (*deleter)(void *self);
 };
 
-int64_t* dlpack_ort_value_get_shape_type(DLPackOrtValue *value, size_t &n_dims,
+int64_t *dlpack_ort_value_get_shape_type(DLPackOrtValue *value, size_t &n_dims,
                                          ONNXTensorElementDataType &elem_type);
 void delete_dlpack_ort_value(DLPackOrtValue *);
 void GetDlPackDevice(DLPackOrtValue *, int &dev_type, int &dev_id);

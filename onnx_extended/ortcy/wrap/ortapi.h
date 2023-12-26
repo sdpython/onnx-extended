@@ -65,8 +65,7 @@ private:
 
 public:
   inline InternalOrtCpuValue() {
-    elem_type_ =
-        ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+    elem_type_ = ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
     size_ = 0;
     ort_value_ = nullptr;
     data_ = nullptr;
@@ -87,8 +86,8 @@ public:
 // Simplified API for this project.
 // see https://onnxruntime.ai/docs/api/c/
 
-typedef void release(size_t output, int elem_type, size_t size, OrtShape *shape,
-                     void *data, void *args);
+typedef void release(size_t output, int elem_type, size_t size, OrtShape *shape, void *data,
+                     void *args);
 
 std::vector<std::string> get_available_providers();
 
@@ -99,14 +98,13 @@ void session_load_from_bytes(OrtSessionType *, const void *buffer, size_t size);
 void session_initialize(OrtSessionType *ptr, const char *optimized_file_path,
                         int graph_optimization_level = -1, int enable_cuda = 0,
                         int cuda_device_id = 0, int set_denormal_as_zero = 0,
-                        int intra_op_num_threads = -1,
-                        int inter_op_num_threads = -1,
+                        int intra_op_num_threads = -1, int inter_op_num_threads = -1,
                         char **custom_libs = nullptr);
 size_t session_get_input_count(OrtSessionType *);
 size_t session_get_output_count(OrtSessionType *);
 size_t session_run(OrtSessionType *ptr, size_t n_inputs, OrtShape *shapes,
-                   InternalOrtCpuValue *values, size_t max_outputs,
-                   OrtShape **out_shapes, InternalOrtCpuValue **out_values);
+                   InternalOrtCpuValue *values, size_t max_outputs, OrtShape **out_shapes,
+                   InternalOrtCpuValue **out_values);
 
 OrtShape *allocate_ort_shape(size_t n);
 InternalOrtCpuValue *allocate_ort_cpu_value(size_t n);
