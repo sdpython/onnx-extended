@@ -31,6 +31,7 @@ Sparse Data
 +++++++++++
 """
 import logging
+import pickle
 import os
 import subprocess
 import multiprocessing
@@ -80,6 +81,11 @@ script_args = get_parsed_args(
     parallel_N=(64, "values to try for parallel_N"),
     batch_size_tree=(4, "values to try for batch_size_tree"),
     batch_size_rows=(4, "values to try for batch_size_rows"),
+    train_all_trees=(
+        False,
+        "train all trees or replicate the first tree with a "
+        "random permutation of the threshold",
+    ),
     use_node3=(0, "values to try for use_node3"),
     expose="",
     n_jobs=("-1", "number of jobs to train the RandomForestRegressor"),
@@ -92,15 +98,20 @@ script_args = get_parsed_args(
 
 
 def train_model(
-    batch_size: int, n_features: int, n_trees: int, max_depth: int, sparsity: float
+    batch_size: int,
+    n_features: int,
+    n_trees: int,
+    max_depth: int,
+    sparsity: float,
+    train_all_trees: bool = False,
 ) -> Tuple[str, numpy.ndarray, numpy.ndarray]:
     filename = (
         f"plot_op_tree_ensemble_sparse-f{n_features}-{n_trees}-"
-        f"d{max_depth}-s{sparsity}.onnx"
+        f"d{max_depth}-s{sparsity}-{1 if train_all_trees else 0}.onnx"
     )
     if not os.path.exists(filename):
         X, y = make_regression(
-            batch_size + max(batch_size, 2 ** (max_depth + 1)),
+            batch_size + 2 ** (max_depth + 1),
             n_features=n_features,
             n_targets=1,
         )
@@ -112,19 +123,30 @@ def train_model(
 
         print(f"Training to get {filename!r} with X.shape={X.shape}")
         # To be faster, we train only 1 tree.
-        model = RandomForestRegressor(
-            1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
-        )
-        model.fit(X[:-batch_size], y[:-batch_size])
-        onx = to_onnx(model, X[:1])
+        if train_all_trees:
+            model = RandomForestRegressor(
+                n_trees, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
+            )
+            model.fit(X[:-batch_size], y[:-batch_size])
+            onx = to_onnx(model, X[:1])
+            skl_name = filename + ".pkl"
+            with open(skl_name, "wb") as f:
+                pickle.dump(model, f)
+        else:
+            model = RandomForestRegressor(
+                1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
+            )
+            model.fit(X[:-batch_size], y[:-batch_size])
+            onx = to_onnx(model, X[:1])
 
-        # And wd multiply the trees.
-        node = multiply_tree(onx.graph.node[0], n_trees)
-        onx = make_model(
-            make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
-            domain=onx.domain,
-            opset_imports=onx.opset_import,
-        )
+            # And wd multiply the trees.
+            node = multiply_tree(onx.graph.node[0], n_trees)
+            onx = make_model(
+                make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
+                domain=onx.domain,
+                opset_imports=onx.opset_import,
+            )
+            model = None
 
         with open(filename, "wb") as f:
             f.write(onx.SerializeToString())
@@ -133,8 +155,15 @@ def train_model(
         mask = numpy.random.rand(*X.shape) <= sparsity
         X[mask] = 0
         X, y = X.astype(numpy.float32), y.astype(numpy.float32)
+        skl_name = filename + ".pkl"
+        if os.path.exists(skl_name):
+            with open(skl_name, "rb") as f:
+                model = pickle.load(f)
+        else:
+            model = None
+
     Xb, yb = X[-batch_size:].copy(), y[-batch_size:].copy()
-    return filename, Xb, yb
+    return filename, Xb, yb, model
 
 
 def measure_sparsity(x):
@@ -148,6 +177,7 @@ n_trees = script_args.n_trees
 max_depth = script_args.max_depth
 sparsity = script_args.sparsity
 warmup = script_args.warmup
+train_all_trees = script_args.train_all_trees in (1, "1", True, "True")
 
 print(f"batch_size={batch_size}")
 print(f"n_features={n_features}")
@@ -155,8 +185,16 @@ print(f"n_trees={n_trees}")
 print(f"max_depth={max_depth}")
 print(f"sparsity={sparsity}")
 print(f"warmup={warmup}")
+print(f"train_all_trees={train_all_trees} - {script_args.train_all_trees!r}")
 
-filename, Xb, yb = train_model(batch_size, n_features, n_trees, max_depth, sparsity)
+filename, Xb, yb, model_skl = train_model(
+    batch_size,
+    n_features,
+    n_trees,
+    max_depth,
+    sparsity,
+    train_all_trees=train_all_trees,
+)
 
 print(f"Xb.shape={Xb.shape}")
 print(f"yb.shape={yb.shape}")
@@ -467,6 +505,7 @@ print("done.")
 
 data = []
 baseline = None
+expected_skl = model_skl.predict(Xb) if model_skl else None
 
 print("----- measure time")
 for name, sess, tensor in sessions:
@@ -491,6 +530,11 @@ for name, sess, tensor in sessions:
     obs["disc_mean"] = disc
     obs["disc_max"] = max_disc
     data.append(obs)
+    if expected_skl is not None:
+        diff = numpy.abs(output.ravel() - expected_skl.ravel())
+        obs["err_mean"] = diff.mean()
+        obs["err_max"] = diff.max()
+
 print("done.")
 
 df = DataFrame(data)
@@ -498,9 +542,9 @@ print(df)
 
 ####################################
 # Plots.
-print(df.columns)
 
-fig, ax = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+has_skl = "err_mean" in df.columns
+fig, ax = plt.subplots(1, 3 if has_skl else 2, figsize=(10, 4), sharey=True)
 df[["name", "average"]].set_index("name").plot.barh(
     ax=ax[0],
     title="Compare implementations of TreeEnsemble\nlower is better",
@@ -508,8 +552,14 @@ df[["name", "average"]].set_index("name").plot.barh(
 )
 df[["name", "disc_mean"]].set_index("name").plot.barh(
     ax=ax[1],
-    title="Average discrepancies (L1)\nlower is better",
+    title="Average discrepancies with ORT (L1)\nlower is better",
     xerr=[df["disc_max"].values * 0, df["disc_max"].values],
 )
+if has_skl:
+    df[["name", "err_mean"]].set_index("name").plot.barh(
+        ax=ax[2],
+        title="Average discrepancies with SKL (L1)\nlower is better",
+        xerr=[df["err_max"].values * 0, df["err_max"].values],
+    )
 fig.tight_layout()
 fig.savefig("plot_tree_ensemble_implementations.png")
