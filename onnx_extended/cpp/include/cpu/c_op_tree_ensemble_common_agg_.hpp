@@ -27,7 +27,8 @@ struct TreeNodeElementId {
   }
   struct hash_fn {
     std::size_t operator()(const TreeNodeElementId &key) const {
-      return static_cast<std::size_t>(static_cast<uint64_t>(key.tree_id) << 32 | static_cast<uint64_t>(key.node_id));
+      return static_cast<std::size_t>(static_cast<uint64_t>(key.tree_id) << 32 |
+                                      static_cast<uint64_t>(key.node_id));
     }
   };
 };
@@ -200,13 +201,14 @@ protected:
   const std::vector<ThresholdType> &base_values_;
   ThresholdType origin_;
   bool use_base_values_;
+  OutputType bias_;
 
 public:
   TreeAggregator(std::size_t n_trees, const int64_t &n_targets_or_classes,
                  POST_EVAL_TRANSFORM post_transform,
-                 const std::vector<ThresholdType> &base_values)
+                 const std::vector<ThresholdType> &base_values, OutputType bias)
       : n_trees_(n_trees), n_targets_or_classes_(n_targets_or_classes),
-        post_transform_(post_transform), base_values_(base_values) {
+        post_transform_(post_transform), base_values_(base_values), bias_(bias) {
     origin_ = base_values_.size() == 1 ? base_values_[0] : 0;
     use_base_values_ = base_values_.size() == static_cast<std::size_t>(n_targets_or_classes_);
   }
@@ -221,7 +223,8 @@ public:
 
   void FinalizeScores1(OutputType *Z, ScoreValue<ThresholdType> &prediction,
                        int64_t * /*Y*/) const {
-    prediction.score = prediction.has_score ? (prediction.score + origin_) : origin_;
+    prediction.score =
+        prediction.has_score ? (prediction.score + origin_ + bias_) : origin_ + bias_;
     *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT
              ? static_cast<OutputType>(ComputeProbit(static_cast<float>(prediction.score)))
              : static_cast<OutputType>(prediction.score);
@@ -246,7 +249,7 @@ public:
     for (std::size_t jt = 0; jt < static_cast<std::size_t>(n_targets_or_classes_); ++jt, ++it) {
       val = use_base_values_ ? base_values_[jt] : 0.f;
       val += it->has_score ? it->score : 0;
-      it->score = val;
+      it->score = val + bias_;
     }
     write_scores(predictions, post_transform_, Z, add_second_class);
   }
@@ -263,9 +266,9 @@ class TreeAggregatorSum : public TreeAggregator<InputType, ThresholdType, Output
 public:
   TreeAggregatorSum(std::size_t n_trees, const int64_t &n_targets_or_classes,
                     POST_EVAL_TRANSFORM post_transform,
-                    const std::vector<ThresholdType> &base_values)
-      : TreeAggregator<InputType, ThresholdType, OutputType>(n_trees, n_targets_or_classes,
-                                                             post_transform, base_values) {}
+                    const std::vector<ThresholdType> &base_values, OutputType bias)
+      : TreeAggregator<InputType, ThresholdType, OutputType>(
+            n_trees, n_targets_or_classes, post_transform, base_values, bias) {}
 
   // 1 output
 
@@ -281,7 +284,7 @@ public:
 
   void FinalizeScores1(OutputType *Z, ScoreValue<ThresholdType> &prediction,
                        int64_t * /*Y*/) const {
-    prediction.score += this->origin_;
+    prediction.score += this->origin_ + this->bias_ * this->n_trees_;
     *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT
              ? static_cast<OutputType>(ComputeProbit(static_cast<float>(prediction.score)))
              : static_cast<OutputType>(prediction.score);
@@ -318,7 +321,7 @@ public:
     if (this->use_base_values_) {
       auto it2 = this->base_values_.cbegin();
       for (; it != predictions.end(); ++it, ++it2)
-        it->score = it->score + *it2;
+        it->score = it->score + *it2 + this->bias_ * this->n_trees_;
     }
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
@@ -331,14 +334,14 @@ class TreeAggregatorAverage : public TreeAggregatorSum<InputType, ThresholdType,
 public:
   TreeAggregatorAverage(std::size_t n_trees, const int64_t &n_targets_or_classes,
                         POST_EVAL_TRANSFORM post_transform,
-                        const std::vector<ThresholdType> &base_values)
-      : TreeAggregatorSum<InputType, ThresholdType, OutputType>(n_trees, n_targets_or_classes,
-                                                                post_transform, base_values) {}
+                        const std::vector<ThresholdType> &base_values, OutputType bias)
+      : TreeAggregatorSum<InputType, ThresholdType, OutputType>(
+            n_trees, n_targets_or_classes, post_transform, base_values, bias) {}
 
   void FinalizeScores1(OutputType *Z, ScoreValue<ThresholdType> &prediction,
                        int64_t * /*Y*/) const {
     prediction.score /= this->n_trees_;
-    prediction.score += this->origin_;
+    prediction.score += this->origin_ + this->bias_;
     *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT
              ? static_cast<OutputType>(ComputeProbit(static_cast<float>(prediction.score)))
              : static_cast<OutputType>(prediction.score);
@@ -354,8 +357,10 @@ public:
         it->score = it->score / this->n_trees_ + *it2;
     } else {
       auto it = predictions.begin();
-      for (; it != predictions.end(); ++it)
+      for (; it != predictions.end(); ++it) {
         it->score /= this->n_trees_;
+        it->score -= this->bias_;
+      }
     }
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
@@ -368,9 +373,11 @@ class TreeAggregatorMin : public TreeAggregator<InputType, ThresholdType, Output
 public:
   TreeAggregatorMin(std::size_t n_trees, const int64_t &n_targets_or_classes,
                     POST_EVAL_TRANSFORM post_transform,
-                    const std::vector<ThresholdType> &base_values)
-      : TreeAggregator<InputType, ThresholdType, OutputType>(n_trees, n_targets_or_classes,
-                                                             post_transform, base_values) {}
+                    const std::vector<ThresholdType> &base_values, OutputType bias)
+      : TreeAggregator<InputType, ThresholdType, OutputType>(
+            n_trees, n_targets_or_classes, post_transform, base_values, bias) {
+    EXT_ENFORCE(bias == 0);
+  }
 
   // 1 output
 
@@ -432,9 +439,11 @@ class TreeAggregatorMax : public TreeAggregator<InputType, ThresholdType, Output
 public:
   TreeAggregatorMax(std::size_t n_trees, const int64_t &n_targets_or_classes,
                     POST_EVAL_TRANSFORM post_transform,
-                    const std::vector<ThresholdType> &base_values)
-      : TreeAggregator<InputType, ThresholdType, OutputType>(n_trees, n_targets_or_classes,
-                                                             post_transform, base_values) {}
+                    const std::vector<ThresholdType> &base_values, OutputType bias)
+      : TreeAggregator<InputType, ThresholdType, OutputType>(
+            n_trees, n_targets_or_classes, post_transform, base_values, bias) {
+    EXT_ENFORCE(bias == 0);
+  }
 
   // 1 output
 
@@ -507,13 +516,15 @@ private:
 public:
   TreeAggregatorClassifier(std::size_t n_trees, const int64_t &n_targets_or_classes,
                            POST_EVAL_TRANSFORM post_transform,
-                           const std::vector<ThresholdType> &base_values, bool binary_case,
-                           bool weights_are_all_positive, int64_t positive_label = 1,
-                           int64_t negative_label = 0)
-      : TreeAggregatorSum<InputType, ThresholdType, OutputType>(n_trees, n_targets_or_classes,
-                                                                post_transform, base_values),
+                           const std::vector<ThresholdType> &base_values, OutputType bias,
+                           bool binary_case, bool weights_are_all_positive,
+                           int64_t positive_label = 1, int64_t negative_label = 0)
+      : TreeAggregatorSum<InputType, ThresholdType, OutputType>(
+            n_trees, n_targets_or_classes, post_transform, base_values, bias),
         binary_case_(binary_case), weights_are_all_positive_(weights_are_all_positive),
-        positive_label_(positive_label), negative_label_(negative_label) {}
+        positive_label_(positive_label), negative_label_(negative_label) {
+    EXT_ENFORCE(bias == 0);
+  }
 
   void get_max_weight(const InlinedVector<ScoreValue<ThresholdType>> &classes,
                       int64_t &maxclass, ThresholdType &maxweight) const {

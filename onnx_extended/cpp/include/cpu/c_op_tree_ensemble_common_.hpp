@@ -209,6 +209,7 @@ protected:
   std::vector<TreeNodeElement3<ThresholdType>, TreeAlloc<TreeNodeElement3<ThresholdType>>>
       nodes3_;
   std::vector<TreeNodeElement3<ThresholdType> *> roots3_;
+  OutputType bias_;
 
 public:
   TreeEnsembleCommon() {}
@@ -426,6 +427,19 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   }
   std::sort(indices.begin(), indices.end());
 
+  // bias estimations
+  bias_ = static_cast<OutputType>(0);
+  switch (aggregate_function_) {
+  case AGGREGATE_FUNCTION::AVERAGE:
+  case AGGREGATE_FUNCTION::SUM: {
+    for (std::size_t wi = 0; wi < target_class_weights.size(); ++wi)
+      bias_ += target_class_weights[wi];
+    bias_ /= static_cast<OutputType>(target_class_weights.size());
+  } break;
+  default:
+    break;
+  }
+
   // Initialize the leaves.
   TreeNodeElementId ind;
   SparseValue<ThresholdType> w;
@@ -448,7 +462,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
     }
 
     w.i = target_class_ids[i];
-    w.value = target_class_weights[i];
+    w.value = target_class_weights[i] - bias_;
     if (leaf.falsenode_inc_or_n_weights == 0) {
       leaf.truenode_inc_or_first_weight = static_cast<int32_t>(weights_.size());
       leaf.value_or_unique_weight = w.value;
@@ -642,25 +656,25 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Compute(
     DEBUG_PRINT("Compute AVERAGE")
     ComputeAgg(features, Y, label,
                TreeAggregatorAverage<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   case AGGREGATE_FUNCTION::SUM:
     DEBUG_PRINT("Compute SUM")
     ComputeAgg(features, Y, label,
                TreeAggregatorSum<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   case AGGREGATE_FUNCTION::MIN:
     DEBUG_PRINT("Compute MIN")
     ComputeAgg(features, Y, label,
                TreeAggregatorMin<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   case AGGREGATE_FUNCTION::MAX:
     DEBUG_PRINT("Compute MAX")
     ComputeAgg(features, Y, label,
                TreeAggregatorMax<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   default:
     EXT_THROW("Unknown aggregation function in TreeEnsemble.");

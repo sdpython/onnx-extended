@@ -42,6 +42,7 @@ import matplotlib.pyplot as plt
 import onnx
 from onnx import ModelProto, TensorProto
 from onnx.helper import make_attribute, make_graph, make_model, make_tensor_value_info
+from onnx.reference import ReferenceEvaluator
 from pandas import DataFrame
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
@@ -505,7 +506,13 @@ print("done.")
 
 data = []
 baseline = None
-expected_skl = model_skl.predict(Xb) if model_skl else None
+if model_skl:
+    print("computing the expected values with scikit-learn")
+    expected_values = model_skl.predict(Xb)
+else:
+    print("computing the expected values with ReferenceEvaluator")
+    ref = ReferenceEvaluator(onx)
+    expected_values = ref.run(None, {"X": Xb})[0]
 
 print("----- measure time")
 for name, sess, tensor in sessions:
@@ -529,11 +536,10 @@ for name, sess, tensor in sessions:
     obs["name"] = name
     obs["disc_mean"] = disc
     obs["disc_max"] = max_disc
+    diff = numpy.abs(output.ravel() - expected_values.ravel())
+    obs["err_mean"] = diff.mean()
+    obs["err_max"] = diff.max()
     data.append(obs)
-    if expected_skl is not None:
-        diff = numpy.abs(output.ravel() - expected_skl.ravel())
-        obs["err_mean"] = diff.mean()
-        obs["err_max"] = diff.max()
 
 print("done.")
 

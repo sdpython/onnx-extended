@@ -31,7 +31,7 @@ public:
       ComputeAggClassifier(features, Y, label,
                            TreeAggregatorSum<FeatureType, ThresholdType, OutputType>(
                                this->roots_.size(), this->n_targets_or_classes_,
-                               this->post_transform_, this->base_values_));
+                               this->post_transform_, this->base_values_, this->bias_));
       return Status::OK();
     default:
       EXT_THROW("Unknown aggregation function in TreeEnsemble.");
@@ -97,7 +97,7 @@ protected:
     this->ComputeAgg(data, Y, labels,
                      TreeAggregatorClassifier<FeatureType, ThresholdType, OutputType>(
                          this->roots_.size(), this->n_targets_or_classes_,
-                         this->post_transform_, this->base_values_, binary_case_,
+                         this->post_transform_, this->base_values_, this->bias_, binary_case_,
                          weights_are_all_positive_));
   }
 };
