@@ -914,8 +914,10 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       int64_t i, batch, batch_end;
       batch_end = std::min(N, static_cast<int64_t>(parallel_tree_n));
       std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(batch_end);
+      std::vector<typename FeatureType::RowAccessor> acc(scores.size());
       for (i = 0; i < batch_end; ++i) {
         scores[i].resize(static_cast<std::size_t>(n_targets_or_classes_));
+        acc[i] = features.get(i);
       }
       for (batch = 0; batch < N; batch += parallel_tree_n) {
         batch_end = std::min(N, batch + parallel_tree_n);
@@ -925,8 +927,8 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
         }
         for (j = 0, limit = roots_.size(); j < limit; ++j) {
           for (i = batch; i < batch_end; ++i) {
-            agg.ProcessTreeNodePrediction(scores[i - batch],
-                                          *ProcessTreeNodeLeave(j, features.get(i)), weights_);
+            agg.ProcessTreeNodePrediction(scores[i - batch], *ProcessTreeNodeLeave(j, acc[i]),
+                                          weights_);
           }
         }
         for (i = batch; i < batch_end; ++i) {
