@@ -108,6 +108,7 @@ class TreeEnsembleClassifierCommon(OpRun, _ClassifierCommon):
             kwargs["class_nodeids"],  # 17
             kwargs["class_treeids"],  # 18
             cw,  # 19
+            True,
         )
         if self.parallel is not None:
             self.rt_.set(*self.parallel)

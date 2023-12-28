@@ -230,7 +230,8 @@ public:
               const std::vector<int64_t> &target_class_ids,                // 16
               const std::vector<int64_t> &target_class_nodeids,            // 17
               const std::vector<int64_t> &target_class_treeids,            // 18
-              const std::vector<ThresholdType> &target_class_weights       // 19
+              const std::vector<ThresholdType> &target_class_weights,      // 19
+              bool is_classifier
   );
 
   Status Compute(int64_t n_rows, int64_t n_features, const InputType *X, OutputType *Y,
@@ -285,7 +286,8 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
     const std::vector<int64_t> &target_class_ids,
     const std::vector<int64_t> &target_class_nodeids,
     const std::vector<int64_t> &target_class_treeids,
-    const std::vector<ThresholdType> &target_class_weights) {
+    const std::vector<ThresholdType> &target_class_weights,
+    bool is_classifier) {
 
   DEBUG_PRINT("Init:Check")
   EXT_ENFORCE(n_targets_or_classes > 0);
@@ -429,15 +431,17 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
 
   // bias estimations
   bias_ = static_cast<OutputType>(0);
-  switch (aggregate_function_) {
-  case AGGREGATE_FUNCTION::AVERAGE:
-  case AGGREGATE_FUNCTION::SUM: {
-    for (std::size_t wi = 0; wi < target_class_weights.size(); ++wi)
-      bias_ += target_class_weights[wi];
-    bias_ /= static_cast<OutputType>(target_class_weights.size());
-  } break;
-  default:
-    break;
+  if (!is_classifier) {
+    switch (aggregate_function_) {
+    case AGGREGATE_FUNCTION::AVERAGE:
+    case AGGREGATE_FUNCTION::SUM: {
+      for (std::size_t wi = 0; wi < target_class_weights.size(); ++wi)
+        bias_ += target_class_weights[wi];
+      bias_ /= static_cast<OutputType>(target_class_weights.size());
+    } break;
+    default:
+      break;
+    }
   }
 
   // Initialize the leaves.

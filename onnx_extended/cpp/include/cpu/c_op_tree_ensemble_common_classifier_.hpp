@@ -54,7 +54,8 @@ public:
               const std::vector<int64_t> &class_ids,                       // 16
               const std::vector<int64_t> &class_nodeids,                   // 17
               const std::vector<int64_t> &class_treeids,                   // 18
-              const std::vector<ThresholdType> &class_weights              // 19
+              const std::vector<ThresholdType> &class_weights,             // 19
+              bool is_classifier
   ) {
     TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
         aggregate_function,              // 3
@@ -73,7 +74,8 @@ public:
         class_ids,                       // 16
         class_nodeids,                   // 17
         class_treeids,                   // 18
-        class_weights                    // 19
+        class_weights,                   // 19
+        is_classifier
     );
     DEBUG_PRINT("Init")
 

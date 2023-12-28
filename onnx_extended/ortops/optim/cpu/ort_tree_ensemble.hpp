@@ -260,7 +260,8 @@ TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(const OrtApi 
         aggregate_function, base_values, n_targets_or_classes, nodes_falsenodeids,
         nodes_featureids, nodes_hitrates, nodes_missing_value_tracks_true, nodes_modes,
         nodes_nodeids, nodes_treeids, nodes_truenodeids, nodes_values, post_transform,
-        target_class_ids, target_class_nodeids, target_class_treeids, target_class_weights);
+        target_class_ids, target_class_nodeids, target_class_treeids, target_class_weights,
+        is_classifier);
     EXT_ENFORCE(status.IsOK(), "The TreeEnsembleClassifier initialisation failed.");
   } else {
     std::unique_ptr<onnx_c_ops::TreeEnsembleCommon<IFEATURETYPE, TTYPE, OTYPE>> ptr(
@@ -270,7 +271,8 @@ TreeEnsembleKernel<IFEATURETYPE, TTYPE, OTYPE>::TreeEnsembleKernel(const OrtApi 
         aggregate_function, base_values, n_targets_or_classes, nodes_falsenodeids,
         nodes_featureids, nodes_hitrates, nodes_missing_value_tracks_true, nodes_modes,
         nodes_nodeids, nodes_treeids, nodes_truenodeids, nodes_values, post_transform,
-        target_class_ids, target_class_nodeids, target_class_treeids, target_class_weights);
+        target_class_ids, target_class_nodeids, target_class_treeids, target_class_weights,
+        is_classifier);
     EXT_ENFORCE(status.IsOK(), "The TreeEnsembleRegressor initialisation failed.");
   }
 
