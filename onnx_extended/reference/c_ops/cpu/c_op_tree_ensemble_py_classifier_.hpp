@@ -86,7 +86,7 @@ public:
            ttarget_class_ids,     // 16
            ttarget_class_nodeids, // 17
            ttarget_class_treeids, // 18
-           ttarget_class_weights  // 19
+           ttarget_class_weights // 19
     );
   }
 
@@ -124,7 +124,8 @@ public:
                target_class_ids,                // 16
                target_class_nodeids,            // 17
                target_class_treeids,            // 18
-               target_class_weights             // 19
+               target_class_weights,            // 19
+               true
     );
   }
 

@@ -31,7 +31,7 @@ public:
       ComputeAggClassifier(features, Y, label,
                            TreeAggregatorSum<FeatureType, ThresholdType, OutputType>(
                                this->roots_.size(), this->n_targets_or_classes_,
-                               this->post_transform_, this->base_values_));
+                               this->post_transform_, this->base_values_, this->bias_));
       return Status::OK();
     default:
       EXT_THROW("Unknown aggregation function in TreeEnsemble.");
@@ -54,7 +54,8 @@ public:
               const std::vector<int64_t> &class_ids,                       // 16
               const std::vector<int64_t> &class_nodeids,                   // 17
               const std::vector<int64_t> &class_treeids,                   // 18
-              const std::vector<ThresholdType> &class_weights              // 19
+              const std::vector<ThresholdType> &class_weights,             // 19
+              bool is_classifier
   ) {
     TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
         aggregate_function,              // 3
@@ -73,7 +74,8 @@ public:
         class_ids,                       // 16
         class_nodeids,                   // 17
         class_treeids,                   // 18
-        class_weights                    // 19
+        class_weights,                   // 19
+        is_classifier
     );
     DEBUG_PRINT("Init")
 
@@ -97,7 +99,7 @@ protected:
     this->ComputeAgg(data, Y, labels,
                      TreeAggregatorClassifier<FeatureType, ThresholdType, OutputType>(
                          this->roots_.size(), this->n_targets_or_classes_,
-                         this->post_transform_, this->base_values_, binary_case_,
+                         this->post_transform_, this->base_values_, this->bias_, binary_case_,
                          weights_are_all_positive_));
   }
 };

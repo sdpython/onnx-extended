@@ -55,7 +55,8 @@ public:
             py_array_t_int64_t target_class_ids,                // 16
             py_array_t_int64_t target_class_nodeids,            // 17
             py_array_t_int64_t target_class_treeids,            // 18
-            py_array_t_ntype_t target_class_weights             // 19
+            py_array_t_ntype_t target_class_weights,            // 19
+            bool is_classifier
   ) {
 
     std::vector<NTYPE> cbasevalues;
@@ -108,7 +109,8 @@ public:
            ttarget_class_ids,     // 16
            ttarget_class_nodeids, // 17
            ttarget_class_treeids, // 18
-           ttarget_class_weights  // 19
+           ttarget_class_weights, // 19
+           is_classifier
     );
   }
 
@@ -128,7 +130,8 @@ public:
               const std::vector<int64_t> &target_class_ids,                    // 16
               const std::vector<int64_t> &target_class_nodeids,                // 17
               const std::vector<int64_t> &target_class_treeids,                // 18
-              const std::vector<NTYPE> &target_class_weights                   // 19
+              const std::vector<NTYPE> &target_class_weights,                  // 19
+              bool is_classifier
   ) {
     this->Init(aggregate_function,              // 3
                base_values,                     // 4
@@ -146,7 +149,8 @@ public:
                target_class_ids,                // 16
                target_class_nodeids,            // 17
                target_class_treeids,            // 18
-               target_class_weights             // 19
+               target_class_weights,            // 19
+               is_classifier
     );
   }
 

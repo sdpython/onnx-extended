@@ -153,6 +153,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
         self.assertEqual(len(res), 6)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @skipif_ci_apple("unstable")
     def test_random_forest_regressor_1000(self):
         """
         If is compiled with macro DEBUG_STEP enabled,

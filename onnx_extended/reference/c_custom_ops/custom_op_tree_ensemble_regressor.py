@@ -109,6 +109,7 @@ class TreeEnsembleRegressorCommon(OpRun):
             kwargs["target_nodeids"],  # 17
             kwargs["target_treeids"],  # 18
             tw,  # 19
+            False,
         )
         if self.parallel is not None:
             self.rt_.set(*self.parallel)

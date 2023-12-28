@@ -230,10 +230,13 @@ class ExtTestCase(unittest.TestCase):
     ):
         self.assertEqual(expected.dtype, value.dtype)
         self.assertEqual(expected.shape, value.shape)
-        try:
+        if msg:
+            try:
+                assert_allclose(expected, value, atol=atol, rtol=rtol)
+            except AssertionError as e:
+                raise AssertionError(msg) from e
+        else:
             assert_allclose(expected, value, atol=atol, rtol=rtol)
-        except AssertionError as e:
-            raise AssertionError(msg) from e
 
     def assertAlmostEqual(
         self,
@@ -297,7 +300,7 @@ class ExtTestCase(unittest.TestCase):
         for name, line, w in cls._warns:
             warnings.warn(f"\n{name}:{line}: {type(w)}\n  {str(w)}")
 
-    def capture(self, fct: Callable):
+    def capture(self, fct: Callable) -> Tuple[Any, str, str]:
         """
         Runs a function and capture standard output and error.
 

@@ -15,6 +15,7 @@
 #include <map>
 #include <unordered_map>
 
+// uncomment the following line to debug the computation if needed
 // #define DEBUG_CHECK
 // #define DEBUG_STEP
 
@@ -209,6 +210,7 @@ protected:
   std::vector<TreeNodeElement3<ThresholdType>, TreeAlloc<TreeNodeElement3<ThresholdType>>>
       nodes3_;
   std::vector<TreeNodeElement3<ThresholdType> *> roots3_;
+  OutputType bias_;
 
 public:
   TreeEnsembleCommon() {}
@@ -229,8 +231,8 @@ public:
               const std::vector<int64_t> &target_class_ids,                // 16
               const std::vector<int64_t> &target_class_nodeids,            // 17
               const std::vector<int64_t> &target_class_treeids,            // 18
-              const std::vector<ThresholdType> &target_class_weights       // 19
-  );
+              const std::vector<ThresholdType> &target_class_weights,      // 19
+              bool is_classifier);
 
   Status Compute(int64_t n_rows, int64_t n_features, const InputType *X, OutputType *Y,
                  int64_t *label) const;
@@ -284,7 +286,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
     const std::vector<int64_t> &target_class_ids,
     const std::vector<int64_t> &target_class_nodeids,
     const std::vector<int64_t> &target_class_treeids,
-    const std::vector<ThresholdType> &target_class_weights) {
+    const std::vector<ThresholdType> &target_class_weights, bool is_classifier) {
 
   DEBUG_PRINT("Init:Check")
   EXT_ENFORCE(n_targets_or_classes > 0);
@@ -426,6 +428,21 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   }
   std::sort(indices.begin(), indices.end());
 
+  // bias estimations
+  bias_ = static_cast<OutputType>(0);
+  if (!is_classifier) {
+    switch (aggregate_function_) {
+    case AGGREGATE_FUNCTION::AVERAGE:
+    case AGGREGATE_FUNCTION::SUM: {
+      for (std::size_t wi = 0; wi < target_class_weights.size(); ++wi)
+        bias_ += target_class_weights[wi];
+      bias_ /= static_cast<OutputType>(target_class_weights.size());
+    } break;
+    default:
+      break;
+    }
+  }
+
   // Initialize the leaves.
   TreeNodeElementId ind;
   SparseValue<ThresholdType> w;
@@ -448,7 +465,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
     }
 
     w.i = target_class_ids[i];
-    w.value = target_class_weights[i];
+    w.value = target_class_weights[i] - bias_;
     if (leaf.falsenode_inc_or_n_weights == 0) {
       leaf.truenode_inc_or_first_weight = static_cast<int32_t>(weights_.size());
       leaf.value_or_unique_weight = w.value;
@@ -642,25 +659,25 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Compute(
     DEBUG_PRINT("Compute AVERAGE")
     ComputeAgg(features, Y, label,
                TreeAggregatorAverage<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   case AGGREGATE_FUNCTION::SUM:
     DEBUG_PRINT("Compute SUM")
     ComputeAgg(features, Y, label,
                TreeAggregatorSum<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   case AGGREGATE_FUNCTION::MIN:
     DEBUG_PRINT("Compute MIN")
     ComputeAgg(features, Y, label,
                TreeAggregatorMin<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   case AGGREGATE_FUNCTION::MAX:
     DEBUG_PRINT("Compute MAX")
     ComputeAgg(features, Y, label,
                TreeAggregatorMax<FeatureType, ThresholdType, OutputType>(
-                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_));
+                   roots_.size(), n_targets_or_classes_, post_transform_, base_values_, bias_));
     return Status::OK();
   default:
     EXT_THROW("Unknown aggregation function in TreeEnsemble.");
@@ -781,6 +798,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       int max_n = std::min(N, parallel_tree_n);
       std::vector<ScoreValue<ThresholdType>> scores(
           static_cast<std::size_t>(n_batches * max_n));
+      std::vector<typename FeatureType::RowAccessor> acc(max_n);
       int64_t end_n, begin_n = 0;
       while (begin_n < N) {
         end_n = std::min(N, begin_n + parallel_tree_n);
@@ -795,17 +813,21 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
           }
         });
 
+        TrySimpleParallelFor(n_threads, n_threads * 2,
+                             [n_threads, begin_n, end_n, &acc, &features](int64_t batch_num) {
+                               auto work =
+                                   PartitionWork(batch_num, n_threads * 2, end_n - begin_n);
+                               for (int64_t i = work.start; i < work.end; ++i) {
+                                 acc[i] = features.get(i + begin_n);
+                               }
+                             });
+
         // computing tree predictions
         TrySimpleParallelFor(
             n_threads, n_batches,
-            [this, &agg, &scores, n_batches, &features, begin_n, end_n,
-             max_n](int64_t batch_num) {
+            [this, &agg, &scores, n_batches, &acc, begin_n, end_n, max_n](int64_t batch_num) {
               auto work = PartitionWork(batch_num, n_batches, this->n_trees_);
               int score_index;
-              std::vector<typename FeatureType::RowAccessor> acc(end_n - begin_n);
-              for (int64_t i = begin_n; i < end_n; ++i, ++score_index) {
-                acc[i - begin_n] = features.get(i);
-              }
               for (auto j = work.start; j < work.end; ++j) {
                 score_index = batch_num * max_n;
                 for (int64_t i = begin_n; i < end_n; ++i, ++score_index) {
@@ -909,8 +931,10 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       int64_t i, batch, batch_end;
       batch_end = std::min(N, static_cast<int64_t>(parallel_tree_n));
       std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(batch_end);
+      std::vector<typename FeatureType::RowAccessor> acc(scores.size());
       for (i = 0; i < batch_end; ++i) {
         scores[i].resize(static_cast<std::size_t>(n_targets_or_classes_));
+        acc[i] = features.get(i);
       }
       for (batch = 0; batch < N; batch += parallel_tree_n) {
         batch_end = std::min(N, batch + parallel_tree_n);
@@ -920,8 +944,8 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
         }
         for (j = 0, limit = roots_.size(); j < limit; ++j) {
           for (i = batch; i < batch_end; ++i) {
-            agg.ProcessTreeNodePrediction(scores[i - batch],
-                                          *ProcessTreeNodeLeave(j, features.get(i)), weights_);
+            agg.ProcessTreeNodePrediction(scores[i - batch], *ProcessTreeNodeLeave(j, acc[i]),
+                                          weights_);
           }
         }
         for (i = batch; i < batch_end; ++i) {
