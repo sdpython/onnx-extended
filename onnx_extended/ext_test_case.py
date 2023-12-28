@@ -230,10 +230,13 @@ class ExtTestCase(unittest.TestCase):
     ):
         self.assertEqual(expected.dtype, value.dtype)
         self.assertEqual(expected.shape, value.shape)
-        try:
+        if msg:
+            try:
+                assert_allclose(expected, value, atol=atol, rtol=rtol)
+            except AssertionError as e:
+                raise AssertionError(msg) from e
+        else:
             assert_allclose(expected, value, atol=atol, rtol=rtol)
-        except AssertionError as e:
-            raise AssertionError(msg) from e
 
     def assertAlmostEqual(
         self,

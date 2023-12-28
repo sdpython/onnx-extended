@@ -118,7 +118,7 @@ def make_sessions(
 
 if unit_test_going():
     vocabulary_sizes = [10, 20]
-    batch_sizes = [10, 20]
+    batch_sizes = [5, 10]
 else:
     vocabulary_sizes = [100, 1000, 5000, 10000]
     batch_sizes = [1, 10, 500, 1000, 2000]
