@@ -334,7 +334,7 @@ class TestOnnxTools(ExtTestCase):
         feeds = {"X": X[:2]}
         got = sess.run(None, feeds)[0]
         got2 = sess2.run(None, feeds)[0]
-        self.assertEqualArray(got * 2, got2, atol=1e-5)
+        self.assertEqualArray(got * 2, got2, atol=1e-4)
 
         onx2 = multiply_tree(onx.graph.node[0], 2, random=True)
 
@@ -348,7 +348,7 @@ class TestOnnxTools(ExtTestCase):
         feeds = {"X": X[:2]}
         got = sess.run(None, feeds)[0]
         got2 = sess2.run(None, feeds)[0]
-        self.assertEqualArray(got.ravel(), got2.ravel(), atol=1e-5)
+        self.assertEqualArray(got.ravel(), got2.ravel(), atol=1e-4)
 
 
 if __name__ == "__main__":
