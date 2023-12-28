@@ -15,6 +15,7 @@
 #include <map>
 #include <unordered_map>
 
+// uncomment the following line to debug the computation if needed
 // #define DEBUG_CHECK
 // #define DEBUG_STEP
 
@@ -231,8 +232,7 @@ public:
               const std::vector<int64_t> &target_class_nodeids,            // 17
               const std::vector<int64_t> &target_class_treeids,            // 18
               const std::vector<ThresholdType> &target_class_weights,      // 19
-              bool is_classifier
-  );
+              bool is_classifier);
 
   Status Compute(int64_t n_rows, int64_t n_features, const InputType *X, OutputType *Y,
                  int64_t *label) const;
@@ -286,8 +286,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
     const std::vector<int64_t> &target_class_ids,
     const std::vector<int64_t> &target_class_nodeids,
     const std::vector<int64_t> &target_class_treeids,
-    const std::vector<ThresholdType> &target_class_weights,
-    bool is_classifier) {
+    const std::vector<ThresholdType> &target_class_weights, bool is_classifier) {
 
   DEBUG_PRINT("Init:Check")
   EXT_ENFORCE(n_targets_or_classes > 0);

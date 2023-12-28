@@ -320,8 +320,13 @@ public:
     auto it = predictions.begin();
     if (this->use_base_values_) {
       auto it2 = this->base_values_.cbegin();
+      OutputType bias = this->bias_ * this->n_trees_;
       for (; it != predictions.end(); ++it, ++it2)
-        it->score = it->score + *it2 + this->bias_ * this->n_trees_;
+        it->score = it->score + *it2 + bias;
+    } else if (this->bias_ != 0) {
+      OutputType bias = this->bias_ * this->n_trees_;
+      for (; it != predictions.end(); ++it)
+        it->score += bias;
     }
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
@@ -353,13 +358,14 @@ public:
       EXT_ENFORCE(this->base_values_.size() == predictions.size());
       auto it = predictions.begin();
       auto it2 = this->base_values_.cbegin();
-      for (; it != predictions.end(); ++it, ++it2)
-        it->score = it->score / this->n_trees_ + *it2;
+      for (; it != predictions.end(); ++it, ++it2) {
+        it->score = it->score / this->n_trees_ + *it2 + this->bias_;
+      }
     } else {
       auto it = predictions.begin();
       for (; it != predictions.end(); ++it) {
         it->score /= this->n_trees_;
-        it->score -= this->bias_;
+        it->score += this->bias_;
       }
     }
     write_scores(predictions, this->post_transform_, Z, add_second_class);

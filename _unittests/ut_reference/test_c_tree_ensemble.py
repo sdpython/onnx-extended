@@ -226,7 +226,7 @@ class TestCTreeEnsemble(ExtTestCase):
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = LGBMRegressor(num_iterations=1, max_depth=5)
-        clr.fit(X_train, y_train)
+        self.capture(lambda: clr.fit(X_train, y_train))
 
         update_registered_converter(
             LGBMRegressor,
@@ -266,7 +266,7 @@ class TestCTreeEnsemble(ExtTestCase):
 
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_decision_tree_regressor2(self):
+    def test_a_decision_tree_regressor2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X = X.astype(numpy.float32)

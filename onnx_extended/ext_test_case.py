@@ -297,7 +297,7 @@ class ExtTestCase(unittest.TestCase):
         for name, line, w in cls._warns:
             warnings.warn(f"\n{name}:{line}: {type(w)}\n  {str(w)}")
 
-    def capture(self, fct: Callable):
+    def capture(self, fct: Callable) -> Tuple[Any, str, str]:
         """
         Runs a function and capture standard output and error.
 
