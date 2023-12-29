@@ -92,6 +92,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
         self.assertEqualArray(expected, got, atol=1e-5)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @skipif_ci_apple("crash")
     def test_tree_run_optimize_model(self):
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
         from skl2onnx import to_onnx
