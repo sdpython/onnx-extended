@@ -1,23 +1,3 @@
-import numpy
-from scipy.linalg.blas import sgemm, dgemm
-
-
-def sgemm_dot(A, B, transA, transB, C):
-    if C is None:
-        r = sgemm(1.0, A, B, 0.0, None, transA, transB)
-    else:
-        r = sgemm(1.0, A, B, 1.0, C, transA, transB)
-    return r
-
-
-def dgemm_dot(A, B, transA, transB, C):
-    if C is None:
-        r = dgemm(1.0, A, B, 0.0, None, transA, transB)
-    else:
-        r = dgemm(1.0, A, B, 1.0, C, transA, transB)
-    return r
-
-
 def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
     """
     Pure python implementatin of GEMM.
@@ -95,7 +75,8 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
 
 def gemm_dot(A, B, transA=False, transB=False):
     """
-    Implements dot product with gemm when possible.
+    Implements dot product, the implementation could be optimized
+    with `scipy.linalg.blas.sgemm`.
 
     :param A: first matrix
     :param B: second matrix
@@ -108,95 +89,8 @@ def gemm_dot(A, B, transA=False, transB=False):
     assert len(A.shape) == 2, f"Matrix A does not have 2 dimensions but {len(A.shape)}."
     assert len(B.shape) == 2, f"Matrix B does not have 2 dimensions but {len(B.shape)}."
 
-    def _make_contiguous_(A, B):
-        if not A.flags["C_CONTIGUOUS"]:
-            A = numpy.ascontiguousarray(A)
-        if not B.flags["C_CONTIGUOUS"]:
-            B = numpy.ascontiguousarray(B)
-        return A, B
-
-    all_dims = A.shape + B.shape
-    square = min(all_dims) == max(all_dims)
-
     if transA:
-        if transB:
-            if A.dtype == numpy.float32:
-                if square:
-                    C = numpy.zeros((A.shape[1], B.shape[0]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    sgemm_dot(B, A, True, True, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[1], B.shape[0]), dtype=A.dtype)
-                    return sgemm(1, A, B, 0, C, 1, 1, 1)
-            if A.dtype == numpy.float64:
-                if square:
-                    C = numpy.zeros((A.shape[1], B.shape[0]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    dgemm_dot(B, A, True, True, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[1], B.shape[0]), dtype=A.dtype)
-                    return dgemm(1, A, B, 0, C, 1, 1, 1)
-            return A.T @ B.T
-        else:
-            if A.dtype == numpy.float32:
-                if square:
-                    C = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    sgemm_dot(B, A, False, True, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
-                    return sgemm(1, A, B, 0, C, 1, 0, 1)
-            if A.dtype == numpy.float64:
-                if square:
-                    C = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    dgemm_dot(B, A, False, True, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[1], B.shape[1]), dtype=A.dtype)
-                    return dgemm(1, A, B, 0, C, 1, 0, 1)
-            return A.T @ B
-    else:
-        if transB:
-            if A.dtype == numpy.float32:
-                if square:
-                    C = numpy.zeros((A.shape[0], B.shape[0]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    sgemm_dot(B, A, True, False, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[0], B.shape[0]), dtype=A.dtype)
-                    return sgemm(1, A, B, 0, C, 0, 1, 1)
-            if A.dtype == numpy.float64:
-                if square:
-                    C = numpy.zeros((A.shape[0], B.shape[0]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    dgemm_dot(B, A, True, False, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[0], B.shape[0]), dtype=A.dtype)
-                    return dgemm(1, A, B, 0, C, 0, 1, 1)
-            return A @ B.T
-        else:
-            if A.dtype == numpy.float32:
-                if square:
-                    C = numpy.zeros((A.shape[0], B.shape[1]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    sgemm_dot(B, A, False, False, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[0], B.shape[1]), dtype=A.dtype)
-                    return sgemm(1, A, B, 0, C, 0, 0)
-            if A.dtype == numpy.float64:
-                if square:
-                    C = numpy.zeros((A.shape[0], B.shape[1]), dtype=A.dtype)
-                    A, B = _make_contiguous_(A, B)
-                    dgemm_dot(B, A, False, False, C)
-                    return C
-                else:
-                    C = numpy.zeros((A.shape[0], B.shape[1]), dtype=A.dtype)
-                    return dgemm(1, A, B, 0, C, 0, 0, 1)
-            return A @ B
+        A = A.T
+    if transB:
+        B = B.T
+    return A @ B
