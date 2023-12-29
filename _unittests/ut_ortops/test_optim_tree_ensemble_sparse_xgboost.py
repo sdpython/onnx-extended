@@ -38,7 +38,7 @@ class TestXGBoostSparse(ExtTestCase):
         )
 
         # training with sparse
-        X, y = make_regression(n_samples=200, n_features=10, random_state=0)
+        X, y = make_regression(n_samples=400, n_features=10, random_state=0)
         mask = numpy.random.randint(0, 50, size=(X.shape)) != 0
         X[mask] = 0
         y = (y + mask.sum(axis=1, keepdims=0)).astype(numpy.float32)

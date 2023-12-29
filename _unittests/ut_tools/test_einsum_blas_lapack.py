@@ -2,7 +2,7 @@ import unittest
 import numpy
 from scipy.linalg.blas import sgemm
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.validation.cython.blas_lapack import gemm_dot, pygemm
+from onnx_extended.tools.einsum.blas_lapack import gemm_dot, pygemm
 
 
 class TestBlasLapack(ExtTestCase):

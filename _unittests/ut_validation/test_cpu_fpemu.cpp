@@ -13,3 +13,7 @@ void test_cast() {
   float bu = __half2float(u);
   ASSERT_THROW(f == bu);
 }
+
+int main(int, char**) {
+  test_cast();
+}

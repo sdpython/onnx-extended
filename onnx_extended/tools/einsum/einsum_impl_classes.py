@@ -13,7 +13,7 @@ from .einsum_impl_ext import (
     numpy_extended_dot_python,
     numpy_extended_dot_matrix,
 )
-from ...validation.cython.blas_lapack import gemm_dot
+from .blas_lapack import gemm_dot
 
 
 def single_axes(axes: Tuple[int, ...]) -> Optional[List[int]]:
