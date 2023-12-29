@@ -25,14 +25,9 @@ cuda_example_py
         "cuda_device_memory",
         "cuda_devices_memory",
         "cuda_version",
-        "get_device_prop",
         "gemm_benchmark_test",
         "FpemuMode",
         "fpemu_cuda_forward",
-        "vector_add",
-        "vector_sum_atomic",
-        "vector_sum0",
-        "vector_sum6",
     ]
     names.sort()
     classes = {"FpemuMode"}
