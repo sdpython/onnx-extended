@@ -1,6 +1,6 @@
 def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
     """
-    Pure python implementatin of GEMM.
+    Pure python implementation of GEMM.
     """
     assert len(A.shape) == 1, "A must be a vector."
     assert len(B.shape) == 1, "B must be a vector."

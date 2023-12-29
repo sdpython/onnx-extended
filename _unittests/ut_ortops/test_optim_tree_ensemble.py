@@ -335,6 +335,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             self.assertEqualArray(expected_labels, got[0], atol=1e-4)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @skipif_ci_apple("unstable")
     def test_random_forest_regressor_as_tensor(self):
         from skl2onnx import to_onnx
         from onnx_extended.ortops.optim.cpu import get_ort_ext_libs
