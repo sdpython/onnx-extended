@@ -46,7 +46,7 @@ void test_inference_tree_ensemble() {
   const char *input_names[] = {"X"};
   const char *output_names[] = {"Z"};
 
-  int64_t vector_1_dim[] = {500, 100};
+  int64_t vector_1_dim[] = {100, 500};
   std::vector<float> vector_1_value(vector_1_dim[0] * vector_1_dim[1]);
   for (size_t i = 0; i < vector_1_value.size(); ++i) {
     vector_1_value[i] = 1.0f / static_cast<float>(i + 1);
