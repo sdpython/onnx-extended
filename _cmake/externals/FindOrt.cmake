@@ -103,6 +103,18 @@ if (ORT_LIB_HEADER_LENGTH LESS_EQUAL 1)
                       "found files [${ORT_LIB_HEADER}]")
 endif()
 
+if(MSVC)
+  file(GLOB ORT_LIB_FILES_PDB ${ONNXRUNTIME_LIB_DIR}/*.pdb)
+  list(LENGTH ORT_LIB_FILES_PDB ORT_LIB_FILES_PDB_LENGTH)
+  if (ORT_LIB_FILES_PDB_LENGTH LESS_EQUAL 1)
+    message(FATAL_ERROR "No pdb file found in '${ONNXRUNTIME_LIB_DIR}' "
+                        "from path or url '${ORT_URL}', "
+                        "found files [${ORT_LIB_FILES}] "
+                        "with extension 'pdb'.")
+  endif()
+  list(APPEND ORT_LIB_FILES ${ORT_LIB_FILES_PDB})
+endif()
+
 #
 #! ort_add_dependency : copies necessary onnxruntime assembly
 #                       to the location a target is build

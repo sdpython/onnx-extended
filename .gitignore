@@ -11,6 +11,7 @@
 *.whl
 *.def
 *.ll
+*.pdb
 *.s
 /*.png
 /*.onnx

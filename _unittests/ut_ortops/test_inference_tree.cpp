@@ -44,7 +44,7 @@ void test_inference_tree_ensemble() {
   Ort::Session session(*ort_env, model.c_str(), session_options);
 
   const char *input_names[] = {"X"};
-  const char *output_names[] = {"Z"};
+  const char *output_names[] = {"variable"};
 
   int64_t vector_1_dim[] = {100, 500};
   std::vector<float> vector_1_value(vector_1_dim[0] * vector_1_dim[1]);
@@ -59,7 +59,7 @@ void test_inference_tree_ensemble() {
 
   Ort::RunOptions run_options;
   auto output_tensors =
-      session.Run(run_options, input_names, input_tensors, 2, output_names, 1);
+      session.Run(run_options, input_names, input_tensors, 1, output_names, 1);
   const auto &vector_filterred = output_tensors.at(0);
   auto type_shape_info = vector_filterred.GetTensorTypeAndShapeInfo();
   ASSERT_EQUAL(type_shape_info.GetDimensionsCount(), 2);
