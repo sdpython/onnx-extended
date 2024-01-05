@@ -63,9 +63,15 @@ else()
   message(STATUS "ORT - retrieve development version from '${ORT_VERSION}'")
   set(ORT_VERSION_INT 99999)
   set(ONNXRUNTIME_LIB_DIR "${ORT_VERSION}")
-  set(ONNXRUNTIME_INCLUDE_DIR
-      "${ORT_VERSION}/../../../include/onnxruntime/core/session")
+  if(MSVC)
+    set(ONNXRUNTIME_INCLUDE_DIR
+        "${ORT_VERSION}\\..\\..\\..\\..\\include\\onnxruntime\\core\\session")
+  else()
+    set(ONNXRUNTIME_INCLUDE_DIR
+        "${ORT_VERSION}/../../../include/onnxruntime/core/session")
+  endif()
   set(ORT_URL ${ORT_VERSION})
+  message(STATUS "ORT - retrieve from '${ONNXRUNTIME_INCLUDE_DIR}'")
 endif()
 
 find_library(ONNXRUNTIME onnxruntime HINTS "${ONNXRUNTIME_LIB_DIR}")
@@ -76,17 +82,24 @@ endif()
 file(GLOB ORT_LIB_FILES ${ONNXRUNTIME_LIB_DIR}/*.${DLLEXT}*)
 file(GLOB ORT_LIB_HEADER ${ONNXRUNTIME_INCLUDE_DIR}/*.h)
 
+if(MSVC)
+  if(NOT EXISTS "${ONNXRUNTIME_LIB_DIR}\\onnxruntime.dll")
+    message(FATAL_ERROR "Unable to find '${ONNXRUNTIME_LIB_DIR}\\onnxruntime.dll'.")
+  endif()
+endif()
+
 list(LENGTH ORT_LIB_FILES ORT_LIB_FILES_LENGTH)
 if (ORT_LIB_FILES_LENGTH LESS_EQUAL 1)
   message(FATAL_ERROR "No file found in '${ONNXRUNTIME_LIB_DIR}' "
-                      "from url '${ORT_URL}', "
-                      "found files [${ORT_LIB_FILES}].")
+                      "from path or url '${ORT_URL}', "
+                      "found files [${ORT_LIB_FILES}] "
+                      "with extension '${DLLEXT}'.")
 endif()
 
 list(LENGTH ORT_LIB_HEADER ORT_LIB_HEADER_LENGTH)
 if (ORT_LIB_HEADER_LENGTH LESS_EQUAL 1)
   message(FATAL_ERROR "No file found in '${ONNXRUNTIME_INCLUDE_DIR}' "
-                      "from url '${ORT_URL}', "
+                      "from path or url '${ORT_URL}', "
                       "found files [${ORT_LIB_HEADER}]")
 endif()
 
