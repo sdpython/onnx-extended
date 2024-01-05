@@ -26,7 +26,11 @@ target_link_libraries(
   common)
 
 add_executable(test_optops_inference_cpp ../_unittests/ut_ortops/test_inference_tree.cpp)
-target_compile_definitions(test_optops_inference_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
+target_compile_definitions(
+  test_optops_inference_cpp
+  PRIVATE
+  PYTHON_MANYLINUX=${PYTHON_MANYLINUX}
+  TESTED_CUSTOM_OPS_DLL="$<TARGET_FILE:ortops_optim_cpu>")
 target_include_directories(
   test_optops_inference_cpp
   PRIVATE
