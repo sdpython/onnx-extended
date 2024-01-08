@@ -32,9 +32,12 @@ void test_inference_tree_ensemble() {
   Ort::Value input_tensors[] = {Ort::Value::CreateTensor<float>(
       memory_info, vector_1_value.data(), vector_1_value.size(), vector_1_dim, 2)};
 
+  const char *env_p = std::getenv("LONG");
+  bool long_test = env_p != nullptr && env_p[0] == '1';
+
   Ort::RunOptions run_options;
-  for (int i = 0; i < 100000; ++i) {
-    if (i % 10000 == 0)
+  for (int i = 0; i < (long_test ? 100000 : 1); ++i) {
+    if (i > 0 && i % 10000 == 0)
       printf("i=%d\n", i);
     auto out = session.Run(run_options, input_names, input_tensors, 1, output_names, 1);
     ASSERT_EQUAL(out.size(), 1);
