@@ -414,7 +414,9 @@ def enumerate_implementations(
     parallel_settings: Optional[Dict[str, int]] = None,
     treebeard_settings: Optional[Dict[str, Union[int, str]]] = None,
     verbose: bool = False,
-) -> Iterator[Tuple[str, "onnxruntime.InferenceSession", "Tensor"]]:  # noqa: F821
+) -> Iterator[
+    Tuple[str, ModelProto, "onnxruntime.InferenceSession", "Tensor"]  # noqa: F821
+]:
     """
     Creates all the InferenceSession.
 
@@ -427,6 +429,7 @@ def enumerate_implementations(
     providers = ["CPUExecutionProvider"]
     yield (
         "ort",
+        onx,
         InferenceSession(onx.SerializeToString(), providers=providers),
         X,
     )
@@ -439,6 +442,7 @@ def enumerate_implementations(
     tr = transform_model(onx)
     yield (
         "custom",
+        tr,
         InferenceSession(tr.SerializeToString(), opts, providers=providers),
         X,
     )
@@ -446,6 +450,7 @@ def enumerate_implementations(
     tr = transform_model(onx, **parallel_settings)
     yield (
         "cusopt",
+        tr,
         InferenceSession(tr.SerializeToString(), opts, providers=providers),
         X,
     )
@@ -454,6 +459,7 @@ def enumerate_implementations(
     tr = transform_model(onx, use_sparse=True, **parallel_settings)
     yield (
         "sparse",
+        tr,
         InferenceSession(tr.SerializeToString(), opts, providers=providers),
         Xsp,
     )
@@ -465,7 +471,7 @@ def enumerate_implementations(
         verbose=verbose,
         **treebeard_settings,
     )
-    yield ("assembly", sess, X)
+    yield ("assembly", onx, sess, X)
 
 
 parallel_settings = dict(
@@ -483,7 +489,7 @@ onx = onnx.load(filename)
 sessions = []
 
 print("----- warmup")
-for name, sess, tensor in enumerate_implementations(
+for name, onx2, sess, tensor in enumerate_implementations(
     onx,
     Xb,
     parallel_settings=parallel_settings,
@@ -492,6 +498,8 @@ for name, sess, tensor in enumerate_implementations(
 ):
     if sess is None:
         continue
+    with open(f"plot_op_tree_ensemble_implementations_{name}.onnx", "wb") as f:
+        f.write(onx2.SerializeToString())
     sessions.append((name, sess, tensor))
     print(f"run {name!r} - shape={tensor.shape}")
     feeds = {"X": tensor}

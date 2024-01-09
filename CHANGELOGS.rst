@@ -1,7 +1,7 @@
 Change Logs
 ===========
 
-0.2.4
+0.3.0
 +++++
 
 * :pr:`129`, :pr:`132`: support sparse features for TreeEnsemble

@@ -82,21 +82,31 @@ class TestDocumentationExamples(ExtTestCase):
         fold = os.path.normpath(os.path.join(this, "..", "..", "_doc", "examples"))
         found = os.listdir(fold)
         for name in found:
-            if OrtSession is None and name in {"plot_bench_cypy_ort.py"}:
-                # The build went wrong.
+            if not name.startswith("plot_") or not name.endswith(".py"):
                 continue
-            if name in {"plot_op_tfidfvectorizer_sparse.py"}:
+            reason = None
+            if OrtSession is None and name in {"plot_bench_cypy_ort.py"}:
+                reason = "wrong build"
+            elif name in {"plot_op_tfidfvectorizer_sparse.py"}:
                 if sys.platform in {"darwin", "win32"}:
-                    # Stuck due to the creation of a secondary process.
-                    continue
-            if name.startswith("plot_") and name.endswith(".py"):
-                short_name = os.path.split(os.path.splitext(name)[0])[-1]
+                    #
+                    reason = "stuck due to the creation of a secondary process"
+
+            if reason:
+
+                @unittest.skip(reason)
+                def _test_(self, name=name):
+                    res = self.run_test(fold, name, verbose=VERBOSE)
+                    self.assertTrue(res)
+
+            else:
 
                 def _test_(self, name=name):
                     res = self.run_test(fold, name, verbose=VERBOSE)
                     self.assertTrue(res)
 
-                setattr(cls, f"test_{short_name}", _test_)
+            short_name = os.path.split(os.path.splitext(name)[0])[-1]
+            setattr(cls, f"test_{short_name}", _test_)
 
 
 TestDocumentationExamples.add_test_methods()

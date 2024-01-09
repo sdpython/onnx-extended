@@ -130,7 +130,8 @@ struct sparse_struct {
     // The implementation could be parallelized assuming rows have
     // approxatively the same amount of values.
     new_row = ind[0] / last_dim;
-    for (row = -1; row != new_row; ++row) {
+    rows_index.push_back(static_cast<uint32_t>(0));
+    for (row = 0; row != new_row; ++row) {
       rows_index.push_back(static_cast<uint32_t>(0));
     }
     for (uint32_t i = 1; i < n_elements; ++i) {
@@ -161,7 +162,8 @@ struct sparse_struct {
     // The implementation could be parallelized assuming rows have
     // approxatively the same amount of values.
     new_row = ind[0] / last_dim;
-    for (row = -1; row != new_row; ++row) {
+    rows_index.push_back(static_cast<uint32_t>(0));
+    for (row = 0; row != new_row; ++row) {
       rows_index.push_back(static_cast<uint32_t>(0));
     }
     element_indices[0] = ind[0] - row * last_dim;
