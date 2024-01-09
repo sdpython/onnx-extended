@@ -5,8 +5,7 @@
 
 void test_inference_tree_ensemble() {
 #if !defined(_WIN32) || (ORT_API_VERSION >= 17)
-  if (ORT_API_VERSION <)
-    const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
+  const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
   ASSERT_THROW(api != nullptr);
   Ort::Env env;
   auto ort_env = &env;
