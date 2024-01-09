@@ -3,16 +3,17 @@
 // #include "onnx_extended/ortcy/wrap/ortapi.h"
 #include "onnxruntime_cxx_api.h"
 
-
 void test_inference_tree_ensemble() {
-  const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
+#if !defined(_WIN32) || (ORT_API_VERSION >= 17)
+  if (ORT_API_VERSION <)
+    const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
   ASSERT_THROW(api != nullptr);
   Ort::Env env;
   auto ort_env = &env;
   Ort::SessionOptions session_options;
   session_options.RegisterCustomOpsLibrary(to_std_string_path(TESTED_CUSTOM_OPS_DLL).c_str());
 
-// requires C++ 17
+  // requires C++ 17
   std_string_type model =
       get_data_path("ut_ortops/data/plot_op_tree_ensemble_implementations_custom.onnx");
 
@@ -49,6 +50,8 @@ void test_inference_tree_ensemble() {
   ASSERT_EQUAL(type_shape_info.GetDimensionsCount(), 2);
   const float *floats_output = static_cast<const float *>(vector_filterred.GetTensorRawData());
   // ASSERT_EQUAL(floats_output[0], 0);
+  ASSERT_NOTEQUAL(floats_output, nullptr);
+#endif
 }
 
 int main(int, char **) { test_inference_tree_ensemble(); }

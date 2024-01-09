@@ -40,6 +40,14 @@ typedef std::string std_string_type;
     }                                                                                          \
   }
 
+#define ASSERT_NOTEQUAL(a, b)                                                                  \
+  {                                                                                            \
+    if (a == b) {                                                                              \
+      throw std::runtime_error(onnx_extended_helpers::MakeString(                              \
+          __FILE__, ":", __LINE__, " in ", __FUNCTION__, "\n", "a == b"));                     \
+    }                                                                                          \
+  }
+
 template <typename T> bool check_equal(int n, T *pa, T *pb) {
   for (int i = 0; i < n; ++i) {
     if (pa[i] != pb[i])
