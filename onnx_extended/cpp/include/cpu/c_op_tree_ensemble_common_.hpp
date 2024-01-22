@@ -198,19 +198,15 @@ public:
 
 protected:
   std::vector<ThresholdType> base_values_;
-  std::vector<TreeNodeElement<ThresholdType>, TreeAlloc<TreeNodeElement<ThresholdType>>> nodes_;
-  // Type of weights should be a vector of OutputType. Onnx specifications says
-  // it must be float. Lightgbm requires a double to do the summation of all
-  // trees predictions. That's why `ThresholdType` is used as well for output
-  // type (double as well for lightgbm) and not `OutputType`.
+  std::vector<TreeNodeElementPtr<ThresholdType>, TreeAlloc<TreeNodeElementPtr<ThresholdType>>> nodes_;
   std::vector<SparseValue<ThresholdType>> weights_;
-  std::vector<TreeNodeElement<ThresholdType> *> roots_;
+  std::vector<TreeNodeElementPtr<ThresholdType> *> roots_;
+  OutputType bias_;
 
   // optimisation
-  std::vector<TreeNodeElement3<ThresholdType>, TreeAlloc<TreeNodeElement3<ThresholdType>>>
+  std::vector<TreeNodeElementInt3<ThresholdType>, TreeAlloc<TreeNodeElementInt3<ThresholdType>>>
       nodes3_;
-  std::vector<TreeNodeElement3<ThresholdType> *> roots3_;
-  OutputType bias_;
+  std::vector<TreeNodeElementInt3<ThresholdType> *> roots3_;
 
 public:
   TreeEnsembleCommon() {}
@@ -241,13 +237,14 @@ public:
   int64_t get_sizeof() const;
 
 protected:
-  void ConvertTreeIntoTree3();
+  void ConvertTreeIntoTree3(const std::vector<TreeNodeElementInt<T>& nodes);
+  void ConvertTreeIntoPtr(const std::vector<TreeNodeElementInt<T>& nodes);
   int ConvertTreeNodeElementIntoTreeNodeElement3(std::size_t root_id,
                                                  InlinedVector<std::size_t> &to_remove);
 
-  const TreeNodeElement<ThresholdType> *
+  const TreeNodeElementPtr<ThresholdType> *
   ProcessTreeNodeLeave(std::size_t root_id, const typename FeatureType::RowAccessor &row) const;
-  const TreeNodeElement<ThresholdType> *
+  const TreeNodeElementPtr<ThresholdType> *
   ProcessTreeNodeLeave3(std::size_t root_id,
                         const typename FeatureType::RowAccessor &row) const;
 
@@ -260,9 +257,9 @@ template <typename FeatureType, typename ThresholdType, typename OutputType>
 int64_t TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::get_sizeof() const {
   int64_t res = 0;
   res += base_values_.size() * sizeof(ThresholdType);
-  res += nodes_.size() * sizeof(TreeNodeElement<ThresholdType>);
+  res += nodes_.size() * sizeof(TreeNodeElementPtr<ThresholdType>);
   res += weights_.size() * sizeof(SparseValue<ThresholdType>);
-  res += roots_.size() * sizeof(TreeNodeElement<ThresholdType> *);
+  res += roots_.size() * sizeof(TreeNodeElementPtr<ThresholdType> *);
   res += nodes3_.size() * sizeof(TreeNodeElement3<ThresholdType>);
   res += roots3_.size() * sizeof(TreeNodeElement3<ThresholdType> *);
   return res;
@@ -338,24 +335,26 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   limit = static_cast<std::size_t>(n_nodes_);
   InlinedVector<TreeNodeElementId> node_tree_ids;
   node_tree_ids.reserve(limit);
-  nodes_.clear();
-  nodes_.reserve(limit);
-  roots_.clear();
+  std::vector<TreeNodeElementInt> nodes;
+  nodes.reserve(limit);
+  std::vector<int64_t> roots;
   std::unordered_map<TreeNodeElementId, uint32_t, TreeNodeElementId::hash_fn> idi;
+
   idi.reserve(limit);
   max_feature_id_ = 0;
 
   for (i = 0; i < limit; ++i) {
     TreeNodeElementId node_tree_id{static_cast<int>(nodes_treeids[i]),
                                    static_cast<int>(nodes_nodeids[i])};
-    TreeNodeElement<ThresholdType> node;
+    TreeNodeElementInt<ThresholdType> node;
     node.feature_id = static_cast<int>(nodes_featureids[i]);
     if (node.feature_id > max_feature_id_) {
       max_feature_id_ = node.feature_id;
     }
     node.value_or_unique_weight = nodes_values[i];
 
-    /* hitrates is not used for inference, they are ignored.
+    /*
+    hitrates is not used for inference, they are ignored.
     node.hitrates = nodes_hitrates[i];
     */
 
@@ -372,7 +371,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
       EXT_THROW("Node ", node_tree_id.node_id, " in tree ", node_tree_id.tree_id,
                 " is already there.");
     }
-    nodes_.emplace_back(node);
+    nodes.emplace_back(node);
     node_tree_ids.emplace_back(node_tree_id);
   }
 
@@ -455,7 +454,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
       EXT_THROW("Unable to find node ", ind.tree_id, "-", ind.node_id, " (weights).");
     }
 
-    TreeNodeElement<ThresholdType> &leaf = nodes_[found->second];
+    TreeNodeElementInt<ThresholdType> &leaf = nodes[found->second];
     if (leaf.is_not_leaf()) {
       // An exception should be raised in that case. But this case may happen
       // in models converted with an old version of onnxmltools. These weights
@@ -478,10 +477,10 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   int64_t previous = -1;
   for (i = 0, limit = static_cast<uint32_t>(n_nodes_); i < limit; ++i) {
     if ((previous == -1) || (previous != node_tree_ids[i].tree_id))
-      roots_.push_back(&(nodes_[idi[node_tree_ids[i]]]));
+      roots_.push_back(&(nodes[idi[node_tree_ids[i]]]));
     previous = node_tree_ids[i].tree_id;
-    if (!nodes_[i].is_not_leaf()) {
-      if (nodes_[i].falsenode_inc_or_n_weights == 0) {
+    if (!nodes[i].is_not_leaf()) {
+      if (nodes[i].falsenode_inc_or_n_weights == 0) {
         EXT_THROW("Target is missing for leaf ", ind.tree_id, "-", ind.node_id, ".");
       }
       continue;
@@ -507,14 +506,16 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   if (use_node3_) {
     // Use optimized implementation with bigger nodes.
     DEBUG_PRINT("Init:Tree3")
-    ConvertTreeIntoTree3();
+    ConvertTreeIntoTree3(nodes);
+  } else {
+    ConvertTreeIntoPtr(nodes);
   }
   DEBUG_PRINT("Init:End")
   return Status::OK();
 }
 
 template <typename FeatureType, typename ThresholdType, typename OutputType>
-void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ConvertTreeIntoTree3() {
+void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ConvertTreeIntoTree3(const std::vector<TreeNodeElementInt<T>& nodes) {
   DEBUG_PRINT("ConvertTreeIntoTree3")
   roots3_.clear();
   nodes3_.clear();
@@ -549,13 +550,13 @@ int TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::
     ConvertTreeNodeElementIntoTreeNodeElement3(std::size_t root_id,
                                                InlinedVector<std::size_t> &to_remove) {
   std::vector<std::size_t> removed_nodes;
-  TreeNodeElement<ThresholdType> *node, *true_node, *false_node;
-  std::deque<std::pair<std::size_t, TreeNodeElement<ThresholdType> *>> stack;
+  TreeNodeElementInt<ThresholdType> *node, *true_node, *false_node;
+  std::deque<std::pair<std::size_t, TreeNodeElementPtr<ThresholdType> *>> stack;
   std::unordered_map<std::size_t, std::size_t> map_node_to_node3;
-  std::pair<std::size_t, TreeNodeElement<ThresholdType> *> pair;
+  std::pair<std::size_t, TreeNodeElementPtr<ThresholdType> *> pair;
   std::size_t last_node3 = nodes3_.size();
   nodes3_.reserve(nodes_.size() / 3);
-  stack.push_back(std::pair<std::size_t, TreeNodeElement<ThresholdType> *>(
+  stack.push_back(std::pair<std::size_t, TreeNodeElementPtr<ThresholdType> *>(
       roots_[root_id] - &(nodes_[0]), roots_[root_id]));
   while (!stack.empty()) {
     pair = stack.front();
@@ -613,7 +614,7 @@ int TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::
       continue;
     }
     for (std::size_t i = 0; i < 4; ++i) {
-      stack.push_back(std::pair<std::size_t, TreeNodeElement<ThresholdType> *>(
+      stack.push_back(std::pair<std::size_t, TreeNodeElementInt<ThresholdType> *>(
           node3.node_id[i], &(nodes_[node3.node_id[i]])));
     }
     map_node_to_node3[pair.first] = node3_index;
@@ -1149,13 +1150,13 @@ inline int GetLeave3IndexLEQ(typename FeatureType::ValueType* features, const Tr
 #endif
 
 template <typename FeatureType, typename ThresholdType, typename OutputType>
-const TreeNodeElement<ThresholdType> *
+const TreeNodeElementInt<ThresholdType> *
 TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ProcessTreeNodeLeave3(
     std::size_t root_id, const typename FeatureType::RowAccessor &row) const {
   EXT_ENFORCE(same_mode_, "This optimization is only available when all node "
                           "follow the same mode.");
   const TreeNodeElement3<ThresholdType> *root3 = roots3_[root_id];
-  const TreeNodeElement<ThresholdType> *root;
+  const TreeNodeElementInt<ThresholdType> *root;
   EXT_ENFORCE(root3 != nullptr, "No optimization for tree ", (int64_t)root_id, ".");
   InputType features[4];
   int node_id;
@@ -1184,7 +1185,7 @@ TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ProcessTreeNodeLeave
 }
 
 template <typename FeatureType, typename ThresholdType, typename OutputType>
-const TreeNodeElement<ThresholdType> *
+const TreeNodeElementPtr<ThresholdType> *
 TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ProcessTreeNodeLeave(
     std::size_t root_id, const typename FeatureType::RowAccessor &row) const {
   if (!nodes3_.empty() && (roots3_[root_id] != nullptr)) {
@@ -1192,7 +1193,7 @@ TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ProcessTreeNodeLeave
   }
   DEBUG_INDEX(root_id, roots_.size(), "ERROR ProcessTreeNodeLeave root_id=", (int64_t)root_id,
               " roots_.size()=", (int64_t)roots_.size(), ".");
-  const TreeNodeElement<ThresholdType> *root = roots_[root_id];
+  const TreeNodeElementPtr<ThresholdType> *root = roots_[root_id];
   InputType val;
   if (same_mode_) {
     switch (root->mode()) {
