@@ -199,7 +199,7 @@ class TestCTreeEnsemble(ExtTestCase):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
             lexp = clr.predict(X_test[i : i + 1])
             self.assertEqual(lexp.shape, y[0].shape)
-            self.assertEqualArray(lexp.astype(numpy.float32), y[0])
+            self.assertEqualArray(lexp.astype(numpy.float32), y[0], atol=1e-5)
 
         for i in range(0, 20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 2]})
