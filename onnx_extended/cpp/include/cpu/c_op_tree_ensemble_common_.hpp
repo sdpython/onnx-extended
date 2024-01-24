@@ -198,8 +198,7 @@ public:
 
 protected:
   std::vector<ThresholdType> base_values_;
-  std::vector<TreeNodeElement<ThresholdType>, TreeAlloc<TreeNodeElement<ThresholdType>>>
-      nodes_;
+  std::vector<TreeNodeElement<ThresholdType>, TreeAlloc<TreeNodeElement<ThresholdType>>> nodes_;
   std::vector<SparseValue<ThresholdType>> weights_;
   std::vector<TreeNodeElement<ThresholdType> *> roots_;
   OutputType bias_;
@@ -369,15 +368,15 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);
   post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
   base_values_.reserve(base_values.size());
-  for (size_t i = 0, limit = base_values.size(); i < limit; ++i) {
+  for (std::size_t i = 0, limit = base_values.size(); i < limit; ++i) {
     base_values_.push_back(static_cast<ThresholdType>(base_values[i]));
   }
   n_targets_or_classes_ = n_targets_or_classes;
   max_tree_depth_ = 1000;
   EXT_ENFORCE(nodes_modes.size() < std::numeric_limits<uint32_t>::max());
 
-  // Additional members
-  size_t limit;
+  // additional members
+  std::size_t limit;
   uint32_t i;
   InlinedVector<NODE_MODE> cmodes;
   cmodes.reserve(nodes_modes.size());
@@ -396,7 +395,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   }
 
   n_nodes_ = nodes_treeids.size();
-  limit = static_cast<size_t>(n_nodes_);
+  limit = static_cast<std::size_t>(n_nodes_);
   InlinedVector<TreeNodeElementId> node_tree_ids;
   node_tree_ids.reserve(limit);
   nodes_.clear();
@@ -506,7 +505,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
     default:
       break;
     }
-  }  
+  }
 
   TreeNodeElementId ind;
   SparseValue<ThresholdType> w;

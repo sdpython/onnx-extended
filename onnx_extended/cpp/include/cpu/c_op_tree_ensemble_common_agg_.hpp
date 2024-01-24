@@ -182,7 +182,7 @@ template <typename T> struct TreeNodeElement : TreeNodePtr {
   inline bool is_missing_track_true() const { return flags & MissingTrack::kTrue; }
   inline bool is_not_leaf() const { return !(flags & NODE_MODE::LEAF); }
   inline std::string to_string() const {
-    onnx_extended_helpers::StringStream* st = onnx_extended_helpers::StringStream::NewStream();
+    onnx_extended_helpers::StringStream *st = onnx_extended_helpers::StringStream::NewStream();
     st->append_charp("N=");
     st->append_int32(static_cast<int32_t>(feature_id));
     st->append_charp(":F=");
