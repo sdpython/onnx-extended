@@ -273,7 +273,7 @@ class TestCTreeEnsemble(ExtTestCase):
         y = y.astype(numpy.float32)
         y = numpy.vstack([y, y]).T
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = DecisionTreeRegressor()
+        clr = DecisionTreeRegressor(max_depth=2)
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))

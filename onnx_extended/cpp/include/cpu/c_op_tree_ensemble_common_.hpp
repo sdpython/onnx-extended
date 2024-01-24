@@ -240,7 +240,7 @@ public:
 protected:
   void ConvertTreeIntoTree3();
   int ConvertTreeNodeElementIntoTreeNodeElement3(std::size_t root_id,
-                                                 std::vector<std::size_t> &to_remove);
+                                                 InlinedVector<std::size_t> &to_remove);
 
   const TreeNodeElementPtr<ThresholdType> *
   ProcessTreeNodeLeave(std::size_t root_id, const typename FeatureType::RowAccessor &row) const;
@@ -379,7 +379,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   // Additional members
   size_t limit;
   uint32_t i;
-  std::vector<NODE_MODE> cmodes;
+  InlinedVector<NODE_MODE> cmodes;
   cmodes.reserve(nodes_modes.size());
   same_mode_ = true;
   int fpos = -1;
@@ -397,7 +397,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
 
   n_nodes_ = nodes_treeids.size();
   limit = static_cast<size_t>(n_nodes_);
-  std::vector<TreeNodeElementId> node_tree_ids;
+  InlinedVector<TreeNodeElementId> node_tree_ids;
   node_tree_ids.reserve(limit);
   nodes_.clear();
   nodes_.reserve(limit);
@@ -495,7 +495,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
 
   TreeNodeElementId ind;
   SparseValue<ThresholdType> w;
-  size_t indi;
+  std::size_t indi;
   for (indi = 0, limit = target_class_nodeids.size(); indi < limit; ++indi) {
     ind = indices[indi].first;
     i = indices[indi].second;
@@ -550,7 +550,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ConvertTreeInto
   }
   std::vector<int> root3_ids;
   root3_ids.reserve(roots_.size());
-  std::vector<std::size_t> to_remove;
+  InlinedVector<std::size_t> to_remove;
   to_remove.reserve(nodes_.size());
   for (std::size_t root_id = 0; root_id < roots_.size(); ++root_id) {
     auto root3_id = ConvertTreeNodeElementIntoTreeNodeElement3(root_id, to_remove);
@@ -573,7 +573,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ConvertTreeInto
 template <typename FeatureType, typename ThresholdType, typename OutputType>
 int TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::
     ConvertTreeNodeElementIntoTreeNodeElement3(std::size_t root_id,
-                                               std::vector<std::size_t> &to_remove) {
+                                               InlinedVector<std::size_t> &to_remove) {
   std::vector<std::size_t> removed_nodes;
   TreeNodeElementPtr<ThresholdType> *true_node, *false_node;
   std::deque<TreeNodeElementPtr<ThresholdType> *> stack;
@@ -745,8 +745,8 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
                 */
         DEBUG_PRINT()
         DEBUG_PRINT_STEP("S:N1:TN-P")
-        std::vector<ScoreValue<ThresholdType>> scores(static_cast<std::size_t>(n_trees_),
-                                                      {0, 0});
+        InlinedVector<ScoreValue<ThresholdType>> scores(static_cast<std::size_t>(n_trees_),
+                                                        {0, 0});
         auto acc = features.get(0);
         TryBatchParallelFor(max_n_threads, this->batch_size_tree_, n_trees_,
                             [this, &scores, &agg, &acc](int64_t j) {
@@ -778,7 +778,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       // on caches, then loop on trees and finally loop on the batch rows.
       DEBUG_PRINT()
       DEBUG_PRINT_STEP("S:NN:TN")
-      std::vector<ScoreValue<ThresholdType>> scores(std::min(parallel_tree_n, N));
+      InlinedVector<ScoreValue<ThresholdType>> scores(std::min(parallel_tree_n, N));
       std::vector<typename FeatureType::RowAccessor> acc(scores.size());
       std::size_t j;
       int64_t i, batch, batch_end;
@@ -810,7 +810,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       int n_batches =
           this->batch_size_tree_ <= 1 ? n_trees_ : n_trees_ / this->batch_size_tree_ + 1;
       int max_n = std::min(N, parallel_tree_n);
-      std::vector<ScoreValue<ThresholdType>> scores(
+      InlinedVector<ScoreValue<ThresholdType>> scores(
           static_cast<std::size_t>(n_batches * max_n));
       std::vector<typename FeatureType::RowAccessor> acc(max_n);
       int64_t end_n, begin_n = 0;
@@ -901,7 +901,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       if (n_trees_ <= parallel_tree_ || max_n_threads == 1) { /* section A2 */
         DEBUG_PRINT()
         DEBUG_PRINT_STEP("M:N1:TN")
-        std::vector<ScoreValue<ThresholdType>> scores(
+        InlinedVector<ScoreValue<ThresholdType>> scores(
             static_cast<std::size_t>(n_targets_or_classes_), {0, 0});
         auto acc = features.get(0);
         for (int64_t j = 0; j < n_trees_; ++j) {
@@ -915,7 +915,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
         DEBUG_PRINT()
         DEBUG_PRINT_STEP("M:N1:TN-P")
         auto n_threads = std::min<int32_t>(max_n_threads, static_cast<int32_t>(n_trees_));
-        std::vector<std::vector<ScoreValue<ThresholdType>>> scores(n_threads * 2);
+        std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(n_threads * 2);
         auto acc = features.get(0);
         TrySimpleParallelFor(
             n_threads, n_threads * 2,
@@ -944,7 +944,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       std::size_t j, limit;
       int64_t i, batch, batch_end;
       batch_end = std::min(N, static_cast<int64_t>(parallel_tree_n));
-      std::vector<std::vector<ScoreValue<ThresholdType>>> scores(batch_end);
+      std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(batch_end);
       std::vector<typename FeatureType::RowAccessor> acc(scores.size());
       for (i = 0; i < batch_end; ++i) {
         scores[i].resize(static_cast<std::size_t>(n_targets_or_classes_));
@@ -977,7 +977,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
       int n_batches =
           this->batch_size_tree_ <= 1 ? n_trees_ : n_trees_ / this->batch_size_tree_ + 1;
       int max_n = std::min(N, parallel_tree_n);
-      std::vector<std::vector<ScoreValue<ThresholdType>>> scores(
+      std::vector<InlinedVector<ScoreValue<ThresholdType>>> scores(
           static_cast<std::size_t>(n_batches * max_n));
       for (std::size_t ind = 0; ind < scores.size(); ++ind) {
         scores[ind].resize(static_cast<std::size_t>(n_targets_or_classes_));
@@ -1050,7 +1050,7 @@ void TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::ComputeAgg(
             auto work = PartitionWork(batch_num, n_batches, N);
             for (int64_t i = work.start; i < work.end; ++i) {
               std::size_t j, limit;
-              std::vector<ScoreValue<ThresholdType>> scores(
+              InlinedVector<ScoreValue<ThresholdType>> scores(
                   static_cast<std::size_t>(n_targets_or_classes_));
 
               std::fill(scores.begin(), scores.end(), ScoreValue<ThresholdType>({0, 0}));
