@@ -526,7 +526,7 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
       continue;
     }
     w.i = target_class_ids[i];
-    w.value = target_class_weights[i];
+    w.value = target_class_weights[i] - bias_;
     if (leaf.truenode_or_weight.weight_data.n_weights == 0) {
       leaf.truenode_or_weight.weight_data.weight = static_cast<int32_t>(weights_.size());
       leaf.value_or_unique_weight = w.value;
@@ -543,12 +543,6 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
       break;
     }
   }
-
-  printf("-------------------\n");
-  for (auto it : nodes_) {
-    printf("N==%s\n", it.to_string().c_str());
-  }
-  printf("-------------------\n");
 
   if (use_node3_) {
     // Use optimized implementation with bigger nodes.
