@@ -143,10 +143,10 @@ template <typename T> struct ScoreValue {
 
 enum MissingTrack : uint8_t { kTrue = 16, kFalse = 0 };
 
-template <typename T> struct TreeNodeElementPtr;
+template <typename T> struct TreeNodeElement;
 
 template <typename T> union PtrOrWeight {
-  TreeNodeElementPtr<T> *ptr;
+  TreeNodeElement<T> *ptr;
   struct WeightData {
     int32_t weight;
     int32_t n_weights;
@@ -155,7 +155,7 @@ template <typename T> union PtrOrWeight {
 
 struct TreeNodePtr {};
 
-template <typename T> struct TreeNodeElementPtr : TreeNodePtr {
+template <typename T> struct TreeNodeElement : TreeNodePtr {
   int feature_id;
 
   // Stores the node threshold or the weights if the tree has one target.
@@ -169,7 +169,7 @@ template <typename T> struct TreeNodeElementPtr : TreeNodePtr {
   // (see `is_not_leaf`).
 
   // If it is not a leaf, it is a pointer to the true child node when traversing the decision
-  // tree. The false branch is always 1 position away from the TreeNodeElementPtr in practice in
+  // tree. The false branch is always 1 position away from the TreeNodeElement in practice in
   // `TreeEnsembleCommon::nodes_` so it is not stored.
 
   // If it is a leaf, it contains `weight` and `n_weights` attributes which are used to indicate
@@ -181,12 +181,30 @@ template <typename T> struct TreeNodeElementPtr : TreeNodePtr {
   inline NODE_MODE mode() const { return NODE_MODE(flags & 0xF); }
   inline bool is_missing_track_true() const { return flags & MissingTrack::kTrue; }
   inline bool is_not_leaf() const { return !(flags & NODE_MODE::LEAF); }
+  inline std::string to_string() const {
+    onnx_extended_helpers::StringStream* st = onnx_extended_helpers::StringStream::NewStream();
+    st->append_charp("N=");
+    st->append_int32(static_cast<int32_t>(feature_id));
+    st->append_charp(":F=");
+    st->append_int32(static_cast<int32_t>(flags));
+    st->append_charp(":W=");
+    st->append_double(static_cast<double>(value_or_unique_weight));
+    if (!is_not_leaf()) {
+      st->append_charp("-n=");
+      st->append_int32(static_cast<int32_t>(truenode_or_weight.weight_data.n_weights));
+      st->append_charp(":w=");
+      st->append_int32(static_cast<int32_t>(truenode_or_weight.weight_data.weight));
+    }
+    auto res = st->str();
+    delete st;
+    return res;
+  }
 };
 
 enum MissingTrack3 : uint8_t { kTrue0 = 16, kTrue1 = 32, kTrue2 = 64, kChildren3 = 128 };
 
-template <typename T> struct TreeNodeElementPtr3 : TreeNodePtr {
-  // This structure is equivalent to 3 nodes TreeNodeElementPtr.
+template <typename T> struct TreeNodeElement3 : TreeNodePtr {
+  // This structure is equivalent to 3 nodes TreeNodeElement.
   // It allows to save (11*4+4)/((4*4+1)*3)=48/51 ~ 5% reduction.
   T thresholds[4];
   TreeNodePtr *node_ptr[4];
@@ -225,7 +243,7 @@ public:
   // 1 output
 
   void ProcessTreeNodePrediction1(ScoreValue<ThresholdType> & /*prediction*/,
-                                  const TreeNodeElementPtr<ThresholdType> & /*root*/) const {}
+                                  const TreeNodeElement<ThresholdType> & /*root*/) const {}
 
   void MergePrediction1(ScoreValue<ThresholdType> & /*prediction*/,
                         ScoreValue<ThresholdType> & /*prediction2*/) const {}
@@ -243,7 +261,7 @@ public:
 
   void ProcessTreeNodePrediction(
       InlinedVector<ScoreValue<ThresholdType>> & /*predictions*/,
-      const TreeNodeElementPtr<ThresholdType> & /*root*/,
+      const TreeNodeElement<ThresholdType> & /*root*/,
       const InlinedVector<SparseValue<ThresholdType>> & /*weights*/) const {}
 
   void
@@ -282,7 +300,7 @@ public:
   // 1 output
 
   void ProcessTreeNodePrediction1(ScoreValue<ThresholdType> &prediction,
-                                  const TreeNodeElementPtr<ThresholdType> &root) const {
+                                  const TreeNodeElement<ThresholdType> &root) const {
     prediction.score += root.value_or_unique_weight;
   }
 
@@ -303,7 +321,7 @@ public:
 
   void
   ProcessTreeNodePrediction(InlinedVector<ScoreValue<ThresholdType>> &predictions,
-                            const TreeNodeElementPtr<ThresholdType> &root,
+                            const TreeNodeElement<ThresholdType> &root,
                             const InlinedVector<SparseValue<ThresholdType>> &weights) const {
     auto it = weights.begin() + root.truenode_or_weight.weight_data.weight;
     for (int32_t i = 0; i < root.truenode_or_weight.weight_data.n_weights; ++i, ++it) {
@@ -397,7 +415,7 @@ public:
   // 1 output
 
   void ProcessTreeNodePrediction1(ScoreValue<ThresholdType> &prediction,
-                                  const TreeNodeElementPtr<ThresholdType> &root) const {
+                                  const TreeNodeElement<ThresholdType> &root) const {
     prediction.score =
         (!(prediction.has_score) || root.value_or_unique_weight < prediction.score)
             ? root.value_or_unique_weight
@@ -419,7 +437,7 @@ public:
 
   void
   ProcessTreeNodePrediction(InlinedVector<ScoreValue<ThresholdType>> &predictions,
-                            const TreeNodeElementPtr<ThresholdType> &root,
+                            const TreeNodeElement<ThresholdType> &root,
                             const InlinedVector<SparseValue<ThresholdType>> &weights) const {
     auto it = weights.begin() + root.truenode_or_weight.weight_data.weight;
     for (int32_t i = 0; i < root.truenode_or_weight.weight_data.n_weights; ++i, ++it) {
@@ -463,7 +481,7 @@ public:
   // 1 output
 
   void ProcessTreeNodePrediction1(ScoreValue<ThresholdType> &prediction,
-                                  const TreeNodeElementPtr<ThresholdType> &root) const {
+                                  const TreeNodeElement<ThresholdType> &root) const {
     prediction.score =
         (!(prediction.has_score) || root.value_or_unique_weight > prediction.score)
             ? root.value_or_unique_weight
@@ -485,7 +503,7 @@ public:
 
   void
   ProcessTreeNodePrediction(InlinedVector<ScoreValue<ThresholdType>> &predictions,
-                            const TreeNodeElementPtr<ThresholdType> &root,
+                            const TreeNodeElement<ThresholdType> &root,
                             const InlinedVector<SparseValue<ThresholdType>> &weights) const {
     auto it = weights.begin() + root.truenode_or_weight.weight_data.weight;
     for (int32_t i = 0; i < root.truenode_or_weight.weight_data.n_weights; ++i, ++it) {
