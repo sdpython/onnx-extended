@@ -288,7 +288,7 @@ size_t TreeEnsembleCommon<InputType, ThresholdType, OutputType>::AddNodes(
   // Validate this index maps to the same tree_id as the one we should be building.
   if (node_tree_ids[i].tree_id != tree_id) {
     EXT_THROW("Tree id mismatch. Expected ", tree_id, " but got ", node_tree_ids[i].tree_id,
-              " at position ", i);
+              " at position ", static_cast<uint32_t>(i));
   }
 
   if (updated_mapping[i] != 0) {
@@ -318,8 +318,9 @@ size_t TreeEnsembleCommon<InputType, ThresholdType, OutputType>::AddNodes(
         falsenode_ids[i], cmodes, truenode_ids, falsenode_ids, nodes_featureids, node_values,
         nodes_missing_value_tracks_true, updated_mapping, tree_id, node_tree_ids);
     if (false_branch != node_pos + 1) {
-      EXT_THROW("False node must always be the next node, but it isn't at index ", node_pos,
-                " with flags ", static_cast<int>(nodes_[node_pos].flags));
+      EXT_THROW("False node must always be the next node, but it isn't at index ",
+                stativ_cast<uint32_t>(node_pos), " with flags ",
+                static_cast<int>(nodes_[node_pos].flags));
     }
     size_t true_branch = AddNodes(
         truenode_ids[i], cmodes, truenode_ids, falsenode_ids, nodes_featureids, node_values,
@@ -478,8 +479,8 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
 
   n_trees_ = roots_.size();
   if (((int64_t)nodes_.size()) != n_nodes_) {
-    EXT_THROW("Number of nodes in nodes_ (", nodes_.size(), ") is different from n_nodes (",
-              n_nodes_, ").");
+    EXT_THROW("Number of nodes in nodes_ (", static_cast<uint32_t>(nodes_.size()),
+              ") is different from n_nodes (", n_nodes_, ").");
   }
 
   // Sort targets
