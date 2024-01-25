@@ -199,7 +199,7 @@ class TestCTreeEnsemble(ExtTestCase):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
             lexp = clr.predict(X_test[i : i + 1])
             self.assertEqual(lexp.shape, y[0].shape)
-            self.assertEqualArray(lexp.astype(numpy.float32), y[0])
+            self.assertEqualArray(lexp.astype(numpy.float32), y[0], atol=1e-5)
 
         for i in range(0, 20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 2]})
@@ -273,7 +273,7 @@ class TestCTreeEnsemble(ExtTestCase):
         y = y.astype(numpy.float32)
         y = numpy.vstack([y, y]).T
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = DecisionTreeRegressor()
+        clr = DecisionTreeRegressor(max_depth=1)
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))

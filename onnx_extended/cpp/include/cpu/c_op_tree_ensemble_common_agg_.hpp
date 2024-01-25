@@ -143,44 +143,71 @@ template <typename T> struct ScoreValue {
 
 enum MissingTrack : uint8_t { kTrue = 16, kFalse = 0 };
 
-template <typename T> struct TreeNodeElement {
+template <typename T> struct TreeNodeElement;
+
+template <typename T> union PtrOrWeight {
+  TreeNodeElement<T> *ptr;
+  struct WeightData {
+    int32_t weight;
+    int32_t n_weights;
+  } weight_data;
+};
+
+struct TreeNodePtr {};
+
+template <typename T> struct TreeNodeElement : TreeNodePtr {
   int feature_id;
 
   // Stores the node threshold or the weights if the tree has one target.
   T value_or_unique_weight;
 
-  // onnx specification says hitrates is used to store information about the
-  // node, but this information is not used for inference. T hitrates;
+  // The onnx specification says hitrates is used to store information about the node,
+  // but this information is not used for inference.
+  // T hitrates;
 
-  // True node, false node are obtained by computing `this +
-  // truenode_inc_or_first_weight`, `this + falsenode_inc_or_n_weights` if the
-  // node is not a leaf. In case of a leaf, these attributes are used to
-  // indicate the position of the weight in array
-  // `TreeEnsembleCommon::weights_`. If the number of targets or classes is one,
-  // the weight is also stored in `value_or_unique_weight`.
-  // This implementation assumes a tree has less than 2^31 nodes,
-  // and the total number of leave in the set of trees is below 2^31.
-  // A node cannot point to itself.
-  int32_t truenode_inc_or_first_weight;
-  // In case of a leaf, the following attribute indicates the number of weights
-  // in array `TreeEnsembleCommon::weights_`. If not a leaf, it indicates
-  // `this + falsenode_inc_or_n_weights` is the false node.
-  // A node cannot point to itself.
-  int32_t falsenode_inc_or_n_weights;
+  // PtrOrWeight acts as a tagged union, with the "tag" being whether the node is a leaf or not
+  // (see `is_not_leaf`).
+
+  // If it is not a leaf, it is a pointer to the true child node when traversing the decision
+  // tree. The false branch is always 1 position away from the TreeNodeElement in practice in
+  // `TreeEnsembleCommon::nodes_` so it is not stored.
+
+  // If it is a leaf, it contains `weight` and `n_weights` attributes which are used to indicate
+  // the position of the weight in array `TreeEnsembleCommon::weights_`. If the number of
+  // targets or classes is one, the weight is also stored in `value_or_unique_weight`.
+  PtrOrWeight<T> truenode_or_weight;
   uint8_t flags;
 
   inline NODE_MODE mode() const { return NODE_MODE(flags & 0xF); }
-  inline bool is_not_leaf() const { return !(flags & NODE_MODE::LEAF); }
   inline bool is_missing_track_true() const { return flags & MissingTrack::kTrue; }
+  inline bool is_not_leaf() const { return !(flags & NODE_MODE::LEAF); }
+  inline std::string to_string() const {
+    onnx_extended_helpers::StringStream *st = onnx_extended_helpers::StringStream::NewStream();
+    st->append_charp("N=");
+    st->append_int32(static_cast<int32_t>(feature_id));
+    st->append_charp(":F=");
+    st->append_int32(static_cast<int32_t>(flags));
+    st->append_charp(":W=");
+    st->append_double(static_cast<double>(value_or_unique_weight));
+    if (!is_not_leaf()) {
+      st->append_charp("-n=");
+      st->append_int32(static_cast<int32_t>(truenode_or_weight.weight_data.n_weights));
+      st->append_charp(":w=");
+      st->append_int32(static_cast<int32_t>(truenode_or_weight.weight_data.weight));
+    }
+    auto res = st->str();
+    delete st;
+    return res;
+  }
 };
 
 enum MissingTrack3 : uint8_t { kTrue0 = 16, kTrue1 = 32, kTrue2 = 64, kChildren3 = 128 };
 
-template <typename T> struct TreeNodeElement3 {
+template <typename T> struct TreeNodeElement3 : TreeNodePtr {
   // This structure is equivalent to 3 nodes TreeNodeElement.
   // It allows to save (11*4+4)/((4*4+1)*3)=48/51 ~ 5% reduction.
   T thresholds[4];
-  int32_t node_id[4];
+  TreeNodePtr *node_ptr[4];
   int feature_id[3];
   uint32_t flags;
 
@@ -296,8 +323,8 @@ public:
   ProcessTreeNodePrediction(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                             const TreeNodeElement<ThresholdType> &root,
                             const InlinedVector<SparseValue<ThresholdType>> &weights) const {
-    auto it = weights.begin() + root.truenode_inc_or_first_weight;
-    for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
+    auto it = weights.begin() + root.truenode_or_weight.weight_data.weight;
+    for (int32_t i = 0; i < root.truenode_or_weight.weight_data.n_weights; ++i, ++it) {
       // EXT_ENFORCE(it->i < (int64_t)predictions.size());
       predictions[static_cast<std::size_t>(it->i)].score += it->value;
       predictions[static_cast<std::size_t>(it->i)].has_score = 1;
@@ -412,8 +439,8 @@ public:
   ProcessTreeNodePrediction(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                             const TreeNodeElement<ThresholdType> &root,
                             const InlinedVector<SparseValue<ThresholdType>> &weights) const {
-    auto it = weights.begin() + root.truenode_inc_or_first_weight;
-    for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
+    auto it = weights.begin() + root.truenode_or_weight.weight_data.weight;
+    for (int32_t i = 0; i < root.truenode_or_weight.weight_data.n_weights; ++i, ++it) {
       predictions[static_cast<std::size_t>(it->i)].score =
           (!predictions[static_cast<std::size_t>(it->i)].has_score ||
            it->value < predictions[static_cast<std::size_t>(it->i)].score)
@@ -478,8 +505,8 @@ public:
   ProcessTreeNodePrediction(InlinedVector<ScoreValue<ThresholdType>> &predictions,
                             const TreeNodeElement<ThresholdType> &root,
                             const InlinedVector<SparseValue<ThresholdType>> &weights) const {
-    auto it = weights.begin() + root.truenode_inc_or_first_weight;
-    for (int32_t i = 0; i < root.falsenode_inc_or_n_weights; ++i, ++it) {
+    auto it = weights.begin() + root.truenode_or_weight.weight_data.weight;
+    for (int32_t i = 0; i < root.truenode_or_weight.weight_data.n_weights; ++i, ++it) {
       predictions[static_cast<std::size_t>(it->i)].score =
           (!predictions[static_cast<std::size_t>(it->i)].has_score ||
            it->value > predictions[static_cast<std::size_t>(it->i)].score)

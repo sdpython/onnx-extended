@@ -55,8 +55,7 @@ public:
               const std::vector<int64_t> &class_nodeids,                   // 17
               const std::vector<int64_t> &class_treeids,                   // 18
               const std::vector<ThresholdType> &class_weights,             // 19
-              bool is_classifier
-  ) {
+              bool is_classifier) {
     TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
         aggregate_function,              // 3
         base_values,                     // 4
@@ -75,8 +74,7 @@ public:
         class_nodeids,                   // 17
         class_treeids,                   // 18
         class_weights,                   // 19
-        is_classifier
-    );
+        is_classifier);
     DEBUG_PRINT("Init")
 
     InlinedHashSet<int64_t> weights_classes;
