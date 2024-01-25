@@ -319,7 +319,7 @@ size_t TreeEnsembleCommon<InputType, ThresholdType, OutputType>::AddNodes(
         nodes_missing_value_tracks_true, updated_mapping, tree_id, node_tree_ids);
     if (false_branch != node_pos + 1) {
       EXT_THROW("False node must always be the next node, but it isn't at index ",
-                stativ_cast<uint32_t>(node_pos), " with flags ",
+                static_cast<uint32_t>(node_pos), " with flags ",
                 static_cast<int>(nodes_[node_pos].flags));
     }
     size_t true_branch = AddNodes(
