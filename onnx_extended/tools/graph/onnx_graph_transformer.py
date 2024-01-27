@@ -288,13 +288,13 @@ class _QuantizeState:
                 fname,
             ) not in self.main_state.local_functions:
                 # use local functions
-                self.main_state.local_functions[
-                    self.main_state.domain_dq, fname
-                ] = make_matmul_reshape_transpose_function_proto(
-                    domain=self.main_state.domain_dq,
-                    opset=self.main_state.opset,
-                    index=index,
-                    transpose=do_transpose,
+                self.main_state.local_functions[self.main_state.domain_dq, fname] = (
+                    make_matmul_reshape_transpose_function_proto(
+                        domain=self.main_state.domain_dq,
+                        opset=self.main_state.opset,
+                        index=index,
+                        transpose=do_transpose,
+                    )
                 )
 
         new_name = node.parent.generate_name(f"{name}_f8")
@@ -445,12 +445,12 @@ class _QuantizeState:
                 fname,
             ) not in self.main_state.local_functions:
                 # use local functions
-                self.main_state.local_functions[
-                    self.main_state.domain_dq, fname
-                ] = make_matmul_reshape_transpose_back_function_proto(
-                    domain=self.main_state.domain_dq,
-                    opset=self.main_state.opset,
-                    index=index,
+                self.main_state.local_functions[self.main_state.domain_dq, fname] = (
+                    make_matmul_reshape_transpose_back_function_proto(
+                        domain=self.main_state.domain_dq,
+                        opset=self.main_state.opset,
+                        index=index,
+                    )
                 )
 
             elif self.was_reshaped[1]:

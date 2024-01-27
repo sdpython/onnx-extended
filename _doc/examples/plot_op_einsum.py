@@ -21,6 +21,7 @@ The code shows which optimisation is used for the custom
 implementation, *AVX* or *SSE* and the number of available processors,
 equal to the default number of used threads to parallelize.
 """
+
 import logging
 import numpy
 import pandas

@@ -13,6 +13,7 @@ Let's see their impact on the computation time through the operator Conv.
 Create one model
 ++++++++++++++++
 """
+
 import struct
 import matplotlib.pyplot as plt
 from pandas import DataFrame

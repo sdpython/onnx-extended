@@ -9,6 +9,7 @@ against a :epkg:`cython` binding.
 The time spent in it is not significant when the computation is huge
 but it may be for small matrices.
 """
+
 import numpy
 from pandas import DataFrame
 import matplotlib.pyplot as plt

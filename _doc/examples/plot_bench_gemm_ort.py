@@ -10,6 +10,7 @@ types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 This function offers many options.
 """
+
 import pprint
 import platform
 from itertools import product

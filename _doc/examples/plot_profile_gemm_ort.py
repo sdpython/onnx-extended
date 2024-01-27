@@ -8,6 +8,7 @@ The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 """
+
 import pprint
 from itertools import product
 import numpy
