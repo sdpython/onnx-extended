@@ -369,9 +369,11 @@ def cmd_quantize(
 
     if verbose:
         logging.basicConfig(
-            level=logging.WARN
-            if verbose > 2
-            else (logging.DEBUG if verbose > 1 else logging.INFO)
+            level=(
+                logging.WARN
+                if verbose > 2
+                else (logging.DEBUG if verbose > 1 else logging.INFO)
+            )
         )
 
     if kind == "fp8":
@@ -454,9 +456,11 @@ def cmd_select(
 
     if verbose:
         logging.basicConfig(
-            level=logging.WARN
-            if verbose > 2
-            else (logging.DEBUG if verbose > 1 else logging.INFO)
+            level=(
+                logging.WARN
+                if verbose > 2
+                else (logging.DEBUG if verbose > 1 else logging.INFO)
+            )
         )
 
     if isinstance(inputs, str):

@@ -8,6 +8,7 @@ keep the tensor in its sparse representation and do look up?
 The parameter *nrnd* can be seen as the depth of a tree.
 
 """
+
 import itertools
 import numpy as np
 from tqdm import tqdm

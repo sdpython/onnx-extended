@@ -109,9 +109,7 @@ class Runner:
                 setattr(tests, name, item.func)
         return tests
 
-    def run(
-        self, verbose: int = 0, exc_cls: Optional[type] = AssertionError
-    ) -> Tuple[
+    def run(self, verbose: int = 0, exc_cls: Optional[type] = AssertionError) -> Tuple[
         List[Tuple[str, Callable]],
         List[Tuple[str, Callable, Any]],
         List[Tuple[str, Callable, Exception]],

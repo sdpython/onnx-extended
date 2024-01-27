@@ -8,6 +8,7 @@ This benchmark looks into various combinations allowed by functions
 :epkg:`cublasLtMatmul`. The tested configurations are available at
 :epkg:`cuda_gemm.cu`.
 """
+
 import pprint
 import warnings
 from itertools import product

@@ -129,9 +129,11 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 [X],
                 [Y, scale],
             ),
-            opset_imports=[make_opsetid(domain, opset)]
-            if domain == ""
-            else [make_opsetid(domain, opset), make_opsetid("", 19)],
+            opset_imports=(
+                [make_opsetid(domain, opset)]
+                if domain == ""
+                else [make_opsetid(domain, opset), make_opsetid("", 19)]
+            ),
             ir_version=9,
         )
         try:

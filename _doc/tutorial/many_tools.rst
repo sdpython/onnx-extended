@@ -13,7 +13,7 @@ A couple of the helpers described below are available
 through command lines.
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: onnx
 
     external_data
@@ -25,7 +25,7 @@ The second series is used to investigate C++ implementations
 in :epkg:`onnxruntime`.
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: onnxruntime
 
     profiling

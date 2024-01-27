@@ -17,6 +17,7 @@ It only contains unigram. The model processes only sequences of 10
 integers. The sparsity of the results is then 10 divided by the size of
 vocabulary.
 """
+
 import gc
 import time
 import itertools

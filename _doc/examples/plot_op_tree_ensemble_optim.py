@@ -51,6 +51,7 @@ Another example:
     python plot_op_tree_ensemble_optim.py
         --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
 """
+
 import logging
 import os
 import timeit

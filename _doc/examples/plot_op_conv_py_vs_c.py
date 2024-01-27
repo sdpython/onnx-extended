@@ -14,6 +14,7 @@ The following example compares the processing time for three runtimes.
 Creation of a simple model
 ++++++++++++++++++++++++++
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas import DataFrame
