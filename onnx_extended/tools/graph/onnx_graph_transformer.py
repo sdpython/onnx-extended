@@ -391,19 +391,19 @@ class _QuantizeState:
             gemm_outputs = node.outputs
             do_reshape = False
 
+        atts = dict(
+            dtype=output_type,
+            transA=1 if (self.main_state.index_transpose & 1) else 0,
+            transB=1 if (self.main_state.index_transpose & 2) else 0,
+            domain=self.main_state.domain_gemm,
+            name=node.parent.generate_node_name("GEMMFP8"),
+        )
+        if self.main_state.domain_gemm != "com.microsoft":
+            atts["rowMajor"] = 0
+            atts["computeType"] = "CUBLAS_COMPUTE_32F_FAST_TF32"
+
         self.added.append(
-            make_node(
-                self.main_state.op_gemm,
-                gemm_inputs,
-                gemm_outputs,
-                rowMajor=0,
-                dtype=output_type,
-                transA=1 if (self.main_state.index_transpose & 1) else 0,
-                transB=1 if (self.main_state.index_transpose & 2) else 0,
-                domain=self.main_state.domain_gemm,
-                computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
-                name=node.parent.generate_node_name("GEMMFP8"),
-            )
+            make_node(self.main_state.op_gemm, gemm_inputs, gemm_outputs, **atts)
         )
         if do_reshape:
             # One of the inputs had 3 dimensions.

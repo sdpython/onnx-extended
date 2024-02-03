@@ -505,11 +505,6 @@ class cmake_build_class_extension(Command):
             os.makedirs(build_path)
         source_path = os.path.join(this_dir, "_cmake")
 
-        if self.parallel is not None:
-            cmake_args.extend(["--", f"-j{self.parallel}"])
-        else:
-            cmake_args.extend(["--", f"-j{multiprocessing.cpu_count()}"])
-
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
 
         print(f"-- setup: version={sys.version_info!r}")
@@ -524,6 +519,10 @@ class cmake_build_class_extension(Command):
         # then build
         print()
         cmd = ["cmake", "--build", build_path, "--config", cfg]
+        if self.parallel is not None:
+            cmd.extend(["--", f"-j{self.parallel}"])
+        else:
+            cmd.extend(["--", f"-j{multiprocessing.cpu_count()}"])
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")

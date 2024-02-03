@@ -51,6 +51,7 @@ if has_cuda():
 
     try:
         device_props = get_device_prop()
+        print(device_props)
     except RuntimeError:
         device_props = {}
 else:
@@ -171,6 +172,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         reason="onnx not recent enough or onnxruntime not "
         "installed or cuda is not available",
     )
+    @unittest.skipIf(device_props.get("major", 0) < 8, reason="no fp8 support")
     def test_quantize_f8_onnx_onnxruntime(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
@@ -214,8 +216,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             if "Current official support for domain ai.onnx is till opset 19." in str(
                 e
             ):
-                # onnxruntime not recent enough
-                return
+                raise unittest.SkipTes("onnxruntime not recent enough")
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
