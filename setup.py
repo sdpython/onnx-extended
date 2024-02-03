@@ -505,12 +505,12 @@ class cmake_build_class_extension(Command):
             os.makedirs(build_path)
         source_path = os.path.join(this_dir, "_cmake")
 
-        cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
-
         if self.parallel is not None:
             cmake_args.extend(["--", f"-j{self.parallel}"])
         else:
             cmake_args.extend(["--", f"-j{multiprocessing.cpu_count()}"])
+
+        cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
 
         print(f"-- setup: version={sys.version_info!r}")
         print(f"-- setup: cwd={os.getcwd()!r}")
@@ -728,7 +728,7 @@ def get_ext_modules():
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.16.3"
+DEFAULT_ORT_VERSION = "1.17.0"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."

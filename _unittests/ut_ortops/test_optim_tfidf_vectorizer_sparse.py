@@ -270,7 +270,9 @@ class TestTfIdefVectorizerSparse(ExtTestCase):
             if "type inference failed" in str(e):
                 # Type inference failed
                 # see https://github.com/microsoft/onnxruntime/pull/17497
-                return
+                raise unittest.SkipTest("does not work for onnxruntime<1.17.0")
+            if "This is an invalid model." in str(e):
+                raise unittest.SkipTest("not yet implemented for strings")
             raise e
         got = check.run(None, {"X": corpus})
         self.assertEqualArray(exp.todense().astype(numpy.float32), got[0])

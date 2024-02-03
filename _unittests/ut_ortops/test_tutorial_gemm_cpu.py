@@ -48,7 +48,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
 
-    def common_test_custom_gemm(
+    def common_test_custom_gemm_cpu(
         self, op_name, tos, return_sess=False, square=True, **kwargs
     ):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
@@ -205,7 +205,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             ) from e
 
     def test_custom_gemm_base0_cnot_square(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -215,7 +215,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_no_trans(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -223,7 +223,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_no_trans_bias(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
@@ -232,7 +232,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base2_no_trans_col_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -241,7 +241,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base2_no_trans_col_major_bias(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
@@ -251,7 +251,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_with_transa(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -260,7 +260,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base2_with_transa_col_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -270,7 +270,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base2_with_transb_col_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -280,7 +280,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base2_with_transab_col_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -291,7 +291,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_with_transb(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -300,7 +300,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_with_transab(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -310,7 +310,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_basic_float32_default(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -319,7 +319,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_relu(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -329,7 +329,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_gelu(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -339,7 +339,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_col_major_relu(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -350,7 +350,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_col_major_gelu(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -361,7 +361,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_not_square(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -371,7 +371,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_col_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -381,7 +381,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_col_major_not_square(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -391,7 +391,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_col_major_not_square_with_transa(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -402,7 +402,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_col_major_not_square_with_transb(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -413,7 +413,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_base0_col_major_not_square_with_transab(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -425,7 +425,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_basic_float32_bias(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
@@ -435,7 +435,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_bias_01(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
@@ -445,7 +445,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_bias_col_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
@@ -456,7 +456,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_not_square_bias(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
@@ -467,7 +467,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_not_square_bias_col_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(3)],
             name="cgf",
@@ -480,7 +480,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
 
     @unittest.skipIf(get_stdcpp() < 23, "Gemm for float16 not implemented for CPU.")
     def test_custom_gemm_float16_default(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat16",
             [TensorProto.FLOAT16 for i in range(2)],
             name="cgf",
@@ -489,7 +489,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         )
 
     def test_custom_gemm_float32_row_major(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat",
             [TensorProto.FLOAT for i in range(2)],
             name="cgf",
@@ -502,7 +502,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         Version(ort_version) < Version("1.17.0"), reason="type inference failed"
     )
     def test_custom_gemm_float8(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat8E4M3FN",
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",
@@ -514,7 +514,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         Version(ort_version) < Version("1.17.0"), reason="type inference failed"
     )
     def test_custom_gemm_float8_not_square(self):
-        self.common_test_custom_gemm(
+        self.common_test_custom_gemm_cpu(
             "CustomGemmFloat8E4M3FN",
             [TensorProto.FLOAT8E4M3FN for i in range(2)],
             name="cgf8",

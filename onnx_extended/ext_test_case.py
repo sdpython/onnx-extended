@@ -339,3 +339,11 @@ class ExtTestCase(unittest.TestCase):
             if msg is None:
                 raise e
             raise AssertionError(msg) from e
+
+    @classmethod
+    def to_str(cls, onx: "ModelProto") -> str:  # noqa: F821
+        if hasattr(onx, "SerializeToString"):
+            from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
+
+            return onnx_simple_text_plot(onx)
+        raise RuntimeError(f"Unable to print type {type(onx)}")
