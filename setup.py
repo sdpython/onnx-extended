@@ -519,10 +519,11 @@ class cmake_build_class_extension(Command):
         # then build
         print()
         cmd = ["cmake", "--build", build_path, "--config", cfg]
-        if self.parallel is not None:
-            cmd.extend(["--", f"-j{self.parallel}"])
-        else:
-            cmd.extend(["--", f"-j{multiprocessing.cpu_count()}"])
+        if sys.platform != "win32":
+            if self.parallel is not None:
+                cmd.extend(["--", f"-j{self.parallel}"])
+            else:
+                cmd.extend(["--", f"-j{multiprocessing.cpu_count()}"])
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
