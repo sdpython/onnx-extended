@@ -507,6 +507,7 @@ class cmake_build_class_extension(Command):
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
 
+        print(f"-- setup: LD_LIBRARY_PATH={os.environ.get('LD_LIBRARY_PATH','')}")
         print(f"-- setup: version={sys.version_info!r}")
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: source_path={source_path!r}")

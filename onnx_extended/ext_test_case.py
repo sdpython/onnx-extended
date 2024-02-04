@@ -341,7 +341,7 @@ class ExtTestCase(unittest.TestCase):
             raise AssertionError(msg) from e
 
     @classmethod
-    def to_str(cls, onx: "ModelProto") -> str:  # noqa: F821
+    def to_str(cls, onx: "onnx.ModelProto") -> str:  # noqa: F821
         if hasattr(onx, "SerializeToString"):
             from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
 

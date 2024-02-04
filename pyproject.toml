@@ -111,22 +111,22 @@ test-command = "python -m pip install onnxruntime&&python -c \"import onnx_exten
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp313-* pypy* *musllinux*"
+skip = "pypy* *musllinux* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
 manylinux-x86_64-image = "manylinux2014"
 before-build = "pip install auditwheel-symbols abi3audit"
 build-verbosity = 1
 repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
-test-command = "python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True)\"&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortcy=True,verbose=True)\""
+test-command = "yum list installed&&yum install devtoolset-10-gcc-c++&&python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True)\"&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortcy=True,verbose=True)\""
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp313-* pypy* pp*"
+skip = "pypy* pp* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp313-* pypy*"
+skip = "pypy* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
 
 [tool.cython-lint]
 max-line-length = 88
@@ -163,7 +163,7 @@ disable_error_code = ["index"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.ext_test_case"]
-disable_error_code = ["override"]
+disable_error_code = ["name-defined", "override"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.ortops.optim.optimize"]
