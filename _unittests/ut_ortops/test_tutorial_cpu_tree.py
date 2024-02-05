@@ -9,7 +9,7 @@ from onnx import ModelProto
 from onnx.helper import make_attribute
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -193,6 +193,7 @@ class TestOrtOpTutorialCpuTree(ExtTestCase):
         self.assertEqual(len(r), 1)
 
     @unittest.skipIf(InferenceSession is None, "onnxruntime not installed")
+    @skipif_ci_apple("crash")
     def test_custom_tree_ensemble(self):
         n_features = 5
         batch_size = 1024
