@@ -5,6 +5,7 @@ Change Logs
 +++++
 
 * :pr:`153`: use onnxruntime==1.17.0 as default
+* :pr:`154`: improves ploting legend for profiling
 * :pr:`151`: refactoring of TreeEnsemble code to make them faster
 * :pr:`129`, :pr:`132`: support sparse features for TreeEnsemble
 
