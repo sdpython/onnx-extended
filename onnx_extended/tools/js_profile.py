@@ -189,6 +189,9 @@ def _preprocess_graph2(df):
     for c in ["it==0", "args_input_type_shape"]:
         if c in df.columns:
             agg_cols.append(c)
+    if "it==0" in df.columns:
+        vs = ["t>=1", "t=0"]
+        df["it==0"] = df["it==0"].apply(lambda v: vs[v])
     df = df[agg_cols].groupby(agg_cols[1:]).sum()
     df = df.sort_index(ascending=False)
     df["ratio"] = df["dur"] / df["dur"].sum()
