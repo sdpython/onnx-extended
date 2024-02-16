@@ -430,9 +430,8 @@ class cmake_build_class_extension(Command):
             f"-DORT_VERSION={self.ort_version}",
             f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
             f"-DPYTHON_MANYLINUX={1 if is_manylinux else 0}",
+            f"-DAUDITWHEEL_PLAT={os.environ.get('AUDITWHEEL_PLAT', '')}"
         ]
-        if is_manylinux:
-            cmake_args.append("-D_GLIBCXX_USE_CXX11_ABI=0")
         if self.noverbose:
             cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=OFF")
         elif self.verbose:
