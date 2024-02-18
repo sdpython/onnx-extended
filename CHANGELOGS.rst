@@ -4,6 +4,7 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`155`: add a function to draw a timeline from a profile
 * :pr:`154`: improves ploting legend for profiling
 * :pr:`151`: refactoring of TreeEnsemble code to make them faster
 * :pr:`129`, :pr:`132`: support sparse features for TreeEnsemble
