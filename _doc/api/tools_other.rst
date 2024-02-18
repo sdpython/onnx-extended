@@ -24,6 +24,11 @@ plot_ort_profile
 
 .. autofunction:: onnx_extended.tools.js_profile.plot_ort_profile
 
+plot_ort_profile_timeline
++++++++++++++++++++++++++
+
+.. autofunction:: onnx_extended.tools.js_profile.plot_ort_profile_timeline
+
 onnx_extended.tools.run_onnx
 ============================
 
