@@ -262,7 +262,7 @@ def plot_ort_profile_timeline(
     ax: Optional["matplotlib.axes.Axes"] = None,
     iteration: int = -2,
     title: Optional[str] = None,
-    quantile: float = 0.1,
+    quantile: float = 0.5,
     fontsize: int = 12,
 ) -> "matplotlib.axes.Axes":
     """
@@ -282,6 +282,8 @@ def plot_ort_profile_timeline(
 
         ax = plt.gca()
 
+    df = df.copy()
+    df["iteration"] = df["iteration"].astype(int)
     iterations = set(df["iteration"])
     n_iter = iteration if iteration >= 0 else max(iterations) + 1 + iteration
     dfi = df[df["iteration"] == n_iter]
