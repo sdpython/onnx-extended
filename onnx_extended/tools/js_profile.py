@@ -205,7 +205,7 @@ def plot_ort_profile(
     title: Optional[str] = None,
 ) -> "matplotlib.axes.Axes":
     """
-    Plots time spend in computation based on dataframe
+    Plots time spend in computation based on a dataframe
     produced by function :func:`js_profile_to_dataframe`.
 
     :param df: dataframe
@@ -216,7 +216,7 @@ def plot_ort_profile(
     """
     fontsize = 10
     if ax0 is None:
-        import matplotlib as plt
+        import matplotlib.pyplot as plt
 
         ax0 = plt.gca()
 
@@ -255,3 +255,109 @@ def plot_ort_profile(
         ax0.get_yaxis().set_label_text("")
         ax0.set_yticklabels(ax0.get_yticklabels(), fontsize=fontsize)
     return ax0
+
+
+def plot_ort_profile_timeline(
+    df: DataFrame,
+    ax: Optional["matplotlib.axes.Axes"] = None,
+    iteration: int = -2,
+    title: Optional[str] = None,
+    quantile: float = 0.1,
+    fontsize: int = 12,
+) -> "matplotlib.axes.Axes":
+    """
+    Creates a timeline based on a dataframe
+    produced by function :func:`js_profile_to_dataframe`.
+
+    :param df: dataframe
+    :param ax: first axis to draw time
+    :param iteration: iteration to plot, negative value to start from the end
+    :param title: graph title
+    :param quantile: draw the 10% less consuming operators in a different color
+    :param fontsize: font size
+    :return: the graph
+    """
+    if ax is None:
+        import matplotlib.pyplot as plt
+
+        ax = plt.gca()
+
+    iterations = set(df["iteration"])
+    n_iter = iteration if iteration >= 0 else max(iterations) + 1 + iteration
+    dfi = df[df["iteration"] == n_iter]
+    assert dfi.shape[0] > 0, f"Iteration {iteration} cannot be found in {iterations}."
+
+    started = {}
+    data = []
+    for irow in dfi.iterrows():
+        assert isinstance(
+            irow, tuple
+        ), f"pandas has changed its api, type is {type(row)}"
+        assert len(irow) == 2, f"pandas has changed its api, row is {row}"
+        row = irow[1]
+        it = row["iteration"]
+        op_type = row["args_op_name"]
+        op_name = row["op_name"]
+        event_name = row["event_name"]
+        provider = row["args_provider"]
+        ts = float(row["ts"])
+        dur = float(row["dur"])
+        if event_name == "fence_before":
+            started[op_type, op_name, it] = dict(
+                op_name=op_name, op_type=op_type, begin=ts
+            )
+        elif event_name == "kernel_time":
+            obs = started[op_type, op_name, it]
+            obs["duration"] = dur
+            obs["begin_kernel"] = ts
+            obs["provider"] = provider
+        elif event_name == "fence_after":
+            obs = started[op_type, op_name, it]
+            obs["end"] = ts
+            data.append(obs)
+            del started[op_type, op_name, it]
+        else:
+            assert event_name in {
+                "SequentialExecutor::Execute",
+                "model_run",
+            }, f"Unexpected event_name={event_name!r}, row={row}"
+
+    # durations
+    data_dur = list(sorted(d["duration"] for d in data))
+    threshold = data_dur[int(quantile * len(data_dur))]
+    origin = dfi["ts"].min()
+
+    colors = ["blue", "green", "red", "orange"]
+
+    import matplotlib.patches as mpatches
+
+    cs = [0, 0]
+    for i, obs in enumerate(data):
+        dur = obs["duration"]
+        cat = int(dur >= threshold)
+
+        # color
+        color = colors[cat * 2 + cs[cat] % 2]
+        cs[cat] += 1
+
+        # rectangle
+        t1 = obs["begin"] - origin
+        t2 = obs["end"] - origin
+        shape = mpatches.Rectangle((0, t1), 1, t2 - t1, ec="none", color=color)
+        ax.add_artist(shape)
+        tk1 = obs["begin_kernel"] - origin
+        tk2 = (obs["begin_kernel"] + obs["duration"]) - origin
+        ax.plot([0, 1], [tk1, tk1], "b--")
+        ax.plot([0, 1], [tk2, tk2], "b--")
+
+        # text
+        y = (tk1 + tk2) / 2
+        text = obs["op_type"]
+        prov = obs["provider"].replace("ExecutionProvider", "")
+        name = obs["op_name"]
+        if len(name) >= 10:
+            name = name[:5] + "..." + name[5:]
+        ax.text(1, y, f"{i}:{prov}:{text}-{name}", fontsize=fontsize, va="center")
+
+    ax.invert_yaxis()
+    return ax
