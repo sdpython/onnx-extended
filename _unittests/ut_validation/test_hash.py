@@ -56,7 +56,7 @@ class TestHash(ExtTestCase):
 
     @ignore_warnings(DeprecationWarning)
     @unittest.skipIf(
-        pv.Version(ort_version) < pv.Version("1.17.0"),
+        pv.Version(ort_version) < pv.Version("1.17.1"),
         reason="failure in the converter and onnxruntime",
     )
     def test_feature_hasher_float32(self):

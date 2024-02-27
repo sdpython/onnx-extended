@@ -4,7 +4,7 @@ Change Logs
 0.3.0
 +++++
 
-* :pr:`153`: use onnxruntime==1.17.0 as default
+* :pr:`153`: use onnxruntime==1.17.1 as default
 * :pr:`155`: add a function to draw a timeline from a profile
 * :pr:`154`: improves ploting legend for profiling
 * :pr:`151`: refactoring of TreeEnsemble code to make them faster
