@@ -4,7 +4,7 @@
 #include "onnxruntime_cxx_api.h"
 
 void test_inference_tree_ensemble() {
-#if !defined(_WIN32) || (ORT_API_VERSION >= 17)
+#if !defined(_WIN32) && (ORT_API_VERSION >= 17)
   const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
   ASSERT_THROW(api != nullptr);
   Ort::Env env;
