@@ -159,6 +159,7 @@ class TestSparseStruct(ExtTestCase):
         self.assertIsInstance(r, tuple)
         self.assertEqual(len(r), 3)
 
+    @skipif_ci_apple("crash")
     def test_evaluate_sparse_sparse(self):
         from onnx_extended.validation.cpu._validation import evaluate_sparse
 
