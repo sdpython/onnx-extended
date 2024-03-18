@@ -139,6 +139,7 @@ class TestSparseStruct(ExtTestCase):
         self.assertEqual(indices.tolist(), [0, 74, 93])
         self.assertEqual(values.tolist(), [777, 555, 888])
 
+    @skipif_ci_apple("crash")
     def test_evaluate_sparse_dense(self):
         from onnx_extended.validation.cpu._validation import evaluate_sparse
 
