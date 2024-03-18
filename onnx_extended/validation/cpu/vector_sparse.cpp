@@ -292,14 +292,20 @@ std::vector<std::tuple<double, double, double>> evaluate_sparse(const float *v, 
   std::vector<int64_t> pos;
   fill_random_indices(n_rows, n_cols, random, ntimes, pos);
   std::vector<float> sparse_tensor;
+  printf("evaluate_sparse:0\n");
   dense_to_sparse(v, n_rows, n_cols, sparse_tensor);
+  printf("evaluate_sparse:1\n");
   if (test & 1) {
+    printf("evaluate_sparse:2\n");
     auto r = _test_sparse_dense(pos, sparse_tensor, random, ntimes, repeat);
+    printf("evaluate_sparse:3\n");
     res.push_back(r);
   }
   if (test & 2) {
+    printf("evaluate_sparse:4\n");
     auto r = _test_sparse_sparse(pos, sparse_tensor.size(), sparse_tensor.data(), n_rows,
                                  n_cols, random, ntimes, repeat);
+    printf("evaluate_sparse:5\n");
     res.push_back(r);
   }
   EXT_ENFORCE(res.size() > 0, "No test was run, test=", test, ".");

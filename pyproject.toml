@@ -116,7 +116,7 @@ manylinux-x86_64-image = "manylinux_2_28"
 before-build = "pip install auditwheel-symbols abi3audit"
 build-verbosity = 1
 repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
-test-command = "yum list installed&&yum install devtoolset-10-gcc-c++&&python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True)\"&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortcy=True,verbose=True)\""
+test-command = "yum list installed&&yum install devtoolset-12-gcc-c++&&python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True)\"&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortcy=True,verbose=True)\""
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
