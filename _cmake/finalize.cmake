@@ -10,7 +10,7 @@ endif()
 set(config_content_comma
     "${config_content_cuda}"
     "\nORT_VERSION = '${ORT_VERSION}'"
-     "\nORT_VERSION_INT = ${ORT_VERSION_INT}"
+    "\nORT_VERSION_INT = ${ORT_VERSION_INT}"
     "\nCXX_FLAGS = '${CMAKE_CXX_FLAGS}'"
     "\nCMAKE_CXX_STANDARD_REQUIRED = '${CMAKE_CXX_STANDARD_REQUIRED}'"
     "\nCMAKE_CXX_EXTENSIONS = '${CMAKE_CXX_EXTENSIONS}'"

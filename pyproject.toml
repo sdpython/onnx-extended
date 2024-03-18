@@ -17,14 +17,15 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["numpy", "onnx>=1.14.0", "scipy"]
+dependencies = ["numpy", "onnx>=1.15.0", "scipy"]
 description = "Extends the list of supported operators in onnx reference implementation and onnxruntime, or implements faster versions in C++."
 keywords = ["onnx", "onnxruntime", "CUDA", "openmp", "cmake", "cython", "pybind11"]
 license = {file = "LICENSE.txt"}
 name = "onnx-extended"
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 version = "0.3.0"
 
 [project.urls]
@@ -104,28 +105,28 @@ namespaces = false
 
 [tool.cibuildwheel]
 build = "*"
-manylinux-x86_64-image = "manylinux2014"
+manylinux-x86_64-image = "manylinux_2_28"  # "manylinux2014"
 test-command = "python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True,ortcy=True)\""
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* *musllinux*"
-manylinux-x86_64-image = "manylinux2014"
+skip = "pypy* *musllinux* cp36-* cp37-* cp38-* cp39-* cp310-* cp312-* cp313-* cp314-*"
+manylinux-x86_64-image = "manylinux_2_28"
 before-build = "pip install auditwheel-symbols abi3audit"
 build-verbosity = 1
-repair-wheel-command = "auditwheel-symbols --manylinux 2014 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
-test-command = "python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True)\"&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortcy=True,verbose=True)\""
+repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} ; abi3audit {wheel} ; auditwheel repair -w {dest_dir} {wheel} || exit 0"
+test-command = "yum list installed&&python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True)\"&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortcy=True,verbose=True)\""
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy* pp*"
+skip = "pypy* pp* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
 build = "cp*"
-skip = "cp36-* cp37-* cp38-* cp39-* cp312-* pypy*"
+skip = "pypy* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
 
 [tool.cython-lint]
 max-line-length = 88
@@ -162,7 +163,7 @@ disable_error_code = ["index"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.ext_test_case"]
-disable_error_code = ["override"]
+disable_error_code = ["name-defined", "override"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.ortops.optim.optimize"]
@@ -313,10 +314,10 @@ disable_error_code = ["arg-type"]
 exclude = [".eggs", ".git", "build", "dist"]
 line-length = 88
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 10
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "onnx_extended/helper/__init__.py" = ["F401"]
 "onnx_extended/reference/__init__.py" = ["F401"]
 "onnx_extended/tools/__init__.py" = ["F401"]

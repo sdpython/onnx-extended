@@ -351,6 +351,10 @@ def plot_ort_profile_timeline(
         tk2 = (obs["begin_kernel"] + obs["duration"]) - origin
         ax.plot([0, 1], [tk1, tk1], "b--")
         ax.plot([0, 1], [tk2, tk2], "b--")
+        if i == 0:
+            ax.plot([0, 2], [tk1, tk1], "b")
+        elif i == len(data) - 1:
+            ax.plot([0, 2], [tk2, tk2], "b")
 
         # text
         y = (tk1 + tk2) / 2

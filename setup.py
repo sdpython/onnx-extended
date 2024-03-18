@@ -430,6 +430,7 @@ class cmake_build_class_extension(Command):
             f"-DORT_VERSION={self.ort_version}",
             f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
             f"-DPYTHON_MANYLINUX={1 if is_manylinux else 0}",
+            f"-DAUDITWHEEL_PLAT={os.environ.get('AUDITWHEEL_PLAT', '')}",
         ]
         if self.noverbose:
             cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=OFF")
@@ -507,11 +508,7 @@ class cmake_build_class_extension(Command):
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
 
-        if self.parallel is not None:
-            cmake_args.extend(["--", f"-j{self.parallel}"])
-        else:
-            cmake_args.extend(["--", f"-j{multiprocessing.cpu_count()}"])
-
+        print(f"-- setup: LD_LIBRARY_PATH={os.environ.get('LD_LIBRARY_PATH','')}")
         print(f"-- setup: version={sys.version_info!r}")
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: source_path={source_path!r}")
@@ -524,6 +521,11 @@ class cmake_build_class_extension(Command):
         # then build
         print()
         cmd = ["cmake", "--build", build_path, "--config", cfg]
+        if sys.platform != "win32":
+            if self.parallel is not None:
+                cmd.extend(["--", f"-j{self.parallel}"])
+            else:
+                cmd.extend(["--", f"-j{multiprocessing.cpu_count()}"])
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
@@ -728,7 +730,7 @@ def get_ext_modules():
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.16.3"
+DEFAULT_ORT_VERSION = "1.17.1"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."

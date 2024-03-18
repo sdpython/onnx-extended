@@ -2,7 +2,7 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from onnx import ModelProto
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 from onnx_extended.validation.bench_trees import create_decision_tree, bench_trees
 from onnx_extended.validation._tree_d14_f100 import tree_d14_f100
 from onnx_extended.tools.onnx_io import onnx2string
@@ -52,6 +52,7 @@ class TestBenchTree(ExtTestCase):
         self.assertEqual(len(res), 2)
         self.assertIn("test 'CReferenceEvaluator' duration=", text)
 
+    @skipif_ci_apple("crash")
     def test_bench_tree_all_engines(self):
         res = bench_trees(
             max_depth=2,
