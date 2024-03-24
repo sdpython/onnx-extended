@@ -237,10 +237,10 @@ template <>
 ONNXTensorElementDataType ScatterNDOfShapeOp<float>::GetInputType(std::size_t index) const {
   switch (index) {
   case 0:
-  case 2:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   case 1:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
+  case 2:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
   default:
     EXT_THROW("Input index=", (int64_t)index, " is out of boundary.");
   }
@@ -250,10 +250,10 @@ template <>
 ONNXTensorElementDataType ScatterNDOfShapeOp<half>::GetInputType(std::size_t index) const {
   switch (index) {
   case 0:
-  case 2:
-    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
   case 1:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
+  case 2:
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
   default:
     EXT_THROW("Input index=", (int64_t)index, " is out of boundary.");
   }
@@ -378,7 +378,7 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
     element_counts_and_input_dims[i + last_index_dimension] = input_shape[i];
   }
 
-  void *workspace;
+  int64_t *workspace;
   CUDA_THROW_IF_ERROR(
       cudaMalloc((void **)&workspace, element_counts_and_input_dims.size() * sizeof(int64_t)));
   CUDA_THROW_IF_ERROR(cudaMemcpyAsync(workspace, element_counts_and_input_dims.data(),
@@ -386,15 +386,15 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
                                       cudaMemcpyHostToDevice, cuda_stream));
   switch (reduction_) {
   case Reduction::Add: {
-    auto element_type = CTypeToOnnxType<T>::onnx_types();
-    EXT_RETURN_IF_ERROR(ScatterNDImplReduction(
+    auto element_type = CTypeToOnnxType<T>().onnx_type();
+    ScatterNDImplReduction(
         cuda_stream, output_data, element_type,
         indice_size / static_cast<size_t>(last_index_dimension),
         indices.GetTensorData<int64_t>(), // only int64_t is supported for indices as per
                                           // the onnx spec
         last_index_dimension, workspace, updates.GetTensorData<T>(),
         onnx_c_ops::SizeFromDimension(input_shape, last_index_dimension, input_shape.size()),
-        reduction_));
+        reduction_);
   } break;
   default:
     EXT_THROW("ScatterNDOfShape not supported for other reduction than Add, None.");
@@ -403,5 +403,8 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
 
   CUDA_THROW_IF_ERROR(cudaFree(workspace));
 }
+
+static ScatterNDOfShapeOp<float> _op32;
+static ScatterNDOfShapeOp<half> _op16;
 
 } // namespace ortops

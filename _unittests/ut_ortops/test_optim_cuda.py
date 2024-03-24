@@ -14,12 +14,14 @@ from onnx_extended import has_cuda
 
 
 class TestOrtOpOptimCuda(ExtTestCase):
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_get_ort_ext_libs(self):
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
         r = get_ort_ext_libs()
         self.assertEqual(len(r), 1)
 
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
@@ -28,8 +30,9 @@ class TestOrtOpOptimCuda(ExtTestCase):
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
 
-    def _scatternd_of_shape_cuda(self, reduction, line):
+    def _scatternd_of_shape_cuda(self, reduction, line, itype):
         import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
         model1 = oh.make_model(
             oh.make_graph(
@@ -43,23 +46,20 @@ class TestOrtOpOptimCuda(ExtTestCase):
                 ],
                 "nd",
                 [
-                    oh.make_tensor_value_info(
-                        "data", TensorProto.FLOAT, [None, None, None]
-                    ),
+                    oh.make_tensor_value_info("data", itype, [None, None, None]),
                     oh.make_tensor_value_info(
                         "indices", TensorProto.INT64, [None, None]
                     ),
-                    oh.make_tensor_value_info(
-                        "updates", TensorProto.FLOAT, [None, None, None]
-                    ),
+                    oh.make_tensor_value_info("updates", itype, [None, None, None]),
                 ],
-                [oh.make_tensor_value_info("y", TensorProto.FLOAT, [None, None, None])],
+                [oh.make_tensor_value_info("y", itype, [None, None, None])],
             ),
             opset_imports=[oh.make_opsetid("", 18)],
             ir_version=9,
         )
 
-        data = np.zeros((2, 2, 3), dtype=np.float32)
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        data = np.zeros((2, 2, 3), dtype=dtype)
 
         model2 = oh.make_model(
             oh.make_graph(
@@ -69,7 +69,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
                         inputs=["shape", "indices", "updates"],
                         outputs=["y"],
                         reduction=reduction,
-                        domain="com.microsoft",
+                        domain="onnx_extented.ortops.optim.cuda",
                     )
                 ],
                 "nd",
@@ -78,20 +78,22 @@ class TestOrtOpOptimCuda(ExtTestCase):
                     oh.make_tensor_value_info(
                         "indices", TensorProto.INT64, [None, None]
                     ),
-                    oh.make_tensor_value_info(
-                        "updates", TensorProto.FLOAT, [None, None, None]
-                    ),
+                    oh.make_tensor_value_info("updates", itype, [None, None, None]),
                 ],
-                [oh.make_tensor_value_info("y", TensorProto.FLOAT, [None, None, None])],
+                [oh.make_tensor_value_info("y", itype, [None, None, None])],
             ),
-            opset_imports=[oh.make_opsetid("", 18)],
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extented.ortops.optim.cuda", 1),
+            ],
             ir_version=9,
         )
 
         indices = np.array([[line], [1 - line], [line]], dtype=np.int64)
-        updates = (2 ** np.arange(18).astype(np.float32).reshape((3, 2, 3))).astype(
-            np.float32
-        )
+        if itype == TensorProto.FLOAT:
+            updates = (2 ** np.arange(18).reshape((3, 2, 3))).astype(dtype)
+        else:
+            updates = np.arange(18).reshape((3, 2, 3)).astype(dtype)
 
         feeds1 = dict(data=data, indices=indices, updates=updates)
         feeds2 = dict(
@@ -101,6 +103,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         expected = ref.run(None, feeds1)[0]
 
         opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
         # opts.log_severity_level = 0
         # opts.log_verbosity_level = 0
         sess = onnxruntime.InferenceSession(
@@ -111,8 +114,10 @@ class TestOrtOpOptimCuda(ExtTestCase):
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_scatternd_of_shape_standalone_cuda(self):
-        self._scatternd_of_shape_cuda("add", 0)
-        self._scatternd_of_shape_cuda("add", 1)
+        self._scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT)
+        self._scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT16)
+        self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT)
+        self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16)
 
 
 if __name__ == "__main__":

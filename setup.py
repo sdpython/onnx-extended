@@ -758,6 +758,7 @@ def get_package_data():
         "onnx_extended.include.cpu": known_extensions,
         "onnx_extended.include.cuda": known_extensions,
         "onnx_extended.ortops.optim.cpu": known_extensions,
+        "onnx_extended.ortops.optim.cuda": known_extensions,
         "onnx_extended.ortops.tutorial.cpu": known_extensions,
         "onnx_extended.ortops.tutorial.cuda": known_extensions,
         "onnx_extended.ortcy.wrap": known_extensions,
