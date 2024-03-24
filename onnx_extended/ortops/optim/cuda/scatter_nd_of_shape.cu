@@ -346,7 +346,8 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
   if (mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU) {
     std::vector<int64_t> buf(dimensions[0]);
     const int64_t *ptr = shape.GetTensorData<int64_t>();
-    cudaMemcpy(buf.data(), ptr, dimensions[0] * sizeof(int64_t), cudaMemcpyDeviceToHost);
+    CUDA_THROW_IF_ERROR(
+        cudaMemcpy(buf.data(), ptr, dimensions[0] * sizeof(int64_t), cudaMemcpyDeviceToHost));
     output = ctx.GetOutput(0, buf);
   } else if (mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU) {
     const int64_t *X = shape.GetTensorData<int64_t>();
@@ -363,13 +364,15 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
     return;
 
   void *output_data = output.GetTensorMutableData<T>();
+  std::vector<int64_t> input_shape = output.GetTensorTypeAndShapeInfo().GetShape();
+  auto n_elements = onnx_c_ops::flattened_dimension(input_shape);
+  CUDA_THROW_IF_ERROR(cudaMemset(output_data, 0, sizeof(T) * n_elements));
 
   auto last_index_dimension = indices_shape[indices_shape.size() - 1];
 
   // We need element counts for each dimension and the input dim value for each dimension
   // for the range [0, last_index_dimension).
   // To avoid multiple GPU data transfers, we combine this into one array and send it through
-  std::vector<int64_t> input_shape = output.GetTensorTypeAndShapeInfo().GetShape();
   TensorPitches input_strides(input_shape);
   std::vector<int64_t> element_counts_and_input_dims(last_index_dimension * 2, 0LL);
 
