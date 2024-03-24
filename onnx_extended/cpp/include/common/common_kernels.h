@@ -7,6 +7,10 @@
 
 #include "onnx_extended_helpers.h"
 
+#ifdef CUDA_VERSION
+#include <cuda_fp16.h>
+#endif
+
 namespace ortops {
 
 ////////////////////////
@@ -34,6 +38,16 @@ template <> struct CTypeToOnnxType<double> {
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
   }
 };
+
+#if defined(CUDA_VERSION)
+
+template <> struct CTypeToOnnxType<half> {
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  }
+};
+
+#endif
 
 inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename, int line,
                            const OrtApi &api) {
