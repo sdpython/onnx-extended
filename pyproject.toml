@@ -170,6 +170,10 @@ module = ["onnx_extended.ortops.optim.optimize"]
 disable_error_code = ["arg-type"]
 
 [[tool.mypy.overrides]]
+module = ["onnx_extended.ortops.cuda"]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
 module = ["onnx_extended.plotting.benchmark"]
 disable_error_code = ["name-defined"]
 

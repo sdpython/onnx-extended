@@ -47,9 +47,7 @@ def documentation() -> List[str]:
     **Constraints**
 
     * T: float, float16
-    """
-            ],
-            [
+    """,
                 """
     onnx_extented.ortops.optim.cuda.ScatterNDOfShape
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,7 +72,7 @@ def documentation() -> List[str]:
 
     * I: int64
     * T: float, float16
-    """
+    """,
             ],
         )
     )
