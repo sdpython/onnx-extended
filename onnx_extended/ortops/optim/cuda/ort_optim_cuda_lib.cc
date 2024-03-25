@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include "mulmul.h"
 #include "ort_optim_cuda_lib.h"
 #include "ortapi_version.h"
 #include "scatter_nd_of_shape.h"
@@ -22,13 +23,17 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::InitApi(api_base->GetApi(ORT_API_VERSION_SUPPORTED));
   Ort::UnownedSessionOptions session_options(options);
 
-  // An instance remaining available until onnxruntime unload the library.
+  // Instances remaining available until onnxruntime unload the library.
+  static ortops::MulMulOp<float> c_MulMulOp32;
+  static ortops::MulMulOp<half> c_MulMulOp16;
   static ortops::ScatterNDOfShapeOp<float> c_ScatterNDOfShapeOp32;
   static ortops::ScatterNDOfShapeOp<half> c_ScatterNDOfShapeOp16;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
+    domain.Add(&c_MulMulOp32);
+    domain.Add(&c_MulMulOp16);
     domain.Add(&c_ScatterNDOfShapeOp32);
     domain.Add(&c_ScatterNDOfShapeOp16);
 

@@ -24,6 +24,33 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
+    onnx_extented.ortops.optim.cuda.MulMul
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise multiplication assuming
+    all tensors have the same shape (no broadcast).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * A: tensor of type T
+    * B: tensor of type T
+    * C: tensor of type T
+
+    **Outputs**
+
+    * ABC (T): element-wise matrix multiplication
+
+    **Constraints**
+
+    * T: float, float16
+    """
+            ],
+            [
+                """
     onnx_extented.ortops.optim.cuda.ScatterNDOfShape
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -35,14 +62,17 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * A: tensor of type I
+    * shape: tensor of type I
+    * indices: tensor of type I
+    * updates: tensor of type I
 
     **Outputs**
 
-    * Z (T): null tenser
+    * Z (T): updates tensor
 
     **Constraints**
 
+    * I: int64
     * T: float, float16
     """
             ],
