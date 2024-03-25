@@ -1,7 +1,7 @@
 
-==========================
-onnx_extended.ortops.optim
-==========================
+==============================
+onnx_extended.ortops.optim.cpu
+==============================
 
 change_onnx_operator_domain
 ===========================
