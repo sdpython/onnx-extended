@@ -76,6 +76,7 @@ message(STATUS "REFOPS_INCLUDE_DIR=${REFOPS_INCLUDE_DIR}")
 include("targets/ortops_tutorial_cpu.cmake")
 include("targets/ortops_tutorial_cuda.cmake")
 include("targets/ortops_optim_cpu.cmake")
+include("targets/ortops_optim_cuda.cmake")
 
 #
 # finalize
