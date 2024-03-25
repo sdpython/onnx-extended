@@ -34,9 +34,9 @@ print(f"config={config}")
 print(f"itype={itype}")
 
 if config == "small":
-    sizes = (8, 16)
-elif config == "medium":
     sizes = (256, 512, 1024)
+elif config == "medium":
+    sizes = (512, 1024, 2048)
 elif config == "large":
     sizes = (1024, 2048, 4096, 8192)
 else:
@@ -157,7 +157,37 @@ print(f"diff={diff}")
 # Benchmark
 # +++++++++
 #
-# Forst model.
+# some code to avoid measuring copying the data from host to device
+
+
+def move_inputs(sess, feeds):
+    from onnxruntime.capi._pybind_state import (
+        SessionIOBinding,
+        OrtDevice as C_OrtDevice,
+        OrtValue as C_OrtValue,
+    )
+
+    input_names = [i.name for i in sess.get_inputs()]
+
+    ort_device = C_OrtDevice(C_OrtDevice.cuda(), C_OrtDevice.default_memory(), 0)
+
+    feed_ort_value = [
+        (name, C_OrtValue.ortvalue_from_numpy(feeds[name], ort_device))
+        for name in input_names
+    ]
+
+    bind = SessionIOBinding(sess._sess)
+    for name, value in feed_ort_value:
+        bind.bind_input(
+            name, ort_device, feeds[name].dtype, value.shape(), value.data_ptr()
+        )
+    for o in sess.get_outputs():
+        bind.bind_output(o.name, ort_device)
+    return bind, feed_ort_value
+
+
+###################################
+# Benchmark function
 
 
 def benchmark(sess, sizes, label):
@@ -169,16 +199,19 @@ def benchmark(sess, sizes, label):
         y = np.random.randn(size, size).astype(dtype)
         z = np.random.randn(size, size).astype(dtype)
         feeds = dict(X=x, Y=y, Z=z)
+        bind, cuda_feeds = move_inputs(sess, feeds)
 
         begin = time.perf_counter()
         for i in range(script_args.warmup):
-            sess.run(None, feeds)
+            # sess.run(None, feeds)
+            sess._sess.run_with_iobinding(bind, None)
         warmup = time.perf_counter() - begin
 
         times = []
         for i in range(script_args.repeat):
             begin = time.perf_counter()
-            sess.run(None, feeds)
+            # sess.run(None, feeds)
+            sess._sess.run_with_iobinding(bind, None)
             times.append(time.perf_counter() - begin)
 
         npt = np.array(times)
@@ -222,13 +255,15 @@ print(df.head())
 # Pivot.
 
 pivot = df.pivot(index="size", columns="label", values="time")
+pivot["ratio"] = pivot["Fused"] / pivot["Not Fused"]
 print(pivot)
 
-
-std = df.pivot(index="size", columns="label", values="std")
-ax = pivot.plot(
+ax = pivot[["Not Fused", "Fused"]].plot(
     logx=True,
     logy=True,
     title=f"Fused/Unfused element wise multiplication on CUDA\nitype={itype}",
 )
 ax.get_figure().savefig("plot_op_mul_cuda.png")
+
+##############################
+# It seems the fused operator is 33% faster.
