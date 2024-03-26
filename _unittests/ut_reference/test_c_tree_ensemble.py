@@ -236,7 +236,11 @@ class TestCTreeEnsemble(ExtTestCase):
         )
 
         try:
-            model_def = to_onnx(clr, X_train.astype(numpy.float64))
+            model_def = to_onnx(
+                clr,
+                X_train.astype(numpy.float64),
+                target_opset={"ai.onnx.ml": 3, "": 18},
+            )
         except ImportError as e:
             if "cannot import name 'FEATURE_IMPORTANCE_TYPE_MAPPER'" in str(e):
                 return

@@ -91,6 +91,14 @@ The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 
+plot_op_mul_cuda
+++++++++++++++++
+
+See :ref:`l-example-op-mul_cuda`.
+
+The benchmark compares two operators Mul profiles
+with their fusion into a single operator.
+
 No specific provider
 ====================
 

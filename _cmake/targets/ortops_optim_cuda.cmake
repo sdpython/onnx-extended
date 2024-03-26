@@ -11,6 +11,7 @@ if(CUDA_AVAILABLE)
     CUDA
     onnx_extended/ortops/optim/cuda
     ../onnx_extended/cpp/onnx_extended_helpers.cpp
+    ../onnx_extended/ortops/optim/cuda/mulmul.cu
     ../onnx_extended/ortops/optim/cuda/scatter_nd_of_shape.cu
     ../onnx_extended/ortops/optim/cuda/ort_optim_cuda_lib.cc)
 

@@ -25,6 +25,12 @@ Focus on operators optimization
 
 .. toctree::
     :maxdepth: 1
+    :caption: Mul
+
+    ../auto_examples/plot_op_mul_cuda
+
+.. toctree::
+    :maxdepth: 1
     :caption: TreeEnsemble
 
     ../auto_examples/plot_op_tree_ensemble_optim

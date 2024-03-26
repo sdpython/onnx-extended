@@ -17,4 +17,5 @@ It supports any onnxruntime C API greater than version:
 
     ortops_tutorial_cpu
     ortops_tutorial_cuda
-    ortops_optim
+    ortops_optim_cpu
+    ortops_optim_cuda

@@ -60,7 +60,9 @@ class TestCommandLines2(ExtTestCase):
             [X],
             [Z],
         )
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=9
+        )
         check_model(onnx_model)
 
         sess_options = SessionOptions()

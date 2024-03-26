@@ -62,7 +62,7 @@ class TestXGBoostSparse(ExtTestCase):
             calculate_linear_regressor_output_shapes,
             convert_xgboost,
         )
-        onx = to_onnx(rf, X[:1])
+        onx = to_onnx(rf, X[:1], target_opset={"ai.onnx.ml": 3})
         feeds = {"X": X}
 
         # check with onnxruntime

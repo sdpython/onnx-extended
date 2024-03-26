@@ -43,6 +43,7 @@ class TestCReferenceEvaluatorSave(ExtTestCase):
                     "", onnx_opset_version() - (1 if previous_opset else 0)
                 )
             ],
+            ir_version=9,
         )
         try:
             check_model(onnx_model)

@@ -218,6 +218,10 @@ backend_test.exclude(
     "|test_castlike_FLOAT_to_FLOAT8*"
     "|test_castlike_FLOAT16_to_FLOAT8*"
     "|test_castlike_FLOAT8_to_*"
+    "|test_cast_FLOAT16_to_INT4*"
+    "|test_cast_FLOAT16_to_UINT4*"
+    "|test_cast_FLOAT_to_INT4*"
+    "|test_cast_FLOAT_to_UINT4*"
     "|test_quantizelinear_e*)"
 )
 

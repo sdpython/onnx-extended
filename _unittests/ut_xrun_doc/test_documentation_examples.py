@@ -5,7 +5,7 @@ import sys
 import importlib
 import subprocess
 import time
-from onnx_extended import __file__ as onnx_extended_file
+from onnx_extended import __file__ as onnx_extended_file, has_cuda
 from onnx_extended.ext_test_case import ExtTestCase, is_windows
 
 VERBOSE = 0
@@ -85,12 +85,16 @@ class TestDocumentationExamples(ExtTestCase):
             if not name.startswith("plot_") or not name.endswith(".py"):
                 continue
             reason = None
+
             if OrtSession is None and name in {"plot_bench_cypy_ort.py"}:
                 reason = "wrong build"
+
             elif name in {"plot_op_tfidfvectorizer_sparse.py"}:
                 if sys.platform in {"darwin", "win32"}:
-                    #
                     reason = "stuck due to the creation of a secondary process"
+
+            elif not has_cuda() and name in {"plot_op_mul_cuda.py"}:
+                reason = "cuda required"
 
             if reason:
 

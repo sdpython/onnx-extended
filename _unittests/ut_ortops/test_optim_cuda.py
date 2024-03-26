@@ -119,6 +119,75 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT)
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16)
 
+    def _mulmul_cuda(self, itype):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        model1 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node("Mul", ["X", "Y"], ["xy"]),
+                    oh.make_node("Mul", ["xy", "Z"], ["final"]),
+                ],
+                "nd",
+                [
+                    oh.make_tensor_value_info("X", itype, [None, None, None]),
+                    oh.make_tensor_value_info("Y", itype, [None, None, None]),
+                    oh.make_tensor_value_info("Z", itype, [None, None, None]),
+                ],
+                [oh.make_tensor_value_info("final", itype, [None, None, None])],
+            ),
+            opset_imports=[oh.make_opsetid("", 18)],
+            ir_version=9,
+        )
+
+        model2 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        "MulMul",
+                        ["X", "Y", "Z"],
+                        ["final"],
+                        domain="onnx_extented.ortops.optim.cuda",
+                    )
+                ],
+                "nd",
+                [
+                    oh.make_tensor_value_info("X", itype, [None, None, None]),
+                    oh.make_tensor_value_info("Y", itype, [None, None, None]),
+                    oh.make_tensor_value_info("Z", itype, [None, None, None]),
+                ],
+                [oh.make_tensor_value_info("final", itype, [None, None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extented.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        x = np.arange(18).reshape((3, 2, 3)).astype(dtype)
+        y = (x + 1).astype(dtype)
+        z = (y + 1).astype(dtype)
+
+        feeds1 = dict(X=x, Y=y, Z=z)
+        ref = CReferenceEvaluator(model1)
+        expected = ref.run(None, feeds1)[0]
+
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        sess = onnxruntime.InferenceSession(
+            model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        got = sess.run(None, feeds1)[0]
+        self.assertEqual(expected.tolist(), got.tolist())
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_mulmul_cuda(self):
+        self._mulmul_cuda(TensorProto.FLOAT)
+        self._mulmul_cuda(TensorProto.FLOAT16)
+
 
 if __name__ == "__main__":
     # TestOrtOpTutorialCpu().test_dynamic_quantize_linear()
