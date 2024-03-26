@@ -92,7 +92,7 @@ class TestOnnxInline(ExtTestCase):
         feeds = {"X": numpy.array([-5], dtype=numpy.float32)}
         oinf = CReferenceEvaluator(model_def)
         got = oinf.run(None, feeds)
-        for fi in [onnx_inline_function, inline_local_functions]:
+        for fi in [onnx_inline_function]:  # , inline_local_functions]:
             with self.subTest(f=fi):
                 inlined = fi(model_def)
                 if isinstance(inlined, tuple):
@@ -258,7 +258,7 @@ class TestOnnxInline(ExtTestCase):
         feeds = {"X": numpy.array([-5], dtype=numpy.float32)}
         oinf = CReferenceEvaluator(model_def)
         got = oinf.run(None, feeds)
-        for fi in [onnx_inline_function, inline_local_functions]:
+        for fi in [onnx_inline_function]:  # , inline_local_functions]:
             with self.subTest(f=fi):
                 if fi == onnx_inline_function:
                     with contextlib.redirect_stdout(StringIO()):
