@@ -62,6 +62,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.array([1, 4, 5, 10, -10], dtype=np.float32)}
@@ -108,6 +109,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.array([1, 4, 5, 10, -10], dtype=np.float32)}
@@ -141,6 +143,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.arange(24).reshape((2, 3, 4)).astype(np.float32)}
@@ -174,6 +177,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.arange(24).reshape((2, 3, 4)).astype(np.float32)}
@@ -213,6 +217,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {
@@ -252,6 +257,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {

@@ -43,6 +43,7 @@ class TestOrtOpOptimSparse(ExtTestCase):
                 make_opsetid("", 16),
                 make_opsetid("onnx_extented.ortops.optim.cpu", 1),
             ],
+            ir_version=9,
         )
         check_model(onnx_model)
         r = get_ort_ext_libs()
@@ -73,6 +74,7 @@ class TestOrtOpOptimSparse(ExtTestCase):
                 make_opsetid("", 16),
                 make_opsetid("onnx_extented.ortops.optim.cpu", 1),
             ],
+            ir_version=9,
         )
         check_model(onnx_model)
         r = get_ort_ext_libs()

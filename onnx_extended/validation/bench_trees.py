@@ -212,6 +212,7 @@ def bench_trees(
         make_graph([onx2], tree.graph.name, tree.graph.input, tree.graph.output),
         domain=tree.domain,
         opset_imports=tree.opset_import,
+        ir_version=tree.ir_version,
     )
 
     if verbose > 0:

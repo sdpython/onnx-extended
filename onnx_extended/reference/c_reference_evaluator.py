@@ -390,6 +390,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
                 ],
             ),
             opset_imports=self.proto_.opset_import,
+            ir_version=self.proto_.ir_version,
         )
         model_bytes = model.SerializeToString()
         if model_bytes not in self._cached_saved_results:

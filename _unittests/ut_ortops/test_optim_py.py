@@ -21,7 +21,9 @@ class TestOrtOpOptimPy(ExtTestCase):
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
         node = make_node("Add", ["X", "Y"], ["Z"])
         graph = make_graph([node], "g", [X, Y], [Z])
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 16)], ir_version=9
+        )
         check_model(onnx_model)
 
         repl = change_onnx_operator_domain(onnx_model, op_type="Add", new_op_type="Sub")
@@ -39,7 +41,9 @@ class TestOrtOpOptimPy(ExtTestCase):
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
         node = make_node("ArgMin", ["X"], ["Z"], axis=0)
         graph = make_graph([node], "g", [X], [Z])
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 16)], ir_version=9
+        )
         check_model(onnx_model)
 
         repl = change_onnx_operator_domain(
@@ -59,7 +63,9 @@ class TestOrtOpOptimPy(ExtTestCase):
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
         node = make_node("ArgMin", ["X"], ["Z"])
         graph = make_graph([node], "g", [X], [Z])
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 16)], ir_version=9
+        )
         check_model(onnx_model)
 
         repl = change_onnx_operator_domain(
@@ -79,7 +85,9 @@ class TestOrtOpOptimPy(ExtTestCase):
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None, None])
         node = make_node("ArgMin", ["X"], ["Z"], axis=1)
         graph = make_graph([node], "g", [X], [Z])
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 16)], ir_version=9
+        )
         check_model(onnx_model)
 
         repl = change_onnx_operator_domain(
@@ -100,7 +108,9 @@ class TestOrtOpOptimPy(ExtTestCase):
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
         node = make_node("Add", ["X", "Y"], ["Z"])
         graph = make_graph([node], "g", [X, Y], [Z])
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 16)], ir_version=9
+        )
         check_model(onnx_model)
 
         repl = change_onnx_operator_domain(
@@ -120,7 +130,9 @@ class TestOrtOpOptimPy(ExtTestCase):
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
         node = make_node("Add", ["X", "Y"], ["Z"])
         graph = make_graph([node], "g", [X, Y], [Z])
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 16)], ir_version=9
+        )
         check_model(onnx_model)
 
         repl = change_onnx_operator_domain(
@@ -143,7 +155,9 @@ class TestOrtOpOptimPy(ExtTestCase):
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
         node = make_node("Add", ["X", "Y"], ["Z"])
         graph = make_graph([node], "g", [X, Y], [Z])
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 16)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 16)], ir_version=9
+        )
         check_model(onnx_model)
 
         repl = change_onnx_operator_domain(
