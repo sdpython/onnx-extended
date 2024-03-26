@@ -51,6 +51,7 @@ import onnx.helper as oh
 from tqdm import tqdm
 from pandas import DataFrame
 from onnxruntime import InferenceSession, SessionOptions
+import torch
 from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
 from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
@@ -123,34 +124,42 @@ print(onnx_simple_text_plot(get_model2(itype)))
 # InferenceSession
 # ++++++++++++++++
 
-dtype = np.float32 if itype == 1 else np.float16
+has_cuda = torch.cuda.is_available()
 
-x = np.random.randn(16, 16).astype(dtype)
-y = np.random.randn(16, 16).astype(dtype)
-z = np.random.randn(16, 16).astype(dtype)
-feeds = dict(X=x, Y=y, Z=z)
+if has_cuda:
 
-sess1 = InferenceSession(
-    get_model1(itype).SerializeToString(), providers=["CUDAExecutionProvider"]
-)
-expected = sess1.run(None, feeds)[0]
+    dtype = np.float32 if itype == 1 else np.float16
+
+    x = np.random.randn(16, 16).astype(dtype)
+    y = np.random.randn(16, 16).astype(dtype)
+    z = np.random.randn(16, 16).astype(dtype)
+    feeds = dict(X=x, Y=y, Z=z)
+
+    sess1 = InferenceSession(
+        get_model1(itype).SerializeToString(), providers=["CUDAExecutionProvider"]
+    )
+    expected = sess1.run(None, feeds)[0]
 
 #########################################
 # The other model.
 
-opts = SessionOptions()
-opts.register_custom_ops_library(get_ort_ext_libs()[0])
+if has_cuda:
 
-sess2 = InferenceSession(
-    get_model2(itype).SerializeToString(), opts, providers=["CUDAExecutionProvider"]
-)
-got = sess2.run(None, feeds)[0]
+    opts = SessionOptions()
+    opts.register_custom_ops_library(get_ort_ext_libs()[0])
+
+    sess2 = InferenceSession(
+        get_model2(itype).SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+    )
+    got = sess2.run(None, feeds)[0]
 
 ########################################
 # Discrepancies
 
-diff = np.abs(got - expected).max()
-print(f"diff={diff}")
+if has_cuda:
+
+    diff = np.abs(got - expected).max()
+    print(f"diff={diff}")
 
 
 ############################################
@@ -232,38 +241,46 @@ def benchmark(sess, sizes, label):
 #######################################
 # Not Fused.
 
-print(f"sizes={sizes}")
+if has_cuda:
 
-data_mul = benchmark(sess1, sizes, "Not Fused")
+    print(f"sizes={sizes}")
+
+    data_mul = benchmark(sess1, sizes, "Not Fused")
 
 #######################################
 # Fused.
 
-data_mulmul = benchmark(sess2, sizes, "Fused")
+if has_cuda:
+
+    data_mulmul = benchmark(sess2, sizes, "Fused")
 
 
 ##########################################
 # Data
 # ++++
 
-df = DataFrame(data_mul + data_mulmul)
-df.to_csv("plot_op_mul_cuda.csv", index=False)
-df.to_csv("plot_op_mul_cuda.xlsx", index=False)
-print(df.head())
+if has_cuda:
+
+    df = DataFrame(data_mul + data_mulmul)
+    df.to_csv("plot_op_mul_cuda.csv", index=False)
+    df.to_csv("plot_op_mul_cuda.xlsx", index=False)
+    print(df.head())
 
 #####################
 # Pivot.
 
-pivot = df.pivot(index="size", columns="label", values="time")
-pivot["ratio"] = pivot["Fused"] / pivot["Not Fused"]
-print(pivot)
+if has_cuda:
 
-ax = pivot[["Not Fused", "Fused"]].plot(
-    logx=True,
-    logy=True,
-    title=f"Fused/Unfused element wise multiplication on CUDA\nitype={itype}",
-)
-ax.get_figure().savefig("plot_op_mul_cuda.png")
+    pivot = df.pivot(index="size", columns="label", values="time")
+    pivot["ratio"] = pivot["Fused"] / pivot["Not Fused"]
+    print(pivot)
+
+    ax = pivot[["Not Fused", "Fused"]].plot(
+        logx=True,
+        logy=True,
+        title=f"Fused/Unfused element wise multiplication on CUDA\nitype={itype}",
+    )
+    ax.get_figure().savefig("plot_op_mul_cuda.png")
 
 ##############################
 # It seems the fused operator is 33% faster.
