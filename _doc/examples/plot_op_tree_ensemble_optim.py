@@ -126,7 +126,7 @@ def train_model(
             1, max_depth=max_depth, verbose=2, n_jobs=int(script_args.n_jobs)
         )
         model.fit(X[:-batch_size], y[:-batch_size])
-        onx = to_onnx(model, X[:1])
+        onx = to_onnx(model, X[:1], target_opset={"": 18, "ai.onnx.ml": 3})
 
         # And wd multiply the trees.
         node = multiply_tree(onx.graph.node[0], n_trees)
@@ -134,6 +134,7 @@ def train_model(
             make_graph([node], onx.graph.name, onx.graph.input, onx.graph.output),
             domain=onx.domain,
             opset_imports=onx.opset_import,
+            ir_version=onx.ir_version,
         )
 
         with open(filename, "wb") as f:

@@ -125,7 +125,6 @@ class TestOnnxInline(ExtTestCase):
                 helper.make_node("Add", ["input2", "one"], ["output"]),
             ],
             opset_imports=[helper.make_operatorsetid("", 15)],
-            ir_version=9,
         )
 
         graph1 = helper.make_graph(
