@@ -119,15 +119,15 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT)
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16)
 
-    def _mulmul_cuda(self, itype):
+    def _addaddmulmul_cuda(self, itype, op_type):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
         model1 = oh.make_model(
             oh.make_graph(
                 [
-                    oh.make_node("Mul", ["X", "Y"], ["xy"]),
-                    oh.make_node("Mul", ["xy", "Z"], ["final"]),
+                    oh.make_node(op_type, ["X", "Y"], ["xy"]),
+                    oh.make_node(op_type, ["xy", "Z"], ["final"]),
                 ],
                 "nd",
                 [
@@ -145,7 +145,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
             oh.make_graph(
                 [
                     oh.make_node(
-                        "MulMul",
+                        f"{op_type}{op_type}",
                         ["X", "Y", "Z"],
                         ["final"],
                         domain="onnx_extented.ortops.optim.cuda",
@@ -187,6 +187,11 @@ class TestOrtOpOptimCuda(ExtTestCase):
     def test_mulmul_cuda(self):
         self._mulmul_cuda(TensorProto.FLOAT)
         self._mulmul_cuda(TensorProto.FLOAT16)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_addadd_cuda(self):
+        self._addadd_cuda(TensorProto.FLOAT)
+        self._addadd_cuda(TensorProto.FLOAT16)
 
 
 if __name__ == "__main__":
