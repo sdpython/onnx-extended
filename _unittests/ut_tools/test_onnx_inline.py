@@ -2,7 +2,9 @@ import contextlib
 import os
 import unittest
 from io import StringIO
+import packaging.version as pv
 import numpy
+import onnx
 from onnx.checker import check_model
 from onnx import TensorProto, helper, load
 from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_windows
@@ -423,6 +425,9 @@ class TestOnnxInline(ExtTestCase):
                 goti = oinf.run(None, feeds)
                 self.assertEqualArray(got[0], goti[0])
 
+    @unittest.skipIf(
+        pv.Version(onnx.__version__) < pv.Version("1.17"), reason="bug in the inliner"
+    )
     def test_inline_model_optim(self):
         import onnxruntime
 
