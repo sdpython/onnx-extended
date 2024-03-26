@@ -50,8 +50,7 @@ import numpy as np
 import onnx.helper as oh
 from tqdm import tqdm
 from pandas import DataFrame
-from onnxruntime import InferenceSession, SessionOptions
-import torch
+from onnxruntime import InferenceSession, SessionOptions, get_available_providers
 from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
 from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
@@ -124,7 +123,7 @@ print(onnx_simple_text_plot(get_model2(itype)))
 # InferenceSession
 # ++++++++++++++++
 
-has_cuda = torch.cuda.is_available()
+has_cuda = "CUDAExecutionProvider" in get_available_providers()
 
 if has_cuda:
 
