@@ -18,7 +18,12 @@ try:
 except ImportError:
     from onnx.reference.ops.op_cast import Cast
     from onnx.reference.ops.op_quantize_linear import QuantizeLinear
-from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
+try:
+    from onnx.reference.ops.op_dequantize_linear import (
+        DequantizeLinear_21 as DequantizeLinear,
+    )
+except ImportError:
+    from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 
 
 def _make_schema_gemm_float8(cls_name: str) -> OpSchema:

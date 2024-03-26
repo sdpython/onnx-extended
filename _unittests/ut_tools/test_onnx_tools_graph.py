@@ -12,7 +12,13 @@ from onnx.helper import (
     make_opsetid,
 )
 from onnx.reference import ReferenceEvaluator
-from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
+
+try:
+    from onnx.reference.ops.op_dequantize_linear import (
+        DequantizeLinear_21 as DequantizeLinear,
+    )
+except ImportError:
+    from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 from onnx.reference.op_run import to_array_extended
 
 try:
