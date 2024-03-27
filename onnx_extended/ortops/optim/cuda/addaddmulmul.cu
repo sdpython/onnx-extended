@@ -29,7 +29,7 @@ __device__ __forceinline__ void _add3_op(float *address, const float a, const fl
 __device__ __forceinline__ void _add3_op(half *address, const half a, const half b,
                                          const half c) {
 #if __CUDA_ARCH__ < 700
-  *address = __float2half(__half2float(a) * __half2float(b) * __half2float(c));
+  *address = __float2half(__half2float(a) + __half2float(b) + __half2float(c));
 #else
   *address = a + b + c;
 #endif
@@ -49,13 +49,13 @@ __device__ __forceinline__ void _mul3_op(half *address, const half a, const half
 #endif
 }
 
-template <tynename T> struct Mul3Op {
+template <typename T> struct Mul3Op {
   __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
     _mul3_op(address, a, b, c);
   }
 };
 
-template <tynename T> struct Add3Op {
+template <typename T> struct Add3Op {
   __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
     _add3_op(address, a, b, c);
   }
@@ -101,39 +101,39 @@ void BinaryElementWiseNoBroadcastImpl(cudaStream_t stream, T *output_data, const
 // AddAddMulMulOp...
 //////////////////
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 void *AddAddMulMulOp<T, addition>::CreateKernel(const OrtApi &api,
                                                 const OrtKernelInfo *info) const {
-  return std::make_unique<AddAddMulMulKernel<T>>(api, info).release();
+  return std::make_unique<AddAddMulMulKernel<T, addition>>(api, info).release();
 }
 
-template <tynename T, bool addition> const char *AddAddMulMulOp<T, addition>::GetName() const {
+template <typename T, bool addition> const char *AddAddMulMulOp<T, addition>::GetName() const {
   return addition ? "AddAdd" : "MulMul";
 }
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 const char *AddAddMulMulOp<T, addition>::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
 }
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 size_t AddAddMulMulOp<T, addition>::GetInputTypeCount() const {
   return 3;
 };
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 ONNXTensorElementDataType
 AddAddMulMulOp<T, addition>::GetInputType(std::size_t /* index */) const {
   return CTypeToOnnxType<T>().onnx_type();
 }
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 ONNXTensorElementDataType
 AddAddMulMulOp<T, addition>::GetOutputType(std::size_t /* index */) const {
   return CTypeToOnnxType<T>().onnx_type();
 }
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 OrtCustomOpInputOutputCharacteristic
 AddAddMulMulOp<T, addition>::GetInputCharacteristic(std::size_t index) const {
   switch (index) {
@@ -146,12 +146,12 @@ AddAddMulMulOp<T, addition>::GetInputCharacteristic(std::size_t index) const {
   }
 }
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 size_t AddAddMulMulOp<T, addition>::GetOutputTypeCount() const {
   return 1;
 }
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 OrtCustomOpInputOutputCharacteristic
 AddAddMulMulOp<T, addition>::GetOutputCharacteristic(std::size_t index) const {
   switch (index) {
@@ -166,12 +166,12 @@ AddAddMulMulOp<T, addition>::GetOutputCharacteristic(std::size_t index) const {
 // AddAddMulMulKernel
 ///////////////////
 
-template <tynename T, bool addition>
+template <typename T, bool addition>
 AddAddMulMulKernel<T, addition>::AddAddMulMulKernel(const OrtApi &api,
                                                     const OrtKernelInfo *info) {}
 
-template <tynename T, bool addition>
-void AddAddMulMulKernel<T>::Compute(OrtKernelContext *context) {
+template <typename T, bool addition>
+void AddAddMulMulKernel<T, addition>::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
 
   int n_inputs = ctx.GetInputCount();
@@ -207,9 +207,9 @@ void AddAddMulMulKernel<T>::Compute(OrtKernelContext *context) {
   }
 }
 
-static AddAddMulMulOp<float, true> _op32;
-static AddAddMulMulOp<half, true> _op16;
-static AddAddMulMulOp<float, false> _op32;
-static AddAddMulMulOp<half, false> _op16;
+static AddAddMulMulOp<float, true> _add32;
+static AddAddMulMulOp<half, true> _add16;
+static AddAddMulMulOp<float, false> _mul32;
+static AddAddMulMulOp<half, false> _mul16;
 
 } // namespace ortops

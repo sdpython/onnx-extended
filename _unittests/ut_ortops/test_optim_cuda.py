@@ -167,7 +167,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         )
 
         dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
-        x = np.arange(18).reshape((3, 2, 3)).astype(dtype)
+        x = (np.arange(18) + 1).reshape((3, 2, 3)).astype(dtype)
         y = (x + 1).astype(dtype)
         z = (y + 1).astype(dtype)
 
@@ -185,13 +185,13 @@ class TestOrtOpOptimCuda(ExtTestCase):
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_mulmul_cuda(self):
-        self._mulmul_cuda(TensorProto.FLOAT)
-        self._mulmul_cuda(TensorProto.FLOAT16)
+        self._addaddmulmul_cuda(TensorProto.FLOAT, "Mul")
+        self._addaddmulmul_cuda(TensorProto.FLOAT16, "Mul")
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_addadd_cuda(self):
-        self._addadd_cuda(TensorProto.FLOAT)
-        self._addadd_cuda(TensorProto.FLOAT16)
+        self._addaddmulmul_cuda(TensorProto.FLOAT, "Add")
+        self._addaddmulmul_cuda(TensorProto.FLOAT16, "Add")
 
 
 if __name__ == "__main__":

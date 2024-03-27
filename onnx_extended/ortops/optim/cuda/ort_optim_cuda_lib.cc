@@ -24,10 +24,10 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // Instances remaining available until onnxruntime unload the library.
-  static ortops::AddMulMulOp<float, false> c_MulMulOp32;
-  static ortops::AddMulMulOp<half, false> c_MulMulOp16;
-  static ortops::AddMulMulOp<float, true> c_AddAddOp32;
-  static ortops::AddMulMulOp<half, true> c_AddAddOp16;
+  static ortops::AddAddMulMulOp<float, false> c_MulMulOp32;
+  static ortops::AddAddMulMulOp<half, false> c_MulMulOp16;
+  static ortops::AddAddMulMulOp<float, true> c_AddAddOp32;
+  static ortops::AddAddMulMulOp<half, true> c_AddAddOp16;
   static ortops::ScatterNDOfShapeOp<float> c_ScatterNDOfShapeOp32;
   static ortops::ScatterNDOfShapeOp<half> c_ScatterNDOfShapeOp16;
 

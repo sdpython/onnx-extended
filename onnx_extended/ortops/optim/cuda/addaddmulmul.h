@@ -7,15 +7,16 @@
 namespace ortops {
 
 template <typename T, bool addition> struct AddAddMulMulKernel {
-  MulMulKernel(const OrtApi &api, const OrtKernelInfo *info);
+  AddAddMulMulKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
 };
 
 template <typename T, bool addition>
 struct AddAddMulMulOp
     : Ort::CustomOpBase<AddAddMulMulOp<T, addition>, AddAddMulMulKernel<T, addition>> {
-  typedef Ort::CustomOpBase<MulMulOp<T>, MulMulKernel<T>> parent_type;
-  MulMulOp() : parent_type() {}
+  typedef Ort::CustomOpBase<AddAddMulMulOp<T, addition>, AddAddMulMulKernel<T, addition>>
+      parent_type;
+  AddAddMulMulOp() : parent_type() {}
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
