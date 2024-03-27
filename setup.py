@@ -250,8 +250,8 @@ class cmake_build_class_extension(Command):
             "cuda-link=",
             None,
             "CUDA can statically linked (STATIC) or dynamically "
-            "(SHARED), default is STATIC."
-            "STATIC",
+            "(SHARED), default is SHARED."
+            "SHARED",
         ),
         (
             "cuda-nvcc=",

@@ -1,7 +1,7 @@
+#include "addaddmulmul.h"
 #include "common/c_op_helpers.h"
 #include "common/common_kernels.h"
 #include "cuda/common_kernels_cuda.h"
-#include "mulmul.h"
 #include <chrono>
 #include <cublasLt.h>
 #include <cublas_v2.h>
@@ -21,11 +21,27 @@ struct GridDim {
   };
 };
 
-__device__ __forceinline__ void _mul3_op(float *address, const float a, const float b, const float c) {
+__device__ __forceinline__ void _add3_op(float *address, const float a, const float b,
+                                         const float c) {
+  *address = a + b + c;
+}
+
+__device__ __forceinline__ void _add3_op(half *address, const half a, const half b,
+                                         const half c) {
+#if __CUDA_ARCH__ < 700
+  *address = __float2half(__half2float(a) + __half2float(b) + __half2float(c));
+#else
+  *address = a + b + c;
+#endif
+}
+
+__device__ __forceinline__ void _mul3_op(float *address, const float a, const float b,
+                                         const float c) {
   *address = a * b * c;
 }
 
-__device__ __forceinline__ void _mul3_op(half *address, const half a, const half b, const half c) {
+__device__ __forceinline__ void _mul3_op(half *address, const half a, const half b,
+                                         const half c) {
 #if __CUDA_ARCH__ < 700
   *address = __float2half(__half2float(a) * __half2float(b) * __half2float(c));
 #else
@@ -36,6 +52,12 @@ __device__ __forceinline__ void _mul3_op(half *address, const half a, const half
 template <typename T> struct Mul3Op {
   __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
     _mul3_op(address, a, b, c);
+  }
+};
+
+template <typename T> struct Add3Op {
+  __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
+    _add3_op(address, a, b, c);
   }
 };
 
@@ -76,35 +98,44 @@ void BinaryElementWiseNoBroadcastImpl(cudaStream_t stream, T *output_data, const
 }
 
 //////////////////
-// MulMulOp...
+// AddAddMulMulOp...
 //////////////////
 
-template <typename T>
-void *MulMulOp<T>::CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const {
-  return std::make_unique<MulMulKernel<T>>(api, info).release();
+template <typename T, bool addition>
+void *AddAddMulMulOp<T, addition>::CreateKernel(const OrtApi &api,
+                                                const OrtKernelInfo *info) const {
+  return std::make_unique<AddAddMulMulKernel<T, addition>>(api, info).release();
 }
 
-template <typename T> const char *MulMulOp<T>::GetName() const { return "MulMul"; }
+template <typename T, bool addition> const char *AddAddMulMulOp<T, addition>::GetName() const {
+  return addition ? "AddAdd" : "MulMul";
+}
 
-template <typename T> const char *MulMulOp<T>::GetExecutionProviderType() const {
+template <typename T, bool addition>
+const char *AddAddMulMulOp<T, addition>::GetExecutionProviderType() const {
   return "CUDAExecutionProvider";
 }
 
-template <typename T> size_t MulMulOp<T>::GetInputTypeCount() const { return 3; };
+template <typename T, bool addition>
+size_t AddAddMulMulOp<T, addition>::GetInputTypeCount() const {
+  return 3;
+};
 
-template <typename T>
-ONNXTensorElementDataType MulMulOp<T>::GetInputType(std::size_t /* index */) const {
+template <typename T, bool addition>
+ONNXTensorElementDataType
+AddAddMulMulOp<T, addition>::GetInputType(std::size_t /* index */) const {
   return CTypeToOnnxType<T>().onnx_type();
 }
 
-template <typename T>
-ONNXTensorElementDataType MulMulOp<T>::GetOutputType(std::size_t /* index */) const {
+template <typename T, bool addition>
+ONNXTensorElementDataType
+AddAddMulMulOp<T, addition>::GetOutputType(std::size_t /* index */) const {
   return CTypeToOnnxType<T>().onnx_type();
 }
 
-template <typename T>
+template <typename T, bool addition>
 OrtCustomOpInputOutputCharacteristic
-MulMulOp<T>::GetInputCharacteristic(std::size_t index) const {
+AddAddMulMulOp<T, addition>::GetInputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
   case 1:
@@ -115,11 +146,14 @@ MulMulOp<T>::GetInputCharacteristic(std::size_t index) const {
   }
 }
 
-template <typename T> size_t MulMulOp<T>::GetOutputTypeCount() const { return 1; }
+template <typename T, bool addition>
+size_t AddAddMulMulOp<T, addition>::GetOutputTypeCount() const {
+  return 1;
+}
 
-template <typename T>
+template <typename T, bool addition>
 OrtCustomOpInputOutputCharacteristic
-MulMulOp<T>::GetOutputCharacteristic(std::size_t index) const {
+AddAddMulMulOp<T, addition>::GetOutputCharacteristic(std::size_t index) const {
   switch (index) {
   case 0:
     return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
@@ -129,13 +163,15 @@ MulMulOp<T>::GetOutputCharacteristic(std::size_t index) const {
 }
 
 ///////////////////
-// MulMulKernel
+// AddAddMulMulKernel
 ///////////////////
 
-template <typename T>
-MulMulKernel<T>::MulMulKernel(const OrtApi &api, const OrtKernelInfo *info) {}
+template <typename T, bool addition>
+AddAddMulMulKernel<T, addition>::AddAddMulMulKernel(const OrtApi &api,
+                                                    const OrtKernelInfo *info) {}
 
-template <typename T> void MulMulKernel<T>::Compute(OrtKernelContext *context) {
+template <typename T, bool addition>
+void AddAddMulMulKernel<T, addition>::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
 
   int n_inputs = ctx.GetInputCount();
@@ -160,12 +196,20 @@ template <typename T> void MulMulKernel<T>::Compute(OrtKernelContext *context) {
 
   output = ctx.GetOutput(0, dimsA);
 
-  BinaryElementWiseNoBroadcastImpl(cuda_stream, output.GetTensorMutableData<T>(),
-                                   A.GetTensorData<T>(), B.GetTensorData<T>(),
-                                   C.GetTensorData<T>(), sizeA, Mul3Op<T>());
+  if (addition) {
+    BinaryElementWiseNoBroadcastImpl(cuda_stream, output.GetTensorMutableData<T>(),
+                                     A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                     C.GetTensorData<T>(), sizeA, Add3Op<T>());
+  } else {
+    BinaryElementWiseNoBroadcastImpl(cuda_stream, output.GetTensorMutableData<T>(),
+                                     A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                     C.GetTensorData<T>(), sizeA, Mul3Op<T>());
+  }
 }
 
-static MulMulOp<float> _op32;
-static MulMulOp<half> _op16;
+static AddAddMulMulOp<float, true> _add32;
+static AddAddMulMulOp<half, true> _add16;
+static AddAddMulMulOp<float, false> _mul32;
+static AddAddMulMulOp<half, false> _mul16;
 
 } // namespace ortops

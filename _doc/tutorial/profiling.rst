@@ -41,6 +41,7 @@ Here are two kinds. Both profiling are made on the following model.
                 ],
             ),
             opset_imports=[make_opsetid("", 18)],
+            ir_version=9,
         )
         check_model(model_def0)
         return model_def0
@@ -100,6 +101,7 @@ a ndoe receives.
                 ],
             ),
             opset_imports=[make_opsetid("", 18)],
+            ir_version=9,
         )
         check_model(model_def0)
         return model_def0
@@ -170,6 +172,7 @@ running on *CPU* for the first run.
                 ],
             ),
             opset_imports=[make_opsetid("", 18)],
+            ir_version=9,
         )
         check_model(model_def0)
         return model_def0
