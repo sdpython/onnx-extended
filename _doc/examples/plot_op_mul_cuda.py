@@ -92,13 +92,13 @@ def get_model2(itype):
                     "MulMul",
                     ["X", "Y", "Z"],
                     ["xyz"],
-                    domain="onnx_extented.ortops.optim.cuda",
+                    domain="onnx_extended.ortops.optim.cuda",
                 ),
                 oh.make_node(
                     "MulMul",
                     ["Y", "X", "xyz"],
                     ["final"],
-                    domain="onnx_extented.ortops.optim.cuda",
+                    domain="onnx_extended.ortops.optim.cuda",
                 ),
             ],
             "nd",
@@ -111,7 +111,7 @@ def get_model2(itype):
         ),
         opset_imports=[
             oh.make_opsetid("", 18),
-            oh.make_opsetid("onnx_extented.ortops.optim.cuda", 1),
+            oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
         ],
         ir_version=9,
     )

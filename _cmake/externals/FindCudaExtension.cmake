@@ -181,10 +181,10 @@ if(CUDAToolkit_FOUND)
   set(CUDA_VERSION ${CUDAToolkit_VERSION})
   if (CUDA_LINK STREQUAL "STATIC")
     set(CUDA_LIBRARIES CUDA::cudart_static
-                       CUDA::cufft_static CUDA::cufftw_static
                        CUDA::curand_static
                        CUDA::cublas_static CUDA::cublasLt_static
                        CUDA::cusolver_static
+                       CUDA::cufft_static CUDA::cufftw_static
                        CUDA::cupti_static)
   else()
     set(CUDA_LIBRARIES CUDA::cudart

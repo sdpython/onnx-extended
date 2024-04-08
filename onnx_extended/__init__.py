@@ -192,12 +192,12 @@ def check_installation(
         A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         node1 = make_node(
-            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extended.ortops.tutorial.cpu"
         )
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)

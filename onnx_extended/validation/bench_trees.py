@@ -101,7 +101,7 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
             onx,
             op_type="TreeEnsembleRegressor",
             op_domain="ai.onnx.ml",
-            new_op_domain="onnx_extented.ortops.optim.cpu",
+            new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=",".join(
                 map(
                     lambda s: s.decode("ascii"),
@@ -136,7 +136,7 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
             onx,
             op_type="TreeEnsembleRegressor",
             op_domain="ai.onnx.ml",
-            new_op_domain="onnx_extented.ortops.optim.cpu",
+            new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=",".join(
                 map(
                     lambda s: s.decode("ascii"),

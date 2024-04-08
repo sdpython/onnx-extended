@@ -452,7 +452,7 @@ def enumerate_stats_nodes(
     :return: enumerate tuple *(name, parent, statistics)*
     """
     if stats_fcts is None:
-        dom_optim = "onnx_extented.ortops.optim.cpu"
+        dom_optim = "onnx_extended.ortops.optim.cpu"
         stats_fcts = {
             ("ai.onnx.ml", "TreeEnsembleRegressor"): stats_tree_ensemble,
             ("ai.onnx.ml", "TreeEnsembleClassifier"): stats_tree_ensemble,

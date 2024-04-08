@@ -250,7 +250,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph, version="onnx-extended")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
     @unittest.skipIf(
         not has_cuda() or not ort_has_cuda,
@@ -293,8 +293,8 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph, version="onnx-extended")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
-        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cpu", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
         opts = SessionOptions()
         r = get_ort_ext_libs_cpu()
@@ -349,12 +349,12 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(
             graph,
             version="onnx-extended",
-            domain_ops={"CustomGemmFloat8E4M3FN": "onnx_extented.ortops.tutorial.cpu"},
+            domain_ops={"CustomGemmFloat8E4M3FN": "onnx_extended.ortops.tutorial.cpu"},
         )
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
-        self.assertNotIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cpu", str(onx2))
+        self.assertNotIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
         opts = SessionOptions()
         r = get_ort_ext_libs_cpu()
@@ -403,7 +403,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         self.assertIn("local.quant.domain", str(onx2))
-        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
     @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnxruntime(self):

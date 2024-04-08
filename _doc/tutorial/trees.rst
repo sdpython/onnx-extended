@@ -155,7 +155,7 @@ The custom operator will be able to used them.
             onx,
             op_type=op_name,
             op_domain="ai.onnx.ml",
-            new_op_domain="onnx_extented.ortops.optim.cpu",
+            new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=modes,
             **kwargs,
         )

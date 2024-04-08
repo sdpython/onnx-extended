@@ -24,7 +24,7 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
-    onnx_extented.ortops.optim.cuda.MulMul
+    onnx_extended.ortops.optim.cuda.MulMul
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise multiplication assuming
@@ -49,7 +49,7 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
-    onnx_extented.ortops.optim.cuda.ScatterNDOfShape
+    onnx_extended.ortops.optim.cuda.ScatterNDOfShape
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     ConstantOfShape + ScatterND
