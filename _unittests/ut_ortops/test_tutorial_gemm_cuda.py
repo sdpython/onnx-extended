@@ -1000,6 +1000,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                         make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
                         make_opsetid("", 18),
                     ],
+                    ir_version=9,
                 )
 
                 opts = SessionOptions()
