@@ -340,7 +340,6 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
   EXT_ENFORCE(dimensions.size() == 1, "shape must be a 1-dimension tensor.");
 
   cudaStream_t cuda_stream = (cudaStream_t)ctx.GetGPUComputeStream();
-  CUDA_THROW_IF_ERROR(cudaStreamSynchronize(cuda_stream));
 
   auto mem = shape.GetTensorMemoryInfo();
   if (mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU) {
@@ -366,7 +365,7 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
   void *output_data = output.GetTensorMutableData<T>();
   std::vector<int64_t> input_shape = output.GetTensorTypeAndShapeInfo().GetShape();
   auto n_elements = onnx_c_ops::flattened_dimension(input_shape);
-  CUDA_THROW_IF_ERROR(cudaMemset(output_data, 0, sizeof(T) * n_elements));
+  CUDA_THROW_IF_ERROR(cudaMemsetAsync(output_data, 0, sizeof(T) * n_elements, cuda_stream));
 
   auto last_index_dimension = indices_shape[indices_shape.size() - 1];
 
@@ -387,6 +386,10 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
   CUDA_THROW_IF_ERROR(cudaMemcpyAsync(workspace, element_counts_and_input_dims.data(),
                                       element_counts_and_input_dims.size() * sizeof(int64_t),
                                       cudaMemcpyHostToDevice, cuda_stream));
+
+  // Let's synchronize after the initialization of the results.
+  CUDA_THROW_IF_ERROR(cudaStreamSynchronize(cuda_stream));
+
   switch (reduction_) {
   case Reduction::Add: {
     auto element_type = CTypeToOnnxType<T>().onnx_type();
