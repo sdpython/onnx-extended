@@ -388,7 +388,7 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
                                       cudaMemcpyHostToDevice, cuda_stream));
 
   // Let's synchronize after the initialization of the results.
-  CUDA_THROW_IF_ERROR(cudaStreamSynchronize(cuda_stream));
+  // CUDA_THROW_IF_ERROR(cudaStreamSynchronize(cuda_stream));
 
   switch (reduction_) {
   case Reduction::Add: {
