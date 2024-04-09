@@ -24,7 +24,7 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
-    onnx_extented.ortops.tutorial.cuda.CustomGemm
+    onnx_extended.ortops.tutorial.cuda.CustomGemm
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It calls CUDA library for Gemm :math:`\\alpha A B + \\beta C`.

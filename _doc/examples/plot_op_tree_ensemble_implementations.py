@@ -360,13 +360,13 @@ def make_ort_assembly_session(
     for node in onx.graph.node:
         if node.op_type == "TreeEnsembleRegressor":
             node.op_type = "TreeEnsembleAssemblyRegressor"
-            node.domain = "onnx_extented.ortops.tutorial.cpu"
+            node.domain = "onnx_extended.ortops.tutorial.cpu"
             del node.attribute[:]
             new_add = make_attribute("assembly", assembly_name)
             node.attribute.append(new_add)
 
     d = onx.opset_import.add()
-    d.domain = "onnx_extented.ortops.tutorial.cpu"
+    d.domain = "onnx_extended.ortops.tutorial.cpu"
     d.version = 1
 
     r = lib_tuto()
@@ -398,7 +398,7 @@ def transform_model(model, use_sparse=False, **kwargs):
         onx,
         op_type="TreeEnsembleRegressor",
         op_domain="ai.onnx.ml",
-        new_op_domain="onnx_extented.ortops.optim.cpu",
+        new_op_domain="onnx_extended.ortops.optim.cpu",
         nodes_modes=modes,
         **kwargs,
     )

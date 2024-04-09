@@ -23,7 +23,7 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
-    onnx_extented.ortops.option.cpu.DenseToSparse
+    onnx_extended.ortops.option.cpu.DenseToSparse
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Converts a dense tensor into a sparse one.
@@ -46,7 +46,7 @@ def documentation() -> List[str]:
     * T: float
     """,
                 """
-    onnx_extented.ortops.option.cpu.SparseToDense
+    onnx_extended.ortops.option.cpu.SparseToDense
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Converts a spadenserse tensor into a sparse one.
@@ -69,7 +69,7 @@ def documentation() -> List[str]:
     * T: float
     """,
                 """
-    onnx_extented.ortops.option.cpu.TfIdfVectorizer
+    onnx_extended.ortops.option.cpu.TfIdfVectorizer
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Implements TfIdfVectorizer.
@@ -103,7 +103,7 @@ def documentation() -> List[str]:
     * T3: int64
     """,
                 """
-    onnx_extented.ortops.option.cpu.TreeEnsembleClassifier
+    onnx_extended.ortops.option.cpu.TreeEnsembleClassifier
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It does the sum of two tensors.
@@ -137,7 +137,7 @@ def documentation() -> List[str]:
     * T3: int64
     """,
                 """
-    onnx_extented.ortops.option.cpu.TreeEnsembleClassifierSparse
+    onnx_extended.ortops.option.cpu.TreeEnsembleClassifierSparse
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It does the sum of two tensors.
@@ -171,7 +171,7 @@ def documentation() -> List[str]:
     * T3: int64
     """,
                 """
-    onnx_extented.ortops.option.cpu.TreeEnsembleRegressor
+    onnx_extended.ortops.option.cpu.TreeEnsembleRegressor
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It does the sum of two tensors.
@@ -202,7 +202,7 @@ def documentation() -> List[str]:
     * T2: float, double
     """,
                 """
-    onnx_extented.ortops.option.cpu.TreeEnsembleRegressorSparse
+    onnx_extended.ortops.option.cpu.TreeEnsembleRegressorSparse
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It does the sum of two tensors.

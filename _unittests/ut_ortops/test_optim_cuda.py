@@ -69,7 +69,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
                         inputs=["shape", "indices", "updates"],
                         outputs=["y"],
                         reduction=reduction,
-                        domain="onnx_extented.ortops.optim.cuda",
+                        domain="onnx_extended.ortops.optim.cuda",
                     )
                 ],
                 "nd",
@@ -84,7 +84,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
             ),
             opset_imports=[
                 oh.make_opsetid("", 18),
-                oh.make_opsetid("onnx_extented.ortops.optim.cuda", 1),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
             ],
             ir_version=9,
         )
@@ -148,7 +148,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
                         f"{op_type}{op_type}",
                         ["X", "Y", "Z"],
                         ["final"],
-                        domain="onnx_extented.ortops.optim.cuda",
+                        domain="onnx_extended.ortops.optim.cuda",
                     )
                 ],
                 "nd",
@@ -161,7 +161,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
             ),
             opset_imports=[
                 oh.make_opsetid("", 18),
-                oh.make_opsetid("onnx_extented.ortops.optim.cuda", 1),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
             ],
             ir_version=9,
         )

@@ -93,7 +93,7 @@ pprint.pprint(properties)
 # It includes one Gemm. The operator changes.
 # It can the regular Gemm, a custom Gemm from domain `com.microsoft`
 # or a custom implementation from domain
-# `onnx_extented.ortops.tutorial.cuda`.
+# `onnx_extended.ortops.tutorial.cuda`.
 
 
 def create_model(
@@ -164,7 +164,7 @@ def create_model(
         opset_imports=[
             make_opsetid("", opset),
             make_opsetid("com.microsoft", 1),
-            make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+            make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
         ],
         ir_version=ir,
     )
@@ -232,7 +232,7 @@ providers = [
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
 dims = [tuple(int(i) for i in line.split(",")) for line in script_args.dims.split(";")]
-domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
+domains = ["onnx_extended.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
 ####################################
@@ -348,12 +348,12 @@ for tt, engine, provider, dim, domain in pbar:
     columns = ["xdim", "xdomain", "xdtype"] + list(df.columns)
     df["xdim"] = "x".join(map(str, dim))
     df["xdomain"] = {
-        "onnx_extented.ortops.tutorial.cuda": "EXT",
+        "onnx_extended.ortops.tutorial.cuda": "EXT",
         "": "ORT",
         "com.microsoft": "COM",
     }[domain]
     df["args_op_name"] = {
-        "onnx_extented.ortops.tutorial.cuda": "CG",
+        "onnx_extended.ortops.tutorial.cuda": "CG",
         "": "Gemm",
         "com.microsoft": "G8",
     }[domain]

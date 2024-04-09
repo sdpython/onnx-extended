@@ -209,7 +209,7 @@ class TestJsProfile(ExtTestCase):
                         "CustomGemmFloat",
                         ["X", "Xt"],
                         ["final"],
-                        domain="onnx_extented.ortops.tutorial.cpu",
+                        domain="onnx_extended.ortops.tutorial.cpu",
                     ),
                 ],
                 "test",
@@ -218,7 +218,7 @@ class TestJsProfile(ExtTestCase):
             ),
             opset_imports=[
                 make_opsetid("", 18),
-                make_opsetid("onnx_extented.ortops.tutorial.cpu", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cpu", 1),
             ],
             ir_version=9,
         )

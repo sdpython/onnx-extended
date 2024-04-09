@@ -23,7 +23,7 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
-    onnx_extented.ortops.tutorial.cpu.CustomGemmFloat
+    onnx_extended.ortops.tutorial.cpu.CustomGemmFloat
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Implements operator Gemm for float type.
@@ -59,7 +59,7 @@ def documentation() -> List[str]:
     * TF: float
     """,
                 """
-    onnx_extented.ortops.tutorial.cpu.DynamicQuantizeLinear
+    onnx_extended.ortops.tutorial.cpu.DynamicQuantizeLinear
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Implements DynamicQuantizeLinear opset 20.
@@ -89,7 +89,7 @@ def documentation() -> List[str]:
     * T2: int8, uint8, float8e4m3fn, float8e4m3fnuz, float8e5m2, float8e5m2fnuz
     """,
                 """
-    onnx_extented.ortops.tutorial.cpu.MyCustomOp
+    onnx_extended.ortops.tutorial.cpu.MyCustomOp
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It does the sum of two tensors.
@@ -112,7 +112,7 @@ def documentation() -> List[str]:
     * T: float
     """,
                 """
-    onnx_extented.ortops.tutorial.cpu.MyCustomOpWithAttributes
+    onnx_extended.ortops.tutorial.cpu.MyCustomOpWithAttributes
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     It does the sum of two tensors + a constant equal to

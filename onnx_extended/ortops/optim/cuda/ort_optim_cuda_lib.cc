@@ -9,7 +9,7 @@
 #include "ortapi_version.h"
 #include "scatter_nd_of_shape.h"
 
-static const char *c_OpDomain = "onnx_extented.ortops.optim.cuda";
+static const char *c_OpDomain = "onnx_extended.ortops.optim.cuda";
 
 static void AddOrtCustomOpDomainToContainer(Ort::CustomOpDomain &&domain) {
   static std::vector<Ort::CustomOpDomain> ort_custom_op_domain_container;

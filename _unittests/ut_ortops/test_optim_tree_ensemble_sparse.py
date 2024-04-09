@@ -70,12 +70,12 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
             op_type="TreeEnsembleRegressor",
             op_domain="ai.onnx.ml",
             new_op_type="TreeEnsembleRegressorSparse",
-            new_op_domain="onnx_extented.ortops.optim.cpu",
+            new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=modes,
         )
         del onx2.graph.input[:]
         onx2.graph.input.append(make_tensor_value_info("X", TensorProto.FLOAT, (None,)))
-        self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+        self.assertIn("onnx_extended.ortops.optim.cpu", str(onx2))
         self.assertIn("TreeEnsembleRegressorSparse", str(onx2))
 
         # check with onnxruntime + custom op
@@ -141,12 +141,12 @@ class TestOrtOpOptimTreeEnsembleSparseCpu(ExtTestCase):
             op_type="TreeEnsembleClassifier",
             op_domain="ai.onnx.ml",
             new_op_type="TreeEnsembleClassifierSparse",
-            new_op_domain="onnx_extented.ortops.optim.cpu",
+            new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=modes,
         )
         del onx2.graph.input[:]
         onx2.graph.input.append(make_tensor_value_info("X", TensorProto.FLOAT, (None,)))
-        self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+        self.assertIn("onnx_extended.ortops.optim.cpu", str(onx2))
         self.assertIn("TreeEnsembleClassifierSparse", str(onx2))
 
         # check with onnxruntime + custom op

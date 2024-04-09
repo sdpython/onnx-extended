@@ -44,12 +44,12 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         node1 = make_node(
-            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extended.ortops.tutorial.cpu"
         )
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)
@@ -77,7 +77,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "MyCustomOpWithAttributes",
             ["X", "A"],
             ["Y"],
-            domain="onnx_extented.ortops.tutorial.cpu",
+            domain="onnx_extended.ortops.tutorial.cpu",
             att_string="string_att",
             att_int64=5,
             att_float=4.5,
@@ -86,7 +86,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)
@@ -173,7 +173,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         opts.register_custom_ops_library(r[0])
         sess = InferenceSession(
             self._get_dql_model(
-                "onnx_extented.ortops.tutorial.cpu", 1
+                "onnx_extended.ortops.tutorial.cpu", 1
             ).SerializeToString(),
             opts,
             providers=["CPUExecutionProvider"],

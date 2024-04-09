@@ -11,7 +11,7 @@
 #include "ort_tree_ensemble.hpp"
 #include "ortapi_version.h"
 
-static const char *c_OpDomain = "onnx_extented.ortops.optim.cpu";
+static const char *c_OpDomain = "onnx_extended.ortops.optim.cpu";
 
 static void AddOrtCustomOpDomainToContainer(Ort::CustomOpDomain &&domain) {
   static std::vector<Ort::CustomOpDomain> ort_custom_op_domain_container;

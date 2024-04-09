@@ -70,10 +70,10 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             onx,
             op_type="TreeEnsembleRegressor",
             op_domain="ai.onnx.ml",
-            new_op_domain="onnx_extented.ortops.optim.cpu",
+            new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=modes,
         )
-        self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+        self.assertIn("onnx_extended.ortops.optim.cpu", str(onx2))
 
         # check with CReferenceEvaluator
         ref = CReferenceEvaluator(onx2)
@@ -121,7 +121,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
                 onx,
                 op_type="TreeEnsembleRegressor",
                 op_domain="ai.onnx.ml",
-                new_op_domain="onnx_extented.ortops.optim.cpu",
+                new_op_domain="onnx_extended.ortops.optim.cpu",
                 nodes_modes=modes,
                 **kwargs,
             )
@@ -215,11 +215,11 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
                 onx,
                 op_type="TreeEnsembleRegressor",
                 op_domain="ai.onnx.ml",
-                new_op_domain="onnx_extented.ortops.optim.cpu",
+                new_op_domain="onnx_extended.ortops.optim.cpu",
                 nodes_modes=modes,
                 **params,
             )
-            self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+            self.assertIn("onnx_extended.ortops.optim.cpu", str(onx2))
 
             # check with onnxruntime + custom op
             r = get_ort_ext_libs()
@@ -310,11 +310,11 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
                 onx,
                 op_type="TreeEnsembleClassifier",
                 op_domain="ai.onnx.ml",
-                new_op_domain="onnx_extented.ortops.optim.cpu",
+                new_op_domain="onnx_extended.ortops.optim.cpu",
                 nodes_modes=modes,
                 **params,
             )
-            self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+            self.assertIn("onnx_extended.ortops.optim.cpu", str(onx2))
 
             # check with onnxruntime + custom op
             r = get_ort_ext_libs()
@@ -387,14 +387,14 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
             onx,
             op_type="TreeEnsembleRegressor",
             op_domain="ai.onnx.ml",
-            new_op_domain="onnx_extented.ortops.optim.cpu",
+            new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=modes,
             new_opset=3,
         )
-        self.assertIn("onnx_extented.ortops.optim.cpu", str(onx2))
+        self.assertIn("onnx_extended.ortops.optim.cpu", str(onx2))
         opsets = {d.domain: d.version for d in onx2.opset_import}
         self.assertEqual(
-            {"ai.onnx.ml": 3, "": 18, "onnx_extented.ortops.optim.cpu": 3}, opsets
+            {"ai.onnx.ml": 3, "": 18, "onnx_extended.ortops.optim.cpu": 3}, opsets
         )
 
         # check with CReferenceEvaluator

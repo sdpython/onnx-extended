@@ -34,14 +34,14 @@ class TestOrtOpOptimSparse(ExtTestCase):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None])
         node = make_node(
-            "DenseToSparse", ["X"], ["Y"], domain="onnx_extented.ortops.optim.cpu"
+            "DenseToSparse", ["X"], ["Y"], domain="onnx_extended.ortops.optim.cpu"
         )
         graph = make_graph([node], "g", [X], [Y])
         onnx_model = make_model(
             graph,
             opset_imports=[
                 make_opsetid("", 16),
-                make_opsetid("onnx_extented.ortops.optim.cpu", 1),
+                make_opsetid("onnx_extended.ortops.optim.cpu", 1),
             ],
             ir_version=9,
         )
@@ -65,14 +65,14 @@ class TestOrtOpOptimSparse(ExtTestCase):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         node = make_node(
-            "SparseToDense", ["X"], ["Y"], domain="onnx_extented.ortops.optim.cpu"
+            "SparseToDense", ["X"], ["Y"], domain="onnx_extended.ortops.optim.cpu"
         )
         graph = make_graph([node], "g", [X], [Y])
         onnx_model = make_model(
             graph,
             opset_imports=[
                 make_opsetid("", 16),
-                make_opsetid("onnx_extented.ortops.optim.cpu", 1),
+                make_opsetid("onnx_extended.ortops.optim.cpu", 1),
             ],
             ir_version=9,
         )

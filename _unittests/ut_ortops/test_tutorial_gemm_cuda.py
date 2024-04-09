@@ -113,7 +113,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 op_name,
                 node_inputs,
                 node_outputs,
-                domain="onnx_extented.ortops.tutorial.cuda",
+                domain="onnx_extended.ortops.tutorial.cuda",
                 **kwargs,
             ),
             make_node("Cast", ["Yc"], ["Y"], to=TensorProto.FLOAT),
@@ -137,7 +137,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         onnx_model = make_model(
             graph,
             opset_imports=[
-                make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
                 make_opsetid("", opset),
             ],
             ir_version=ir_version,
@@ -566,7 +566,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 op_name,
                 node_inputs,
                 node_outputs,
-                domain="onnx_extented.ortops.tutorial.cuda",
+                domain="onnx_extended.ortops.tutorial.cuda",
                 **kwargs,
             ),
             make_node("Reshape", ["Yc", "new_shape"], ["Yr"]),
@@ -589,7 +589,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
         onnx_model = make_model(
             graph,
             opset_imports=[
-                make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
                 make_opsetid("", opset),
             ],
             ir_version=ir_version,
@@ -701,7 +701,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 # "GemmFloat8",
                 ["y", "y", "", "ScaleScaled", "ScaleScaled", ""],
                 ["Yf"],
-                domain="onnx_extented.ortops.tutorial.cuda",
+                domain="onnx_extended.ortops.tutorial.cuda",
                 # domain="com.microsoft",
                 dtype=1,
                 transB=1,
@@ -733,7 +733,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                 make_opsetid("local", 1),
                 make_opsetid("ai.onnx.ml", 2),
                 make_opsetid("com.microsoft", 1),
-                make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
             ],
             ir_version=9,
             functions=functions,
@@ -982,7 +982,7 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                                 transA=transA,
                                 transB=transB,
                                 rowMajorCompute=row_major_compute,
-                                domain="onnx_extented.ortops.tutorial.cuda",
+                                domain="onnx_extended.ortops.tutorial.cuda",
                             )
                         ],
                         "f8",
@@ -997,9 +997,10 @@ class TestOrtOpTutorialCuda(ExtTestCase):
                         [make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])],
                     ),
                     opset_imports=[
-                        make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+                        make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
                         make_opsetid("", 18),
                     ],
+                    ir_version=9,
                 )
 
                 opts = SessionOptions()

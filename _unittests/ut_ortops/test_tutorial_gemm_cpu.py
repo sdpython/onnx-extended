@@ -81,7 +81,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 op_name,
                 node_inputs,
                 node_outputs,
-                domain="onnx_extented.ortops.tutorial.cpu",
+                domain="onnx_extended.ortops.tutorial.cpu",
                 **kwargs,
             ),
             make_node("Cast", ["Yc"], ["Y"], to=TensorProto.FLOAT),
@@ -105,7 +105,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         onnx_model = make_model(
             graph,
             opset_imports=[
-                make_opsetid("onnx_extented.ortops.tutorial.cpu", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cpu", 1),
                 make_opsetid("", opset),
             ],
             ir_version=ir_version,
@@ -554,7 +554,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 op_name,
                 node_inputs,
                 node_outputs,
-                domain="onnx_extented.ortops.tutorial.cpu",
+                domain="onnx_extended.ortops.tutorial.cpu",
                 **kwargs,
             ),
             make_node("Reshape", ["Yc", "new_shape"], ["Yr"]),
@@ -577,7 +577,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         onnx_model = make_model(
             graph,
             opset_imports=[
-                make_opsetid("onnx_extented.ortops.tutorial.cpu", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cpu", 1),
                 make_opsetid("", opset),
             ],
             ir_version=ir_version,
@@ -683,7 +683,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 # "GemmFloat8",
                 ["y", "y", "", "ScaleScaled", "ScaleScaled", ""],
                 ["Yf"],
-                domain="onnx_extented.ortops.tutorial.cpu",
+                domain="onnx_extended.ortops.tutorial.cpu",
                 # domain="com.microsoft",
                 dtype=1,
                 transB=1,
@@ -714,7 +714,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 make_opsetid("local", 1),
                 make_opsetid("ai.onnx.ml", 2),
                 make_opsetid("com.microsoft", 1),
-                make_opsetid("onnx_extented.ortops.tutorial.cpu", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cpu", 1),
             ],
             ir_version=9,
             functions=functions,

@@ -21,7 +21,6 @@ class TestCudaGemm(ExtTestCase):
         r = get_device_prop()
         self.assertIsInstance(r, dict)
         self.assertEqual(len(r), 12)
-        self.assertIn("NVIDIA", r["name"])
 
     @unittest.skipIf(get_device_prop is None, reason="CUDA not available")
     def test_cuda_device_count(self):

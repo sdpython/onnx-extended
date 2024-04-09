@@ -209,7 +209,7 @@ class _MainQuantizeState:
         elif version == "onnx-extended":
             self.op_gemm = "CustomGemmFloat8E4M3FN"
             self.domain_gemm = domain_ops.get(
-                "CustomGemmFloat8E4M3FN", "onnx_extented.ortops.tutorial.cuda"
+                "CustomGemmFloat8E4M3FN", "onnx_extended.ortops.tutorial.cuda"
             )
         else:
             raise ValueError(f"Unexpected value {version!r} for version.")

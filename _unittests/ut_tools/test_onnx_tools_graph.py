@@ -245,7 +245,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                     graph,
                     version="onnx-extended",
                     domain_ops={
-                        "CustomGemmFloat8E4M3FN": "onnx_extented.ortops.tutorial.cpu"
+                        "CustomGemmFloat8E4M3FN": "onnx_extended.ortops.tutorial.cpu"
                     },
                     index_transpose=tr,
                 )

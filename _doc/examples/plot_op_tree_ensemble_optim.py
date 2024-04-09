@@ -169,7 +169,7 @@ print(f"yb.shape={yb.shape}")
 # +++++++++++++++++++++++++++++++++++++++++++++++
 #
 # The custom kernel is mapped to a custom operator with the same name
-# the attributes and domain = `"onnx_extented.ortops.optim.cpu"`.
+# the attributes and domain = `"onnx_extended.ortops.optim.cpu"`.
 # We call a function to do that replacement.
 # First the current model.
 
@@ -192,7 +192,7 @@ def transform_model(model, **kwargs):
         onx,
         op_type="TreeEnsembleRegressor",
         op_domain="ai.onnx.ml",
-        new_op_domain="onnx_extented.ortops.optim.cpu",
+        new_op_domain="onnx_extended.ortops.optim.cpu",
         nodes_modes=modes,
         **kwargs,
     )

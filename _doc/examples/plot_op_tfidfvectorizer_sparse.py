@@ -90,12 +90,12 @@ def make_sessions(
     # second: custom kernel equivalent to the onnxruntime implementation
     for node in onx.graph.node:
         if node.op_type == "TfIdfVectorizer":
-            node.domain = "onnx_extented.ortops.optim.cpu"
+            node.domain = "onnx_extended.ortops.optim.cpu"
             # new_add = make_attribute("sparse", 1)
             # node.attribute.append(new_add)
 
     d = onx.opset_import.add()
-    d.domain = "onnx_extented.ortops.optim.cpu"
+    d.domain = "onnx_extended.ortops.optim.cpu"
     d.version = 1
 
     r = get_ort_ext_libs()
