@@ -94,7 +94,6 @@ updates = np.ones((2, 10, 7)).astype(np.float32)
 feeds = {"X": X, "indices": indices, "updates": updates}
 
 
-
 ref = ReferenceEvaluator(model, new_ops=[ScatterND])
 got = ref.run(None, feeds)[0]
 print(got)

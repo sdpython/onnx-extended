@@ -168,9 +168,13 @@ class CReferenceEvaluator(ReferenceEvaluator):
         )
         from onnx_extended.reference.c_ops.c_op_tfidf_vectorizer import TfIdfVectorizer
         from onnx_extended.reference.other_ops.op_tokenizer import Tokenizer
+        from onnx_extended.reference.other_ops.op_scatternd_of_shape import (
+            ScatterNDOfShape,
+        )
 
         return [
             Conv,
+            ScatterNDOfShape,
             SVMClassifier,
             SVMRegressor,
             TfIdfVectorizer,
