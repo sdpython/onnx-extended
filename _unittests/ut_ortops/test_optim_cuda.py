@@ -252,16 +252,26 @@ class TestOrtOpOptimCuda(ExtTestCase):
 
         opts = onnxruntime.SessionOptions()
         opts.register_custom_ops_library(get_ort_ext_libs()[0])
-        # opts.log_severity_level = 0
-        # opts.log_verbosity_level = 0
+        if __name__ == "disabled__main__":
+            opts.log_severity_level = 0
+            opts.log_verbosity_level = 0
         sess = onnxruntime.InferenceSession(
             model.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
         )
-        if __name__ == "__main__":
-            print(f"running itype={itype}, optimize={optimize}, dim3={dim3}")
-        got = sess.run(None, feeds)[0]
+        if __name__ == "disabled__main__":
+            print(
+                f"running itype={itype}, optimize={optimize}, dim3={dim3}, "
+                f"shape={shape}, indices.shape={indices.shape}, "
+                f"updates.shape={updates.shape}"
+            )
+            ro = onnxruntime.RunOptions()
+            ro.log_severity_level = 0
+            ro.log_verbosity_level = 0
+        else:
+            ro = None
+        got = sess.run(None, feeds, ro)[0]
         self.assertEqual(expected.tolist(), got.tolist())
-        if __name__ == "__main__":
+        if __name__ == "disabled__main__":
             print("done.")
 
     def test_scatternd_of_shape_optimize_cuda(self):

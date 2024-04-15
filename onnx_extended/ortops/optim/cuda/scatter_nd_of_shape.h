@@ -19,6 +19,10 @@ enum class Strategy : int {
   Optimize = 1,
 };
 
+struct Shape2 {
+  int64_t dims[12];
+};
+
 template <typename T> struct ScatterNDOfShapeKernel {
   ScatterNDOfShapeKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
@@ -48,6 +52,7 @@ struct ScatterNDOfShapeOp
   std::size_t GetInputTypeCount() const;
   ONNXTensorElementDataType GetInputType(std::size_t index) const;
   OrtCustomOpInputOutputCharacteristic GetInputCharacteristic(std::size_t index) const;
+  OrtMemType GetInputMemoryType(std::size_t index) const;
 
   std::size_t GetOutputTypeCount() const;
   ONNXTensorElementDataType GetOutputType(std::size_t index) const;
