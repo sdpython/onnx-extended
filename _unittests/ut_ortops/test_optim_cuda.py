@@ -274,6 +274,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         if __name__ == "disabled__main__":
             print("done.")
 
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_scatternd_of_shape_optimize_cuda(self):
         with self.subTest(optimize=True, dim3=True):
             self._scatternd_of_shape_optimize_cuda(True, True, TensorProto.FLOAT)
