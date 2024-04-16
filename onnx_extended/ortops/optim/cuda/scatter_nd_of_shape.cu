@@ -74,7 +74,7 @@ template <typename T, typename TFunc>
 __global__ void
 _ScatterNDKernelReduction(T *output_data, const size_t num_indices, const int64_t *indices_data,
                           const int64_t last_index_dimension,
-                          const int64_t *element_counts_and_input_dims, const T *updates_data,
+                          Shape2 element_counts_and_input_dims, const T *updates_data,
                           const size_t num_updates_elements, const TFunc func) {
   CALCULATE_ELEMENTWISE_INDEX_OR_EXIT(id, num_indices);
 
@@ -86,8 +86,9 @@ _ScatterNDKernelReduction(T *output_data, const size_t num_indices, const int64_
   for (size_t i = indices_start; i < indices_end; ++i) {
     int64_t index = indices_data[i];
 
-    int64_t element_count_dim = element_counts_and_input_dims[i - indices_start];
-    int64_t dim_value = element_counts_and_input_dims[i - indices_start + last_index_dimension];
+    int64_t element_count_dim = element_counts_and_input_dims.dims[i - indices_start];
+    int64_t dim_value =
+        element_counts_and_input_dims.dims[i - indices_start + last_index_dimension];
 
     // Clamp the index if out of range
     // This would have been an error in the CPU kernel, but throwing in the CUDA EP
@@ -132,7 +133,7 @@ struct GridDim {
 void ScatterNDImplReduction(cudaStream_t stream, void *output_data, const int32_t element_type,
                             const size_t num_indices, const int64_t *indices_data,
                             const int64_t last_index_dimension,
-                            const int64_t *element_counts_and_input_dims,
+                            const Shape2 &element_counts_and_input_dims,
                             const void *updates_data, const size_t num_updates_elements,
                             Reduction reduction) {
   if (num_indices == 0)
@@ -214,6 +215,55 @@ struct TensorPitches : std::vector<int64_t> {
   }
 };
 
+template <typename T>
+__global__ void
+addition_inplace_kernel(T *__restrict__ output_data, const int64_t *__restrict__ indices_data,
+                        const T *__restrict__ updates_data, const CUDA_LONG indice_size,
+                        const CUDA_LONG nrows, const CUDA_LONG stride) {
+  HIP_LONG id = blockDim.x * blockIdx.x + threadIdx.x;
+  if (id >= stride)
+    return;
+
+  for (size_t i = 0; i < nrows; ++i) {
+    output_data[i * stride + id] = 0;
+  }
+
+  for (size_t i = 0; i < indice_size; ++i) {
+    output_data[indices_data[i] * stride + id] += updates_data[i * stride + id];
+  }
+}
+
+#ifdef ENABLE_NCONT
+
+template <typename T, int NCONT>
+__global__ void
+addition_inplace_kernelN(T *__restrict__ output_data, const int64_t *__restrict__ indices_data,
+                         const T *__restrict__ updates_data, const CUDA_LONG indice_size,
+                         const CUDA_LONG nrows, const CUDA_LONG stride) {
+  HIP_LONG id = blockDim.x * blockIdx.x + threadIdx.x * NCONT;
+
+  T *out;
+  for (size_t i = 0; i < nrows; ++i) {
+    out = output_data + i * stride + id;
+#pragma unroll
+    for (int k = 0; k < NCONT; ++k) {
+      out[k] = 0;
+    }
+  }
+
+  const T *up;
+  for (size_t i = 0; i < indice_size; ++i) {
+    out = output_data + (indices_data[i] * stride + id);
+    up = updates_data + (i * stride + id);
+#pragma unroll
+    for (int k = 0; k < NCONT; ++k) {
+      out[k] += up[k];
+    }
+  }
+}
+
+#endif
+
 //////////////////
 // ScatterNDOfShapeOp...
 //////////////////
@@ -254,6 +304,19 @@ ONNXTensorElementDataType ScatterNDOfShapeOp<half>::GetInputType(std::size_t ind
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
   case 2:
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+  default:
+    EXT_THROW("Input index=", (int64_t)index, " is out of boundary.");
+  }
+}
+
+template <typename T>
+OrtMemType ScatterNDOfShapeOp<T>::GetInputMemoryType(std::size_t index) const {
+  switch (index) {
+  case 0:
+    return OrtMemTypeCPUInput;
+  case 1:
+  case 2:
+    return OrtMemTypeDefault;
   default:
     EXT_THROW("Input index=", (int64_t)index, " is out of boundary.");
   }
@@ -317,11 +380,24 @@ ScatterNDOfShapeKernel<T>::ScatterNDOfShapeKernel(const OrtApi &api,
   char value_string[1000];
   std::size_t size = 1000;
   ThrowOnError(api, api.KernelInfoGetAttribute_string(info, "reduction", value_string, &size));
-  std::string reduction = value_string;
-  if (reduction == "add")
+  std::string value = value_string;
+  if (value == "add")
     reduction_ = Reduction::Add;
   else
-    EXT_THROW("unexpected reduction '", reduction, "'.");
+    EXT_THROW("unexpected reduction '", value, "'.");
+
+  value = KernelInfoGetOptionalAttributeString(api, info, "strategy", "none");
+  if (value == "none")
+    strategy_ = Strategy::None;
+  else if (value == "optimize")
+    strategy_ = Strategy::Optimize;
+  else
+    EXT_THROW("unexpected strategy '", value, "'.");
+
+  cudaDeviceProp prop;
+  int deviceId = 0;
+  cudaGetDeviceProperties(&prop, deviceId);
+  maxThreadPerBlock_ = prop.maxThreadsPerBlock;
 }
 
 template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *context) {
@@ -339,33 +415,56 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
   std::vector<int64_t> updates_shape = updates.GetTensorTypeAndShapeInfo().GetShape();
   EXT_ENFORCE(dimensions.size() == 1, "shape must be a 1-dimension tensor.");
 
-  cudaStream_t cuda_stream = (cudaStream_t)ctx.GetGPUComputeStream();
+  cudaStream_t stream = (cudaStream_t)ctx.GetGPUComputeStream();
+
+  auto memi = updates.GetTensorMemoryInfo();
+  EXT_ENFORCE(memi.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
+              "updates are not on GPU");
 
   auto mem = shape.GetTensorMemoryInfo();
-  if (mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU) {
-    std::vector<int64_t> buf(dimensions[0]);
-    const int64_t *ptr = shape.GetTensorData<int64_t>();
-    CUDA_THROW_IF_ERROR(
-        cudaMemcpy(buf.data(), ptr, dimensions[0] * sizeof(int64_t), cudaMemcpyDeviceToHost));
-    output = ctx.GetOutput(0, buf);
-  } else if (mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU) {
-    const int64_t *X = shape.GetTensorData<int64_t>();
-    std::vector<int64_t> dims(dimensions[0]);
-    for (size_t i = 0; i < dimensions[0]; ++i)
-      dims[i] = X[i];
-    output = ctx.GetOutput(0, dims);
+  EXT_ENFORCE(
+      mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU,
+      "The shape should be on CPU already, but mem.GetDeviceType()=", mem.GetDeviceType(), ".");
+  const int64_t *X = shape.GetTensorData<int64_t>();
+  std::vector<int64_t> dims(X, X + dimensions[0]);
+  output = ctx.GetOutput(0, dims);
+
+  std::vector<int64_t> input_shape = output.GetTensorTypeAndShapeInfo().GetShape();
+
+  if (reduction_ == Reduction::Add && strategy_ == Strategy::Optimize &&
+      indices_shape[indices_shape.size() - 1] == 1 && input_shape.size() == 2 &&
+      input_shape[input_shape.size() - 1] >= maxThreadPerBlock_) {
+
+    size_t indice_size = static_cast<size_t>(onnx_c_ops::flattened_dimension(indices_shape));
+    size_t update_size = static_cast<size_t>(onnx_c_ops::flattened_dimension(updates_shape));
+
+    EXT_ENFORCE(update_size == indice_size * input_shape[input_shape.size() - 1],
+                "Size mismatch, update_size=", update_size, "indice_size=", indice_size,
+                "input_shape[-1]=", input_shape[input_shape.size() - 1], ".");
+
+    ComputeOptimize(stream, input_shape, indices_shape, output.GetTensorMutableData<T>(),
+                    indices.GetTensorData<int64_t>(), updates.GetTensorData<T>());
   } else {
-    EXT_THROW("Unexpected device for input 1.");
+    ComputeNone(stream, input_shape, indices_shape, output.GetTensorMutableData<T>(),
+                indices.GetTensorData<int64_t>(), updates.GetTensorData<T>());
+  }
+}
+
+template <typename T>
+void ScatterNDOfShapeKernel<T>::ComputeNone(cudaStream_t &stream,
+                                            const std::vector<int64_t> &input_shape,
+                                            const std::vector<int64_t> &indices_shape,
+                                            T *output_data, const int64_t *indices_data,
+                                            const T *updates_data) const {
+  int64_t indice_size = onnx_c_ops::flattened_dimension(indices_shape);
+  auto n_elements = onnx_c_ops::flattened_dimension(input_shape);
+
+  if (indice_size == 0) {
+    CUDA_THROW_IF_ERROR(cudaMemsetAsync(output_data, 0, sizeof(T) * n_elements, stream));
+    return;
   }
 
-  int64_t indice_size = onnx_c_ops::flattened_dimension(indices_shape);
-  if (indice_size == 0)
-    return;
-
-  void *output_data = output.GetTensorMutableData<T>();
-  std::vector<int64_t> input_shape = output.GetTensorTypeAndShapeInfo().GetShape();
-  auto n_elements = onnx_c_ops::flattened_dimension(input_shape);
-  CUDA_THROW_IF_ERROR(cudaMemsetAsync(output_data, 0, sizeof(T) * n_elements, cuda_stream));
+  CUDA_THROW_IF_ERROR(cudaMemsetAsync(output_data, 0, sizeof(T) * n_elements, stream));
 
   auto last_index_dimension = indices_shape[indices_shape.size() - 1];
 
@@ -373,32 +472,24 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
   // for the range [0, last_index_dimension).
   // To avoid multiple GPU data transfers, we combine this into one array and send it through
   TensorPitches input_strides(input_shape);
-  std::vector<int64_t> element_counts_and_input_dims(last_index_dimension * 2, 0LL);
+  Shape2 element_counts_and_input_dims;
+  memset(element_counts_and_input_dims.dims, 0, sizeof(int64_t) * last_index_dimension * 2);
 
   for (int64_t i = 0; i < last_index_dimension; ++i) {
-    element_counts_and_input_dims[i] = input_strides[i];
-    element_counts_and_input_dims[i + last_index_dimension] = input_shape[i];
+    element_counts_and_input_dims.dims[i] = input_strides[i];
+    element_counts_and_input_dims.dims[i + last_index_dimension] = input_shape[i];
   }
 
-  int64_t *workspace;
-  CUDA_THROW_IF_ERROR(
-      cudaMalloc((void **)&workspace, element_counts_and_input_dims.size() * sizeof(int64_t)));
-  CUDA_THROW_IF_ERROR(cudaMemcpyAsync(workspace, element_counts_and_input_dims.data(),
-                                      element_counts_and_input_dims.size() * sizeof(int64_t),
-                                      cudaMemcpyHostToDevice, cuda_stream));
-
   // Let's synchronize after the initialization of the results.
-  // CUDA_THROW_IF_ERROR(cudaStreamSynchronize(cuda_stream));
+  // CUDA_THROW_IF_ERROR(cudaStreamSynchronize(stream));
 
   switch (reduction_) {
   case Reduction::Add: {
     auto element_type = CTypeToOnnxType<T>().onnx_type();
     ScatterNDImplReduction(
-        cuda_stream, output_data, element_type,
-        indice_size / static_cast<size_t>(last_index_dimension),
-        indices.GetTensorData<int64_t>(), // only int64_t is supported for indices as per
-                                          // the onnx spec
-        last_index_dimension, workspace, updates.GetTensorData<T>(),
+        stream, output_data, element_type,
+        indice_size / static_cast<size_t>(last_index_dimension), indices_data,
+        last_index_dimension, element_counts_and_input_dims, updates_data,
         onnx_c_ops::SizeFromDimension(input_shape, last_index_dimension, input_shape.size()),
         reduction_);
   } break;
@@ -406,8 +497,57 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
     EXT_THROW("ScatterNDOfShape not supported for other reduction than Add, None.");
     break;
   }
+}
 
-  CUDA_THROW_IF_ERROR(cudaFree(workspace));
+template <typename T>
+void _ComputeOptimize(cudaStream_t stream, const std::vector<int64_t> &input_shape,
+                      const std::vector<int64_t> &indices_shape, T *output_data,
+                      const int64_t *indices_data, const T *updates_data,
+                      int maxThreadPerBlock_) {
+
+  // The kernel is slow if there are a lot of duplicates.
+  // reduction_ == Reduction::add
+  // indices_shape[indices_shape.size() - 1] == 1
+  // input_shape.size() == 2
+  size_t indice_size = static_cast<size_t>(onnx_c_ops::flattened_dimension(indices_shape));
+  size_t input_size = static_cast<size_t>(onnx_c_ops::flattened_dimension(input_shape));
+  size_t stride = input_shape[input_shape.size() - 1];
+  size_t nrows = input_size / stride;
+
+  std::vector<size_t> next_batch(indice_size);
+  std::vector<uint8_t> processed(input_shape[0], 0);
+  std::vector<uint8_t> processed_once(input_shape[0], 0);
+
+  int threads_per_block = std::min(256, maxThreadPerBlock_ / 8);
+
+#ifdef ENABLE_NCONT
+#define NCONT 65536
+  if (stride % NCONT == 0 && stride > threads_per_block * NCONT) {
+    int blocks_per_grid = (stride / NCONT + threads_per_block - 1) / threads_per_block;
+    dim3 threads(threads_per_block);
+    dim3 blocks(blocks_per_grid);
+    addition_inplace_kernelN<T, NCONT><<<blocks, threads, 0, stream>>>(
+        output_data, indices_data, updates_data, indice_size, nrows, stride);
+  } else {
+#endif
+    int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
+    dim3 threads(threads_per_block);
+    dim3 blocks(blocks_per_grid);
+    addition_inplace_kernel<T><<<blocks, threads, 0, stream>>>(
+        output_data, indices_data, updates_data, indice_size, nrows, stride);
+#ifdef ENABLE_NCONT
+  }
+#endif
+}
+
+template <typename T>
+void ScatterNDOfShapeKernel<T>::ComputeOptimize(cudaStream_t &stream,
+                                                const std::vector<int64_t> &input_shape,
+                                                const std::vector<int64_t> &indices_shape,
+                                                T *output_data, const int64_t *indices_data,
+                                                const T *updates_data) const {
+  _ComputeOptimize(stream, input_shape, indices_shape, output_data, indices_data, updates_data,
+                   maxThreadPerBlock_);
 }
 
 static ScatterNDOfShapeOp<float> _op32;

@@ -193,6 +193,98 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._addaddmulmul_cuda(TensorProto.FLOAT, "Add")
         self._addaddmulmul_cuda(TensorProto.FLOAT16, "Add")
 
+    def _scatternd_of_shape_optimize_cuda(self, optimize, dim3, itype):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        indices_shape = ["i", "j", 1] if dim3 else ["j", 1]
+        updates_shape = ["i", "j", "b"] if dim3 else ["j", "b"]
+
+        model = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        "ScatterNDOfShape",
+                        inputs=["shape", "indices", "updates"],
+                        outputs=["y"],
+                        reduction="add",
+                        strategy="optimize" if optimize else "none",
+                        domain="onnx_extended.ortops.optim.cuda",
+                    )
+                ],
+                "nd",
+                [
+                    oh.make_tensor_value_info("shape", TensorProto.INT64, [2]),
+                    oh.make_tensor_value_info(
+                        "indices", TensorProto.INT64, indices_shape
+                    ),
+                    oh.make_tensor_value_info("updates", itype, updates_shape),
+                ],
+                [oh.make_tensor_value_info("y", itype, [None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        if dim3:
+            shape = (128, 1024)
+            indices = np.zeros((2, 64, 1)).astype(np.int64)
+            indices[:, ::2, 0] = 87
+            indices[:, ::3, 0] = 85
+            updates = np.ones((2, 64, 1024)).astype(np.float32)
+        else:
+            shape = (128, 1024)
+            indices = np.zeros((128, 1)).astype(np.int64)
+            indices[::2, 0] = 87
+            indices[::3, 0] = 85
+            updates = np.ones((128, 1024)).astype(np.float32)
+        if itype != 1:
+            updates = updates.astype(np.float16)
+        feeds = dict(
+            shape=np.array(shape, dtype=np.int64), indices=indices, updates=updates
+        )
+
+        ref = CReferenceEvaluator(model)
+        expected = ref.run(None, feeds)[0]
+
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        if __name__ == "disabled__main__":
+            opts.log_severity_level = 0
+            opts.log_verbosity_level = 0
+        sess = onnxruntime.InferenceSession(
+            model.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        if __name__ == "disabled__main__":
+            print(
+                f"running itype={itype}, optimize={optimize}, dim3={dim3}, "
+                f"shape={shape}, indices.shape={indices.shape}, "
+                f"updates.shape={updates.shape}"
+            )
+            ro = onnxruntime.RunOptions()
+            ro.log_severity_level = 0
+            ro.log_verbosity_level = 0
+        else:
+            ro = None
+        got = sess.run(None, feeds, ro)[0]
+        self.assertEqual(expected.tolist(), got.tolist())
+        if __name__ == "disabled__main__":
+            print("done.")
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_scatternd_of_shape_optimize_cuda(self):
+        with self.subTest(optimize=True, dim3=True):
+            self._scatternd_of_shape_optimize_cuda(True, True, TensorProto.FLOAT)
+        self._scatternd_of_shape_optimize_cuda(False, False, TensorProto.FLOAT)
+        self._scatternd_of_shape_optimize_cuda(False, True, TensorProto.FLOAT)
+        with self.subTest(optimize=True, dim3=False):
+            self._scatternd_of_shape_optimize_cuda(True, False, TensorProto.FLOAT)
+        with self.subTest(optimize=True, dim3=True, itype=TensorProto.FLOAT16):
+            self._scatternd_of_shape_optimize_cuda(True, True, TensorProto.FLOAT16)
+
 
 if __name__ == "__main__":
     # TestOrtOpTutorialCpu().test_dynamic_quantize_linear()

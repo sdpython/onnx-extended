@@ -99,6 +99,14 @@ See :ref:`l-example-op-mul_cuda`.
 The benchmark compares two operators Mul profiles
 with their fusion into a single operator.
 
+plot_op_scatternd_cuda
+++++++++++++++++++++++
+
+See :ref:`l-example-op-scatternd_cuda`.
+
+The benchmark compares two operators Mul profiles
+with their fusion into a single operator.
+
 No specific provider
 ====================
 

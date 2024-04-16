@@ -4,6 +4,7 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`162`: add ScatterNDOfShape implementation on CUDA without atomics
 * :pr:`159`: add AddAdd custom operator on CUDA
 * :pr:`158`: add MulMul custom operator on CUDA
 * :pr:`157`: add ScatterNDOfShape custom operator
