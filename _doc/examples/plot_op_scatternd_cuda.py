@@ -10,7 +10,7 @@ How to parallelize something like the following?
 ScatterND
 =========
 
-This configuration happens in a :epkg:`LLAMA` model.
+This configuration happens in a :epkg:`Llama` model.
 
 ::
 
