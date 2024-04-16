@@ -33,6 +33,7 @@ script_args = get_parsed_args(
         "small, short optimization (default), "
         "medium for medium sizes, "
         "large for big sizes",
+        "llama for a specific case on llama",
     ),
     warmup=3,
     repeat=5,
@@ -52,9 +53,10 @@ from onnx.reference.op_run import OpRun
 from onnx_array_api.plotting.text_plot import onnx_simple_text_plot
 
 itype = script_args.itype
+dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
 config = script_args.config
 print(f"config={config}")
-print(f"itype={itype}")
+print(f"itype={itype}, dtype={dtype}")
 
 if config == "small":
     sizes = (256, 512, 1024)
@@ -62,6 +64,8 @@ elif config == "medium":
     sizes = (512, 1024, 2048)
 elif config == "large":
     sizes = (1024, 2048, 4096, 8192)
+elif config == "llama":
+    sizes = (16000, 32000)
 else:
     try:
         sizes = list(map(int, config.split(",")))
@@ -151,10 +155,10 @@ class ScatterNDOfShape(OpRun):
 
 
 shape = (5, 7)
-X = np.zeros(shape, dtype=np.float32)
+X = np.zeros(shape, dtype=dtype)
 indices = np.zeros((2, 10, 1)).astype(np.int64)
 indices[:, ::2, 0] = 3
-updates = np.ones((2, 10, 7)).astype(np.float32)
+updates = np.ones((2, 10, 7)).astype(dtype)
 feeds = {"X": X, "indices": indices, "updates": updates}
 
 
@@ -270,13 +274,23 @@ def move_inputs(sess, feeds):
     return bind, feed_ort_value
 
 
-def benchmark(sess, sizes, label, itype, times_col: int = 1, times_indices: int = 1):
+def benchmark(
+    sess, sizes, config, label, itype, times_col: int = 1, times_indices: int = 1
+):
 
     data = []
     for size in tqdm(sizes):
 
-        nrow, ncol = size, int(size * times_col)
-        nind = int(size * times_indices)
+        if config == "llama":
+            # zeros: 32000x4096
+            # indices: 2x1024x1
+            # updates: 2x1024x4096
+            nrow, ncol = size, 4096
+            nind = 1024
+        else:
+            nrow, ncol = size, int(size * times_col)
+            nind = int(size * times_indices)
+
         shape = np.array([nrow, ncol], dtype=np.int64)
         indices = np.array(
             [np.random.randint(0, nrow - 1) for _ in range(nind)], dtype=np.int64
@@ -323,14 +337,14 @@ if sess1 is not None:
 
     print(f"sizes={sizes}")
 
-    data_nd1 = benchmark(sess1, sizes, "Atomic", itype=itype)
+    data_nd1 = benchmark(sess1, sizes, script_args.config, "Atomic", itype=itype)
 
 #######################################
 # Fused.
 
 if sess2 is not None:
 
-    data_nd2 = benchmark(sess2, sizes, "No Atomic", itype=itype)
+    data_nd2 = benchmark(sess2, sizes, script_args.config, "No Atomic", itype=itype)
 
 
 ##########################################
@@ -361,4 +375,6 @@ if sess2 is not None:
     ax.get_figure().savefig("plot_op_scatternd_cuda.png")
 
 ##############################
-# The best choice depends on the on input sizes.
+# The best choice depends on the input sizes,
+# For big matrices, the use of atomic is slowing down
+# the computation.

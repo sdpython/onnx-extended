@@ -87,7 +87,8 @@ _ScatterNDKernelReduction(T *output_data, const size_t num_indices, const int64_
     int64_t index = indices_data[i];
 
     int64_t element_count_dim = element_counts_and_input_dims.dims[i - indices_start];
-    int64_t dim_value = element_counts_and_input_dims.dims[i - indices_start + last_index_dimension];
+    int64_t dim_value =
+        element_counts_and_input_dims.dims[i - indices_start + last_index_dimension];
 
     // Clamp the index if out of range
     // This would have been an error in the CPU kernel, but throwing in the CUDA EP
@@ -132,7 +133,7 @@ struct GridDim {
 void ScatterNDImplReduction(cudaStream_t stream, void *output_data, const int32_t element_type,
                             const size_t num_indices, const int64_t *indices_data,
                             const int64_t last_index_dimension,
-                            const Shape2& element_counts_and_input_dims,
+                            const Shape2 &element_counts_and_input_dims,
                             const void *updates_data, const size_t num_updates_elements,
                             Reduction reduction) {
   if (num_indices == 0)
@@ -215,19 +216,53 @@ struct TensorPitches : std::vector<int64_t> {
 };
 
 template <typename T>
-__global__ void addition_inplace_kernel(T *output_data, const int64_t *indices_data, const T *updates_data, const CUDA_LONG indice_size, const CUDA_LONG nrows, const CUDA_LONG stride) {
+__global__ void
+addition_inplace_kernel(T *__restrict__ output_data, const int64_t *__restrict__ indices_data,
+                        const T *__restrict__ updates_data, const CUDA_LONG indice_size,
+                        const CUDA_LONG nrows, const CUDA_LONG stride) {
   HIP_LONG id = blockDim.x * blockIdx.x + threadIdx.x;
   if (id >= stride)
     return;
-  
-  for(size_t i=0; i < nrows; ++i) {
+
+  for (size_t i = 0; i < nrows; ++i) {
     output_data[i * stride + id] = 0;
   }
 
-  for(size_t i=0;i < indice_size; ++i) {
+  for (size_t i = 0; i < indice_size; ++i) {
     output_data[indices_data[i] * stride + id] += updates_data[i * stride + id];
   }
 }
+
+#ifdef ENABLE_NCONT
+
+template <typename T, int NCONT>
+__global__ void
+addition_inplace_kernelN(T *__restrict__ output_data, const int64_t *__restrict__ indices_data,
+                         const T *__restrict__ updates_data, const CUDA_LONG indice_size,
+                         const CUDA_LONG nrows, const CUDA_LONG stride) {
+  HIP_LONG id = blockDim.x * blockIdx.x + threadIdx.x * NCONT;
+
+  T *out;
+  for (size_t i = 0; i < nrows; ++i) {
+    out = output_data + i * stride + id;
+#pragma unroll
+    for (int k = 0; k < NCONT; ++k) {
+      out[k] = 0;
+    }
+  }
+
+  const T *up;
+  for (size_t i = 0; i < indice_size; ++i) {
+    out = output_data + (indices_data[i] * stride + id);
+    up = updates_data + (i * stride + id);
+#pragma unroll
+    for (int k = 0; k < NCONT; ++k) {
+      out[k] += up[k];
+    }
+  }
+}
+
+#endif
 
 //////////////////
 // ScatterNDOfShapeOp...
@@ -387,8 +422,9 @@ template <typename T> void ScatterNDOfShapeKernel<T>::Compute(OrtKernelContext *
               "updates are not on GPU");
 
   auto mem = shape.GetTensorMemoryInfo();
-  EXT_ENFORCE(mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU,
-              "The shape should be on CPU already, but mem.GetDeviceType()=", mem.GetDeviceType(), ".");
+  EXT_ENFORCE(
+      mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_CPU,
+      "The shape should be on CPU already, but mem.GetDeviceType()=", mem.GetDeviceType(), ".");
   const int64_t *X = shape.GetTensorData<int64_t>();
   std::vector<int64_t> dims(X, X + dimensions[0]);
   output = ctx.GetOutput(0, dims);
@@ -436,7 +472,7 @@ void ScatterNDOfShapeKernel<T>::ComputeNone(cudaStream_t &stream,
   // for the range [0, last_index_dimension).
   // To avoid multiple GPU data transfers, we combine this into one array and send it through
   TensorPitches input_strides(input_shape);
-  Shape2 element_counts_and_input_dims; 
+  Shape2 element_counts_and_input_dims;
   memset(element_counts_and_input_dims.dims, 0, sizeof(int64_t) * last_index_dimension * 2);
 
   for (int64_t i = 0; i < last_index_dimension; ++i) {
@@ -482,12 +518,26 @@ void _ComputeOptimize(cudaStream_t stream, const std::vector<int64_t> &input_sha
   std::vector<uint8_t> processed(input_shape[0], 0);
   std::vector<uint8_t> processed_once(input_shape[0], 0);
 
-  int threads_per_block = std::min(256, maxThreadPerBlock_ / 2);
-  int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
-  dim3 threads(threads_per_block);
-  dim3 blocks(blocks_per_grid);
+  int threads_per_block = std::min(256, maxThreadPerBlock_ / 8);
 
-  addition_inplace_kernel<T><<<blocks, threads, 0, stream>>>(output_data, indices_data, updates_data, indice_size, nrows, stride);
+#ifdef ENABLE_NCONT
+#define NCONT 65536
+  if (stride % NCONT == 0 && stride > threads_per_block * NCONT) {
+    int blocks_per_grid = (stride / NCONT + threads_per_block - 1) / threads_per_block;
+    dim3 threads(threads_per_block);
+    dim3 blocks(blocks_per_grid);
+    addition_inplace_kernelN<T, NCONT><<<blocks, threads, 0, stream>>>(
+        output_data, indices_data, updates_data, indice_size, nrows, stride);
+  } else {
+#endif
+    int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
+    dim3 threads(threads_per_block);
+    dim3 blocks(blocks_per_grid);
+    addition_inplace_kernel<T><<<blocks, threads, 0, stream>>>(
+        output_data, indices_data, updates_data, indice_size, nrows, stride);
+#ifdef ENABLE_NCONT
+  }
+#endif
 }
 
 template <typename T>
