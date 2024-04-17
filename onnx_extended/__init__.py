@@ -35,7 +35,7 @@ def _check_installation_ortcy(onnx_model, verbose):
 
         this = os.path.dirname(cyfile)
         files = os.listdir(this)
-        if "libonnxruntime.so.1.17.1" in files:
+        if "libonnxruntime.so.1.17.3" in files:
             if verbose:
                 local_print(
                     "[check_installation_ortcy] weird issue as the "

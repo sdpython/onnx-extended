@@ -4,11 +4,11 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`163`: use onnxruntime==1.17.3 as default
 * :pr:`162`: add ScatterNDOfShape implementation on CUDA without atomics
 * :pr:`159`: add AddAdd custom operator on CUDA
 * :pr:`158`: add MulMul custom operator on CUDA
 * :pr:`157`: add ScatterNDOfShape custom operator
-* :pr:`153`: use onnxruntime==1.17.1 as default
 * :pr:`155`: add a function to draw a timeline from a profile
 * :pr:`154`: improves ploting legend for profiling
 * :pr:`151`: refactoring of TreeEnsemble code to make them faster

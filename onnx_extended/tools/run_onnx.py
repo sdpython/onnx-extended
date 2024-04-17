@@ -366,7 +366,7 @@ def bench_virtual(
         starting to measure the model
     :param repeat: number of iterations to measure
     :param modules: modules to install, example:
-        `modules=[{"onnxruntime": "1.17.1", "onnx": "1.15.0"}]`
+        `modules=[{"onnxruntime": "1.17.3", "onnx": "1.15.0"}]`
     :param filter_fct: to disable some of the configuration
         based on the runtime and the installed modules
     :param verbose: verbosity
