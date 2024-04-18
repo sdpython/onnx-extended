@@ -24,6 +24,31 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
+    onnx_extended.ortops.optim.cuda.AddAdd
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise addition assuming
+    all tensors have the same shape (no broadcast).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * A: tensor of type T
+    * B: tensor of type T
+    * C: tensor of type T
+
+    **Outputs**
+
+    * ABC (T): element-wise matrix multiplication
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
     onnx_extended.ortops.optim.cuda.MulMul
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
