@@ -215,6 +215,16 @@ struct TensorPitches : std::vector<int64_t> {
   }
 };
 
+template <typename T> __device__ __forceinline__ void _add_inplace(T &x, const T a) { x += a; }
+
+template<> __device__ __forceinline__ void _add_inplace(half &x, const half a) {
+#if __CUDA_ARCH__ < 700
+  x = __float2half(__half2float(x) + __half2float(a));
+#else
+  x += a;
+#endif
+}
+
 template <typename T>
 __global__ void
 addition_inplace_kernel(T *__restrict__ output_data, const int64_t *__restrict__ indices_data,
@@ -229,7 +239,7 @@ addition_inplace_kernel(T *__restrict__ output_data, const int64_t *__restrict__
   }
 
   for (size_t i = 0; i < indice_size; ++i) {
-    output_data[indices_data[i] * stride + id] += updates_data[i * stride + id];
+    _add_inplace(output_data[indices_data[i] * stride + id], updates_data[i * stride + id]);
   }
 }
 
