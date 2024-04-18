@@ -48,7 +48,7 @@ def documentation() -> List[str]:
 
     * T: float, float16
     """,
-    """
+                """
     onnx_extended.ortops.optim.cuda.MulMul
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
