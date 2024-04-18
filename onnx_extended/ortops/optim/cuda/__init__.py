@@ -42,7 +42,33 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * ABC (T): element-wise matrix multiplication
+    * A+B+C (T): element-wise matrix multiplication
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.AddAddAdd
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Three consecutive element-wise addition assuming
+    all tensors have the same shape (no broadcast).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * A: tensor of type T
+    * B: tensor of type T
+    * C: tensor of type T
+    * D: tensor of type T
+
+    **Outputs**
+
+    * A+B+C+D (T): element-wise matrix multiplication
 
     **Constraints**
 
@@ -68,6 +94,32 @@ def documentation() -> List[str]:
     **Outputs**
 
     * ABC (T): element-wise matrix multiplication
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.MulMulMul
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise multiplication assuming
+    all tensors have the same shape (no broadcast).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * A: tensor of type T
+    * B: tensor of type T
+    * C: tensor of type T
+    * D: tensor of type T
+
+    **Outputs**
+
+    * ABCD (T): element-wise matrix multiplication
 
     **Constraints**
 

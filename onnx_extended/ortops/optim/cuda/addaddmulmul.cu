@@ -207,9 +207,9 @@ void AddAddMulMulKernel<T, addition>::Compute(OrtKernelContext *context) {
   }
 }
 
-static AddAddMulMulOp<float, true> _add32;
-static AddAddMulMulOp<half, true> _add16;
-static AddAddMulMulOp<float, false> _mul32;
-static AddAddMulMulOp<half, false> _mul16;
+static AddAddMulMulOp<float, true> _add332;
+static AddAddMulMulOp<half, true> _add316;
+static AddAddMulMulOp<float, false> _mul332;
+static AddAddMulMulOp<half, false> _mul316;
 
 } // namespace ortops
