@@ -36,9 +36,9 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * A: tensor of type T
-    * B: tensor of type T
-    * C: tensor of type T
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
 
     **Outputs**
 
@@ -61,9 +61,9 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * A: tensor of type T
-    * B: tensor of type T
-    * C: tensor of type T
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
 
     **Outputs**
 
@@ -86,10 +86,10 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * A: tensor of type T
-    * B: tensor of type T
-    * C: tensor of type T
-    * D: tensor of type T
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+    * D (T): tensor of type T
 
     **Outputs**
 
@@ -112,9 +112,9 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * A: tensor of type T
-    * B: tensor of type T
-    * C: tensor of type T
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
 
     **Outputs**
 
@@ -137,9 +137,9 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * A: tensor of type T
-    * B: tensor of type T
-    * C: tensor of type T
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
 
     **Outputs**
 
@@ -162,10 +162,10 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * A: tensor of type T
-    * B: tensor of type T
-    * C: tensor of type T
-    * D: tensor of type T
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+    * D (T): tensor of type T
 
     **Outputs**
 
@@ -187,13 +187,37 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * X (T): tensor of type I
+    * X (T): tensor
     
     Only splitting in half is implemented.
 
     **Outputs**
 
     * Z (T): updates tensor
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.ReplaceZero
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    MulSoftmax, equivalent to Where(X == 0, cst, X)
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * X (T): tensor of type T
+    
+    Only splitting in half is implemented.
+
+    **Outputs**
+
+    * Z (T): updated tensor
 
     **Constraints**
 
@@ -214,7 +238,7 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * X (T): tensor of type I
+    * X (T): tensor
     * splits (I): split size on the last dimension
     
     Only splitting in half is implemented.
@@ -240,13 +264,13 @@ def documentation() -> List[str]:
     
     **Inputs**
     
-    * shape: tensor of type I
-    * indices: tensor of type I
-    * updates: tensor of type I
+    * shape (I): tensor of type I
+    * indices (I): tensor of type I
+    * updates (T): tensor of type T
 
     **Outputs**
 
-    * Z (T): updates tensor
+    * Z (T): updated tensor
 
     **Constraints**
 

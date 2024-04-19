@@ -2,7 +2,6 @@
 #include "common/c_op_helpers.h"
 #include "common/common_kernels.h"
 #include "cuda/common_kernels_cuda.h"
-#include <chrono>
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_bf16.h>
