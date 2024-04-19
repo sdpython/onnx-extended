@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include "addmul.h"
 #include "addaddaddmulmulmul.h"
 #include "addaddmulmul.h"
 #include "ort_optim_cuda_lib.h"
@@ -25,6 +26,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // Instances remaining available until onnxruntime unload the library.
+  static ortops::AddMulOp<float, false> c_MulAddOp32;
+  static ortops::AddMulOp<half, false> c_MulAddOp16;
+  static ortops::AddMulOp<float, true> c_AddMulOp32;
+  static ortops::AddMulOp<half, true> c_AddMulOp16;
+
   static ortops::AddAddMulMulOp<float, false> c_MulMulOp32;
   static ortops::AddAddMulMulOp<half, false> c_MulMulOp16;
   static ortops::AddAddMulMulOp<float, true> c_AddAddOp32;
@@ -40,6 +46,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
+
+    domain.Add(&c_AddMulOp32);
+    domain.Add(&c_AddMulOp16);
+    domain.Add(&c_MulAddOp32);
+    domain.Add(&c_MulAddOp16);
 
     domain.Add(&c_AddAddOp32);
     domain.Add(&c_AddAddOp16);
