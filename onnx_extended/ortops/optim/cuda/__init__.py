@@ -176,6 +176,35 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
+    onnx_extended.ortops.optim.cuda.Rotary
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Rotary, equivalent to (side=="RIGHT")
+    
+    * Split(X, axis=-1) -> X1, X2
+    * Concat(-X2, X1)
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * X (T): tensor of type I
+    * splits (I): split size on the last dimension
+    
+    Only splitting in half is implemented.
+
+    **Outputs**
+
+    * Z (T): updates tensor
+
+    **Constraints**
+
+    * T: float, float16
+    * I: int64
+    """,
+                """
     onnx_extended.ortops.optim.cuda.ScatterNDOfShape
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
