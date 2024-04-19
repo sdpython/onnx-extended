@@ -439,6 +439,64 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._addmul_cuda(TensorProto.FLOAT, "Mul", "Add")
         self._addmul_cuda(TensorProto.FLOAT16, "Mul", "Add")
 
+    def _rotary_cuda(self, itype, side):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        model2 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        "Rotary",
+                        ["X", "splits"],
+                        ["Y"],
+                        domain="onnx_extended.ortops.optim.cuda",
+                        side=side,
+                    )
+                ],
+                "nd",
+                [
+                    oh.make_tensor_value_info("X", itype, [None, None, None, None]),
+                    oh.make_tensor_value_info("splits", TensorProto.INT64, [2]),
+                ],
+                [oh.make_tensor_value_info("Y", itype, [None, None, None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        x = (np.arange(18 * 4) + 1).reshape((3, 2, 3, 4)).astype(dtype)
+        splits = np.array([x.shape[-1] // 2, x.shape[-1] // 2], dtype=np.int64)
+
+        expected = x.copy()
+        half = x.shape[-1] // 2
+        if side == "right":
+            expected[:, :, :, :half] = x[:, :, :, half:]
+            expected[:, :, :, half:] = -x[:, :, :, :half]
+        else:
+            expected[:, :, :, :half] = -x[:, :, :, half:]
+            expected[:, :, :, half:] = x[:, :, :, :half]
+
+        feeds = dict(X=x, splits=splits)
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        sess = onnxruntime.InferenceSession(
+            model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        got = sess.run(None, feeds)[0]
+        self.assertEqualArray(expected, got)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_rotary_cuda(self):
+        self._rotary_cuda(TensorProto.FLOAT, "left")
+        self._rotary_cuda(TensorProto.FLOAT16, "left")
+        self._rotary_cuda(TensorProto.FLOAT, "right")
+        self._rotary_cuda(TensorProto.FLOAT16, "right")
+
 
 if __name__ == "__main__":
     # TestOrtOpTutorialCpu().test_dynamic_quantize_linear()

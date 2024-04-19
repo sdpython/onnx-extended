@@ -4,11 +4,12 @@
 #include <mutex>
 #include <vector>
 
-#include "addmul.h"
 #include "addaddaddmulmulmul.h"
 #include "addaddmulmul.h"
+#include "addmul.h"
 #include "ort_optim_cuda_lib.h"
 #include "ortapi_version.h"
+#include "rotary.h"
 #include "scatter_nd_of_shape.h"
 
 static const char *c_OpDomain = "onnx_extended.ortops.optim.cuda";
@@ -41,6 +42,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::AddAddAddMulMulMulOp<float, true> c_AddAddAddOp32;
   static ortops::AddAddAddMulMulMulOp<half, true> c_AddAddAddOp16;
 
+  static ortops::RotaryOp<float> c_RotaryOp32;
+  static ortops::RotaryOp<half> c_RotaryOp16;
+
   static ortops::ScatterNDOfShapeOp<float> c_ScatterNDOfShapeOp32;
   static ortops::ScatterNDOfShapeOp<half> c_ScatterNDOfShapeOp16;
 
@@ -61,6 +65,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     domain.Add(&c_AddAddAddOp16);
     domain.Add(&c_MulMulMulOp32);
     domain.Add(&c_MulMulMulOp16);
+
+    domain.Add(&c_RotaryOp32);
+    domain.Add(&c_RotaryOp16);
 
     domain.Add(&c_ScatterNDOfShapeOp32);
     domain.Add(&c_ScatterNDOfShapeOp16);
