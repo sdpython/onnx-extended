@@ -4,12 +4,14 @@
 #include <mutex>
 #include <vector>
 
+#include "ort_optim_cuda_lib.h"
+#include "ortapi_version.h"
+
 #include "addaddaddmulmulmul.h"
 #include "addaddmulmul.h"
 #include "addmul.h"
 #include "mul_sigmoid.h"
-#include "ort_optim_cuda_lib.h"
-#include "ortapi_version.h"
+#include "replace_zero.h"
 #include "rotary.h"
 #include "scatter_nd_of_shape.h"
 
@@ -46,6 +48,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::MulSigmoidOp<float> c_MulSigmoidOp32;
   static ortops::MulSigmoidOp<half> c_MulSigmoidOp16;
 
+  static ortops::ReplaceZeroOp<float> c_ReplaceZeroOp32;
+  static ortops::ReplaceZeroOp<half> c_ReplaceZeroOp16;
+
   static ortops::RotaryOp<float> c_RotaryOp32;
   static ortops::RotaryOp<half> c_RotaryOp16;
 
@@ -72,6 +77,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_MulSigmoidOp32);
     domain.Add(&c_MulSigmoidOp16);
+
+    domain.Add(&c_ReplaceZeroOp32);
+    domain.Add(&c_ReplaceZeroOp16);
 
     domain.Add(&c_RotaryOp32);
     domain.Add(&c_RotaryOp16);

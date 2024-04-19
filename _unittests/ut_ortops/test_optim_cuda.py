@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from onnx import TensorProto
 import onnx.helper as oh
+import onnx.numpy_helper as onh
 from onnx_extended.ortops.tutorial.cpu import documentation
 from onnx_extended.reference import CReferenceEvaluator
 
@@ -556,7 +557,71 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._mul_sigmoid_cuda(TensorProto.FLOAT)
         self._mul_sigmoid_cuda(TensorProto.FLOAT16)
 
+    def _replace_zero_cuda(self, itype):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        model1 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node("Equal", ["X", "zero"], ["cond"]),
+                    oh.make_node("Where", ["cond", "cst", "X"], ["Y"]),
+                ],
+                "nd",
+                [oh.make_tensor_value_info("X", itype, [None, None, None])],
+                [oh.make_tensor_value_info("Y", itype, [None, None, None])],
+                [
+                    onh.from_array(np.array([0], dtype=dtype), name="zero"),
+                    onh.from_array(np.array([1.67], dtype=dtype), name="cst"),
+                ],
+            ),
+            opset_imports=[oh.make_opsetid("", 18)],
+            ir_version=9,
+        )
+
+        model2 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        "ReplaceZero",
+                        ["X"],
+                        ["Y"],
+                        by=1.67,
+                        domain="onnx_extended.ortops.optim.cuda",
+                    )
+                ],
+                "nd",
+                [oh.make_tensor_value_info("X", itype, [None, None, None])],
+                [oh.make_tensor_value_info("Y", itype, [None, None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        x = (np.arange(18) - 4).reshape((3, 2, 3)).astype(dtype)
+
+        feeds1 = dict(X=x)
+        ref = CReferenceEvaluator(model1)
+        expected = ref.run(None, feeds1)[0]
+
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        sess = onnxruntime.InferenceSession(
+            model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        got = sess.run(None, feeds1)[0]
+        self.assertEqualArray(expected, got, atol=1e-5)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_replace_zero_cuda(self):
+        self._replace_zero_cuda(TensorProto.FLOAT)
+        self._replace_zero_cuda(TensorProto.FLOAT16)
+
 
 if __name__ == "__main__":
-    # TestOrtOpTutorialCpu().test_dynamic_quantize_linear()
     unittest.main(verbosity=2)

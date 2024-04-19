@@ -4,6 +4,11 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`169`: adds custom operator ReplaceZero on CUDA
+* :pr:`168`: adds custom operator MulSigmoid on CUDA
+* :pr:`167`: adds custom operator Rotary on CUDA
+* :pr:`166`: adds custom operators AddMul, MulAdd on CUDA
+* :pr:`165`: adds custom operators AddAddAdd, MulMulMul on CUDA
 * :pr:`163`: use onnxruntime==1.17.3 as default
 * :pr:`162`: add ScatterNDOfShape implementation on CUDA without atomics
 * :pr:`159`: add AddAdd custom operator on CUDA
