@@ -2,7 +2,6 @@
 #include "common/common_kernels.h"
 #include "cuda/common_kernels_cuda.h"
 #include "scatter_nd_of_shape.h"
-#include <chrono>
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_bf16.h>

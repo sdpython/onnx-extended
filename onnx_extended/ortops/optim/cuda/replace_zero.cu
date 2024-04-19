@@ -2,7 +2,6 @@
 #include "common/common_kernels.h"
 #include "cuda/common_kernels_cuda.h"
 #include "replace_zero.h"
-#include <chrono>
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_bf16.h>
@@ -34,8 +33,7 @@ template <> __device__ __inline__ half _replace_zero(const half x, const half by
 }
 
 template <typename T>
-__global__ void _ReplaceZeroKernel(T *output_data, const T *input_data, const T by,
-                                   CUDA_LONG N) {
+__global__ void _ReplaceZeroKernel(T *output_data, const T *input_data, CUDA_LONG N, const T by) {
   CUDA_LONG id = blockDim.x * blockIdx.x + threadIdx.x;
   if (id >= N)
     return;
@@ -127,7 +125,6 @@ template <typename T> void ReplaceZeroKernel<T>::Compute(OrtKernelContext *conte
               "first input is not on GPU");
 
   cudaStream_t cuda_stream = (cudaStream_t)ctx.GetGPUComputeStream();
-  // CUDA_THROW_IF_ERROR(cudaStreamSynchronize(cuda_stream));
 
   output = ctx.GetOutput(0, dimsA);
 

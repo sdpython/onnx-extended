@@ -550,7 +550,9 @@ class TestOrtOpOptimCuda(ExtTestCase):
             model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
         )
         got = sess.run(None, feeds1)[0]
-        self.assertEqualArray(expected, got, atol=1e-5)
+        self.assertEqualArray(
+            expected, got, atol=1e-5 if itype == TensorProto.FLOAT else 1e-2
+        )
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_mul_sigmoid_cuda(self):
