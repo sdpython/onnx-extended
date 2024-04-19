@@ -14,8 +14,9 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/ortops/optim/cuda/addmul.cu
     ../onnx_extended/ortops/optim/cuda/addaddmulmul.cu
     ../onnx_extended/ortops/optim/cuda/addaddaddmulmulmul.cu
-    ../onnx_extended/ortops/optim/cuda/scatter_nd_of_shape.cu
+    ../onnx_extended/ortops/optim/cuda/mul_sigmoid.cu
     ../onnx_extended/ortops/optim/cuda/rotary.cu
+    ../onnx_extended/ortops/optim/cuda/scatter_nd_of_shape.cu
     ../onnx_extended/ortops/optim/cuda/ort_optim_cuda_lib.cc)
 
   # needed to include onnx_extended_helpers.h

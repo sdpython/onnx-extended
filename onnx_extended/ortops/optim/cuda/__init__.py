@@ -176,6 +176,30 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
+    onnx_extended.ortops.optim.cuda.MulSoftmax
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    MulSoftmax, equivalent to Mul(X, Softmax(X))
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * X (T): tensor of type I
+    
+    Only splitting in half is implemented.
+
+    **Outputs**
+
+    * Z (T): updates tensor
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
     onnx_extended.ortops.optim.cuda.Rotary
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
