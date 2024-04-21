@@ -676,6 +676,66 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._tri_matrix_cuda(TensorProto.FLOAT)
         self._tri_matrix_cuda(TensorProto.FLOAT16)
 
+    def _negxplus1_cuda(self, itype):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        model1 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node("Sub", ["one", "X"], ["Y"]),
+                ],
+                "nd",
+                [oh.make_tensor_value_info("X", itype, [None, None, None])],
+                [oh.make_tensor_value_info("Y", itype, [None, None, None])],
+                [onh.from_array(np.array([1], dtype=dtype), name="one")],
+            ),
+            opset_imports=[oh.make_opsetid("", 18)],
+            ir_version=9,
+        )
+
+        model2 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        "NegXplus1",
+                        ["X"],
+                        ["Y"],
+                        domain="onnx_extended.ortops.optim.cuda",
+                    )
+                ],
+                "nd",
+                [oh.make_tensor_value_info("X", itype, [None, None, None])],
+                [oh.make_tensor_value_info("Y", itype, [None, None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        x = (np.arange(18) - 4).reshape((3, 2, 3)).astype(dtype)
+
+        feeds1 = dict(X=x)
+        ref = CReferenceEvaluator(model1)
+        expected = ref.run(None, feeds1)[0]
+
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        sess = onnxruntime.InferenceSession(
+            model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        got = sess.run(None, feeds1)[0]
+        self.assertEqualArray(expected, got, atol=1e-5)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_negxplus1_cuda(self):
+        self._negxplus1_cuda(TensorProto.FLOAT)
+        self._negxplus1_cuda(TensorProto.FLOAT16)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

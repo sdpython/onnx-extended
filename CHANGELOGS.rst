@@ -4,6 +4,7 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`170`: adds custom operator TriMatrix on CUDA
 * :pr:`169`: adds custom operator ReplaceZero on CUDA
 * :pr:`168`: adds custom operator MulSigmoid on CUDA
 * :pr:`167`: adds custom operator Rotary on CUDA

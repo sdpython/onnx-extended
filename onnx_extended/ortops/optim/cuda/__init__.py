@@ -189,11 +189,31 @@ def documentation() -> List[str]:
     
     * X (T): tensor
     
-    Only splitting in half is implemented.
-
     **Outputs**
 
-    * Z (T): updates tensor
+    * Z (T): result
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.NegXplus1
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    1 - X
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * X (T): tensor of type T
+    
+    **Outputs**
+
+    * Z (T): result
 
     **Constraints**
 
@@ -213,8 +233,6 @@ def documentation() -> List[str]:
     
     * X (T): tensor of type T
     
-    Only splitting in half is implemented.
-
     **Outputs**
 
     * Z (T): updated tensor
@@ -245,7 +263,7 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * Z (T): updates tensor
+    * Z (T): result
 
     **Constraints**
 
@@ -271,6 +289,36 @@ def documentation() -> List[str]:
     **Outputs**
 
     * Z (T): updated tensor
+
+    **Constraints**
+
+    * I: int64
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.TriMatrix
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Creates a matrix.
+    
+    ::
+    
+        mat[i < j] = upper
+        mat[i == j] = diag
+        mat[i > j] = lower
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * shape (I): tensor of type I
+    * cst (T): lower, diag, upper values
+
+    **Outputs**
+
+    * Z (T): matrix
 
     **Constraints**
 

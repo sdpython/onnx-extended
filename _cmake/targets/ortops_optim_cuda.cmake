@@ -15,6 +15,7 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/ortops/optim/cuda/addaddmulmul.cu
     ../onnx_extended/ortops/optim/cuda/addaddaddmulmulmul.cu
     ../onnx_extended/ortops/optim/cuda/mul_sigmoid.cu
+    ../onnx_extended/ortops/optim/cuda/negxplus1.cu
     ../onnx_extended/ortops/optim/cuda/replace_zero.cu
     ../onnx_extended/ortops/optim/cuda/rotary.cu
     ../onnx_extended/ortops/optim/cuda/scatter_nd_of_shape.cu
