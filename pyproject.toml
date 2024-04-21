@@ -324,6 +324,7 @@ max-complexity = 10
 [tool.ruff.lint.per-file-ignores]
 "_doc/examples/plot_op_mul_cuda.py" = ["E402"]
 "_doc/examples/plot_op_scatternd_cuda.py" = ["E402"]
+"_doc/examples/plot_op_transpose_2d_cast_cuda.py" = ["E402"]
 "onnx_extended/helper/__init__.py" = ["F401"]
 "onnx_extended/reference/__init__.py" = ["F401"]
 "onnx_extended/tools/__init__.py" = ["F401"]

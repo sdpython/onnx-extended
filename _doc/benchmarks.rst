@@ -107,6 +107,13 @@ See :ref:`l-example-op-scatternd_cuda`.
 The benchmark compares two operators Mul profiles
 with their fusion into a single operator.
 
+plot_op_transpose2dcast_cuda
+++++++++++++++++++++++++++++
+
+See :ref:`l-example-op-transpose2dcast_cuda`.
+
+The benchmark looks into the fusion to Transpose + Cast.
+
 No specific provider
 ====================
 
