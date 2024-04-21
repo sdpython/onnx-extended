@@ -10,6 +10,7 @@ template <typename T> struct ReplaceZeroKernel {
   ReplaceZeroKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
 
+private:
   float by_;
 };
 

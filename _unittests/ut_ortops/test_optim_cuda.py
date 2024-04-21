@@ -736,6 +736,73 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._negxplus1_cuda(TensorProto.FLOAT)
         self._negxplus1_cuda(TensorProto.FLOAT16)
 
+    def _transpose_cast_cuda(self, itype):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        itype2 = (
+            TensorProto.FLOAT if itype == TensorProto.FLOAT16 else TensorProto.FLOAT16
+        )
+        model1 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node("Transpose", ["X"], ["t"], perm=[1, 0]),
+                    oh.make_node("Cast", ["t"], ["Y"], to=itype2),
+                ],
+                "nd",
+                [oh.make_tensor_value_info("X", itype, [None, None])],
+                [oh.make_tensor_value_info("Y", itype2, [None, None])],
+            ),
+            opset_imports=[oh.make_opsetid("", 18)],
+            ir_version=9,
+        )
+
+        model2 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        (
+                            "Transpose2DCastFP16"
+                            if itype2 == TensorProto.FLOAT16
+                            else "Transpose2DCastFP32"
+                        ),
+                        ["X"],
+                        ["Y"],
+                        domain="onnx_extended.ortops.optim.cuda",
+                    )
+                ],
+                "nd",
+                [oh.make_tensor_value_info("X", itype, [None, None])],
+                [oh.make_tensor_value_info("Y", itype2, [None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        x = (np.arange(32 * 32 * 3) + 1).reshape((32, 32 * 3)).astype(dtype)
+
+        feeds1 = dict(X=x)
+        ref = CReferenceEvaluator(model1)
+        expected = ref.run(None, feeds1)[0]
+
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        sess = onnxruntime.InferenceSession(
+            model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        got = sess.run(None, feeds1)[0]
+        self.assertEqualArray(expected, got, atol=1e-5)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_transpose_cast_cuda(self):
+        self._transpose_cast_cuda(TensorProto.FLOAT)
+        self._transpose_cast_cuda(TensorProto.FLOAT16)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

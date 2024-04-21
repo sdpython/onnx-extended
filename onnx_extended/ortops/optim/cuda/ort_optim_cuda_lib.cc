@@ -15,6 +15,7 @@
 #include "replace_zero.h"
 #include "rotary.h"
 #include "scatter_nd_of_shape.h"
+#include "transpose_cast_2d.h"
 #include "tri_matrix.h"
 
 static const char *c_OpDomain = "onnx_extended.ortops.optim.cuda";
@@ -62,6 +63,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::ScatterNDOfShapeOp<float> c_ScatterNDOfShapeOp32;
   static ortops::ScatterNDOfShapeOp<half> c_ScatterNDOfShapeOp16;
 
+  static ortops::Transpose2DCastOp c_Transpose2DCast16(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+                                                       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16);
+  static ortops::Transpose2DCastOp c_Transpose2DCast32(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
+                                                       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
+
   static ortops::TriMatrixOp<float> c_TriMatrixOp32;
   static ortops::TriMatrixOp<half> c_TriMatrixOp16;
 
@@ -97,6 +103,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_ScatterNDOfShapeOp32);
     domain.Add(&c_ScatterNDOfShapeOp16);
+
+    domain.Add(&c_Transpose2DCast16);
+    domain.Add(&c_Transpose2DCast32);
 
     domain.Add(&c_TriMatrixOp32);
     domain.Add(&c_TriMatrixOp16);
