@@ -14,6 +14,7 @@
 #include "replace_zero.h"
 #include "rotary.h"
 #include "scatter_nd_of_shape.h"
+#include "tri_matrix.h"
 
 static const char *c_OpDomain = "onnx_extended.ortops.optim.cuda";
 
@@ -57,6 +58,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::ScatterNDOfShapeOp<float> c_ScatterNDOfShapeOp32;
   static ortops::ScatterNDOfShapeOp<half> c_ScatterNDOfShapeOp16;
 
+  static ortops::TriMatrixOp<float> c_TriMatrixOp32;
+  static ortops::TriMatrixOp<half> c_TriMatrixOp16;
+
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
@@ -86,6 +90,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_ScatterNDOfShapeOp32);
     domain.Add(&c_ScatterNDOfShapeOp16);
+
+    domain.Add(&c_TriMatrixOp32);
+    domain.Add(&c_TriMatrixOp16);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));

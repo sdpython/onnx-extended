@@ -624,6 +624,58 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._replace_zero_cuda(TensorProto.FLOAT)
         self._replace_zero_cuda(TensorProto.FLOAT16)
 
+    def _tri_matrix_cuda(self, itype):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        model = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        "TriMatrix",
+                        ["shape", "csts"],
+                        ["final"],
+                        domain="onnx_extended.ortops.optim.cuda",
+                    ),
+                ],
+                "nd",
+                [
+                    oh.make_tensor_value_info("shape", TensorProto.INT64, [2]),
+                    oh.make_tensor_value_info("csts", itype, [3]),
+                ],
+                [oh.make_tensor_value_info("final", itype, [None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        shape = np.array([8, 8], dtype=np.int64)
+        csts = np.array([2, 3, 4], dtype=dtype)
+        expected = np.empty((8, 8), dtype=dtype)
+        i1 = np.arange(8).reshape((-1, 1))
+        i2 = np.arange(8).reshape((1, -1))
+        expected[i1 < i2] = 4
+        expected[i1 == i2] = 3
+        expected[i1 > i2] = 2
+        feeds = dict(shape=shape, csts=csts)
+
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        sess = onnxruntime.InferenceSession(
+            model.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        got = sess.run(None, feeds)[0]
+        self.assertEqualArray(expected, got)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_tri_matrix_cuda(self):
+        self._tri_matrix_cuda(TensorProto.FLOAT)
+        self._tri_matrix_cuda(TensorProto.FLOAT16)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

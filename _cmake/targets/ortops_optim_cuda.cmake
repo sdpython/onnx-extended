@@ -18,6 +18,7 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/ortops/optim/cuda/replace_zero.cu
     ../onnx_extended/ortops/optim/cuda/rotary.cu
     ../onnx_extended/ortops/optim/cuda/scatter_nd_of_shape.cu
+    ../onnx_extended/ortops/optim/cuda/tri_matrix.cu
     ../onnx_extended/ortops/optim/cuda/ort_optim_cuda_lib.cc)
 
   # needed to include onnx_extended_helpers.h
