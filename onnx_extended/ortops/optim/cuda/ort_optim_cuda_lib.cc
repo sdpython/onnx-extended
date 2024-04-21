@@ -11,9 +11,11 @@
 #include "addaddmulmul.h"
 #include "addmul.h"
 #include "mul_sigmoid.h"
+#include "negxplus1.h"
 #include "replace_zero.h"
 #include "rotary.h"
 #include "scatter_nd_of_shape.h"
+#include "tri_matrix.h"
 
 static const char *c_OpDomain = "onnx_extended.ortops.optim.cuda";
 
@@ -48,6 +50,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::MulSigmoidOp<float> c_MulSigmoidOp32;
   static ortops::MulSigmoidOp<half> c_MulSigmoidOp16;
 
+  static ortops::NegXplus1Op<float> c_NegXplus1Op32;
+  static ortops::NegXplus1Op<half> c_NegXplus1Op16;
+
   static ortops::ReplaceZeroOp<float> c_ReplaceZeroOp32;
   static ortops::ReplaceZeroOp<half> c_ReplaceZeroOp16;
 
@@ -56,6 +61,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
   static ortops::ScatterNDOfShapeOp<float> c_ScatterNDOfShapeOp32;
   static ortops::ScatterNDOfShapeOp<half> c_ScatterNDOfShapeOp16;
+
+  static ortops::TriMatrixOp<float> c_TriMatrixOp32;
+  static ortops::TriMatrixOp<half> c_TriMatrixOp16;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
@@ -78,6 +86,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     domain.Add(&c_MulSigmoidOp32);
     domain.Add(&c_MulSigmoidOp16);
 
+    domain.Add(&c_NegXplus1Op32);
+    domain.Add(&c_NegXplus1Op16);
+
     domain.Add(&c_ReplaceZeroOp32);
     domain.Add(&c_ReplaceZeroOp16);
 
@@ -86,6 +97,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_ScatterNDOfShapeOp32);
     domain.Add(&c_ScatterNDOfShapeOp16);
+
+    domain.Add(&c_TriMatrixOp32);
+    domain.Add(&c_TriMatrixOp16);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));
