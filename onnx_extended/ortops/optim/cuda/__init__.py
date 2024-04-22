@@ -296,6 +296,56 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
+    onnx_extended.ortops.optim.cuda.Transpose2DCast16
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Transposes a 2D matrix the cast it into float16.
+    
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * X (T1): tensor
+    
+    Only splitting in half is implemented.
+
+    **Outputs**
+
+    * Z (T2): result
+
+    **Constraints**
+
+    * T1: float32
+    * T2: float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.Transpose2DCast32
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Transposes a 2D matrix the cast it into float32.
+    
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * X (T1): tensor
+    
+    Only splitting in half is implemented.
+
+    **Outputs**
+
+    * Z (T2): result
+
+    **Constraints**
+
+    * T1: float16
+    * T2: float32
+    """,
+                """
     onnx_extended.ortops.optim.cuda.TriMatrix
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
