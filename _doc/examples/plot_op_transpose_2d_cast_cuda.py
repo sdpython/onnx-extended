@@ -1,5 +1,5 @@
 """
-.. _l-example-op-plot_op_transpose2dcast_cuda:
+.. _l-example-op-transpose2dcast_cuda:
 
 ==============================
 Fuse Tranpose and Cast on CUDA
