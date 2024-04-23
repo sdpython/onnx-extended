@@ -16,6 +16,9 @@ template <> struct CTypeToElementType<float> {
 template <> struct CTypeToElementType<double> {
   inline uint32_t onnx_type() const { return 11; }
 };
+template <> struct CTypeToElementType<int32_t> {
+  inline uint32_t onnx_type() const { return 6; }
+};
 
 /**
  * This structure defines a 1D to 5D sparse tensor.

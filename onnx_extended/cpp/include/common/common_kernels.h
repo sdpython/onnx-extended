@@ -33,6 +33,12 @@ template <> struct CTypeToOnnxType<int64_t> {
   }
 };
 
+template <> struct CTypeToOnnxType<int32_t> {
+  inline ONNXTensorElementDataType onnx_type() const {
+    return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32;
+  }
+};
+
 template <> struct CTypeToOnnxType<double> {
   inline ONNXTensorElementDataType onnx_type() const {
     return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;

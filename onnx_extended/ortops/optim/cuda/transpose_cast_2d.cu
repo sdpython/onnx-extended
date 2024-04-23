@@ -50,7 +50,6 @@ void Transpose2DCastImpl(cudaStream_t stream, TOUT *output_data, const TIN *inpu
   dim3 dimGrid((n_cols + TILE_DIM - 1) / TILE_DIM, (n_rows + TILE_DIM - 1) / TILE_DIM, 1);
   dim3 dimBlock(TILE_DIM, BLOCK_ROWS, 1);
 
-  CUDA_LONG N = static_cast<CUDA_LONG>(n_rows * n_cols);
   _Transpose2DCastKernel<<<dimGrid, dimBlock, TILE_DIM * TILE_DIM + TILE_DIM, stream>>>(
       output_data, input_data, n_rows, n_cols);
 }
