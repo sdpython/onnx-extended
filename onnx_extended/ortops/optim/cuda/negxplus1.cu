@@ -123,6 +123,7 @@ template <typename T> void NegXplus1Kernel<T>::Compute(OrtKernelContext *context
 }
 
 static NegXplus1Op<float> _kernel_f32;
+static NegXplus1Op<int32_t> _kernel_i32;
 static NegXplus1Op<half> _kernel_f16;
 
 } // namespace ortops
