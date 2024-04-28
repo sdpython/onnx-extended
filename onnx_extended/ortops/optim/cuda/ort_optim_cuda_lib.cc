@@ -7,6 +7,7 @@
 #include "ort_optim_cuda_lib.h"
 #include "ortapi_version.h"
 
+#include "add_or_mul_shared_input.h"
 #include "addaddaddmulmulmul.h"
 #include "addaddmulmul.h"
 #include "addmul.h"
@@ -33,6 +34,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // Instances remaining available until onnxruntime unload the library.
+  static ortops::AddOrMulSharedInputOp<float, false> c_MulSharedOp32;
+  static ortops::AddOrMulSharedInputOp<half, false> c_MulSharedOp16;
+  static ortops::AddOrMulSharedInputOp<float, true> c_AddSharedOp32;
+  static ortops::AddOrMulSharedInputOp<half, true> c_AddSharedOp16;
+
   static ortops::AddMulOp<float, false> c_MulAddOp32;
   static ortops::AddMulOp<half, false> c_MulAddOp16;
   static ortops::AddMulOp<float, true> c_AddMulOp32;
@@ -74,6 +80,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
+
+    domain.Add(&c_AddSharedOp32);
+    domain.Add(&c_AddSharedOp16);
+    domain.Add(&c_MulSharedOp32);
+    domain.Add(&c_MulSharedOp16);
 
     domain.Add(&c_AddMulOp32);
     domain.Add(&c_AddMulOp16);

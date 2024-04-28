@@ -42,7 +42,7 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * (A+B)*C (T): element-wise matrix multiplication
+    * (A+B)*C (T): element-wise
 
     **Constraints**
 
@@ -67,7 +67,7 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * A+B+C (T): element-wise matrix multiplication
+    * A+B+C (T): element-wise
 
     **Constraints**
 
@@ -93,7 +93,35 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * A+B+C+D (T): element-wise matrix multiplication
+    * A+B+C+D (T): element-wise
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.AddSharedInput
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Parallel Additions with one common input.
+    Support for Broadcast is limited (only the first dimenions).
+    
+    Computes A + B, A + C.
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * A+B (T): element-wise
+    * A+C (T): element-wise
 
     **Constraints**
 
@@ -118,7 +146,7 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * A*B+C (T): element-wise matrix multiplication
+    * A*B+C (T): element-wise
 
     **Constraints**
 
@@ -143,7 +171,7 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * ABC (T): element-wise matrix multiplication
+    * ABC (T): element-wise
 
     **Constraints**
 
@@ -169,7 +197,7 @@ def documentation() -> List[str]:
 
     **Outputs**
 
-    * ABCD (T): element-wise matrix multiplication
+    * ABCD (T): element-wise
 
     **Constraints**
 
@@ -192,6 +220,34 @@ def documentation() -> List[str]:
     **Outputs**
 
     * Z (T): result
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.MulSharedInput
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Parallel Multiplications with one common input.
+    Support for Broadcast is limited (only the first dimenions).
+    
+    Computes A * B, A * C.
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * A*B (T): element-wise
+    * A*C (T): element-wise
 
     **Constraints**
 
