@@ -120,7 +120,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT)
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16)
 
-    def _addaddmulmul_cuda(self, itype, op_type):
+    def _addaddmulmul_cuda(self, itype, op_type, broad=False):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
@@ -168,9 +168,12 @@ class TestOrtOpOptimCuda(ExtTestCase):
         )
 
         dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
-        x = (np.arange(18) + 1).reshape((3, 2, 3)).astype(dtype)
-        y = (x + 1).astype(dtype)
-        z = (y + 1).astype(dtype)
+        shapex = (1, 2, 3) if broad else (3, 2, 3)
+        shapey = (3, 2, 3)
+        shapez = (1, 2, 3) if broad else (3, 2, 3)
+        x = (np.arange(np.prod(shapex)) + 1).reshape(shapex).astype(dtype)
+        y = (np.arange(np.prod(shapey)) + 1).reshape(shapey).astype(dtype)
+        z = (np.arange(np.prod(shapez)) + 1).reshape(shapez).astype(dtype)
 
         feeds1 = dict(X=x, Y=y, Z=z)
         ref = CReferenceEvaluator(model1)
@@ -188,6 +191,11 @@ class TestOrtOpOptimCuda(ExtTestCase):
     def test_mulmul_cuda(self):
         self._addaddmulmul_cuda(TensorProto.FLOAT, "Mul")
         self._addaddmulmul_cuda(TensorProto.FLOAT16, "Mul")
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_mulmul_cuda_broadcast(self):
+        self._addaddmulmul_cuda(TensorProto.FLOAT, "Mul", True)
+        self._addaddmulmul_cuda(TensorProto.FLOAT16, "Mul", True)
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_addadd_cuda(self):
@@ -286,7 +294,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         with self.subTest(optimize=True, dim3=True, itype=TensorProto.FLOAT16):
             self._scatternd_of_shape_optimize_cuda(True, True, TensorProto.FLOAT16)
 
-    def _addaddaddmulmulmul_cuda(self, itype, op_type):
+    def _addaddaddmulmulmul_cuda(self, itype, op_type, broad=False):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
@@ -337,10 +345,14 @@ class TestOrtOpOptimCuda(ExtTestCase):
         )
 
         dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
-        x = ((np.arange(18) + 1).reshape((3, 2, 3)) / 18).astype(dtype)
-        y = (x + 1).astype(dtype)
-        z = (y + 1).astype(dtype)
-        w = (y + 1).astype(dtype)
+        shapex = (1, 2, 3) if broad else (3, 2, 3)
+        shapey = (3, 2, 3)
+        shapez = (1, 2, 3) if broad else (3, 2, 3)
+        shapew = (3, 2, 3)
+        x = ((np.arange(np.prod(shapex)) + 1) / 10).reshape(shapex).astype(dtype)
+        y = ((np.arange(np.prod(shapey)) + 1) / 10).reshape(shapey).astype(dtype)
+        z = (np.arange(np.prod(shapez)) + 1).reshape(shapez).astype(dtype)
+        w = (np.arange(np.prod(shapew)) + 1).reshape(shapew).astype(dtype)
 
         feeds1 = dict(X=x, Y=y, Z=z, W=w)
         ref = CReferenceEvaluator(model1)
@@ -362,11 +374,16 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._addaddaddmulmulmul_cuda(TensorProto.FLOAT16, "Mul")
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_mulmulmul_cuda_broadcast(self):
+        self._addaddaddmulmulmul_cuda(TensorProto.FLOAT, "Mul", True)
+        self._addaddaddmulmulmul_cuda(TensorProto.FLOAT16, "Mul", True)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_addaddadd_cuda(self):
         self._addaddaddmulmulmul_cuda(TensorProto.FLOAT, "Add")
         self._addaddaddmulmulmul_cuda(TensorProto.FLOAT16, "Add")
 
-    def _addmul_cuda(self, itype, op_type1, op_type2):
+    def _addmul_cuda(self, itype, op_type1, op_type2, broad=False):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
@@ -414,9 +431,12 @@ class TestOrtOpOptimCuda(ExtTestCase):
         )
 
         dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
-        x = (np.arange(18) + 1).reshape((3, 2, 3)).astype(dtype)
-        y = (x + 1).astype(dtype)
-        z = (y + 1).astype(dtype)
+        shapex = (1, 2, 3) if broad else (3, 2, 3)
+        shapey = (3, 2, 3)
+        shapez = (1, 2, 3) if broad else (3, 2, 3)
+        x = (np.arange(np.prod(shapex)) + 1).reshape(shapex).astype(dtype)
+        y = (np.arange(np.prod(shapey)) + 1).reshape(shapey).astype(dtype)
+        z = (np.arange(np.prod(shapez)) + 1).reshape(shapez).astype(dtype)
 
         feeds1 = dict(X=x, Y=y, Z=z)
         ref = CReferenceEvaluator(model1, verbose=0)
@@ -434,6 +454,11 @@ class TestOrtOpOptimCuda(ExtTestCase):
     def test_addmul_cuda(self):
         self._addmul_cuda(TensorProto.FLOAT, "Add", "Mul")
         self._addmul_cuda(TensorProto.FLOAT16, "Add", "Mul")
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_addmul_cuda_broadcast(self):
+        self._addmul_cuda(TensorProto.FLOAT, "Add", "Mul", True)
+        self._addmul_cuda(TensorProto.FLOAT16, "Add", "Mul", True)
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_muladd_cuda(self):

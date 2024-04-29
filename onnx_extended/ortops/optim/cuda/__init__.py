@@ -28,7 +28,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise Add, Mul assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -53,7 +54,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise addition assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -78,7 +80,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Three consecutive element-wise addition assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -104,7 +107,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Parallel Additions with one common input.
-    Support for Broadcast is limited (only the first dimenions).
+    Support for Broadcast is limited
+    (broadcast limited to the first dimensions).
     
     Computes A + B, A + C.
 
@@ -132,7 +136,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise Mul, Add assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -157,7 +162,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise multiplication assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -182,7 +188,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise multiplication assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -230,7 +237,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Parallel Multiplications with one common input.
-    Support for Broadcast is limited (only the first dimenions).
+    Support for Broadcast is limited
+    (broadcast limited to the first dimensions).
     
     Computes A * B, A * C.
 
