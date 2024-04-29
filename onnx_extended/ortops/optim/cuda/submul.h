@@ -9,6 +9,9 @@ namespace ortops {
 template <typename T, bool addition> struct SubMulKernel {
   SubMulKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
+
+private:
+  bool negative_;
 };
 
 template <typename T, bool addition>

@@ -383,15 +383,19 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._addaddaddmulmulmul_cuda(TensorProto.FLOAT, "Add")
         self._addaddaddmulmulmul_cuda(TensorProto.FLOAT16, "Add")
 
-    def _addmul_cuda(self, itype, op_type1, op_type2, broad=False):
+    def _addmul_cuda(self, itype, op_type1, op_type2, broad=False, negative=False):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
         model1 = oh.make_model(
             oh.make_graph(
                 [
-                    oh.make_node(op_type1, ["X", "Y"], ["xy"]),
-                    oh.make_node(op_type2, ["xy", "Z"], ["final"]),
+                    oh.make_node(
+                        op_type1, ["Y", "X"] if negative else ["X", "Y"], ["xy"]
+                    ),
+                    oh.make_node(
+                        op_type2, ["Z", "xy"] if negative else ["xy", "Z"], ["final"]
+                    ),
                 ],
                 "nd",
                 [
@@ -405,6 +409,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
             ir_version=9,
         )
 
+        kwargs = {"negative": 1} if negative else {}
         model2 = oh.make_model(
             oh.make_graph(
                 [
@@ -413,6 +418,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
                         ["X", "Y", "Z"],
                         ["final"],
                         domain="onnx_extended.ortops.optim.cuda",
+                        **kwargs,
                     )
                 ],
                 "nd",
@@ -471,6 +477,11 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._addmul_cuda(TensorProto.FLOAT16, "Sub", "Mul")
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_submul_cuda_negative(self):
+        self._addmul_cuda(TensorProto.FLOAT, "Sub", "Mul", negative=True)
+        self._addmul_cuda(TensorProto.FLOAT16, "Sub", "Mul", negative=True)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_submul_cuda_broadcast(self):
         self._addmul_cuda(TensorProto.FLOAT, "Sub", "Mul", True)
         self._addmul_cuda(TensorProto.FLOAT16, "Sub", "Mul", True)
@@ -479,6 +490,11 @@ class TestOrtOpOptimCuda(ExtTestCase):
     def test_mulsub_cuda(self):
         self._addmul_cuda(TensorProto.FLOAT, "Mul", "Sub")
         self._addmul_cuda(TensorProto.FLOAT16, "Mul", "Sub")
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_mulsub_cuda_negative(self):
+        self._addmul_cuda(TensorProto.FLOAT, "Mul", "Sub", negative=True)
+        self._addmul_cuda(TensorProto.FLOAT16, "Mul", "Sub", negative=True)
 
     def _rotary_cuda(self, itype, side):
         import onnxruntime

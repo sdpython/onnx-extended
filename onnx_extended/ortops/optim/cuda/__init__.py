@@ -262,6 +262,36 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
+    onnx_extended.ortops.optim.cuda.MulSub
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise Mul, Sub assuming
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Attribute**
+    
+    * negative: to switch the order of the subtraction
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * (A*B)-C (T): element-wise
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
     onnx_extended.ortops.optim.cuda.NegXplus1
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -357,6 +387,36 @@ def documentation() -> List[str]:
     **Constraints**
 
     * I: int64
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.SubMul
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise Sub, Mul assuming
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Attribute**
+    
+    * negative: to switch the order of the subtraction
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * (A-B)*C (T): element-wise
+
+    **Constraints**
+
     * T: float, float16
     """,
                 """

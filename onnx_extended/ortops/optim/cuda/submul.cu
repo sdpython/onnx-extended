@@ -1,7 +1,7 @@
-#include "submul.h"
 #include "common/c_op_helpers.h"
 #include "common/common_kernels.h"
 #include "cuda/common_kernels_cuda.h"
+#include "submul.h"
 #include <cublasLt.h>
 #include <cublas_v2.h>
 #include <cuda_bf16.h>
@@ -34,6 +34,20 @@ __device__ __forceinline__ void _submul_op(half *address, const half a, const ha
 #endif
 }
 
+__device__ __forceinline__ void _submul_neg_op(float *address, const float a, const float b,
+                                               const float c) {
+  *address = (b - a) * c;
+}
+
+__device__ __forceinline__ void _submul_neg_op(half *address, const half a, const half b,
+                                               const half c) {
+#if __CUDA_ARCH__ < 700
+  *address = __float2half((__half2float(b) - __half2float(a)) * __half2float(c));
+#else
+  *address = (b - a) * c;
+#endif
+}
+
 __device__ __forceinline__ void _mulsub_op(float *address, const float a, const float b,
                                            const float c) {
   *address = a * b - c;
@@ -48,6 +62,20 @@ __device__ __forceinline__ void _mulsub_op(half *address, const half a, const ha
 #endif
 }
 
+__device__ __forceinline__ void _mulsub_neg_op(float *address, const float a, const float b,
+                                               const float c) {
+  *address = c - a * b;
+}
+
+__device__ __forceinline__ void _mulsub_neg_op(half *address, const half a, const half b,
+                                               const half c) {
+#if __CUDA_ARCH__ < 700
+  *address = __float2half(__half2float(c) - __half2float(a) * __half2float(b));
+#else
+  *address = c - a * b;
+#endif
+}
+
 template <typename T> struct SubMul {
   __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
     _submul_op(address, a, b, c);
@@ -57,6 +85,18 @@ template <typename T> struct SubMul {
 template <typename T> struct MulSub {
   __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
     _mulsub_op(address, a, b, c);
+  }
+};
+
+template <typename T> struct SubMulNeg {
+  __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
+    _submul_neg_op(address, a, b, c);
+  }
+};
+
+template <typename T> struct MulSubNeg {
+  __device__ __inline__ void operator()(T *address, const T a, const T b, const T c) const {
+    _mulsub_neg_op(address, a, b, c);
   }
 };
 
@@ -164,7 +204,9 @@ SubMulOp<T, addition>::GetOutputCharacteristic(std::size_t index) const {
 ///////////////////
 
 template <typename T, bool addition>
-SubMulKernel<T, addition>::SubMulKernel(const OrtApi &api, const OrtKernelInfo *info) {}
+SubMulKernel<T, addition>::SubMulKernel(const OrtApi &api, const OrtKernelInfo *info) {
+  negative_ = KernelInfoGetOptionalAttributeInt64AsBool(api, info, "negative", false);
+}
 
 template <typename T, bool addition>
 void SubMulKernel<T, addition>::Compute(OrtKernelContext *context) {
@@ -204,13 +246,29 @@ void SubMulKernel<T, addition>::Compute(OrtKernelContext *context) {
   output = ctx.GetOutput(0, output_dims);
 
   if (addition) {
-    BinaryElementWiseNoBroadcastImpl(
-        cuda_stream, output.GetTensorMutableData<T>(), A.GetTensorData<T>(),
-        B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size, SubMul<T>());
+    if (negative_) {
+      BinaryElementWiseNoBroadcastImpl(cuda_stream, output.GetTensorMutableData<T>(),
+                                       A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                       C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size,
+                                       SubMulNeg<T>());
+    } else {
+      BinaryElementWiseNoBroadcastImpl(cuda_stream, output.GetTensorMutableData<T>(),
+                                       A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                       C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size,
+                                       SubMul<T>());
+    }
   } else {
-    BinaryElementWiseNoBroadcastImpl(
-        cuda_stream, output.GetTensorMutableData<T>(), A.GetTensorData<T>(),
-        B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size, MulSub<T>());
+    if (negative_) {
+      BinaryElementWiseNoBroadcastImpl(cuda_stream, output.GetTensorMutableData<T>(),
+                                       A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                       C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size,
+                                       MulSubNeg<T>());
+    } else {
+      BinaryElementWiseNoBroadcastImpl(cuda_stream, output.GetTensorMutableData<T>(),
+                                       A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                       C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size,
+                                       MulSub<T>());
+    }
   }
 }
 
