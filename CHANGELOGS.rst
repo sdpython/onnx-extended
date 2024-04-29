@@ -4,6 +4,7 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`175`: adds custom operator MulSub and SubMul on CUDA
 * :pr:`173`: adds custom operator AddSharedInput, MulSharedInput on CUDA
 * :pr:`170`: adds custom operator TriMatrix on CUDA
 * :pr:`169`: adds custom operator ReplaceZero on CUDA
