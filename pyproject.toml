@@ -123,6 +123,7 @@ archs = ["x86_64"]
 build = "cp*"
 before-build = "brew install llvm libomp"
 skip = "pypy* pp* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
+environment="LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
