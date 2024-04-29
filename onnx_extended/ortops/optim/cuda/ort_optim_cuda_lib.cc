@@ -16,6 +16,7 @@
 #include "replace_zero.h"
 #include "rotary.h"
 #include "scatter_nd_of_shape.h"
+#include "submul.h"
 #include "transpose_cast_2d.h"
 #include "tri_matrix.h"
 
@@ -43,6 +44,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::AddMulOp<half, false> c_MulAddOp16;
   static ortops::AddMulOp<float, true> c_AddMulOp32;
   static ortops::AddMulOp<half, true> c_AddMulOp16;
+
+  static ortops::SubMulOp<float, false> c_MulSubOp32;
+  static ortops::SubMulOp<half, false> c_MulSubOp16;
+  static ortops::SubMulOp<float, true> c_SubMulOp32;
+  static ortops::SubMulOp<half, true> c_SubMulOp16;
 
   static ortops::AddAddMulMulOp<float, false> c_MulMulOp32;
   static ortops::AddAddMulMulOp<half, false> c_MulMulOp16;
@@ -95,6 +101,11 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     domain.Add(&c_AddAddOp16);
     domain.Add(&c_MulMulOp32);
     domain.Add(&c_MulMulOp16);
+
+    domain.Add(&c_SubMulOp32);
+    domain.Add(&c_SubMulOp16);
+    domain.Add(&c_MulSubOp32);
+    domain.Add(&c_MulSubOp16);
 
     domain.Add(&c_AddAddAddOp32);
     domain.Add(&c_AddAddAddOp16);

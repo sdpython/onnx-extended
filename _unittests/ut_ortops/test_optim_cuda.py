@@ -465,6 +465,21 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._addmul_cuda(TensorProto.FLOAT, "Mul", "Add")
         self._addmul_cuda(TensorProto.FLOAT16, "Mul", "Add")
 
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_submul_cuda(self):
+        self._addmul_cuda(TensorProto.FLOAT, "Sub", "Mul")
+        self._addmul_cuda(TensorProto.FLOAT16, "Sub", "Mul")
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_submul_cuda_broadcast(self):
+        self._addmul_cuda(TensorProto.FLOAT, "Sub", "Mul", True)
+        self._addmul_cuda(TensorProto.FLOAT16, "Sub", "Mul", True)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_mulsub_cuda(self):
+        self._addmul_cuda(TensorProto.FLOAT, "Mul", "Sub")
+        self._addmul_cuda(TensorProto.FLOAT16, "Mul", "Sub")
+
     def _rotary_cuda(self, itype, side):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
