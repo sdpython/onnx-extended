@@ -54,13 +54,13 @@ __device__ __forceinline__ void _mul3_op(half *ab, half *ac, const half a, const
 #endif
 }
 
-template <typename T> struct Mul3Op {
+template <typename T> struct Mul3SharedOp {
   __device__ __inline__ void operator()(T *ab, T *ac, const T a, const T b, const T c) const {
     _mul3_op(ab, ac, a, b, c);
   }
 };
 
-template <typename T> struct Add3Op {
+template <typename T> struct Add3SharedOp {
   __device__ __inline__ void operator()(T *ab, T *ac, const T a, const T b, const T c) const {
     _add3_op(ab, ac, a, b, c);
   }
@@ -243,12 +243,12 @@ void AddOrMulSharedInputKernel<T, addition>::Compute(OrtKernelContext *context) 
     BinaryElementWiseNoBroadcastImpl(cuda_stream, output_ab.GetTensorMutableData<T>(),
                                      output_ac.GetTensorMutableData<T>(), A.GetTensorData<T>(),
                                      B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB,
-                                     sizeC, max_dim, Add3Op<T>());
+                                     sizeC, max_dim, Add3SharedOp<T>());
   } else {
     BinaryElementWiseNoBroadcastImpl(cuda_stream, output_ab.GetTensorMutableData<T>(),
                                      output_ac.GetTensorMutableData<T>(), A.GetTensorData<T>(),
                                      B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB,
-                                     sizeC, max_dim, Mul3Op<T>());
+                                     sizeC, max_dim, Mul3SharedOp<T>());
   }
 }
 
