@@ -75,14 +75,45 @@ __global__ void _BinaryElementWiseSimple(T *output_data, const T *pA, const T *p
   }
 }
 
+template <typename T, typename TFunc, int NumThreadsPerBlock, int NumElementsPerThread>
+__global__ void _BinaryElementWiseSimpleSwitchMiddle(T *output_data, const T *pA, const T *pB,
+                                                     const T *pC, CUDA_LONG nA, CUDA_LONG nB,
+                                                     CUDA_LONG nC, CUDA_LONG N,
+                                                     const TFunc func, CUDA_LONG d2,
+                                                     CUDA_LONG d3, CUDA_LONG d4) {
+  CUDA_LONG start = NumElementsPerThread * NumThreadsPerBlock * blockIdx.x + threadIdx.x;
+  CUDA_LONG id = start;
+  // dimension, d1, d2, d3, d4
+  // indices i, j, k, l
+  // [i,j,k,l] --> i d2*d3*d4 + j d3*d4 + k d4 + l
+  // l = id % d4
+  // k = (id // d4) % d3
+  // j = (id // (d3*d4) % d2
+  // [i,k,j,l] -> i d2*d3*d4 + k d3*d4 + j d4 + l
+  //           -> i d2*d3*d4 + (id // d4) % d3 d3*d4 + (id // (d3*d4) % d2 d4 + l
+  CUDA_LONG k = (id / d4) % d3;
+  CUDA_LONG j = (id / (d4 * d3)) % d2;
+  CUDA_LONG ido = id + (j * d3 * d4 + k * d4) - (k * d3 * d4 + j * d4);
+#pragma unroll
+  for (int i = 0; i < NumElementsPerThread; i++) {
+    if (id < N) {
+      func(output_data + ido, pA[id % nA], pB[id % nB], pC[id % nC]);
+      id += NumThreadsPerBlock;
+      k = (NumThreadsPerBlock / d4) % d3;
+      j = (NumThreadsPerBlock / (d4 * d3)) % d2;
+      ido = id + (j * d3 * d4 + k * d4) - (k * d3 * d4 + j * d4);
+    }
+  }
+}
+
 template <class INT, class INT2> inline __host__ __device__ INT CeilDiv(INT a, INT2 b) {
   return (INT)(((size_t)a + (size_t)b - 1) / (size_t)b);
 }
 
 template <typename T, typename TFunc>
-void BinaryElementWiseNoBroadcastImpl(cudaStream_t stream, T *output_data, const T *pA,
-                                      const T *pB, const T *pC, int64_t countA, int64_t countB,
-                                      int64_t countC, int64_t max_count, const TFunc func) {
+void BinaryElementWiseImpl(cudaStream_t stream, T *output_data, const T *pA, const T *pB,
+                           const T *pC, int64_t countA, int64_t countB, int64_t countC,
+                           int64_t max_count, const TFunc func) {
   if (max_count == 0) // special case where there's a dim value of 0 in the output shape
     return;
 
@@ -97,6 +128,28 @@ void BinaryElementWiseNoBroadcastImpl(cudaStream_t stream, T *output_data, const
           output_data, pA, pB, pC, static_cast<CUDA_LONG>(countA),
           static_cast<CUDA_LONG>(countB), static_cast<CUDA_LONG>(countC),
           static_cast<CUDA_LONG>(max_count), func);
+}
+
+template <typename T, typename TFunc>
+void BinaryElementWiseImplSwitchMiddle(cudaStream_t stream, T *output_data, const T *pA,
+                                       const T *pB, const T *pC, int64_t countA, int64_t countB,
+                                       int64_t countC, int64_t max_count, const TFunc func,
+                                       int64_t d2, int64_t d3, int64_t d4) {
+  if (max_count == 0) // special case where there's a dim value of 0 in the output shape
+    return;
+
+  const int num_elements_per_thread = GridDim::maxElementsPerThread;
+  const int num_threads_per_block = GridDim::maxThreadsPerBlock;
+
+  int blocksPerGrid =
+      static_cast<int>(CeilDiv(max_count, num_threads_per_block * num_elements_per_thread));
+
+  _BinaryElementWiseSimpleSwitchMiddle<T, TFunc, num_threads_per_block, num_elements_per_thread>
+      <<<blocksPerGrid, num_threads_per_block, 0, stream>>>(
+          output_data, pA, pB, pC, static_cast<CUDA_LONG>(countA),
+          static_cast<CUDA_LONG>(countB), static_cast<CUDA_LONG>(countC),
+          static_cast<CUDA_LONG>(max_count), func, static_cast<CUDA_LONG>(d2),
+          static_cast<CUDA_LONG>(d3), static_cast<CUDA_LONG>(d4));
 }
 
 //////////////////
@@ -164,7 +217,10 @@ AddMulOp<T, addition>::GetOutputCharacteristic(std::size_t index) const {
 ///////////////////
 
 template <typename T, bool addition>
-AddMulKernel<T, addition>::AddMulKernel(const OrtApi &api, const OrtKernelInfo *info) {}
+AddMulKernel<T, addition>::AddMulKernel(const OrtApi &api, const OrtKernelInfo *info) {
+  switch_middle_axis_ =
+      KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transposeMiddle", false);
+}
 
 template <typename T, bool addition>
 void AddMulKernel<T, addition>::Compute(OrtKernelContext *context) {
@@ -201,16 +257,37 @@ void AddMulKernel<T, addition>::Compute(OrtKernelContext *context) {
   for (size_t i = 0; i < dimsA.size(); ++i) {
     output_dims[i] = std::max(std::max(dimsA[i], dimsB[i]), dimsC[i]);
   }
-  output = ctx.GetOutput(0, output_dims);
 
-  if (addition) {
-    BinaryElementWiseNoBroadcastImpl(
-        cuda_stream, output.GetTensorMutableData<T>(), A.GetTensorData<T>(),
-        B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size, AddMul<T>());
+  if (switch_middle_axis_) {
+    EXT_ENFORCE(output_dims.size() == 4,
+                "transposeMiddle is true but the output does not have 4 dimensions but ",
+                output_dims.size(), ".");
+    int64_t d4 = output_dims[output_dims.size() - 1];
+    int64_t d3 = output_dims[output_dims.size() - 2];
+    int64_t d2 = output_dims[output_dims.size() - 3];
+    outputs_dims[1] = d3;
+    outputs_dims[2] = d2;
+    if (addition) {
+      BinaryElementWiseImplSwitchMiddle(cuda_stream, output.GetTensorMutableData<T>(),
+                                        A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                        C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size,
+                                        AddMul<T>(), d2, d3, d4);
+    } else {
+      BinaryElementWiseImplSwitchMiddle(cuda_stream, output.GetTensorMutableData<T>(),
+                                        A.GetTensorData<T>(), B.GetTensorData<T>(),
+                                        C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size,
+                                        MulAdd<T>(), d2, d3, d4);
+    }
+  } else if (addition) {
+    output = ctx.GetOutput(0, output_dims);
+    BinaryElementWiseImpl(cuda_stream, output.GetTensorMutableData<T>(), A.GetTensorData<T>(),
+                          B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB, sizeC,
+                          max_size, AddMul<T>());
   } else {
-    BinaryElementWiseNoBroadcastImpl(
-        cuda_stream, output.GetTensorMutableData<T>(), A.GetTensorData<T>(),
-        B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB, sizeC, max_size, MulAdd<T>());
+    output = ctx.GetOutput(0, output_dims);
+    BinaryElementWiseImpl(cuda_stream, output.GetTensorMutableData<T>(), A.GetTensorData<T>(),
+                          B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB, sizeC,
+                          max_size, MulAdd<T>());
   }
 }
 
