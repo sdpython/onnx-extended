@@ -83,25 +83,23 @@ __global__ void _BinaryElementWiseSimpleSwitchMiddle(T *output_data, const T *pA
                                                      CUDA_LONG d3, CUDA_LONG d4) {
   CUDA_LONG start = NumElementsPerThread * NumThreadsPerBlock * blockIdx.x + threadIdx.x;
   CUDA_LONG id = start;
+  CUDA_LONG k, j, ido;
   // dimension, d1, d2, d3, d4
   // indices i, j, k, l
   // [i,j,k,l] --> i d2*d3*d4 + j d3*d4 + k d4 + l
   // l = id % d4
   // k = (id // d4) % d3
   // j = (id // (d3*d4) % d2
-  // [i,k,j,l] -> i d2*d3*d4 + k d3*d4 + j d4 + l
-  //           -> i d2*d3*d4 + (id // d4) % d3 d3*d4 + (id // (d3*d4) % d2 d4 + l
-  CUDA_LONG k = (id / d4) % d3;
-  CUDA_LONG j = (id / (d4 * d3)) % d2;
-  CUDA_LONG ido = id + (j * d3 * d4 + k * d4) - (k * d3 * d4 + j * d4);
+  // [i,k,j,l] -> i d2*d3*d4 + k d2*d4 + j d4 + l
+  //           -> i d2*d3*d4 + [(id // d4) % d3] d2*d4 + [(id // (d3*d4) % d2] d4 + l
 #pragma unroll
   for (int i = 0; i < NumElementsPerThread; i++) {
     if (id < N) {
+      k = (id / d4) % d3;
+      j = (id / (d4 * d3)) % d2;
+      ido = id + d4 * ((k * d2 + j) - (j * d3 + k));
       func(output_data + ido, pA[id % nA], pB[id % nB], pC[id % nC]);
       id += NumThreadsPerBlock;
-      k = (NumThreadsPerBlock / d4) % d3;
-      j = (NumThreadsPerBlock / (d4 * d3)) % d2;
-      ido = id + (j * d3 * d4 + k * d4) - (k * d3 * d4 + j * d4);
     }
   }
 }
@@ -267,6 +265,7 @@ void AddMulKernel<T, addition>::Compute(OrtKernelContext *context) {
     int64_t d2 = output_dims[output_dims.size() - 3];
     output_dims[1] = d3;
     output_dims[2] = d2;
+    output = ctx.GetOutput(0, output_dims);
     if (addition) {
       BinaryElementWiseImplSwitchMiddle(cuda_stream, output.GetTensorMutableData<T>(),
                                         A.GetTensorData<T>(), B.GetTensorData<T>(),

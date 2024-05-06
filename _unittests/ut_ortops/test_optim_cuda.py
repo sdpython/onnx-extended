@@ -1049,12 +1049,47 @@ class TestOrtOpOptimCuda(ExtTestCase):
             model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
         )
         got = sess.run(None, feeds1)[0]
+        print(expected - got)
         self.assertEqualArray(expected, got)
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_addmul_transpose_cuda(self):
         self._addmul_transpose_cuda(TensorProto.FLOAT, "Add", "Mul")
         self._addmul_transpose_cuda(TensorProto.FLOAT16, "Add", "Mul")
+
+    def test_addmul_transpose_numpy(self):
+        shape = (2, 3, 2, 3)
+        x = (np.arange(np.prod(shape)) + 1).reshape(shape).astype(np.int16)
+        t = np.transpose(x, axes=[0, 2, 1, 3])
+        xr = x.ravel()
+        yr = np.zeros(xr.shape, dtype=x.dtype)
+        _, d2, d3, d4 = x.shape
+
+        for i in range(x.shape[0]):
+            for j in range(d2):
+                for k in range(d3):
+                    for l in range(d4):  # noqa: E741
+                        ind = i * d2 * d3 * d4 + j * d3 * d4 + k * d4 + l
+                        ido = i * d2 * d3 * d4 + k * d2 * d4 + j * d4 + l
+                        yr[ido] = xr[ind]
+
+        new_shape = list(shape)
+        new_shape[2], new_shape[1] = new_shape[1], new_shape[2]
+        y = yr.reshape(tuple(new_shape))
+
+        self.assertEqualArray(t, y)
+
+        yr = np.zeros(xr.shape, dtype=x.dtype)
+
+        for ind in range(x.size):
+            k = (ind // d4) % d3
+            j = (ind // (d4 * d3)) % d2
+            # ido = ind + (k * d2 * d4 + j * d4) - (j * d3 * d4 + k * d4)
+            ido = ind + d4 * ((k * d2 + j) - (j * d3 + k))
+            yr[ido] = xr[ind]
+
+        y = yr.reshape(tuple(new_shape))
+        self.assertEqualArray(t, y)
 
 
 if __name__ == "__main__":
