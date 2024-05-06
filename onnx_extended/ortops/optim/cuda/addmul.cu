@@ -265,8 +265,8 @@ void AddMulKernel<T, addition>::Compute(OrtKernelContext *context) {
     int64_t d4 = output_dims[output_dims.size() - 1];
     int64_t d3 = output_dims[output_dims.size() - 2];
     int64_t d2 = output_dims[output_dims.size() - 3];
-    outputs_dims[1] = d3;
-    outputs_dims[2] = d2;
+    output_dims[1] = d3;
+    output_dims[2] = d2;
     if (addition) {
       BinaryElementWiseImplSwitchMiddle(cuda_stream, output.GetTensorMutableData<T>(),
                                         A.GetTensorData<T>(), B.GetTensorData<T>(),
