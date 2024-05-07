@@ -136,6 +136,37 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
+    onnx_extended.ortops.optim.cuda.MaskedScatterNDOfShape
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    ConstantOfShape + Where + ScatterND,
+    updates a null matrix with updates if only indices are not
+    equal to a value (usually -1)
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Attributes**
+    
+    * maskedValue (int): updates are ignore the indices are equal to this value.
+    
+    **Inputs**
+    
+    * shape (I): tensor of type I
+    * indices (I): tensor of type I
+    * updates (T): tensor of type T
+
+    **Outputs**
+
+    * Z (T): updated tensor
+
+    **Constraints**
+
+    * I: int64
+    * T: float, float16
+    """,
+                """
     onnx_extended.ortops.optim.cuda.MulAdd
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

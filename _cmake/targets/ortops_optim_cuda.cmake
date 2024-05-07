@@ -20,6 +20,7 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/ortops/optim/cuda/replace_zero.cu
     ../onnx_extended/ortops/optim/cuda/rotary.cu
     ../onnx_extended/ortops/optim/cuda/scatter_nd_of_shape.cu
+    ../onnx_extended/ortops/optim/cuda/scatter_nd_of_shape_masked.cu
     ../onnx_extended/ortops/optim/cuda/submul.cu
     ../onnx_extended/ortops/optim/cuda/transpose_cast_2d.cu
     ../onnx_extended/ortops/optim/cuda/tri_matrix.cu

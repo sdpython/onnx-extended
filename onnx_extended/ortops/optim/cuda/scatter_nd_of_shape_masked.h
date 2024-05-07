@@ -7,28 +7,26 @@
 
 namespace ortops {
 
-template <typename T> struct ScatterNDOfShapeKernel {
-  ScatterNDOfShapeKernel(const OrtApi &api, const OrtKernelInfo *info);
+template <typename T> struct MaskedScatterNDOfShapeKernel {
+  MaskedScatterNDOfShapeKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
 
 private:
-  void ComputeNone(cudaStream_t &stream, const std::vector<int64_t> &input_shape,
-                   const std::vector<int64_t> &indices_shape, T *output_data,
-                   const int64_t *indices_data, const T *updates_data) const;
   void ComputeOptimize(cudaStream_t &stream, const std::vector<int64_t> &input_shape,
                        const std::vector<int64_t> &indices_shape, T *output_data,
                        const int64_t *indices_data, const T *updates_data) const;
 
   Reduction reduction_;
-  Strategy strategy_;
   int maxThreadPerBlock_;
+  int64_t masked_value_;
 };
 
 template <typename T>
-struct ScatterNDOfShapeOp
-    : Ort::CustomOpBase<ScatterNDOfShapeOp<T>, ScatterNDOfShapeKernel<T>> {
-  typedef Ort::CustomOpBase<ScatterNDOfShapeOp<T>, ScatterNDOfShapeKernel<T>> parent_type;
-  ScatterNDOfShapeOp() : parent_type() {}
+struct MaskedScatterNDOfShapeOp
+    : Ort::CustomOpBase<MaskedScatterNDOfShapeOp<T>, MaskedScatterNDOfShapeKernel<T>> {
+  typedef Ort::CustomOpBase<MaskedScatterNDOfShapeOp<T>, MaskedScatterNDOfShapeKernel<T>>
+      parent_type;
+  MaskedScatterNDOfShapeOp() : parent_type() {}
   void *CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const;
   const char *GetName() const;
   const char *GetExecutionProviderType() const;
