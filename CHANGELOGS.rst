@@ -4,7 +4,7 @@ Change Logs
 0.3.0
 +++++
 
-* :pr:`180`: add MaskedScatterNDOfShape custom operator
+* :pr:`181`: add MaskedScatterNDOfShape custom operator
 * :pr:`175`: adds custom operator MulSub and SubMul on CUDA
 * :pr:`173`: adds custom operator AddSharedInput, MulSharedInput on CUDA
 * :pr:`170`: adds custom operator TriMatrix on CUDA
