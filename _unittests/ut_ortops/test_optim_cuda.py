@@ -739,9 +739,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
         model1 = oh.make_model(
             oh.make_graph(
-                [
-                    oh.make_node("Sub", ["one", "X"], ["Y"]),
-                ],
+                [oh.make_node("Sub", ["one", "X"], ["Y"])],
                 "nd",
                 [oh.make_tensor_value_info("X", itype, [None, None, None])],
                 [oh.make_tensor_value_info("Y", itype, [None, None, None])],
@@ -975,6 +973,123 @@ class TestOrtOpOptimCuda(ExtTestCase):
             shapeb=(3, 2, 3),
             shapec=(3, 2, 3),
         )
+
+    def _addmul_transpose_cuda(
+        self, itype, op_type1, op_type2, broad=False, negative=False
+    ):
+        import onnxruntime
+        from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
+
+        model1 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        op_type1, ["Y", "X"] if negative else ["X", "Y"], ["xy"]
+                    ),
+                    oh.make_node(
+                        op_type2, ["Z", "xy"] if negative else ["xy", "Z"], ["prod"]
+                    ),
+                    oh.make_node("Transpose", ["prod"], ["final"], perm=[0, 2, 1, 3]),
+                ],
+                "nd",
+                [
+                    oh.make_tensor_value_info("X", itype, [None, None, None, None]),
+                    oh.make_tensor_value_info("Y", itype, [None, None, None, None]),
+                    oh.make_tensor_value_info("Z", itype, [None, None, None, None]),
+                ],
+                [oh.make_tensor_value_info("final", itype, [None, None, None, None])],
+            ),
+            opset_imports=[oh.make_opsetid("", 18)],
+            ir_version=9,
+        )
+
+        kwargs = {"negative": 1} if negative else {}
+        model2 = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node(
+                        f"{op_type1}{op_type2}",
+                        ["X", "Y", "Z"],
+                        ["final"],
+                        domain="onnx_extended.ortops.optim.cuda",
+                        transposeMiddle=1,
+                        **kwargs,
+                    )
+                ],
+                "nd",
+                [
+                    oh.make_tensor_value_info("X", itype, [None, None, None, None]),
+                    oh.make_tensor_value_info("Y", itype, [None, None, None, None]),
+                    oh.make_tensor_value_info("Z", itype, [None, None, None, None]),
+                ],
+                [oh.make_tensor_value_info("final", itype, [None, None, None, None])],
+            ),
+            opset_imports=[
+                oh.make_opsetid("", 18),
+                oh.make_opsetid("onnx_extended.ortops.optim.cuda", 1),
+            ],
+            ir_version=9,
+        )
+
+        dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
+        shapex = (1, 2, 3) if broad else (2, 3, 2, 3)
+        shapey = (2, 3, 2, 3)
+        shapez = (1, 1, 2, 3) if broad else (2, 3, 2, 3)
+        x = (np.arange(np.prod(shapex)) + 1).reshape(shapex).astype(dtype)
+        y = (np.arange(np.prod(shapey)) + 1).reshape(shapey).astype(dtype)
+        z = (np.arange(np.prod(shapez)) + 1).reshape(shapez).astype(dtype)
+
+        feeds1 = dict(X=x, Y=y, Z=z)
+        ref = CReferenceEvaluator(model1, verbose=0)
+        expected = ref.run(None, feeds1)[0]
+
+        opts = onnxruntime.SessionOptions()
+        opts.register_custom_ops_library(get_ort_ext_libs()[0])
+        sess = onnxruntime.InferenceSession(
+            model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
+        )
+        got = sess.run(None, feeds1)[0]
+        print(expected - got)
+        self.assertEqualArray(expected, got)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_addmul_transpose_cuda(self):
+        self._addmul_transpose_cuda(TensorProto.FLOAT, "Add", "Mul")
+        self._addmul_transpose_cuda(TensorProto.FLOAT16, "Add", "Mul")
+
+    def test_addmul_transpose_numpy(self):
+        shape = (2, 3, 2, 3)
+        x = (np.arange(np.prod(shape)) + 1).reshape(shape).astype(np.int16)
+        t = np.transpose(x, axes=[0, 2, 1, 3])
+        xr = x.ravel()
+        yr = np.zeros(xr.shape, dtype=x.dtype)
+        _, d2, d3, d4 = x.shape
+
+        for i in range(x.shape[0]):
+            for j in range(d2):
+                for k in range(d3):
+                    for l in range(d4):  # noqa: E741
+                        ind = i * d2 * d3 * d4 + j * d3 * d4 + k * d4 + l
+                        ido = i * d2 * d3 * d4 + k * d2 * d4 + j * d4 + l
+                        yr[ido] = xr[ind]
+
+        new_shape = list(shape)
+        new_shape[2], new_shape[1] = new_shape[1], new_shape[2]
+        y = yr.reshape(tuple(new_shape))
+
+        self.assertEqualArray(t, y)
+
+        yr = np.zeros(xr.shape, dtype=x.dtype)
+
+        for ind in range(x.size):
+            k = (ind // d4) % d3
+            j = (ind // (d4 * d3)) % d2
+            # ido = ind + (k * d2 * d4 + j * d4) - (j * d3 * d4 + k * d4)
+            ido = ind + d4 * ((k * d2 + j) - (j * d3 + k))
+            yr[ido] = xr[ind]
+
+        y = yr.reshape(tuple(new_shape))
+        self.assertEqualArray(t, y)
 
 
 if __name__ == "__main__":

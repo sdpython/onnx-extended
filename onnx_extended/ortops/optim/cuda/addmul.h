@@ -9,6 +9,9 @@ namespace ortops {
 template <typename T, bool addition> struct AddMulKernel {
   AddMulKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
+  private:
+    // If true, the operator assumes there are 4 dimensions and the two middle ones are switched.
+    bool switch_middle_axis_;
 };
 
 template <typename T, bool addition>
