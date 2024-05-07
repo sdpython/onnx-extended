@@ -24,32 +24,6 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
-    onnx_extended.ortops.optim.cuda.AddMul
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    Two consecutive element-wise Add, Mul assuming
-    all tensors have the same shape
-    (broadcast limited to the first dimensions).
-
-    **Provider**
-    
-    CUDAExecutionProvider
-    
-    **Inputs**
-    
-    * A (T): tensor of type T
-    * B (T): tensor of type T
-    * C (T): tensor of type T
-
-    **Outputs**
-
-    * (A+B)*C (T): element-wise
-
-    **Constraints**
-
-    * T: float, float16
-    """,
-                """
     onnx_extended.ortops.optim.cuda.AddAdd
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -103,6 +77,36 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
+    onnx_extended.ortops.optim.cuda.AddMul
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise Add, Mul assuming
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Attributes**
+    
+    * transposeMiddle: bool, if True, applies transposition [0, 2, 1, 3] on the result
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * (A+B)*C (T): element-wise
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
     onnx_extended.ortops.optim.cuda.AddSharedInput
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -142,7 +146,11 @@ def documentation() -> List[str]:
     **Provider**
     
     CUDAExecutionProvider
+        
+    **Attributes**
     
+    * transposeMiddle: bool, if True, applies transposition [0, 2, 1, 3] on the result
+
     **Inputs**
     
     * A (T): tensor of type T
