@@ -16,6 +16,7 @@
 #include "replace_zero.h"
 #include "rotary.h"
 #include "scatter_nd_of_shape.h"
+#include "scatter_nd_of_shape_masked.h"
 #include "submul.h"
 #include "transpose_cast_2d.h"
 #include "tri_matrix.h"
@@ -76,6 +77,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::ScatterNDOfShapeOp<float> c_ScatterNDOfShapeOp32;
   static ortops::ScatterNDOfShapeOp<half> c_ScatterNDOfShapeOp16;
 
+  static ortops::MaskedScatterNDOfShapeOp<float> c_MaskedScatterNDOfShapeOp32;
+  static ortops::MaskedScatterNDOfShapeOp<half> c_MaskedScatterNDOfShapeOp16;
+
   static ortops::Transpose2DCastOp c_Transpose2DCast16(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
                                                        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16);
   static ortops::Transpose2DCastOp c_Transpose2DCast32(ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
@@ -127,6 +131,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_ScatterNDOfShapeOp32);
     domain.Add(&c_ScatterNDOfShapeOp16);
+
+    domain.Add(&c_MaskedScatterNDOfShapeOp32);
+    domain.Add(&c_MaskedScatterNDOfShapeOp16);
 
     domain.Add(&c_Transpose2DCast16);
     domain.Add(&c_Transpose2DCast32);
