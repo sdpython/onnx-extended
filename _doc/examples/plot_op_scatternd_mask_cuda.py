@@ -64,7 +64,7 @@ if config == "small":
 elif config == "medium":
     sizes = (512, 1024, 2048)
 elif config == "large":
-    sizes = (1024, 2048, 4096, 8192)
+    sizes = (1024, 2048, 4096, 6144, 8192)
 elif config == "llama":
     sizes = (16000, 32000)
 else:
@@ -316,7 +316,7 @@ def benchmark(sizes, config, itype, times_col: int = 1, times_indices: int = 1):
         else:
             shape = (size, int(size * times_col))
             shape_indices = (2, int(size * times_indices), 1)
-        shape_updates = (2, size, shape[-1])
+        shape_updates = (2, shape_indices[1], shape[-1])
 
         shape = np.array(shape, dtype=np.int64)
         indices = np.array(
@@ -368,7 +368,7 @@ if sess is not None:
 
     print(f"sizes={sizes}")
 
-    data_nd = benchmark(sizes, script_args.config, itype=itype)
+    data_nd = benchmark(sizes, script_args.config, itype=itype, times_col=2)
 
 ##########################################
 # Data
@@ -388,8 +388,11 @@ if sess is not None:
 
     pivot = df.pivot(index="size", columns="label", values="time")
     col = pivot["ScatterND"].copy()
+    print("Time")
+    print(pivot)
     for c in pivot.columns:
         pivot[c] = col / pivot[c]
+    print("Speed up compare to the onnx standaed.")
     print(pivot)
 
     ax = pivot.plot(
@@ -403,3 +406,4 @@ if sess is not None:
 # It requires more test to determine when it is better.
 # But the fused operator with mask seems more efficient in any case
 # compare to the fused operator without mask.
+# For big sizes, ScatterND seems very slow as it is using atomic addition.

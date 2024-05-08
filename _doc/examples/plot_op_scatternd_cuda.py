@@ -368,10 +368,11 @@ if sess2 is not None:
 if sess2 is not None:
 
     pivot = df.pivot(index="size", columns="label", values="time")
-    pivot["ratio"] = pivot["Atomic"] / pivot["No Atomic"]
+    pivot["ratio"] = pivot["Atomic/Not Fused"] / pivot["No Atomic/Fused"]
+    print("Speed up compare to the onnx standaed.")
     print(pivot)
 
-    ax = pivot[["Atomic", "No Atomic"]].plot(
+    ax = pivot[["Atomic/Not Fused", "No Atomic/Fused"]].plot(
         logx=True,
         logy=True,
         title=f"Atomic/No-Atomic implementation for ScatterND on CUDA\nitype={itype}",

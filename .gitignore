@@ -27,7 +27,7 @@ Testing/*
 plot_*.csv
 plot_*.xlsx
 *.data
-test_ort_version/*
+test_ort_version*
 x64/*
 CMakeFiles/*
 dist/*
