@@ -104,8 +104,16 @@ plot_op_scatternd_cuda
 
 See :ref:`l-example-op-scatternd_cuda`.
 
-The benchmark compares two operators Mul profiles
-with their fusion into a single operator.
+The benchmark compares two operators ScatterND, using
+atomic, no atomic.
+
+plot_op_scatternd_mask_cuda
++++++++++++++++++++++++++++
+
+See :ref:`l-example-op-scatternd_mask_cuda`.
+
+The benchmark compares three operators ScatterND to update
+a matrix.
 
 plot_op_transpose2dcast_cuda
 ++++++++++++++++++++++++++++
