@@ -54,7 +54,7 @@ __global__ void masked_addition_inplace_kernelN(T *__restrict__ output_data,
                                                 const CUDA_LONG indice_size,
                                                 const CUDA_LONG nrows, const CUDA_LONG stride,
                                                 const int64_t masked_value) {
-  __shared__ int64_t shared_indices [NTHREAD];
+  __shared__ int64_t shared_indices[NTHREAD];
 
   CUDA_LONG tid = threadIdx.x;
   CUDA_LONG id = blockDim.x * blockIdx.x + threadIdx.x;
@@ -72,7 +72,8 @@ __global__ void masked_addition_inplace_kernelN(T *__restrict__ output_data,
     for (size_t i = begin; i < end; ++i) {
       if (shared_indices[tid] == masked_value)
         continue;
-      _add_inplace(output_data[shared_indices[tid] * stride + id], updates_data[i * stride + id]);
+      _add_inplace(output_data[shared_indices[tid] * stride + id],
+                   updates_data[i * stride + id]);
     }
 
     begin = end;
@@ -296,13 +297,17 @@ void _ComputeOptimize(cudaStream_t stream, const std::vector<int64_t> &input_sha
   std::vector<uint8_t> processed(input_shape[0], 0);
   std::vector<uint8_t> processed_once(input_shape[0], 0);
 
+#if __CUDA_ARCH__ < 700
   int threads_per_block = std::min(256, maxThreadPerBlock_ / 8);
+  bool split = stride / threads_per_block <= 32;
+#else
+  int threads_per_block = std::min(256, maxThreadPerBlock_ / 8);
+  bool split = true; // stride / threads_per_block <= 32;
+#endif
 
   int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
   dim3 threads(threads_per_block);
   dim3 blocks(blocks_per_grid);
-
-  bool split = stride / threads_per_block <= 32;
 
   if (split && stride >= 256 && threads_per_block == 256) {
     masked_addition_inplace_kernelN<T, 256><<<blocks, threads, 0, stream>>>(

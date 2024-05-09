@@ -1174,7 +1174,6 @@ class TestOrtOpOptimCuda(ExtTestCase):
             model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
         )
         got = sess.run(None, feeds1)[0]
-        print(expected - got)
         self.assertEqualArray(expected, got)
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
