@@ -18,7 +18,7 @@ This configuration happens in a :epkg:`Llama` model.
 
 Where the shapes are:
 
-* zeros: 32000x4906
+* zeros: 32000x4096
 * indices: 2x1024x1
 * updates: 2x1024x4096
 """
@@ -337,14 +337,18 @@ if sess1 is not None:
 
     print(f"sizes={sizes}")
 
-    data_nd1 = benchmark(sess1, sizes, script_args.config, "Atomic", itype=itype)
+    data_nd1 = benchmark(
+        sess1, sizes, script_args.config, "Atomic/Not Fused", itype=itype
+    )
 
 #######################################
 # Fused.
 
 if sess2 is not None:
 
-    data_nd2 = benchmark(sess2, sizes, script_args.config, "No Atomic", itype=itype)
+    data_nd2 = benchmark(
+        sess2, sizes, script_args.config, "No Atomic/Fused", itype=itype
+    )
 
 
 ##########################################
@@ -364,10 +368,11 @@ if sess2 is not None:
 if sess2 is not None:
 
     pivot = df.pivot(index="size", columns="label", values="time")
-    pivot["ratio"] = pivot["Atomic"] / pivot["No Atomic"]
+    pivot["ratio"] = pivot["Atomic/Not Fused"] / pivot["No Atomic/Fused"]
+    print("Speed up compare to the onnx standaed.")
     print(pivot)
 
-    ax = pivot[["Atomic", "No Atomic"]].plot(
+    ax = pivot[["Atomic/Not Fused", "No Atomic/Fused"]].plot(
         logx=True,
         logy=True,
         title=f"Atomic/No-Atomic implementation for ScatterND on CUDA\nitype={itype}",

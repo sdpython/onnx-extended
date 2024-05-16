@@ -120,7 +120,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT)
         self._scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16)
 
-    def _masked_scatternd_of_shape_cuda(self, reduction, line, itype):
+    def _masked_scatternd_of_shape_cuda(self, reduction, line, itype, big):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
@@ -189,21 +189,30 @@ class TestOrtOpOptimCuda(ExtTestCase):
             ir_version=9,
         )
 
-        data = np.zeros((32, 16), dtype=dtype)
-        indices = np.array(
-            [
-                [0, 1, 2],
-                [2, 3, 4],
-                [-1, 30, 31],
-                [-1, 7, 8],
-                [10, 11, -1],
-                [20, -1, 21],
-            ],
-            dtype=np.int64,
-        )
-        indices = indices[..., np.newaxis]
-        shape = (6, 3, data.shape[-1])
-        updates = (np.arange(np.prod(shape)).reshape(shape) + 1).astype(dtype)
+        if big:
+            data = np.zeros((2048, 4096), dtype=dtype)
+            indices = np.ones((2, 1024), dtype=np.int64)
+            indices = indices[..., np.newaxis]
+            shape = tuple(indices.shape[:2]) + (data.shape[-1],)
+            updates = (
+                np.arange(np.prod(shape)).reshape(shape) / np.prod(shape)
+            ).astype(dtype)
+        else:
+            data = np.zeros((32, 16), dtype=dtype)
+            indices = np.array(
+                [
+                    [0, 1, 2],
+                    [2, 3, 4],
+                    [-1, 30, 31],
+                    [-1, 7, 8],
+                    [10, 11, -1],
+                    [20, -1, 21],
+                ],
+                dtype=np.int64,
+            )
+            indices = indices[..., np.newaxis]
+            shape = (6, 3, data.shape[-1])
+            updates = (np.arange(np.prod(shape)).reshape(shape) + 1).astype(dtype)
 
         feeds1 = dict(data=data, indices=indices, updates=updates)
         feeds2 = dict(
@@ -223,11 +232,18 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self.assertEqual(expected.tolist(), got.tolist())
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
-    def test_masked_scatternd_of_shape_standalone_cuda(self):
-        self._masked_scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT)
-        self._masked_scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT16)
-        self._masked_scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT)
-        self._masked_scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16)
+    def test_masked_scatternd_of_shape_standalone_cuda_small(self):
+        self._masked_scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT, False)
+        self._masked_scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT16, False)
+        self._masked_scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT, False)
+        self._masked_scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16, False)
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_masked_scatternd_of_shape_standalone_cuda_big(self):
+        self._masked_scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT, True)
+        self._masked_scatternd_of_shape_cuda("add", 0, TensorProto.FLOAT16, True)
+        self._masked_scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT, True)
+        self._masked_scatternd_of_shape_cuda("add", 1, TensorProto.FLOAT16, True)
 
     def _addaddmulmul_cuda(self, itype, op_type, broad=False):
         import onnxruntime
@@ -1158,7 +1174,6 @@ class TestOrtOpOptimCuda(ExtTestCase):
             model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
         )
         got = sess.run(None, feeds1)[0]
-        print(expected - got)
         self.assertEqualArray(expected, got)
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")

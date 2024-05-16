@@ -203,8 +203,8 @@ struct TensorPitches : std::vector<int64_t> {
 
     if (padded_rank >= 1) {
       for (size_t i = 0; i < padded_rank; ++i) {
-        if (i == 0 &&
-            tensor_rank > 0) // For scalar tensor, the values in the pitches are all 1.
+        if (i == 0 && tensor_rank > 0)
+          // For scalar tensor, the values in the pitches are all 1.
           p[padded_rank - 1] = p[padded_rank] * dims[0];
         else
           p[padded_rank - 1 - i] = p[padded_rank - 1];
@@ -216,7 +216,7 @@ struct TensorPitches : std::vector<int64_t> {
 
 template <typename T> __device__ __forceinline__ void _add_inplace(T &x, const T a) { x += a; }
 
-template<> __device__ __forceinline__ void _add_inplace(half &x, const half a) {
+template <> __device__ __forceinline__ void _add_inplace(half &x, const half a) {
 #if __CUDA_ARCH__ < 700
   x = __float2half(__half2float(x) + __half2float(a));
 #else
@@ -229,7 +229,7 @@ __global__ void
 addition_inplace_kernel(T *__restrict__ output_data, const int64_t *__restrict__ indices_data,
                         const T *__restrict__ updates_data, const CUDA_LONG indice_size,
                         const CUDA_LONG nrows, const CUDA_LONG stride) {
-  HIP_LONG id = blockDim.x * blockIdx.x + threadIdx.x;
+  auto id = blockDim.x * blockIdx.x + threadIdx.x;
   if (id >= stride)
     return;
 
@@ -237,41 +237,12 @@ addition_inplace_kernel(T *__restrict__ output_data, const int64_t *__restrict__
     output_data[i * stride + id] = 0;
   }
 
+  int64_t index;
   for (size_t i = 0; i < indice_size; ++i) {
-    _add_inplace(output_data[indices_data[i] * stride + id], updates_data[i * stride + id]);
+    index = (indices_data[i] + nrows) % nrows;
+    _add_inplace(output_data[index * stride + id], updates_data[i * stride + id]);
   }
 }
-
-#ifdef ENABLE_NCONT
-
-template <typename T, int NCONT>
-__global__ void
-addition_inplace_kernelN(T *__restrict__ output_data, const int64_t *__restrict__ indices_data,
-                         const T *__restrict__ updates_data, const CUDA_LONG indice_size,
-                         const CUDA_LONG nrows, const CUDA_LONG stride) {
-  HIP_LONG id = blockDim.x * blockIdx.x + threadIdx.x * NCONT;
-
-  T *out;
-  for (size_t i = 0; i < nrows; ++i) {
-    out = output_data + i * stride + id;
-#pragma unroll
-    for (int k = 0; k < NCONT; ++k) {
-      out[k] = 0;
-    }
-  }
-
-  const T *up;
-  for (size_t i = 0; i < indice_size; ++i) {
-    out = output_data + (indices_data[i] * stride + id);
-    up = updates_data + (i * stride + id);
-#pragma unroll
-    for (int k = 0; k < NCONT; ++k) {
-      out[k] += up[k];
-    }
-  }
-}
-
-#endif
 
 //////////////////
 // ScatterNDOfShapeOp...
@@ -523,30 +494,13 @@ void _ComputeOptimize(cudaStream_t stream, const std::vector<int64_t> &input_sha
   size_t stride = input_shape[input_shape.size() - 1];
   size_t nrows = input_size / stride;
 
-  std::vector<size_t> next_batch(indice_size);
-  std::vector<uint8_t> processed(input_shape[0], 0);
-  std::vector<uint8_t> processed_once(input_shape[0], 0);
-
   int threads_per_block = std::min(256, maxThreadPerBlock_ / 8);
 
-#ifdef ENABLE_NCONT
-#define NCONT 65536
-  if (stride % NCONT == 0 && stride > threads_per_block * NCONT) {
-    int blocks_per_grid = (stride / NCONT + threads_per_block - 1) / threads_per_block;
-    dim3 threads(threads_per_block);
-    dim3 blocks(blocks_per_grid);
-    addition_inplace_kernelN<T, NCONT><<<blocks, threads, 0, stream>>>(
-        output_data, indices_data, updates_data, indice_size, nrows, stride);
-  } else {
-#endif
-    int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
-    dim3 threads(threads_per_block);
-    dim3 blocks(blocks_per_grid);
-    addition_inplace_kernel<T><<<blocks, threads, 0, stream>>>(
-        output_data, indices_data, updates_data, indice_size, nrows, stride);
-#ifdef ENABLE_NCONT
-  }
-#endif
+  int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
+  dim3 threads(threads_per_block);
+  dim3 blocks(blocks_per_grid);
+  addition_inplace_kernel<T><<<blocks, threads, 0, stream>>>(
+      output_data, indices_data, updates_data, indice_size, nrows, stride);
 }
 
 template <typename T>

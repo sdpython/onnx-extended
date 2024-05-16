@@ -7,6 +7,8 @@
 #include <cuda_bf16.h>
 #include <cuda_fp16.h>
 
+#define ENABLE_NCONT
+
 namespace ortops {
 
 #ifndef CUDA_LONG
@@ -45,40 +47,45 @@ __global__ void masked_addition_inplace_kernel(T *__restrict__ output_data,
   }
 }
 
-#ifdef ENABLE_NCONT
-
-template <typename T, int NCONT>
+template <typename T, int NTHREAD>
 __global__ void masked_addition_inplace_kernelN(T *__restrict__ output_data,
                                                 const int64_t *__restrict__ indices_data,
                                                 const T *__restrict__ updates_data,
                                                 const CUDA_LONG indice_size,
                                                 const CUDA_LONG nrows, const CUDA_LONG stride,
                                                 const int64_t masked_value) {
-  HIP_LONG id = blockDim.x * blockIdx.x + threadIdx.x * NCONT;
+  __shared__ int64_t shared_indices[NTHREAD];
 
-  T *out;
+  CUDA_LONG tid = threadIdx.x;
+  CUDA_LONG id = blockDim.x * blockIdx.x + threadIdx.x;
+
   for (size_t i = 0; i < nrows; ++i) {
-    out = output_data + i * stride + id;
-#pragma unroll
-    for (int k = 0; k < NCONT; ++k) {
-      out[k] = 0;
-    }
+    output_data[i * stride + id] = 0;
   }
 
-  const T *up;
-  for (size_t i = 0; i < indice_size; ++i) {
+  int begin = 0;
+  int end = std::min(begin + NTHREAD, indice_size);
+  while (begin < end && (end == begin + NTHREAD)) {
+    shared_indices[tid] = indices_data[tid + begin];
+    __syncthreads();
+
+    for (size_t i = begin; i < end; ++i) {
+      if (shared_indices[tid] == masked_value)
+        continue;
+      _add_inplace(output_data[shared_indices[tid] * stride + id],
+                   updates_data[i * stride + id]);
+    }
+
+    begin = end;
+    end = std::min(begin + NTHREAD, indice_size);
+  }
+
+  for (size_t i = begin; i < indice_size; ++i) {
     if (indices_data[i] == masked_value)
       continue;
-    out = output_data + (indices_data[i] * stride + id);
-    up = updates_data + (i * stride + id);
-#pragma unroll
-    for (int k = 0; k < NCONT; ++k) {
-      out[k] += up[k];
-    }
+    _add_inplace(output_data[indices_data[i] * stride + id], updates_data[i * stride + id]);
   }
 }
-
-#endif
 
 //////////////////
 // MaskedScatterNDOfShapeOp...
@@ -290,26 +297,28 @@ void _ComputeOptimize(cudaStream_t stream, const std::vector<int64_t> &input_sha
   std::vector<uint8_t> processed(input_shape[0], 0);
   std::vector<uint8_t> processed_once(input_shape[0], 0);
 
+#if __CUDA_ARCH__ < 700
   int threads_per_block = std::min(256, maxThreadPerBlock_ / 8);
+  bool split = stride / threads_per_block <= 32;
+#else
+  int threads_per_block = std::min(256, maxThreadPerBlock_ / 8);
+  bool split = true; // stride / threads_per_block <= 32;
+#endif
 
-#ifdef ENABLE_NCONT
-#define NCONT 65536
-  if (stride % NCONT == 0 && stride > threads_per_block * NCONT) {
-    int blocks_per_grid = (stride / NCONT + threads_per_block - 1) / threads_per_block;
-    dim3 threads(threads_per_block);
-    dim3 blocks(blocks_per_grid);
-    masked_addition_inplace_kernelN<T, NCONT><<<blocks, threads, 0, stream>>>(
+  int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
+  dim3 threads(threads_per_block);
+  dim3 blocks(blocks_per_grid);
+
+  if (split && stride >= 256 && threads_per_block == 256) {
+    masked_addition_inplace_kernelN<T, 256><<<blocks, threads, 0, stream>>>(
+        output_data, indices_data, updates_data, indice_size, nrows, stride, masked_value_);
+  } else if (split && stride >= 128 && threads_per_block == 128) {
+    masked_addition_inplace_kernelN<T, 128><<<blocks, threads, 0, stream>>>(
         output_data, indices_data, updates_data, indice_size, nrows, stride, masked_value_);
   } else {
-#endif
-    int blocks_per_grid = (stride + threads_per_block - 1) / threads_per_block;
-    dim3 threads(threads_per_block);
-    dim3 blocks(blocks_per_grid);
     masked_addition_inplace_kernel<T><<<blocks, threads, 0, stream>>>(
         output_data, indices_data, updates_data, indice_size, nrows, stride, masked_value_);
-#ifdef ENABLE_NCONT
   }
-#endif
 }
 
 template <typename T>
