@@ -671,15 +671,14 @@ class TestOrtOpOptimCuda(ExtTestCase):
         )
         got = sess.run(None, feeds)[0]
 
-        rexp = expected.reshape((-1, expected.shape[-1]))
-        rgot = got.reshape((-1, got.shape[-1]))
-        print(expected.shape, rexp.shape, rgot.shape)
-        for i in range(rgot.shape[0]):
-            self.assertEqualArray(
-                rexp[i],
-                rgot[i],
-                msg=f"row {i} is wrong,\nexp={rexp[i]}\ngot={rgot[i]}",
-            )
+        # rexp = expected.reshape((-1, expected.shape[-1]))
+        # rgot = got.reshape((-1, got.shape[-1]))
+        # for i in range(rgot.shape[0]):
+        #     self.assertEqualArray(
+        #         rexp[i],
+        #        rgot[i],
+        #         msg=f"row {i} is wrong,\nexp={rexp[i]}\ngot={rgot[i]}",
+        #     )
         self.assertEqualArray(expected, got)
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")

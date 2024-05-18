@@ -20,6 +20,14 @@ struct GridDim {
   };
 };
 
+template <typename T> __device__ __inline__ T _neg(const T x) { return -x; }
+
+#if __CUDA_ARCH__ < 700
+template <> __device__ __inline__ half _neg(const half x) {
+  return __float2half(-__half2float(x));
+}
+#endif
+
 template <typename T, RotarySide side>
 __global__ void _RotaryKernelLeft(T *output_data, const T *input_data, CUDA_LONG half_N,
                                   CUDA_LONG half_stride) {
@@ -28,23 +36,13 @@ __global__ void _RotaryKernelLeft(T *output_data, const T *input_data, CUDA_LONG
     return;
   CUDA_LONG last = id % half_stride;
   id = (id - last) * 2 + last;
-#if __CUDA_ARCH__ < 700
   if (side == RotarySide::LEFT) {
     output_data[id + half_stride] = input_data[id];
-    output_data[id] = __float2half(-__half2float(input_data[id + half_stride]));
+    output_data[id] = _neg(input_data[id + half_stride]);
   } else {
-    output_data[id + half_stride] = __float2half(-__half2float(input_data[id]));
+    output_data[id + half_stride] = _neg(input_data[id]);
     output_data[id] = input_data[id + half_stride];
   }
-#else
-  if (side == RotarySide::LEFT) {
-    output_data[id + half_stride] = input_data[id];
-    output_data[id] = -input_data[id + half_stride];
-  } else {
-    output_data[id + half_stride] = -input_data[id];
-    output_data[id] = input_data[id + half_stride];
-  }
-#endif
 }
 
 template <typename T>
