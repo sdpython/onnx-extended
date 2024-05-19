@@ -91,6 +91,13 @@ The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 
+plot_op_gemm2_cuda
+++++++++++++++++++
+
+See :ref:`l-example-op-gemm2_cuda`.
+
+One big Gemm or two smaller gemm.
+
 plot_op_mul_cuda
 ++++++++++++++++
 

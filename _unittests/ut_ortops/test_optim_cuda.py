@@ -621,7 +621,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
         self._addmul_cuda(TensorProto.FLOAT, "Mul", "Sub", negative=True)
         self._addmul_cuda(TensorProto.FLOAT16, "Mul", "Sub", negative=True)
 
-    def _rotary_cuda(self, itype, side):
+    def _rotary_cuda(self, itype, side, input_shape=(3, 2, 3, 4)):
         import onnxruntime
         from onnx_extended.ortops.optim.cuda import get_ort_ext_libs
 
@@ -651,12 +651,12 @@ class TestOrtOpOptimCuda(ExtTestCase):
         )
 
         dtype = np.float32 if itype == TensorProto.FLOAT else np.float16
-        x = (np.arange(18 * 4) + 1).reshape((3, 2, 3, 4)).astype(dtype)
+        x = (np.arange(np.prod(input_shape)) + 1).reshape(input_shape).astype(dtype)
         splits = np.array([x.shape[-1] // 2, x.shape[-1] // 2], dtype=np.int64)
 
         expected = x.copy()
         half = x.shape[-1] // 2
-        if side == "right":
+        if side == "left":
             expected[:, :, :, :half] = x[:, :, :, half:]
             expected[:, :, :, half:] = -x[:, :, :, :half]
         else:
@@ -670,14 +670,31 @@ class TestOrtOpOptimCuda(ExtTestCase):
             model2.SerializeToString(), opts, providers=["CUDAExecutionProvider"]
         )
         got = sess.run(None, feeds)[0]
+
+        # rexp = expected.reshape((-1, expected.shape[-1]))
+        # rgot = got.reshape((-1, got.shape[-1]))
+        # for i in range(rgot.shape[0]):
+        #     self.assertEqualArray(
+        #         rexp[i],
+        #        rgot[i],
+        #         msg=f"row {i} is wrong,\nexp={rexp[i]}\ngot={rgot[i]}",
+        #     )
         self.assertEqualArray(expected, got)
 
     @unittest.skipIf(not has_cuda(), reason="cuda not available")
     def test_rotary_cuda(self):
         self._rotary_cuda(TensorProto.FLOAT, "left")
-        self._rotary_cuda(TensorProto.FLOAT16, "left")
         self._rotary_cuda(TensorProto.FLOAT, "right")
+        self._rotary_cuda(TensorProto.FLOAT16, "left")
         self._rotary_cuda(TensorProto.FLOAT16, "right")
+
+    @unittest.skipIf(not has_cuda(), reason="cuda not available")
+    def test_bigger_rotary_cuda(self):
+        sh = (2, 2, 1024, 8)
+        self._rotary_cuda(TensorProto.FLOAT, "left", input_shape=sh)
+        self._rotary_cuda(TensorProto.FLOAT, "right", input_shape=sh)
+        self._rotary_cuda(TensorProto.FLOAT16, "left", input_shape=sh)
+        self._rotary_cuda(TensorProto.FLOAT16, "right", input_shape=sh)
 
     def _mul_sigmoid_cuda(self, itype):
         import onnxruntime
