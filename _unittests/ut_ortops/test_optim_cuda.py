@@ -656,7 +656,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
 
         expected = x.copy()
         half = x.shape[-1] // 2
-        if side == "right":
+        if side == "left":
             expected[:, :, :, :half] = x[:, :, :, half:]
             expected[:, :, :, half:] = -x[:, :, :, :half]
         else:

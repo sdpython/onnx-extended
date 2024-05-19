@@ -36,7 +36,7 @@ __global__ void _RotaryKernelLeft(T *output_data, const T *input_data, CUDA_LONG
     return;
   CUDA_LONG last = id % half_stride;
   id = (id - last) * 2 + last;
-  if (side == RotarySide::LEFT) {
+  if (side == RotarySide::RIGHT) {
     output_data[id + half_stride] = input_data[id];
     output_data[id] = _neg(input_data[id + half_stride]);
   } else {
