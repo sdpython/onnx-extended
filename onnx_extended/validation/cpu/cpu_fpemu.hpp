@@ -13,9 +13,15 @@
 
 #pragma once
 
+#if defined(__SSSE3__)
+
 #include <immintrin.h>
 
+#endif
+
 namespace cpu_fpemu {
+
+#if defined(__SSSE3__)
 
 inline float __double2float_rn(double inval) {
   float out[4] = {0};
@@ -44,6 +50,8 @@ inline unsigned short __float2half_rn(float inval) {
 }
 
 inline float __half2float(unsigned short h_val) { return _cvtsh_ss(h_val); }
+
+#endif
 
 #endif
 
