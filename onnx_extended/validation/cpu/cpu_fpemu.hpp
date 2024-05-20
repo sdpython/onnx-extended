@@ -17,7 +17,11 @@
 
 #include <immintrin.h>
 
+#endif
+
 namespace cpu_fpemu {
+
+#if defined(__SSSE3__)
 
 inline float __double2float_rn(double inval) {
   float out[4] = {0};
