@@ -13,7 +13,9 @@
 
 #pragma once
 
+#if defined(__SSSE3__)
 #include <immintrin.h>
+#endif
 
 namespace cpu_fpemu {
 

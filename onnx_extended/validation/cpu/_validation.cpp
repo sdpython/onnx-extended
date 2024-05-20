@@ -87,6 +87,13 @@ The code is `benchmark_cache_tree
 :return: hash
 )pbdoc");
 
+#if defined(__SSSE3__)
+
+  m.def(
+      "has_sse3", []() -> bool { return true; },
+      R"pbdoc(Tells if SSE3 instructions are available. 
+They are needed to convert floart to half and half to float.)pbdoc");
+
   m.def("double2float_rn", &cpu_fpemu::__double2float_rn, py::arg("d"),
         R"pbdoc(Converts a double into float.)pbdoc");
 
@@ -95,6 +102,15 @@ The code is `benchmark_cache_tree
 
   m.def("half2float", &cpu_fpemu::__half2float, py::arg("d"),
         R"pbdoc(Converts a half represented as an unsigned short into float.)pbdoc");
+
+#else
+
+  m.def(
+      "has_sse3", []() -> bool { return false; },
+      R"pbdoc(Tells if SSE3 instructions are available. 
+They are needed to convert floart to half and half to float.)pbdoc");
+
+#endif
 
   m.def("sparse_struct_to_dense", &sparse_struct_to_dense, py::arg("v"),
         R"pbdoc(Converts a sparse structure stored in a float tensor
