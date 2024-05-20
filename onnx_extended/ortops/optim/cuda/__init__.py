@@ -24,36 +24,12 @@ def documentation() -> List[str]:
             textwrap.dedent,
             [
                 """
-    onnx_extended.ortops.optim.cuda.AddMul
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    Two consecutive element-wise Add, Mul assuming
-    all tensors have the same shape (no broadcast).
-
-    **Provider**
-    
-    CUDAExecutionProvider
-    
-    **Inputs**
-    
-    * A (T): tensor of type T
-    * B (T): tensor of type T
-    * C (T): tensor of type T
-
-    **Outputs**
-
-    * (A+B)*C (T): element-wise
-
-    **Constraints**
-
-    * T: float, float16
-    """,
-                """
     onnx_extended.ortops.optim.cuda.AddAdd
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise addition assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -78,7 +54,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Three consecutive element-wise addition assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -100,11 +77,42 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
+    onnx_extended.ortops.optim.cuda.AddMul
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise Add, Mul assuming
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Attributes**
+    
+    * transposeMiddle: bool, if True, applies transposition [0, 2, 1, 3] on the result
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * (A+B)*C (T): element-wise
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
     onnx_extended.ortops.optim.cuda.AddSharedInput
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Parallel Additions with one common input.
-    Support for Broadcast is limited (only the first dimenions).
+    Support for Broadcast is limited
+    (broadcast limited to the first dimensions).
     
     Computes A + B, A + C.
 
@@ -128,16 +136,52 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
-    onnx_extended.ortops.optim.cuda.MulAdd
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    onnx_extended.ortops.optim.cuda.MaskedScatterNDOfShape
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    Two consecutive element-wise Mul, Add assuming
-    all tensors have the same shape (no broadcast).
+    ConstantOfShape + Where + ScatterND,
+    updates a null matrix with updates if only indices are not
+    equal to a value (usually -1)
 
     **Provider**
     
     CUDAExecutionProvider
     
+    **Attributes**
+    
+    * maskedValue (int): updates are ignore the indices are equal to this value.
+    
+    **Inputs**
+    
+    * shape (I): tensor of type I
+    * indices (I): tensor of type I
+    * updates (T): tensor of type T
+
+    **Outputs**
+
+    * Z (T): updated tensor
+
+    **Constraints**
+
+    * I: int64
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.MulAdd
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise Mul, Add assuming
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+        
+    **Attributes**
+    
+    * transposeMiddle: bool, if True, applies transposition [0, 2, 1, 3] on the result
+
     **Inputs**
     
     * A (T): tensor of type T
@@ -157,7 +201,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise multiplication assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -182,7 +227,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Two consecutive element-wise multiplication assuming
-    all tensors have the same shape (no broadcast).
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
 
     **Provider**
     
@@ -230,7 +276,8 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Parallel Multiplications with one common input.
-    Support for Broadcast is limited (only the first dimenions).
+    Support for Broadcast is limited
+    (broadcast limited to the first dimensions).
     
     Computes A * B, A * C.
 
@@ -248,6 +295,36 @@ def documentation() -> List[str]:
 
     * A*B (T): element-wise
     * A*C (T): element-wise
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.MulSub
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise Mul, Sub assuming
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Attribute**
+    
+    * negative: to switch the order of the subtraction
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * (A*B)-C (T): element-wise
 
     **Constraints**
 
@@ -349,6 +426,36 @@ def documentation() -> List[str]:
     **Constraints**
 
     * I: int64
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.SubMul
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Two consecutive element-wise Sub, Mul assuming
+    all tensors have the same shape
+    (broadcast limited to the first dimensions).
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Attribute**
+    
+    * negative: to switch the order of the subtraction
+    
+    **Inputs**
+    
+    * A (T): tensor of type T
+    * B (T): tensor of type T
+    * C (T): tensor of type T
+
+    **Outputs**
+
+    * (A-B)*C (T): element-wise
+
+    **Constraints**
+
     * T: float, float16
     """,
                 """

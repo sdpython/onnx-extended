@@ -402,7 +402,10 @@ Status TreeEnsembleCommon<FeatureType, ThresholdType, OutputType>::Init(
   nodes_.clear();
   nodes_.reserve(limit);
   roots_.clear();
-  std::unordered_map<TreeNodeElementId, size_t, TreeNodeElementId::hash_fn> node_tree_ids_map;
+  size_t maxNodeIdIndex =
+      static_cast<size_t>(*max_element(nodes_nodeids.begin(), nodes_nodeids.end()));
+  std::unordered_map<TreeNodeElementId, size_t, TreeNodeElementId::hash_fn> node_tree_ids_map(
+      10, TreeNodeElementId::hash_fn(maxNodeIdIndex));
   node_tree_ids_map.reserve(limit);
 
   std::vector<size_t> truenode_ids, falsenode_ids;

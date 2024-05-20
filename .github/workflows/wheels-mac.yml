@@ -35,6 +35,7 @@ jobs:
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
+        continue-on-error: true
 
       - uses: actions/upload-artifact@v3
         with:

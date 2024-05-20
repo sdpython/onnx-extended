@@ -54,13 +54,13 @@ __device__ __forceinline__ void _mul3_op(half *ab, half *ac, const half a, const
 #endif
 }
 
-template <typename T> struct Mul3Op {
+template <typename T> struct Mul3SharedOp {
   __device__ __inline__ void operator()(T *ab, T *ac, const T a, const T b, const T c) const {
     _mul3_op(ab, ac, a, b, c);
   }
 };
 
-template <typename T> struct Add3Op {
+template <typename T> struct Add3SharedOp {
   __device__ __inline__ void operator()(T *ab, T *ac, const T a, const T b, const T c) const {
     _add3_op(ab, ac, a, b, c);
   }
@@ -209,16 +209,21 @@ void AddOrMulSharedInputKernel<T, addition>::Compute(OrtKernelContext *context) 
   std::vector<int64_t> dimsB = B.GetTensorTypeAndShapeInfo().GetShape();
   std::vector<int64_t> dimsC = C.GetTensorTypeAndShapeInfo().GetShape();
 
-  EXT_ENFORCE(dimsA.size() == dimsB.size() && dimsB.size() == dimsC.size(),
-              "Ranks must be equal.");
-
   int64_t sizeA = onnx_c_ops::flattened_dimension(dimsA);
   int64_t sizeB = onnx_c_ops::flattened_dimension(dimsB);
   int64_t sizeC = onnx_c_ops::flattened_dimension(dimsC);
 
   // Computes AB, AC.
-  EXT_ENFORCE(sizeB == sizeC, "B and C must have the same number of elements.");
-  int64_t max_dim = std::max(sizeA, sizeB);
+
+  auto max_rank = std::max(dimsA.size(), std::max(dimsB.size(), dimsC.size()));
+  while (dimsA.size() < max_rank)
+    dimsA.insert(dimsA.begin(), 1);
+  while (dimsB.size() < max_rank)
+    dimsB.insert(dimsB.begin(), 1);
+  while (dimsC.size() < max_rank)
+    dimsC.insert(dimsC.begin(), 1);
+
+  int64_t max_dim = std::max(std::max(sizeA, sizeB), sizeC);
   EXT_ENFORCE(_check_shape(dimsA), "Shape of A", dimsA, " is not supported for this operator.");
   EXT_ENFORCE(_check_shape(dimsB), "Shape of B", dimsB, " is not supported for this operator.");
   EXT_ENFORCE(_check_shape(dimsC), "Shape of C", dimsC, " is not supported for this operator.");
@@ -238,12 +243,12 @@ void AddOrMulSharedInputKernel<T, addition>::Compute(OrtKernelContext *context) 
     BinaryElementWiseNoBroadcastImpl(cuda_stream, output_ab.GetTensorMutableData<T>(),
                                      output_ac.GetTensorMutableData<T>(), A.GetTensorData<T>(),
                                      B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB,
-                                     sizeC, max_dim, Add3Op<T>());
+                                     sizeC, max_dim, Add3SharedOp<T>());
   } else {
     BinaryElementWiseNoBroadcastImpl(cuda_stream, output_ab.GetTensorMutableData<T>(),
                                      output_ac.GetTensorMutableData<T>(), A.GetTensorData<T>(),
                                      B.GetTensorData<T>(), C.GetTensorData<T>(), sizeA, sizeB,
-                                     sizeC, max_dim, Mul3Op<T>());
+                                     sizeC, max_dim, Mul3SharedOp<T>());
   }
 }
 

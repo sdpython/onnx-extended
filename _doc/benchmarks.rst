@@ -91,6 +91,13 @@ The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 
+plot_op_gemm2_cuda
+++++++++++++++++++
+
+See :ref:`l-example-op-gemm2_cuda`.
+
+One big Gemm or two smaller gemm.
+
 plot_op_mul_cuda
 ++++++++++++++++
 
@@ -104,8 +111,16 @@ plot_op_scatternd_cuda
 
 See :ref:`l-example-op-scatternd_cuda`.
 
-The benchmark compares two operators Mul profiles
-with their fusion into a single operator.
+The benchmark compares two operators ScatterND, using
+atomic, no atomic.
+
+plot_op_scatternd_mask_cuda
++++++++++++++++++++++++++++
+
+See :ref:`l-example-op-scatternd_mask_cuda`.
+
+The benchmark compares three operators ScatterND to update
+a matrix.
 
 plot_op_transpose2dcast_cuda
 ++++++++++++++++++++++++++++

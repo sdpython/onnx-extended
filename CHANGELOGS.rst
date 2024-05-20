@@ -4,12 +4,14 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`181`: add MaskedScatterNDOfShape custom operator
+* :pr:`175`: adds custom operator MulSub and SubMul on CUDA
 * :pr:`173`: adds custom operator AddSharedInput, MulSharedInput on CUDA
 * :pr:`170`: adds custom operator TriMatrix on CUDA
 * :pr:`169`: adds custom operator ReplaceZero on CUDA
 * :pr:`168`: adds custom operator MulSigmoid on CUDA
 * :pr:`167`: adds custom operator Rotary on CUDA
-* :pr:`166`: adds custom operators AddMul, MulAdd on CUDA
+* :pr:`166`, :pr:`178`: adds custom operators AddMul, MulAdd on CUDA
 * :pr:`165`: adds custom operators AddAddAdd, MulMulMul on CUDA
 * :pr:`163`: use onnxruntime==1.17.3 as default
 * :pr:`162`: add ScatterNDOfShape implementation on CUDA without atomics

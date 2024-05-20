@@ -26,10 +26,18 @@ struct TreeNodeElementId {
     return ((tree_id < xyz.tree_id) || (tree_id == xyz.tree_id && node_id < xyz.node_id));
   }
   struct hash_fn {
+    hash_fn() = default;
+    hash_fn(size_t maxNodeIdIndex) {
+      _shiftBits = static_cast<uint64_t>(std::ceil(log(maxNodeIdIndex) / log(2)));
+      _shiftBits = _shiftBits > 32 ? 32 : _shiftBits;
+    }
+
     std::size_t operator()(const TreeNodeElementId &key) const {
-      return static_cast<std::size_t>(static_cast<uint64_t>(key.tree_id) << 32 |
+      return static_cast<std::size_t>(static_cast<uint64_t>(key.tree_id) << _shiftBits |
                                       static_cast<uint64_t>(key.node_id));
     }
+
+    uint64_t _shiftBits = 32;
   };
 };
 
