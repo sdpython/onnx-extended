@@ -11,6 +11,7 @@
 #include "addaddaddmulmulmul.h"
 #include "addaddmulmul.h"
 #include "addmul.h"
+#include "mul_mul_sigmoid.h"
 #include "mul_sigmoid.h"
 #include "negxplus1.h"
 #include "replace_zero.h"
@@ -63,6 +64,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
   static ortops::MulSigmoidOp<float> c_MulSigmoidOp32;
   static ortops::MulSigmoidOp<half> c_MulSigmoidOp16;
+
+  static ortops::MulMulSigmoidOp<float> c_MulMulSigmoidOp32;
+  static ortops::MulMulSigmoidOp<half> c_MulMulSigmoidOp16;
 
   static ortops::NegXplus1Op<float> c_NegXplus1Op32;
   static ortops::NegXplus1Op<half> c_NegXplus1Op16;
@@ -118,6 +122,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_MulSigmoidOp32);
     domain.Add(&c_MulSigmoidOp16);
+
+    domain.Add(&c_MulMulSigmoidOp32);
+    domain.Add(&c_MulMulSigmoidOp16);
 
     domain.Add(&c_NegXplus1Op32);
     domain.Add(&c_NegXplus1Op16);

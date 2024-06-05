@@ -16,6 +16,7 @@ if(CUDA_AVAILABLE)
     ../onnx_extended/ortops/optim/cuda/addmul.cu
     ../onnx_extended/ortops/optim/cuda/add_or_mul_shared_input.cu
     ../onnx_extended/ortops/optim/cuda/mul_sigmoid.cu
+    ../onnx_extended/ortops/optim/cuda/mul_mul_sigmoid.cu
     ../onnx_extended/ortops/optim/cuda/negxplus1.cu
     ../onnx_extended/ortops/optim/cuda/replace_zero.cu
     ../onnx_extended/ortops/optim/cuda/rotary.cu
