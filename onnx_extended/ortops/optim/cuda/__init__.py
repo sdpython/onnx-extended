@@ -250,10 +250,33 @@ def documentation() -> List[str]:
     * T: float, float16
     """,
                 """
-    onnx_extended.ortops.optim.cuda.MulSoftmax
+    onnx_extended.ortops.optim.cuda.MulMulSigmoid
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Equivalent to Mul(X, Mul(Y, Sigmoid(Y))
+
+    **Provider**
+    
+    CUDAExecutionProvider
+    
+    **Inputs**
+    
+    * X (T): tensor
+    * Y (T): tensor
+    
+    **Outputs**
+
+    * Z (T): result
+
+    **Constraints**
+
+    * T: float, float16
+    """,
+                """
+    onnx_extended.ortops.optim.cuda.MulSigmoid
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    MulSoftmax, equivalent to Mul(X, Softmax(X))
+    Equivalent to Mul(X, Sigmoid(X))
 
     **Provider**
     
@@ -334,7 +357,7 @@ def documentation() -> List[str]:
     onnx_extended.ortops.optim.cuda.NegXplus1
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    1 - X
+    Equivalent to 1 - X
 
     **Provider**
     
@@ -356,7 +379,7 @@ def documentation() -> List[str]:
     onnx_extended.ortops.optim.cuda.ReplaceZero
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    MulSoftmax, equivalent to Where(X == 0, cst, X)
+    Equivalent to Where(X == 0, cst, X)
 
     **Provider**
     
@@ -378,7 +401,7 @@ def documentation() -> List[str]:
     onnx_extended.ortops.optim.cuda.Rotary
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    Rotary, equivalent to (side=="RIGHT")
+    Equivalent to (side=="RIGHT")
     
     * Split(X, axis=-1) -> X1, X2
     * Concat(-X2, X1)
@@ -407,7 +430,7 @@ def documentation() -> List[str]:
     onnx_extended.ortops.optim.cuda.ScatterNDOfShape
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    ConstantOfShape + ScatterND
+    Equivalent to ConstantOfShape + ScatterND
 
     **Provider**
     
