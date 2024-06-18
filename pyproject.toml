@@ -73,12 +73,12 @@ dev = [
 requires = [
     "abi3audit; sys_platform == 'linux'",
     "auditwheel-symbols; sys_platform == 'linux'",
-    "Cython",
+    "Cython>=3.0.10",
     "cmake",
-    "numpy",
+    "numpy>=2.0",
     "onnx",
-    "pybind11",
-    "scipy",
+    "pybind11>=2.12",
+    "scipy>=1.13.1",
     "setuptools",
     "wheel",
 ]

@@ -70,6 +70,71 @@ jobs:
       artifactName: 'wheel-linux-pip-$(python.version)'
       targetPath: 'dist'
 
+- job: 'TestLinux311'
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      Python311-Linux:
+        python.version: '3.11'
+    maxParallel: 3
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
+  - script: sudo apt-get update
+    displayName: 'AptGet Update'
+  # - script: sudo apt-get install -y pandoc
+  #   displayName: 'Install Pandoc'
+  # - script: sudo apt-get install -y inkscape
+  #   displayName: 'Install Inkscape'
+  - script: sudo apt-get install -y graphviz
+    displayName: 'Install Graphviz'
+  - script: python -m pip install --upgrade pip setuptools wheel
+    displayName: 'Install tools'
+  - script: pip install -r requirements.txt
+    displayName: 'Install Requirements'
+  - script: pip install -r requirements-dev.txt
+    displayName: 'Install Requirements dev'
+  - script: |
+      ruff .
+    displayName: 'Ruff'
+  - script: |
+      black --diff .
+    displayName: 'Black'
+  - script: |
+      cmake-lint _cmake/Find* --disabled-codes C0103 C0113 --line-width=88
+      cmake-lint _cmake/CMake* --disabled-codes C0103 C0113 --line-width=88
+    displayName: 'cmake-lint'
+  - script: |
+      cython-lint .
+    displayName: 'cython-lint'
+  - script: |
+      # python -m pip install -e .
+      python setup.py build_ext --inplace
+    displayName: 'build inplace'
+  - bash: |
+      contents=$(cat .build_path.txt)
+      export BUILD_PATH="$contents"
+      cd $BUILD_PATH
+      ctest --rerun-failed --output-on-failure
+    displayName: 'Run C++ Unit Tests'
+  - script: |
+      python -m pip install "numpy<2.0"
+    displayName: 'install numpy<2'
+  - script: |
+      python -m pytest _unittests --durations=10
+    displayName: 'Runs Unit Tests'
+  - script: |
+      python -u setup.py bdist_wheel
+    displayName: 'Build Package'
+  - script: |
+      cd dist
+      python -m pytest ../_unittests
+    displayName: 'check unit test with the whl'
+
 - job: 'TestLinux'
   pool:
     vmImage: 'ubuntu-latest'
@@ -121,7 +186,6 @@ jobs:
       cd $BUILD_PATH
       ctest --rerun-failed --output-on-failure
     displayName: 'Run C++ Unit Tests'
-
   - script: |
       python -m pytest _unittests --durations=10
     displayName: 'Runs Unit Tests'
