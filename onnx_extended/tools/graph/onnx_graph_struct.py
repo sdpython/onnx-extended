@@ -20,6 +20,7 @@ from onnx.helper import (
 )
 from onnx.shape_inference import infer_shapes
 from onnx.version_converter import convert_version
+from onnx.onnx_cpp2py_export.checker import ValidationError
 from ...reference import CReferenceEvaluator, from_array_extended
 
 
@@ -159,7 +160,16 @@ class Node:
     def __str__(self) -> str:
         if self.is_node:
             if self.op_type == "Constant":
-                t = self.get_tensor()
+                t = None
+                try:
+                    t = self.get_tensor()
+                except ValidationError:
+                    # probably external date
+                    for att in self.proto.attribute:
+                        if att.name == "value":
+                            t = att.t
+                assert t is not None, f"Unable to extract shape from {self.proto}"
+
                 shape = tuple(t.dims)
                 stype = f"{t.data_type}:{shape}"
                 return (
@@ -167,9 +177,20 @@ class Node:
                     f"<parent>, <{self.op_type}>) "
                     f"[{stype}] -> [{','.join(self.outputs)}]"
                 )
+            atts = []
+            for att in self.proto.attribute:
+                if att.name == "to":
+                    atts.append(f"{att.name}={att.i}")
+                elif att.name == "perm":
+                    atts.append(f"{att.name}={att.ints}")
+            if atts:
+                jatts = ", ".join(atts)
+                jatts = f"[{jatts}]"
+            else:
+                jatts = ""
             return (
-                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
-                f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>)"
+                f"{jatts} [{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
             )
         if isinstance(self.proto, TensorProto):
             shape = tuple(self.proto.dims)
