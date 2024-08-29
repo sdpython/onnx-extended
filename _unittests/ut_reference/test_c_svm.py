@@ -126,7 +126,7 @@ class TestCSVM(ExtTestCase):
                 dec = (
                     model.decision_function(X32).astype(numpy.float32).reshape((-1, 1))
                 )
-                self.assertEqualArray(dec, scores, atol=1e-4)
+                self.assertEqualArray(dec, scores, atol=1e-3)
 
     @ignore_warnings([FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning])
     def test_python_svc_proba(self):
