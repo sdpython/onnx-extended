@@ -49,7 +49,7 @@ def _type_shape(
         try:
             ttype = input_def.type.tensor_type
         except AttributeError:
-            raise ValueError(f"Unsupported input type {input_def!r}.")
+            raise ValueError(f"Unsupported input type {input_def!r}.")  # noqa: B904
         dt = ttype.elem_type
         new_shape = []
         for d in ttype.shape.dim:
@@ -370,7 +370,7 @@ def cmd_quantize(
     if verbose:
         logging.basicConfig(
             level=(
-                logging.WARN
+                logging.WARNING
                 if verbose > 2
                 else (logging.DEBUG if verbose > 1 else logging.INFO)
             )
@@ -457,7 +457,7 @@ def cmd_select(
     if verbose:
         logging.basicConfig(
             level=(
-                logging.WARN
+                logging.WARNING
                 if verbose > 2
                 else (logging.DEBUG if verbose > 1 else logging.INFO)
             )
@@ -595,7 +595,7 @@ def cmd_stat(input_model: str, verbose: int = 0) -> Iterable[Dict[str, Any]]:
     if verbose > 0:
         print(f"[cmd_stat] load model {input_model!r}")
     onx = load_model(input_model, external=True)
-    for i, (name, parent, stat) in enumerate(enumerate_stats_nodes(onx)):
+    for i, (name, _parent, stat) in enumerate(enumerate_stats_nodes(onx)):
         if verbose:
             print(
                 f"[cmd_stat] object {i}: name={name!r} "

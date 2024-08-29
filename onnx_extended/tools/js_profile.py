@@ -26,7 +26,7 @@ def _process_shape(shape_df):
     for val in shape_df:
         if len(val) != 1:
             raise ValueError(f"Unable to process shape {val!r} from {values!r}.")
-        k, v = list(val.items())[0]
+        k, v = next(val.items())
         if v:
             vs = "x".join(map(str, v))
             values.append(f"{_mapping_types.get(k,k)}[{vs}]")
@@ -103,7 +103,7 @@ def post_process_df_profile(
     for c in agg_cols:
         df[c] = df[c].fillna("")
     df["dur"] = df["dur"].fillna(0)
-    agg = df[agg_cols + ["dur"]].groupby(agg_cols).sum()
+    agg = df[[*agg_cols, "dur"]].groupby(agg_cols).sum()
     return agg
 
 

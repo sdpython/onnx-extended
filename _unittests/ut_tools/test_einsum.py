@@ -231,7 +231,9 @@ class TestEinsum(ExtTestCase):
                 )
                 if strat == "simple":
                     self.assertRaise(
-                        lambda: apply_einsum_sequence(seq, m1, m2, matmul_impl="py2"),
+                        lambda seq=seq: apply_einsum_sequence(
+                            seq, m1, m2, matmul_impl="py2"
+                        ),
                         ValueError,
                     )
                 self.assertEqualArray(res1, res2)
@@ -252,7 +254,9 @@ class TestEinsum(ExtTestCase):
                 )
                 if strat == "simple":
                     self.assertRaise(
-                        lambda: apply_einsum_sequence(seq, m1, m2, matmul_impl="py2"),
+                        lambda seq=seq: apply_einsum_sequence(
+                            seq, m1, m2, matmul_impl="py2"
+                        ),
                         ValueError,
                     )
                 self.assertEqualArray(res1, res2)
@@ -261,14 +265,14 @@ class TestEinsum(ExtTestCase):
         m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
         m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
         verbose = False
-        for strat, opname in [("numpy", "batch_dot")]:
+        for strat, _opname in [("numpy", "batch_dot")]:
             with self.subTest(strategy=strat):
                 seq = decompose_einsum_equation(
                     "bac,ch->ah", (2, 3, 4), (4, 5), strategy=strat, verbose=verbose
                 )
                 res1 = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
                 self.assertRaise(
-                    lambda: seq.to_onnx("Y", "X1", "X2", dtype=numpy.float32),
+                    lambda seq=seq: seq.to_onnx("Y", "X1", "X2", dtype=numpy.float32),
                     NotImplementedError,
                 )
                 seq.simplify_mm_nodes()
@@ -298,7 +302,7 @@ class TestEinsum(ExtTestCase):
         m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
         m3 = numpy.arange(0, 77 * 5).astype(numpy.float32).reshape((5, 7, 11))
         verbose = False
-        for strat, opname in [("numpy", "batch_dot")]:
+        for strat, _opname in [("numpy", "batch_dot")]:
             with self.subTest(strategy=strat):
                 seq = decompose_einsum_equation(
                     "bac,cd,def->ebc",
@@ -418,7 +422,7 @@ class TestEinsum(ExtTestCase):
                     for j in [0, 1]:
                         sp1 = "".join(p1)
                         sp2 = "".join(p2)
-                        if len(set([sp1[0], sp1[i], sp2[j]])) != 3:
+                        if len(set(sp1[0], sp1[i], sp2[j])) != 3:
                             continue
                         equation = f"{sp1},{sp2}->{sp1[0]}{sp1[i]}{sp2[j]}"
                         try:

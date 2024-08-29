@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 import numpy
 from onnx import helper, numpy_helper, ModelProto, NodeProto, TensorProto
 from .einsum_config import (
@@ -90,11 +90,12 @@ class EinsumSubOp:
                 "" % len(inputs)
             )
         for i, inp in enumerate(inputs):
-            assert isinstance(
-                inp, (int, EinsumSubOp)
-            ), "Input %d has type %r, int or EinsumSubOp is expected." "" % (
-                i,
-                type(inp),
+            assert isinstance(inp, (int, EinsumSubOp)), (
+                "Input %d has type %r, int or EinsumSubOp is expected."
+                % (  # noqa: ISC001
+                    i,
+                    type(inp),
+                )
             )
         self._check_()
 
@@ -150,7 +151,7 @@ class EinsumSubOp:
             return
         assert isinstance(
             self.kwargs[name], typ
-        ), "Unexpected type %r for parameter %r and parameter %r." "" % (
+        ), "Unexpected type %r for parameter %r and parameter %r." % (  # noqa: ISC001
             type(self.kwargs[name]),
             name,
             self.name,
@@ -301,13 +302,14 @@ class EinsumSubOp:
         to_remove.sort()
         for r in to_remove:
             for i in range(len(row)):
-                assert (
-                    row[i] != r
-                ), "Unexpected result r=%r row=%r to_remove=%r " "diag=%r." % (
-                    r,
-                    row,
-                    to_remove,
-                    self.kwargs["diag"],
+                assert row[i] != r, (
+                    "Unexpected result r=%r row=%r to_remove=%r diag=%r."
+                    % (  # noqa: ISC001
+                        r,
+                        row,
+                        to_remove,
+                        self.kwargs["diag"],
+                    )
                 )
                 if row[i] > r:
                     row[i] -= 1
@@ -446,18 +448,20 @@ class EinsumSubOp:
     def _check_inputs_(self, n_expected: int, check_dim: bool = False):
         assert (
             len(self.inputs) == n_expected
-        ), "Number of inputs must be %d not %d for operator %r." "" % (
+        ), "Number of inputs must be %d not %d for operator %r." % (  # noqa: ISC001
             n_expected,
             len(self.inputs),
             self.name,
         )
 
     def _check_shape_(self, m: numpy.ndarray):
-        assert (
-            len(m.shape) == self.full_dim
-        ), "Number of dimensions %r is different from expected value " "%d." % (
-            m.shape,
-            self.full_dim,
+        assert len(m.shape) == self.full_dim, (
+            "Number of dimensions %r is different from expected value "
+            "%d."
+            % (  # noqa: ISC001
+                m.shape,
+                self.full_dim,
+            )
         )
 
     def _get_data(self, data: Dict[int, Any], key: Union[int, "EinsumSubOp"]) -> Any:
@@ -740,7 +744,7 @@ class EinsumSubOp:
             print()
             print(
                 "apply %r  (%s)."
-                % (self.name, ", ".join(map(lambda s: str(id(s)), self.inputs)))
+                % (self.name, ", ".join([str(id(s)) for s in self.inputs]))
             )
 
         method_name = f"_apply_{self.name}"
@@ -1165,7 +1169,7 @@ class EinsumSubOp:
             print()
             print(
                 "to_onnx %r  (%s) opset=%r."
-                % (self.name, ", ".join(map(lambda s: str(id(s)), self.inputs)), opset)
+                % (self.name, ", ".join([str(id(s)) for s in self.inputs]), opset)
             )
 
         method_name = f"_to_onnx_{self.name}"
@@ -1300,10 +1304,9 @@ class GraphEinsumSubOp:
         else:
             raise TypeError(f"Unexpected type {type(i)!r}.")
 
-    def __iter__(self) -> Iterable[EinsumSubOp]:
+    def __iter__(self) -> Iterator[EinsumSubOp]:
         "Iterates on nodes."
-        for op in self._ops:
-            yield op
+        yield from self._ops
 
     def to_dot(self, **kwargs: Dict[str, Any]) -> str:
         """
@@ -1405,7 +1408,7 @@ class GraphEinsumSubOp:
         """
         if verbose:
             print("######### apply_sequence")
-        data = {i: inp for i, inp in enumerate(inputs)}
+        data = dict(enumerate(inputs))
         last = None
         for op in self:
             last = op.apply(data, verbose=verbose, **kwargs)
@@ -1545,9 +1548,14 @@ class GraphEinsumSubOp:
                     if id(v) == id(d):
                         mark_input = k
                         dels.append(k)
-                assert (
-                    len(dels) == 1
-                ), "Input %d has more than one marked operator " "(%r)." % (id(d), dels)
+                assert len(dels) == 1, (
+                    "Input %d has more than one marked operator "
+                    "(%r)."
+                    % (  # noqa: ISC001
+                        id(d),
+                        dels,
+                    )
+                )
                 del self._mark[dels[0]]
 
         dels = set(id(o) for o in deleted)
@@ -1617,11 +1625,13 @@ class GraphEinsumSubOp:
                 op1 = cand.inputs[0]
                 perm1 = op1.kwargs["perm"]
                 perm2 = op2.kwargs["perm"]
-                assert len(perm1) == len(
-                    perm2
-                ), "Transposition should have the same length " "%r, %r." % (
-                    perm1,
-                    perm2,
+                assert len(perm1) == len(perm2), (
+                    "Transposition should have the same length "
+                    "%r, %r."
+                    % (  # noqa: ISC001
+                        perm1,
+                        perm2,
+                    )
                 )
                 perm = list(perm1)
                 for i in range(len(perm)):
@@ -1697,12 +1707,14 @@ class GraphEinsumSubOp:
         for inp, le in zip(inputs, lengths):
             if isinstance(inp, tuple):
                 name, (typ, shape) = inp
-                assert le == len(
-                    shape
-                ), "Irreconcialable shapes for input %r: " "%r != len(%r)." % (
-                    name,
-                    le,
-                    typ.shape,
+                assert le == len(shape), (
+                    "Irreconcialable shapes for input %r: "
+                    "%r != len(%r)."
+                    % (  # noqa: ISC001
+                        name,
+                        le,
+                        typ.shape,
+                    )
                 )
                 onx_inputs.append(helper.make_tensor_value_info(name, typ, shape))
                 names[len(names)] = name

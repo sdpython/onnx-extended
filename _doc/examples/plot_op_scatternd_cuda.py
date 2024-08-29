@@ -302,13 +302,13 @@ def benchmark(
         bind, cuda_feeds = move_inputs(sess, feeds)
 
         begin = time.perf_counter()
-        for i in range(script_args.warmup):
+        for _i in range(script_args.warmup):
             # sess.run(None, feeds)
             sess._sess.run_with_iobinding(bind, None)
         warmup = time.perf_counter() - begin
 
         times = []
-        for i in range(script_args.repeat):
+        for _i in range(script_args.repeat):
             begin = time.perf_counter()
             # sess.run(None, feeds)
             sess._sess.run_with_iobinding(bind, None)

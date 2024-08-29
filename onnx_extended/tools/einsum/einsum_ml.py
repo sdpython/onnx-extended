@@ -42,7 +42,7 @@ _ml_transpose_coefs: Dict[str, float] = {
 def _edit_distance(mot1: Sequence, mot2: Sequence) -> float:
     dist = {(-1, -1): 0}
     if not mot1:
-        for j, d in enumerate(mot2):
+        for j, _d in enumerate(mot2):
             dist[-1, j] = dist[-1, j - 1] + 1
             dist[j, -1] = dist[j - 1, -1] + 1
     for i, c in enumerate(mot1):
@@ -154,11 +154,11 @@ def compute_transposition_features(
 
     keys = list(feat)
     for k in keys:
-        if k.startswith("end") or k.startswith("begin"):
+        if k.startswith(("end", "begin")):
             feat[k] = -feat[k]
-        elif k.startswith("rend") or k.startswith("rbegin"):
+        elif k.startswith(("rend", "rbegin")):
             feat[k] = -feat[k]
-        elif k.startswith("iend") or k.startswith("ibegin"):
+        elif k.startswith(("iend", "ibegin")):
             feat[k] = -feat[k]
         elif k == "rdiscont":
             feat[k] = -feat[k]

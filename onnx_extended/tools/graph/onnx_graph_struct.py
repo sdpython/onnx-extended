@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -92,7 +92,7 @@ class Node:
                 kind = NodeKind.NODE
             elif kind != NodeKind.NODE:
                 raise ValueError(
-                    f"Unexpected kind {kind!r} for a node type " f"{proto.op_type!r}."
+                    f"Unexpected kind {kind!r} for a node type {proto.op_type!r}."
                 )
         if isinstance(proto, TensorProto):
             if kind is None:
@@ -374,9 +374,8 @@ class NodeSet:
     def __len__(self) -> int:
         return len(self.nodes)
 
-    def __iter__(self) -> Iterable[Node]:
-        for n in self.nodes:
-            yield n
+    def __iter__(self) -> Iterator[Node]:
+        yield from self.nodes
 
 
 class Graph:
@@ -632,13 +631,12 @@ class Graph:
             raise IndexError(f"This node was probably reduced {index}.")
         return node
 
-    def __iter__(self) -> Iterable[Node]:
+    def __iter__(self) -> Iterator[Node]:
         "Iterates on nodes or initializer."
         for index, node in enumerate(self.nodes):
             if node is None or node.index in self.removed:
                 if index in self.nodes_sets:
-                    for n in self.nodes_sets[index]:
-                        yield n
+                    yield from self.nodes_sets[index]
                 continue
             yield node
 

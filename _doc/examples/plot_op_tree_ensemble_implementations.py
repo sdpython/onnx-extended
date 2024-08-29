@@ -256,7 +256,7 @@ def compile_tree(
     compiler_options.SetMakeAllLeavesSameDepth(pipeline_width)
     compiler_options.SetReorderTreesByDepth(reorder_tree_by_depth)
     compiler_options.SetNumberOfFeatures(n_features)
-    assert 8 < batch_size
+    assert 8 < batch_size  # noqa: SIM300
     compiler_options.SetPipelineWidth(8)
 
     if verbose:
@@ -344,7 +344,9 @@ def make_ort_assembly_session(
 
     llc_exe = os.environ.get("TEST_LLC_EXE", "SKIP")
     if llc_exe == "SKIP":
-        warnings.warn("Unable to find environment variable 'TEST_LLC_EXE'.")
+        warnings.warn(
+            "Unable to find environment variable 'TEST_LLC_EXE'.", stacklevel=0
+        )
         return None
 
     filename = "plot_op_tree_ensemble_implementation.onnx"
@@ -383,9 +385,7 @@ def transform_model(model, use_sparse=False, **kwargs):
     onx = ModelProto()
     onx.ParseFromString(model.SerializeToString())
     att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-    modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
-        "BRANCH_", ""
-    )
+    modes = ",".join([s.decode("ascii") for s in att.strings]).replace("BRANCH_", "")
     if use_sparse and "new_op_type" not in kwargs:
         kwargs["new_op_type"] = "TreeEnsembleRegressorSparse"
     if use_sparse:
@@ -538,7 +538,7 @@ for name, sess, tensor in sessions:
         disc = diff.mean()
         max_disc = diff.max()
     obs = measure_time(
-        lambda: sess.run(None, feeds),
+        lambda sess=sess, feeds=feeds: sess.run(None, feeds),
         repeat=script_args.repeat,
         number=script_args.number,
         warmup=script_args.warmup,

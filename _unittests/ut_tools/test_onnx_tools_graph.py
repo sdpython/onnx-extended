@@ -159,7 +159,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         )
 
         # 7, 5, 5, 6, 6, 4, 4, 7, 7, 5, 5, 6, 6, 4, 4
-        for it, (init, tr, side_x, n_dim_x, n_dim_c, simple) in enumerate(options):
+        for _it, (init, tr, side_x, n_dim_x, n_dim_c, simple) in enumerate(options):
             msg = (
                 f"init={init}, tr={tr}, side_x={side_x}, "
                 f"n_dim_x={n_dim_x}, n_dim_c={n_dim_c}, simple={simple}"
@@ -181,7 +181,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                 feeds = dict(X=x)
 
                 ref = self.tryCall(
-                    lambda: CReferenceEvaluator(model),
+                    lambda model=model: CReferenceEvaluator(model),
                     f"Unable to load model\n----\n{onnx_simple_text_plot(model)}",
                 )
                 z0 = ref.run(None, feeds)[0]
@@ -218,11 +218,11 @@ class TestOnnxToolsGraph(ExtTestCase):
                     if node.op_type == "GemmFloat8":
                         node.op_type = "GemmFloat8Quiet"
                 ref2 = self.tryCall(
-                    lambda: CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet]),
+                    lambda onx=onx: CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet]),
                     f"Unable to load model\n----\n{msg}\n{onnx_simple_text_plot(onx)}",
                 )
                 got = self.tryCall(
-                    lambda: ref2.run(None, dict(X=x))[0],
+                    lambda ref2=ref2, x=x: ref2.run(None, dict(X=x))[0],
                     f"Unable to run model with x.shape={x.shape}"
                     f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}",
                 )
@@ -252,12 +252,15 @@ class TestOnnxToolsGraph(ExtTestCase):
                 onxo = new_graph.to_onnx()
                 check_onx(onxo, tr)
                 sess = self.tryCall(
-                    lambda: InferenceSession(
+                    lambda onxo=onxo: InferenceSession(
                         onxo.SerializeToString(),
                         sess_opts,
                         providers=["CPUExecutionProvider"],
                     ),
-                    msg=f"onnxruntime inference fails with\n{onnx_simple_text_plot(onxo)}",
+                    msg=(
+                        f"onnxruntime inference fails with\n"
+                        f"{onnx_simple_text_plot(onxo)}"
+                    ),
                     none_if="type inference failed",
                 )
                 if sess is not None:
@@ -317,7 +320,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(z.shape, (3, 3))
         self.assertEqualArray(x @ x @ (x + 2), z, atol=1e-5)
         self.assertEqual(len(list(graph)), 7)
-        for i in range(0, 7):
+        for i in range(7):
             node = graph[i]
             self.assertIn(
                 node.op_type, {"input", "output", "Constant", "Add", "MatMul"}
@@ -382,9 +385,9 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(len(graph), 7)
         self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 7):
+        for i in range(7):
             if i == 3:
-                self.assertRaise(lambda: graph[i], IndexError)
+                self.assertRaise(lambda i=i: graph[i], IndexError)
                 continue
             node = graph[i]
             ops.append(node.op_type)
@@ -405,7 +408,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(len(graph), 7)
         self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, len(graph)):
+        for i in range(len(graph)):
             node = graph[i]
             ops.append(node.op_type)
             self.assertIn(
@@ -425,7 +428,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(len(graph), 7)
         self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, len(graph)):
+        for i in range(len(graph)):
             node = graph[i]
             ops.append(node.op_type)
             self.assertIn(
@@ -475,7 +478,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     ),
                 ),
                 make_node("MatMul", ["X", "mat"], ["Z"], name="m1"),
@@ -504,7 +507,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "mat",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     )
                 ],
             )
@@ -519,7 +522,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                             "one",
                             TensorProto.FLOAT,
                             [3, 2],
-                            list(float(i) for i in range(11, 17)),
+                            [float(i) for i in range(11, 17)],
                         ),
                     ),
                     make_node("MatMul", ["X", "mat"], ["Z"]),
@@ -617,7 +620,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "mat",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     )
                 ],
             )
@@ -633,7 +636,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                             "one",
                             TensorProto.FLOAT,
                             [3, 2],
-                            list(float(i) for i in range(11, 17)),
+                            [float(i) for i in range(11, 17)],
                         ),
                     ),
                     make_node("MatMul", ["Xc", "mat"], ["Z"]),
