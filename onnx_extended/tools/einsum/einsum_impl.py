@@ -475,9 +475,10 @@ def _decompose_einsum_equation_simple(
             diag = None
             tr_row = mat[i]
 
-        for op_ in _apply_transpose_reshape(op, tr_row):
-            op_.compute_output_row(rows[1, :], verbose=verbose)
-            marked = graph.append(op_)
+        for iop in _apply_transpose_reshape(op, tr_row):
+            op = iop
+            iop.compute_output_row(rows[1, :], verbose=verbose)
+            marked = graph.append(iop)
 
         # Reduction? (a dimension not used later)
         red = []
@@ -560,7 +561,8 @@ def _decompose_einsum_equation_simple(
             op.compute_output_row(rows[1, :], verbose=verbose)
 
         # Removes empty axes.
-        for op_ in _apply_squeeze_transpose(op, rows[1, :], mat[len(shapes), :]):
-            op_.compute_output_row(rows[1, :], verbose=verbose)
-            graph.append(op_)
+        for iop in _apply_squeeze_transpose(op, rows[1, :], mat[len(shapes), :]):
+            op = iop
+            iop.compute_output_row(rows[1, :], verbose=verbose)
+            graph.append(iop)
     return graph

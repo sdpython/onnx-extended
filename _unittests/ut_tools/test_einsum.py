@@ -756,7 +756,7 @@ class TestEinsum(ExtTestCase):
         inp1 = numpy.arange(2 * 3 * 5).reshape((2, 3, 5)).astype(numpy.float32)
         inp2 = numpy.arange(5 * 7).reshape((7, 5)).astype(numpy.float32)
         exp = numpy.einsum(equation, inp1, inp2)
-        got = apply_einsum_sequence(seq, inp1, inp2)
+        got = apply_einsum_sequence(seq, inp1, inp2, verbose=0)
         self.assertEqualArray(exp, got)
 
         onx = seq.to_onnx("Y", "X1", "X2")

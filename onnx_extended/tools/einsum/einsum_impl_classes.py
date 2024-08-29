@@ -466,17 +466,12 @@ class EinsumSubOp:
 
     def _get_data(self, data: Dict[int, Any], key: Union[int, "EinsumSubOp"]) -> Any:
         if isinstance(key, int):
-            assert key in data, "Unable to find key %d in %r." % (
-                key,
-                list(sorted(data)),
-            )
+            assert key in data, f"Unable to find key {key!r} in {list(sorted(data))}"
             return data[key]
         if isinstance(key, EinsumSubOp):
-            assert id(key) in data, "Unable to find key %d in %r." % (
-                id(key),
-                list(sorted(data)),
-            )
-            return data[id(key)]
+            skey = id(key)
+            assert skey in data, f"Unable to find key {skey!r} in {list(sorted(data))}"
+            return data[skey]
         raise TypeError(f"Unexpected input type {type(key)!r}.")
 
     def _apply_id(
@@ -759,7 +754,7 @@ class EinsumSubOp:
         return output
 
     def _onnx_name(self) -> str:
-        return "einsum%d_%s" % (id(self), self.name[:2])
+        return f"einsum{id(self)}_{self.name}"
 
     def _check_onnx_opset_(self, opset: Optional[int], limit: int):
         if opset is not None and opset < limit:
@@ -1264,13 +1259,13 @@ class GraphEinsumSubOp:
         :return: op or None if op is an integer
         """
         if isinstance(op, int):
-            assert op not in self._nodes, "Key %d already added." % op
+            assert op not in self._nodes, f"Key {op!r} already added."
             self._nodes[op] = op
             self.last_added_op = op
             self._inputs[op] = op
             return None
         if isinstance(op, EinsumSubOp):
-            assert op not in self._nodes, "Key %d already added, op=%r." % (id(op), op)
+            assert op not in self._nodes, f"Key {id(op)} already added, op={op!r}."
             self._nodes[id(op)] = op
             self._ops.append(op)
             self.last_added_op = op
@@ -1521,9 +1516,7 @@ class GraphEinsumSubOp:
             rows.append(line)
         return "\n".join(rows)
 
-    def _replace_node_sequence(
-        self, added: List[EinsumSubOp], deleted: List[EinsumSubOp]
-    ):
+    def _replace_node_sequence(self, added: EinsumSubOp, deleted: List[EinsumSubOp]):
         """
         Removes a sequence of nodes. The method does not check
         that the graph remains consistent.

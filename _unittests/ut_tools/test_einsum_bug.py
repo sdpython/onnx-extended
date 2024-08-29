@@ -27,7 +27,7 @@ class TestEinsumBug(ExtTestCase):
             f.write(onx.SerializeToString())
         a = numpy.random.rand(*list((2,) * dim1))
         b = numpy.random.rand(*list((2,) * dim2))
-        oinf = CReferenceEvaluator(onx)
+        oinf = CReferenceEvaluator(onx, verbose=0)
         got = oinf.run(None, {"X1": a, "X2": b})
         expected = numpy.einsum(equation, a, b)
         self.assertEqualArray(expected, got[0], atol=1e-15)

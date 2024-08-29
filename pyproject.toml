@@ -138,6 +138,7 @@ ignore_missing_imports = true
 packages = ["onnx_extended"]
 exclude = [
     "^_doc/examples",  # skips examples in the documentation
+    "^_doc/auto_examples",  # skips examples in the documentation
     "^_unittests",  # skips unit tests
     "^build",  # skips build
     "^dist",  # skips dist

@@ -382,7 +382,7 @@ class cmake_build_class_extension(Command):
         """
         iswin = is_windows()
         isdar = is_darwin()
-        cmake_cmd_args = []
+        cmake_cmd_args: List[str] = []
 
         path = sys.executable
         vers = (
