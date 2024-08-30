@@ -19,7 +19,7 @@ Some weird issue occured when importing :epkg:`onnxruntime` after importing :epk
     File ".../github/onnxruntime/build/linux_cuda/Release/onnxruntime/capi/_pybind_state.py", line 32, in <module>
         from .onnxruntime_pybind11_state import *  # noqa
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ImportError: .../miniconda3/lib/python3.11/site-packages/numexpr/../../../libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by /home/xadupre/github/onnxruntime/build/linux_cuda/Release/onnxruntime/capi/onnxruntime_pybind11_state.so)
+    ImportError: .../miniconda3/lib/python3.11/site-packages/numexpr/../../../libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by onnxruntime/build/linux_cuda/Release/onnxruntime/capi/onnxruntime_pybind11_state.so)
     >>> 
 
 But the reverse works:

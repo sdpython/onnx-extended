@@ -76,28 +76,26 @@ class TestJsProfile(ExtTestCase):
         self.assertEqual(df.shape, (189, 18))
         self.assertEqual(
             set(df.columns),
-            set(
-                [
-                    "cat",
-                    "pid",
-                    "tid",
-                    "dur",
-                    "ts",
-                    "ph",
-                    "name",
-                    "args_op_name",
-                    "op_name",
-                    "args_thread_scheduling_stats",
-                    "args_output_size",
-                    "args_parameter_size",
-                    "args_activation_size",
-                    "args_node_index",
-                    "args_provider",
-                    "event_name",
-                    "iteration",
-                    "it==0",
-                ]
-            ),
+            {
+                "cat",
+                "pid",
+                "tid",
+                "dur",
+                "ts",
+                "ph",
+                "name",
+                "args_op_name",
+                "op_name",
+                "args_thread_scheduling_stats",
+                "args_output_size",
+                "args_parameter_size",
+                "args_activation_size",
+                "args_node_index",
+                "args_provider",
+                "event_name",
+                "iteration",
+                "it==0",
+            },
         )
 
         df = js_profile_to_dataframe(prof, agg=True)
@@ -108,27 +106,25 @@ class TestJsProfile(ExtTestCase):
         self.assertEqual(df.shape, (189, 17))
         self.assertEqual(
             set(df.columns),
-            set(
-                [
-                    "cat",
-                    "pid",
-                    "tid",
-                    "dur",
-                    "ts",
-                    "ph",
-                    "name",
-                    "args_op_name",
-                    "op_name",
-                    "args_thread_scheduling_stats",
-                    "args_output_size",
-                    "args_parameter_size",
-                    "args_activation_size",
-                    "args_node_index",
-                    "args_provider",
-                    "event_name",
-                    "iteration",
-                ]
-            ),
+            {
+                "cat",
+                "pid",
+                "tid",
+                "dur",
+                "ts",
+                "ph",
+                "name",
+                "args_op_name",
+                "op_name",
+                "args_thread_scheduling_stats",
+                "args_output_size",
+                "args_parameter_size",
+                "args_activation_size",
+                "args_node_index",
+                "args_provider",
+                "event_name",
+                "iteration",
+            },
         )
 
         os.remove(prof)

@@ -21,7 +21,8 @@ except ImportError as e:
         all_files = os.listdir(os.path.dirname(loc))
         warnings.warn(
             f"Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
-            f"{all_files}."
+            f"{all_files}.",
+            stacklevel=0,
         )
         OrtSession = None
         here = os.path.dirname(__file__)
@@ -66,7 +67,7 @@ class TestDocumentationExamples(ExtTestCase):
                     if verbose:
                         print(f"failed: {name!r} due to missing onnxruntime.")
                     return 1
-                raise AssertionError(
+                raise AssertionError(  # noqa: B904
                     "Example '{}' (cmd: {} - exec_prefix='{}') "
                     "failed due to\n{}"
                     "".format(name, cmds, sys.exec_prefix, st)

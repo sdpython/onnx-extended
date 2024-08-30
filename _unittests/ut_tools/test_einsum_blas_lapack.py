@@ -210,7 +210,7 @@ class TestBlasLapack(ExtTestCase):
 
                             cc[:, :] = 0
                             sgemm(1, a, b, 0, cc, t1, t2, 1)
-                            try:
+                            try:  # noqa: SIM105
                                 self.assertEqualArray(exp, cc)
                             except AssertionError:
                                 # Overwriting the result does not seem
@@ -284,7 +284,7 @@ class TestBlasLapack(ExtTestCase):
 
                             cc[:, :] = 0
                             sgemm(1, a, b, 0, cc, t1, t2, 1)
-                            try:
+                            try:  # noqa: SIM105
                                 self.assertEqualArray(exp, cc)
                             except AssertionError:
                                 # Overwriting the result does not seem
@@ -358,7 +358,7 @@ class TestBlasLapack(ExtTestCase):
 
                             cc[:, :] = 0
                             sgemm(1, a, b, 0, cc, t1, t2, 1)
-                            try:
+                            try:  # noqa: SIM105
                                 self.assertEqualArray(exp, cc)
                             except AssertionError:
                                 # Overwriting the result does not seem

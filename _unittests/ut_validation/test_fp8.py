@@ -60,7 +60,7 @@ class TestFloat8(ExtTestCase):
                 expected,
             )
         ]
-        for i in range(0, 23):
+        for i in range(23):
             v = 0x7F800000 | (1 << i)
             f = numpy.uint32(v).view(numpy.float32)
             values.append((i, v, f, expected))

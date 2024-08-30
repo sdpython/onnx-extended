@@ -287,7 +287,7 @@ class TestRun:
         stats["index"] = index
 
         ts = []
-        for i in range(repeat):
+        for _i in range(repeat):
             begin = time.perf_counter()
             f_run(rt, feeds)
             ts.append(time.perf_counter() - begin)
@@ -495,9 +495,7 @@ def bench_virtual(
             out = "\n".join(
                 line for line in out.split("\n") if "[W:onnxruntime:" not in line
             )
-            if out.startswith("The requested API version [") or out.startswith(
-                "The given version ["
-            ):
+            if out.startswith(("The requested API version [", "The given version [")):
                 js = {}
             else:
                 try:

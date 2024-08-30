@@ -193,7 +193,7 @@ class TestOrtOpOptimCuda(ExtTestCase):
             data = np.zeros((2048, 4096), dtype=dtype)
             indices = np.ones((2, 1024), dtype=np.int64)
             indices = indices[..., np.newaxis]
-            shape = tuple(indices.shape[:2]) + (data.shape[-1],)
+            shape = (*indices.shape[:2], data.shape[-1])
             updates = (
                 np.arange(np.prod(shape)).reshape(shape) / np.prod(shape)
             ).astype(dtype)

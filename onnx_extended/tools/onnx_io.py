@@ -122,7 +122,7 @@ def onnx2string(proto: onnx.ModelProto, as_code: bool = False) -> str:
     template = textwrap.dedent(
         """
     from onnx_extended.tools.onnx_io import string2onnx
-    
+
     text = (
     {model}
     )

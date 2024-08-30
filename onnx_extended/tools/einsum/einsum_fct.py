@@ -1,5 +1,5 @@
 from itertools import permutations
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 import time
 import math
 import numpy
@@ -209,13 +209,12 @@ class OnnxMicroRuntime:
         return (numpy.expand_dims(x, axis=axes),)
 
 
-def enumerate_cached_einsum() -> Iterable[Tuple[int, Any]]:
+def enumerate_cached_einsum() -> Iterator[Tuple[int, Any]]:
     """
     Enumerates all cached einsum function.
     """
     global _einsum_cache
-    for k, v in _einsum_cache.items():
-        yield k, v
+    yield from _einsum_cache.items()
 
 
 class CachedEinsum:
@@ -354,7 +353,7 @@ class CachedEinsum:
                 inputs = inst.default_inputs()
                 inst(*inputs)
             ts = time.perf_counter()
-            for _ in range(0, 10):
+            for _ in range(10):
                 inst(*inputs)
             delta = time.perf_counter() - ts
             confs.append((delta, eq))
@@ -510,7 +509,7 @@ class CachedEinsum:
                 self.onnx_ = onx
                 self.oinf_ = cls(self.onnx_.SerializeToString())
                 self.runtime_ = lambda *inputs: self.oinf_.run(
-                    None, {i: v for i, v in zip(self.onnx_names_, inputs)}
+                    None, dict(zip(self.onnx_names_, inputs))
                 )[0]
         else:
             n_inputs = len(self.equation.split("->")[0].split(","))
@@ -519,7 +518,7 @@ class CachedEinsum:
             self.onnx_names_ = input_names
             self.oinf_ = cls(self.onnx_.SerializeToString())
             self.runtime_ = lambda *inputs: self.oinf_.run(
-                None, {i: v for i, v in zip(self.onnx_names_, inputs)}
+                None, dict(zip(self.onnx_names_, inputs))
             )[0]
 
     def __call__(self, *inputs: List[numpy.ndarray]) -> List[numpy.ndarray]:

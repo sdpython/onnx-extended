@@ -89,7 +89,7 @@ print(f"t_ext2={t_ext2}")
 #############################################
 # Benchmark
 # +++++++++
-dims = list(int(i) for i in script_args.dims.split(","))
+dims = [int(i) for i in script_args.dims.split(",")]
 
 data = []
 for dim in tqdm(dims):
@@ -99,18 +99,18 @@ for dim in tqdm(dims):
         number, repeat = script_args.number * 5, script_args.repeat * 5
     x = numpy.random.randn(dim, dim).astype(numpy.float32)
     t_ort = measure_time(
-        lambda: sess_ort.run(None, {"X": x})[0], number=number, repeat=50
+        lambda x=x: sess_ort.run(None, {"X": x})[0], number=number, repeat=50
     )
     t_ort["name"] = "ort"
     t_ort["dim"] = dim
     data.append(t_ort)
 
-    t_ext = measure_time(lambda: sess_ext.run([x])[0], number=number, repeat=repeat)
+    t_ext = measure_time(lambda x=x: sess_ext.run([x])[0], number=number, repeat=repeat)
     t_ext["name"] = "ext"
     t_ext["dim"] = dim
     data.append(t_ext)
 
-    t_ext2 = measure_time(lambda: sess_ext.run_1_1(x), number=number, repeat=repeat)
+    t_ext2 = measure_time(lambda x=x: sess_ext.run_1_1(x), number=number, repeat=repeat)
     t_ext2["name"] = "ext_1_1"
     t_ext2["dim"] = dim
     data.append(t_ext2)

@@ -56,7 +56,7 @@ def compile_tree(
     compiler_options.SetMakeAllLeavesSameDepth(1)
     compiler_options.SetNumberOfFeatures(n_features)
     compiler_options.SetReorderTreesByDepth(True)
-    assert 8 < batch_size
+    assert 8 < batch_size, f"batch_size={batch_size}"  # noqa: SIM300
     compiler_options.SetPipelineWidth(8)
 
     if verbose:
@@ -145,10 +145,10 @@ def make_ort_session(onx: ModelProto, assembly_name: Optional[str] = None) -> Tu
         op_domain="ai.onnx.ml",
         new_op_domain="onnx_extended.ortops.optim.cpu",
         nodes_modes=",".join(
-            map(
-                lambda s: s.decode("ascii"),
-                get_node_attribute(onx.graph.node[0], "nodes_modes").strings,
-            )
+            [
+                s.decode("ascii")
+                for s in get_node_attribute(onx.graph.node[0], "nodes_modes").strings
+            ]
         ),
     )
 
@@ -200,7 +200,9 @@ class TestOrtOpTutorialCpuTree(ExtTestCase):
         onx = make_tree(n_features=n_features, n_trees=100, max_depth=5)
         llc_exe = os.environ.get("TEST_LLC_EXE", "SKIP")
         if llc_exe == "SKIP":
-            warnings.warn("Unable to find environment variable 'TEST_LLC_EXE'.")
+            warnings.warn(
+                "Unable to find environment variable 'TEST_LLC_EXE'.", stacklevel=0
+            )
             sessions = make_ort_session(onx)
 
         elif not os.path.exists(llc_exe):

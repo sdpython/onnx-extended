@@ -72,7 +72,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     ),
                 ),
                 make_node("MatMul", ["X", "mat"], ["Z"], name="m1"),
@@ -216,7 +216,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             if "Current official support for domain ai.onnx is till opset 19." in str(
                 e
             ):
-                raise unittest.SkipTes("onnxruntime not recent enough")
+                raise unittest.SkipTest("onnxruntime not recent enough")  # noqa: B904
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
@@ -439,7 +439,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             got2 = ref2.run(None, feeds)[0]
         except ValueError as e:
             raise AssertionError(
-                f"Unable to run model\n----\n" f"{onnx_simple_text_plot(onx2)}\n------"
+                f"Unable to run model\n----\n{onnx_simple_text_plot(onx2)}\n------"
             ) from e
         self.assertEqualArray(expected, got2, rtol=0.05)
 
@@ -456,7 +456,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [2, 3] if transpose else [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     ),
                 ),
                 make_node("MatMul", ["mat", "X"] if transpose else ["X", "mat"], ["Z"]),
@@ -553,7 +553,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "mat",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     )
                 ],
             )
@@ -568,7 +568,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                             "one",
                             TensorProto.FLOAT,
                             [3, 2],
-                            list(float(i) for i in range(11, 17)),
+                            [float(i) for i in range(11, 17)],
                         ),
                     ),
                     make_node("MatMul", ["X", "mat"], ["Z"]),

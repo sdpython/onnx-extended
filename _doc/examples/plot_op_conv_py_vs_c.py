@@ -105,8 +105,8 @@ for i in tqdm([16, 32, 48, 64]):
     W = np.ones((1, 1, 3, 3), dtype=np.float32)
     B = np.array([[[[0]]]], dtype=np.float32)
     feeds = {"X": X, "W": W, "B": B}
-    t1 = measure_time(lambda: sess1.run(None, feeds))
-    t2 = measure_time(lambda: sess2.run(None, feeds))
+    t1 = measure_time(lambda feeds=feeds: sess1.run(None, feeds))
+    t2 = measure_time(lambda feeds=feeds: sess2.run(None, feeds))
     obs = dict(size=i, onnx=t1["average"], onnx_extended=t2["average"])
     data.append(obs)
     if unit_test_going() and len(data) >= 2:

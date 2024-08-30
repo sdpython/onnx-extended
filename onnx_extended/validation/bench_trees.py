@@ -103,10 +103,12 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
             op_domain="ai.onnx.ml",
             new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=",".join(
-                map(
-                    lambda s: s.decode("ascii"),
-                    get_node_attribute(onx.graph.node[0], "nodes_modes").strings,
-                )
+                [
+                    s.decode("ascii")
+                    for s in get_node_attribute(
+                        onx.graph.node[0], "nodes_modes"
+                    ).strings
+                ]
             ),
         )
 
@@ -138,10 +140,12 @@ def create_engine(name: str, onx: ModelProto, feeds: Dict[str, np.ndarray]) -> E
             op_domain="ai.onnx.ml",
             new_op_domain="onnx_extended.ortops.optim.cpu",
             nodes_modes=",".join(
-                map(
-                    lambda s: s.decode("ascii"),
-                    get_node_attribute(onx.graph.node[0], "nodes_modes").strings,
-                )
+                [
+                    s.decode("ascii")
+                    for s in get_node_attribute(
+                        onx.graph.node[0], "nodes_modes"
+                    ).strings
+                ]
             ),
         )
         eng = EngineCython(
@@ -265,7 +269,7 @@ def bench_trees(
                 print(f" [bench_trees] {now()} test {name!r} benchmark...")
 
             begin = time.perf_counter()
-            for i in range(number):
+            for _i in range(number):
                 feeds["X"] += feeds["X"] * np.float32(np.random.random() / 1000)
                 engine.run(None, feeds)
             duration = time.perf_counter() - begin

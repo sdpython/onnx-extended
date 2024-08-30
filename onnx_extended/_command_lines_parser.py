@@ -31,7 +31,7 @@ def get_main_parser() -> ArgumentParser:
         help=dedent(
             """
         Selects a command.
-        
+
         'bench' runs a benchmark,
         'check' checks a runtime on stored intermediate results,
         'cvt' conversion into another format,
@@ -349,7 +349,7 @@ def get_parser_external() -> ArgumentParser:
         prog="external",
         description=dedent(
             """
-        Takes an onnx model and split the model and the coefficients.    
+        Takes an onnx model and split the model and the coefficients.
         """
         ),
         epilog="The functions stores the coefficients as external data. "
@@ -528,7 +528,7 @@ def get_parser_plot() -> ArgumentParser:
         help=dedent(
             """
         Kind of plot to draw.
-        
+
         'profile_op' shows the time spent in every kernel per operator type,
         'profile_node' shows the time spent in every kernel per operator node,
         """

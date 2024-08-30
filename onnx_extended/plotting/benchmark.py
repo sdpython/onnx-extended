@@ -114,14 +114,14 @@ def hhistograms(
         keys = (keys,)
 
     dfm = (
-        df[list(keys) + [metric]]
+        df[[*keys, metric]]
         .groupby(list(keys), as_index=False)
         .agg(["mean", "min", "max"])
         .copy()
     )
     if dfm.shape[1] == 3:
         dfm = dfm.reset_index(drop=False)
-    dfm.columns = list(keys) + [metric] + ["min", "max"]
+    dfm.columns = [*keys, metric, "min", "max"]
     dfi = dfm.sort_values(metric).reset_index(drop=True)
     base = dfi[dfi[keys[-1]].str.contains(baseline)]
     not_base = dfi[~dfi[keys[-1]].str.contains(baseline)].reset_index(drop=True)

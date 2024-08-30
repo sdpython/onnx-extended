@@ -70,8 +70,8 @@ class TfIdfVectorizer(OpRun):
 
         if self.mapping_ is not None:
             xi = np.empty(x.shape, dtype=np.int64)
-            for i in range(0, x.shape[0]):
-                for j in range(0, x.shape[1]):
+            for i in range(x.shape[0]):
+                for j in range(x.shape[1]):
                     try:
                         xi[i, j] = self.mapping_[x[i, j]]
                     except KeyError:

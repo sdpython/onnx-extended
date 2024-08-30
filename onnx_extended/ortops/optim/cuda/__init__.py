@@ -32,11 +32,11 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -58,11 +58,11 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -85,15 +85,15 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Attributes**
-    
+
     * transposeMiddle: bool, if True, applies transposition [0, 2, 1, 3] on the result
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -113,15 +113,15 @@ def documentation() -> List[str]:
     Parallel Additions with one common input.
     Support for Broadcast is limited
     (broadcast limited to the first dimensions).
-    
+
     Computes A + B, A + C.
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -144,15 +144,15 @@ def documentation() -> List[str]:
     equal to a value (usually -1)
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Attributes**
-    
+
     * maskedValue (int): updates are ignore the indices are equal to this value.
-    
+
     **Inputs**
-    
+
     * shape (I): tensor of type I
     * indices (I): tensor of type I
     * updates (T): tensor of type T
@@ -175,15 +175,15 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-        
+
     **Attributes**
-    
+
     * transposeMiddle: bool, if True, applies transposition [0, 2, 1, 3] on the result
 
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -205,11 +205,11 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -231,11 +231,11 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -256,14 +256,14 @@ def documentation() -> List[str]:
     Equivalent to Mul(X, Mul(Y, Sigmoid(Y))
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T): tensor
     * Y (T): tensor
-    
+
     **Outputs**
 
     * Z (T): result
@@ -279,13 +279,13 @@ def documentation() -> List[str]:
     Equivalent to Mul(X, Sigmoid(X))
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T): tensor
-    
+
     **Outputs**
 
     * Z (T): result
@@ -301,15 +301,15 @@ def documentation() -> List[str]:
     Parallel Multiplications with one common input.
     Support for Broadcast is limited
     (broadcast limited to the first dimensions).
-    
+
     Computes A * B, A * C.
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -332,15 +332,15 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Attribute**
-    
+
     * negative: to switch the order of the subtraction
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -360,13 +360,13 @@ def documentation() -> List[str]:
     Equivalent to 1 - X
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T): tensor of type T
-    
+
     **Outputs**
 
     * Z (T): result
@@ -382,13 +382,13 @@ def documentation() -> List[str]:
     Equivalent to Where(X == 0, cst, X)
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T): tensor of type T
-    
+
     **Outputs**
 
     * Z (T): updated tensor
@@ -402,19 +402,19 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Equivalent to (side=="RIGHT")
-    
+
     * Split(X, axis=-1) -> X1, X2
     * Concat(-X2, X1)
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T): tensor
     * splits (I): split size on the last dimension
-    
+
     Only splitting in half is implemented.
 
     **Outputs**
@@ -433,11 +433,11 @@ def documentation() -> List[str]:
     Equivalent to ConstantOfShape + ScatterND
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * shape (I): tensor of type I
     * indices (I): tensor of type I
     * updates (T): tensor of type T
@@ -460,15 +460,15 @@ def documentation() -> List[str]:
     (broadcast limited to the first dimensions).
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Attribute**
-    
+
     * negative: to switch the order of the subtraction
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T
@@ -486,15 +486,15 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Transposes a 2D matrix the cast it into float16.
-    
+
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T1): tensor
-    
+
     Only splitting in half is implemented.
 
     **Outputs**
@@ -511,15 +511,15 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Transposes a 2D matrix the cast it into float32.
-    
+
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T1): tensor
-    
+
     Only splitting in half is implemented.
 
     **Outputs**
@@ -536,19 +536,19 @@ def documentation() -> List[str]:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Creates a matrix.
-    
+
     ::
-    
+
         mat[i < j] = upper
         mat[i == j] = diag
         mat[i > j] = lower
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * shape (I): tensor of type I
     * cst (T): lower, diag, upper values
 

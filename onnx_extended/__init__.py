@@ -1,4 +1,3 @@
-# coding: utf-8
 """
 More operators for onnx reference implementation and onnxruntime.
 Experimentation with openmp, CUDA.

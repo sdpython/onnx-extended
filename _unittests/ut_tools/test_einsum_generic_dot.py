@@ -4555,7 +4555,7 @@ class TestEinsumGenericdot(ExtTestCase):
         try:
             self.assertEqualArray(exp, dot)
         except AssertionError:
-            raise AssertionError(
+            raise AssertionError(  # noqa: B904
                 "shape1=%r shape2=%r\naxes=%r left=%r right=%r\n"
                 "m1=%r\nm2=%r\nexp=\n%r\ndot=\n%r"
                 "\n-----\n%s"

@@ -22,7 +22,7 @@ To change the training parameters:
         --n_features=50
         --sparsity=0.9
         --batch_size=100000
-    
+
 Another example with a full list of parameters:
 
     python plot_op_tree_ensemble_sparse.py
@@ -45,7 +45,7 @@ Another example:
 ::
 
     python plot_op_tree_ensemble_sparse.py
-        --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
+        --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT
 """
 
 import logging
@@ -197,9 +197,7 @@ def transform_model(model, use_sparse=False, **kwargs):
     onx = ModelProto()
     onx.ParseFromString(model.SerializeToString())
     att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-    modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
-        "BRANCH_", ""
-    )
+    modes = ",".join([s.decode("ascii") for s in att.strings]).replace("BRANCH_", "")
     if use_sparse and "new_op_type" not in kwargs:
         kwargs["new_op_type"] = "TreeEnsembleRegressorSparse"
     if use_sparse:
@@ -347,12 +345,12 @@ elif script_args.scenario == "LONG":
     )
 elif script_args.scenario == "CUSTOM":
     optim_params = dict(
-        parallel_tree=list(int(i) for i in script_args.parallel_tree.split(",")),
-        parallel_tree_N=list(int(i) for i in script_args.parallel_tree_N.split(",")),
-        parallel_N=list(int(i) for i in script_args.parallel_N.split(",")),
-        batch_size_tree=list(int(i) for i in script_args.batch_size_tree.split(",")),
-        batch_size_rows=list(int(i) for i in script_args.batch_size_rows.split(",")),
-        use_node3=list(int(i) for i in script_args.use_node3.split(",")),
+        parallel_tree=[int(i) for i in script_args.parallel_tree.split(",")],
+        parallel_tree_N=[int(i) for i in script_args.parallel_tree_N.split(",")],
+        parallel_N=[int(i) for i in script_args.parallel_N.split(",")],
+        batch_size_tree=[int(i) for i in script_args.batch_size_tree.split(",")],
+        batch_size_rows=[int(i) for i in script_args.batch_size_rows.split(",")],
+        use_node3=[int(i) for i in script_args.use_node3.split(",")],
     )
 else:
     raise ValueError(

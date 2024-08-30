@@ -1,4 +1,3 @@
-# coding: utf-8
 import unittest
 from logging import getLogger
 import packaging.version as pv

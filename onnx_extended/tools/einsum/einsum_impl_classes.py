@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 import numpy
 from onnx import helper, numpy_helper, ModelProto, NodeProto, TensorProto
 from .einsum_config import (
@@ -90,11 +90,12 @@ class EinsumSubOp:
                 "" % len(inputs)
             )
         for i, inp in enumerate(inputs):
-            assert isinstance(
-                inp, (int, EinsumSubOp)
-            ), "Input %d has type %r, int or EinsumSubOp is expected." "" % (
-                i,
-                type(inp),
+            assert isinstance(inp, (int, EinsumSubOp)), (
+                "Input %d has type %r, int or EinsumSubOp is expected."
+                % (  # noqa: ISC001
+                    i,
+                    type(inp),
+                )
             )
         self._check_()
 
@@ -150,7 +151,7 @@ class EinsumSubOp:
             return
         assert isinstance(
             self.kwargs[name], typ
-        ), "Unexpected type %r for parameter %r and parameter %r." "" % (
+        ), "Unexpected type %r for parameter %r and parameter %r." % (  # noqa: ISC001
             type(self.kwargs[name]),
             name,
             self.name,
@@ -301,13 +302,14 @@ class EinsumSubOp:
         to_remove.sort()
         for r in to_remove:
             for i in range(len(row)):
-                assert (
-                    row[i] != r
-                ), "Unexpected result r=%r row=%r to_remove=%r " "diag=%r." % (
-                    r,
-                    row,
-                    to_remove,
-                    self.kwargs["diag"],
+                assert row[i] != r, (
+                    "Unexpected result r=%r row=%r to_remove=%r diag=%r."
+                    % (  # noqa: ISC001
+                        r,
+                        row,
+                        to_remove,
+                        self.kwargs["diag"],
+                    )
                 )
                 if row[i] > r:
                     row[i] -= 1
@@ -446,33 +448,30 @@ class EinsumSubOp:
     def _check_inputs_(self, n_expected: int, check_dim: bool = False):
         assert (
             len(self.inputs) == n_expected
-        ), "Number of inputs must be %d not %d for operator %r." "" % (
+        ), "Number of inputs must be %d not %d for operator %r." % (  # noqa: ISC001
             n_expected,
             len(self.inputs),
             self.name,
         )
 
     def _check_shape_(self, m: numpy.ndarray):
-        assert (
-            len(m.shape) == self.full_dim
-        ), "Number of dimensions %r is different from expected value " "%d." % (
-            m.shape,
-            self.full_dim,
+        assert len(m.shape) == self.full_dim, (
+            "Number of dimensions %r is different from expected value "
+            "%d."
+            % (  # noqa: ISC001
+                m.shape,
+                self.full_dim,
+            )
         )
 
     def _get_data(self, data: Dict[int, Any], key: Union[int, "EinsumSubOp"]) -> Any:
         if isinstance(key, int):
-            assert key in data, "Unable to find key %d in %r." % (
-                key,
-                list(sorted(data)),
-            )
+            assert key in data, f"Unable to find key {key!r} in {list(sorted(data))}"
             return data[key]
         if isinstance(key, EinsumSubOp):
-            assert id(key) in data, "Unable to find key %d in %r." % (
-                id(key),
-                list(sorted(data)),
-            )
-            return data[id(key)]
+            skey = id(key)
+            assert skey in data, f"Unable to find key {skey!r} in {list(sorted(data))}"
+            return data[skey]
         raise TypeError(f"Unexpected input type {type(key)!r}.")
 
     def _apply_id(
@@ -740,7 +739,7 @@ class EinsumSubOp:
             print()
             print(
                 "apply %r  (%s)."
-                % (self.name, ", ".join(map(lambda s: str(id(s)), self.inputs)))
+                % (self.name, ", ".join([str(id(s)) for s in self.inputs]))
             )
 
         method_name = f"_apply_{self.name}"
@@ -755,7 +754,7 @@ class EinsumSubOp:
         return output
 
     def _onnx_name(self) -> str:
-        return "einsum%d_%s" % (id(self), self.name[:2])
+        return f"einsum{id(self)}_{self.name}"
 
     def _check_onnx_opset_(self, opset: Optional[int], limit: int):
         if opset is not None and opset < limit:
@@ -1165,7 +1164,7 @@ class EinsumSubOp:
             print()
             print(
                 "to_onnx %r  (%s) opset=%r."
-                % (self.name, ", ".join(map(lambda s: str(id(s)), self.inputs)), opset)
+                % (self.name, ", ".join([str(id(s)) for s in self.inputs]), opset)
             )
 
         method_name = f"_to_onnx_{self.name}"
@@ -1260,13 +1259,13 @@ class GraphEinsumSubOp:
         :return: op or None if op is an integer
         """
         if isinstance(op, int):
-            assert op not in self._nodes, "Key %d already added." % op
+            assert op not in self._nodes, f"Key {op!r} already added."
             self._nodes[op] = op
             self.last_added_op = op
             self._inputs[op] = op
             return None
         if isinstance(op, EinsumSubOp):
-            assert op not in self._nodes, "Key %d already added, op=%r." % (id(op), op)
+            assert op not in self._nodes, f"Key {id(op)} already added, op={op!r}."
             self._nodes[id(op)] = op
             self._ops.append(op)
             self.last_added_op = op
@@ -1300,10 +1299,9 @@ class GraphEinsumSubOp:
         else:
             raise TypeError(f"Unexpected type {type(i)!r}.")
 
-    def __iter__(self) -> Iterable[EinsumSubOp]:
+    def __iter__(self) -> Iterator[EinsumSubOp]:
         "Iterates on nodes."
-        for op in self._ops:
-            yield op
+        yield from self._ops
 
     def to_dot(self, **kwargs: Dict[str, Any]) -> str:
         """
@@ -1405,7 +1403,7 @@ class GraphEinsumSubOp:
         """
         if verbose:
             print("######### apply_sequence")
-        data = {i: inp for i, inp in enumerate(inputs)}
+        data = dict(enumerate(inputs))
         last = None
         for op in self:
             last = op.apply(data, verbose=verbose, **kwargs)
@@ -1519,7 +1517,7 @@ class GraphEinsumSubOp:
         return "\n".join(rows)
 
     def _replace_node_sequence(
-        self, added: List[EinsumSubOp], deleted: List[EinsumSubOp]
+        self, added: Optional[EinsumSubOp], deleted: List[EinsumSubOp]
     ):
         """
         Removes a sequence of nodes. The method does not check
@@ -1545,9 +1543,14 @@ class GraphEinsumSubOp:
                     if id(v) == id(d):
                         mark_input = k
                         dels.append(k)
-                assert (
-                    len(dels) == 1
-                ), "Input %d has more than one marked operator " "(%r)." % (id(d), dels)
+                assert len(dels) == 1, (
+                    "Input %d has more than one marked operator "
+                    "(%r)."
+                    % (  # noqa: ISC001
+                        id(d),
+                        dels,
+                    )
+                )
                 del self._mark[dels[0]]
 
         dels = set(id(o) for o in deleted)
@@ -1617,11 +1620,13 @@ class GraphEinsumSubOp:
                 op1 = cand.inputs[0]
                 perm1 = op1.kwargs["perm"]
                 perm2 = op2.kwargs["perm"]
-                assert len(perm1) == len(
-                    perm2
-                ), "Transposition should have the same length " "%r, %r." % (
-                    perm1,
-                    perm2,
+                assert len(perm1) == len(perm2), (
+                    "Transposition should have the same length "
+                    "%r, %r."
+                    % (  # noqa: ISC001
+                        perm1,
+                        perm2,
+                    )
                 )
                 perm = list(perm1)
                 for i in range(len(perm)):
@@ -1633,7 +1638,7 @@ class GraphEinsumSubOp:
                     new_op = op2.__class__(
                         op2.full_dim, op2.name, op1.inputs[0], perm=tuple(perm)
                     )
-                self._replace_node_sequence(new_op, [op1, op2])
+                self._replace_node_sequence(new_op, [op1, op2])  # type: ignore[list-item]
                 if verbose:
                     print(
                         "[GraphEinsumSubOp.remove_duplicate_transpose] remove nodes %r"
@@ -1697,12 +1702,14 @@ class GraphEinsumSubOp:
         for inp, le in zip(inputs, lengths):
             if isinstance(inp, tuple):
                 name, (typ, shape) = inp
-                assert le == len(
-                    shape
-                ), "Irreconcialable shapes for input %r: " "%r != len(%r)." % (
-                    name,
-                    le,
-                    typ.shape,
+                assert le == len(shape), (
+                    "Irreconcialable shapes for input %r: "
+                    "%r != len(%r)."
+                    % (  # noqa: ISC001
+                        name,
+                        le,
+                        typ.shape,
+                    )
                 )
                 onx_inputs.append(helper.make_tensor_value_info(name, typ, shape))
                 names[len(names)] = name

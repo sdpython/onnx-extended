@@ -111,14 +111,14 @@ if gemm_benchmark_test is not None:
             dims.append((m, n, k))
         else:
             dims.append(int(d))
-    tests = list(int(i) for i in script_args.tests.split(","))
+    tests = [int(i) for i in script_args.tests.split(",")]
 
 pbar = tqdm(list(product(tests, dims)))
 obs = []
 for test, dim in pbar:
     pbar.set_description(f"type={test} dim={dim}")
     if test in {8, 9, 10, 12, 13}:
-        warnings.warn(f"unsupported configuration {test}.")
+        warnings.warn(f"unsupported configuration {test}.", stacklevel=0)
         continue
     mdim = dim if isinstance(dim, int) else max(dim)
     if mdim < 128:
@@ -187,7 +187,7 @@ if df.shape[0] > 0:
 # ++++++++++++++++++++++++
 
 if df.shape[0] > 0:
-    dfi = df[col_def + ["~dim", "mnk", "t-total", "t-gemm_sync"]]
+    dfi = df[[*col_def, "~dim", "mnk", "t-total", "t-gemm_sync"]]
     print(dfi)
 
 ###################################

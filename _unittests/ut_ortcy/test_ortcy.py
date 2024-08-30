@@ -34,7 +34,8 @@ except ImportError as e:
         all_files = os.listdir(os.path.dirname(loc))
         warnings.warn(
             f"Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
-            f"{all_files}, path={path!r}."
+            f"{all_files}, path={path!r}.",
+            stacklevel=0,
         )
         OrtSession = None
         get_ort_c_api_supported_version = None

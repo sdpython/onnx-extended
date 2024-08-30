@@ -49,25 +49,20 @@ def enumerate_onnx_names(
         nodes = onx.node
     else:
         if hasattr(onx, "input"):
-            for i in onx.input:
-                yield i
+            yield from onx.input
         if hasattr(onx, "output"):
-            for i in onx.output:
-                yield i
+            yield from onx.output
         nodes = onx.node
     for node in nodes:
-        for i in node.input:
-            yield i
-        for o in node.output:
-            yield o
+        yield from node.input
+        yield from node.output
         for att in node.attribute:
             if (
                 att.type == AttributeProto.GRAPH
                 and hasattr(att, "g")
                 and att.g is not None
             ):
-                for n in enumerate_onnx_names(att.g):
-                    yield n
+                yield from enumerate_onnx_names(att.g)
 
 
 def enumerate_onnx_nodes(
@@ -95,8 +90,7 @@ def enumerate_onnx_nodes(
                 and hasattr(att, "g")
                 and att.g is not None
             ):
-                for n in enumerate_onnx_nodes(att.g):
-                    yield n
+                yield from enumerate_onnx_nodes(att.g)
 
 
 def _get_new_name(
@@ -154,12 +148,14 @@ class _inline_mapping(dict):
                 "[_inline_mapping-dict-addkv] %s + %r: %r"
                 % ("  " * self._level, key, value)
             )
-        assert (
-            key not in self
-        ), "Key %r was already added (with value %r, new one is %r)." "" % (
-            key,
-            self[key],
-            value,
+        assert key not in self, (
+            "Key %r was already added (with value %r, new one is %r)."
+            ""
+            % (  # noqa: ISC001
+                key,
+                self[key],
+                value,
+            )
         )
         dict.__setitem__(self, key, value)
 
@@ -491,7 +487,7 @@ def _onnx_inline_function_node(
         for nn in proto.node:
             new_input = [mapping[i] for i in nn.input]
             new_output = [_get_new_name(prefix, o, existing_names) for o in nn.output]
-            mapping.update({o: oo for o, oo in zip(nn.output, new_output)})
+            mapping.update(dict(zip(nn.output, new_output)))
             mapping.update({oo: oo for oo in new_output})
             new_node = make_node(
                 nn.op_type,
@@ -532,7 +528,7 @@ def _onnx_inline_function_node(
                     att = new_att
                     if verbose > 3:
                         print(
-                            "[onnx_inline_function-funct]   %s fct=%r att %r linked to %r"
+                            "[onnx_inline_function-funct]   %s fct=%r att %r linked to %r"  # noqa: E501
                             % ("  " * level, key, att.name, att.ref_attr_name)
                         )
                 elif (
