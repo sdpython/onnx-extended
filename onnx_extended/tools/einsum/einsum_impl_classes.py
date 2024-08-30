@@ -1516,7 +1516,9 @@ class GraphEinsumSubOp:
             rows.append(line)
         return "\n".join(rows)
 
-    def _replace_node_sequence(self, added: EinsumSubOp, deleted: List[EinsumSubOp]):
+    def _replace_node_sequence(
+        self, added: Optional[EinsumSubOp], deleted: List[EinsumSubOp]
+    ):
         """
         Removes a sequence of nodes. The method does not check
         that the graph remains consistent.
@@ -1636,7 +1638,7 @@ class GraphEinsumSubOp:
                     new_op = op2.__class__(
                         op2.full_dim, op2.name, op1.inputs[0], perm=tuple(perm)
                     )
-                self._replace_node_sequence(new_op, [op1, op2])
+                self._replace_node_sequence(new_op, [op1, op2])  # type: ignore[list-item]
                 if verbose:
                     print(
                         "[GraphEinsumSubOp.remove_duplicate_transpose] remove nodes %r"

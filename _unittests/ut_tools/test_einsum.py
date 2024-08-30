@@ -422,7 +422,7 @@ class TestEinsum(ExtTestCase):
                     for j in [0, 1]:
                         sp1 = "".join(p1)
                         sp2 = "".join(p2)
-                        if len(set(sp1[0], sp1[i], sp2[j])) != 3:
+                        if len({sp1[0], sp1[i], sp2[j]}) != 3:
                             continue
                         equation = f"{sp1},{sp2}->{sp1[0]}{sp1[i]}{sp2[j]}"
                         try:
