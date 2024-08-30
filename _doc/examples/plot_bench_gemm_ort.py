@@ -237,7 +237,7 @@ print(onnx_simple_text_plot(create_cast(TensorProto.FLOAT16)))
 #
 # The benchmark will run the following configurations.
 
-types = list(getattr(TensorProto, a) for a in script_args.types.split(","))
+types = [getattr(TensorProto, a) for a in script_args.types.split(",")]
 engine = [InferenceSession, CReferenceEvaluator]
 providers = [
     ["CUDAExecutionProvider", "CPUExecutionProvider"],
@@ -245,7 +245,7 @@ providers = [
 ]
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
-dims = [list(int(i) for i in line.split(",")) for line in script_args.dims.split(";")]
+dims = [[int(i) for i in line.split(",")] for line in script_args.dims.split(";")]
 domains = ["onnx_extended.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
@@ -420,7 +420,11 @@ for tt, engine, provider, dim, domain in pbar:
         feeds = {"A": matrices[k1].numpy(), "B": matrices[k2].numpy()}
         sess = engine(onx)
         sess.run(None, feeds)
-        obs = measure_time(lambda: sess.run(None, feeds), repeat=repeat, number=number)
+        obs = measure_time(
+            lambda sess=sess, feeds=feeds: sess.run(None, feeds),
+            repeat=repeat,
+            number=number,
+        )
 
     elif engine == InferenceSession:
         if provider[0] not in get_available_providers():
@@ -441,13 +445,15 @@ for tt, engine, provider, dim, domain in pbar:
         out_names = ["C"]
 
         # warmup
-        for i in range(script_args.warmup):
+        for _i in range(script_args.warmup):
             sess._sess.run_with_ort_values(the_feeds, out_names, None)[0]
 
         # benchamrk
         times = []
 
-        def fct_benchmarked():
+        def fct_benchmarked(
+            sess=sess, times=times, out_names=out_names, the_feeds=the_feeds
+        ):
             got = sess._sess.run_with_ort_values(the_feeds, out_names, None)
             if len(got) > 1:
                 times.append(got[1])

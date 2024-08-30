@@ -107,7 +107,7 @@ def estimation_quantization_scale(
         else:
             raise ValueError(f"Unexpected to={to!r}.")
 
-        float8 = [fct(i) for i in range(0, 256)]
+        float8 = [fct(i) for i in range(256)]
         quant_float = [f for f in float8 if not np.isnan(f) and not np.isinf(f)]
         std_coef = np.mean(coef.ravel() ** 2) ** 0.5
         std_quant = np.std(np.array(quant_float, dtype=np.float32))
@@ -696,7 +696,7 @@ def quantize_float8(
                 )
             except (QuantizationError, NotImplementedError) as e:
                 if quiet:
-                    logger.warn(
+                    logger.warning(
                         "[quantize_float8] %d/%d failed to quantize due to %s",
                         index,
                         n_nodes,

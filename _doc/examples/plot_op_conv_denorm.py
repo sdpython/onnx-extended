@@ -185,9 +185,9 @@ for scale in tqdm(scales):
     diff0 = numpy.abs(got0 / scale - expected).max()
 
     # t1 = measure_time(lambda: sess1.run(None, feeds), repeat=2, number=5)
-    t2 = measure_time(lambda: sess2.run(None, feeds), repeat=2, number=5)
-    t3 = measure_time(lambda: sess3.run(None, feeds), repeat=2, number=5)
-    t4 = measure_time(lambda: sess4.run(None, feeds), repeat=2, number=5)
+    t2 = measure_time(lambda sess2=sess3: sess2.run(None, feeds), repeat=2, number=5)
+    t3 = measure_time(lambda sess3=sess3: sess3.run(None, feeds), repeat=2, number=5)
+    t4 = measure_time(lambda sess4=sess4: sess4.run(None, feeds), repeat=2, number=5)
     obs = dict(
         scale=scale,
         ort=t2["average"],
@@ -204,7 +204,9 @@ for scale in tqdm(scales):
         tb = torch.from_numpy(b)
         torch.nn.functional.conv2d(tx, tw, tb, padding=1)
         t3 = measure_time(
-            lambda: torch.nn.functional.conv2d(tx, tw, tb, padding=1),
+            lambda tx=tx, tw=tw, tb=tb: torch.nn.functional.conv2d(
+                tx, tw, tb, padding=1
+            ),
             repeat=2,
             number=5,
         )
@@ -223,8 +225,16 @@ for scale in tqdm(scales):
         cuda_feeds = {"X": x_ortvalue}
         sess2.run_with_ort_values(None, cuda_feeds)
         sess3.run_with_ort_values(None, cuda_feeds)
-        t2 = measure_time(lambda: sess2.run(None, cuda_feeds), repeat=2, number=5)
-        t3 = measure_time(lambda: sess3.run(None, cuda_feeds), repeat=2, number=5)
+        t2 = measure_time(
+            lambda sess2=sess2, cuda_feeds=cuda_feeds: sess2.run(None, cuda_feeds),
+            repeat=2,
+            number=5,
+        )
+        t3 = measure_time(
+            lambda sess3=sess3, cuda_feeds=cuda_feeds: sess3.run(None, cuda_feeds),
+            repeat=2,
+            number=5,
+        )
         obs["ort-cuda"] = t2["average"]
         obs["ort-cuda-opt"] = t2["average"]
 

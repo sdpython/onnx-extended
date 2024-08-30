@@ -194,13 +194,13 @@ def benchmark(
         bind, cuda_feeds = move_inputs(sess, feeds)
 
         begin = time.perf_counter()
-        for i in range(script_args.warmup):
+        for _i in range(script_args.warmup):
             # sess.run(None, feeds)
             sess._sess.run_with_iobinding(bind, None)
         warmup = time.perf_counter() - begin
 
         times = []
-        for i in range(script_args.repeat):
+        for _i in range(script_args.repeat):
             begin = time.perf_counter()
             # sess.run(None, feeds)
             sess._sess.run_with_iobinding(bind, None)
@@ -262,7 +262,10 @@ if sess2 is not None:
     ax = pivot[["Not Fused", "Fused"]].plot(
         logx=True,
         logy=True,
-        title=f"Not Fused/Fused implementation for Transpose + Cast on CUDA\nitype={itype}",
+        title=(
+            f"Not Fused/Fused implementation for Transpose + "
+            f"Cast on CUDA\nitype={itype}"
+        ),
     )
     ax.get_figure().savefig("plot_op_transpose_2d_cast_cuda.png")
 

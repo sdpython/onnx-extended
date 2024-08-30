@@ -40,7 +40,7 @@ def documentation() -> List[str]:
     * to: quantized type
 
     **Inputs**
-    
+
     * A (T1): tensor of type T
     * B (T1): tensor of type T
     * C (T2): tensor of type T (optional)
@@ -65,15 +65,15 @@ def documentation() -> List[str]:
     Implements DynamicQuantizeLinear opset 20.
 
     **Provider**
-    
+
     CPUExecutionProvider
-    
+
     **Attributes**
 
     * to: quantized type
 
     **Inputs**
-    
+
     * X (T1): tensor of type T
 
     **Outputs**
@@ -95,11 +95,11 @@ def documentation() -> List[str]:
     It does the sum of two tensors.
 
     **Provider**
-    
+
     CPUExecutionProvider
-    
+
     **Inputs**
-    
+
     * X (T): tensor of type T
     * Y (T): tensor of type T
 
@@ -119,18 +119,18 @@ def documentation() -> List[str]:
     `cst = att_float + att_int64 + att_string[0] + att_tensot[0]`.
 
     **Provider**
-    
+
     CPUExecutionProvider
-    
+
     **Attributes**
 
     * att_float: a float
     * att_int64: an integer
     * att_tensor: a tensor of any type and shape
     * att_string: a string
-    
+
     **Inputs**
-    
+
     * X (T): tensor of type T
     * Y (T): tensor of type T
 

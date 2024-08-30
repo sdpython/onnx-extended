@@ -85,7 +85,7 @@ def main(argv):
 
         def transform_model(onx, **kwargs):
             att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-            modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+            modes = ",".join([s.decode("ascii") for s in att.strings])
             return change_onnx_operator_domain(
                 onx,
                 op_type=op_name,

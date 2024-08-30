@@ -51,7 +51,7 @@ class TestCudaGemm(ExtTestCase):
 
     @unittest.skipIf(gemm_benchmark_test is None, reason="CUDA not available")
     def test_gemm_test_float32(self):
-        for i in range(0, 5):
+        for i in range(5):
             with self.subTest(test=i):
                 self.gemm_test(i)
 

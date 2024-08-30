@@ -77,7 +77,7 @@ class TestXGBoostSparse(ExtTestCase):
 
         # with TreeEnsembleRegressorSparse
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
+        modes = ",".join([s.decode("ascii") for s in att.strings]).replace(
             "BRANCH_", ""
         )
         onx2 = change_onnx_operator_domain(

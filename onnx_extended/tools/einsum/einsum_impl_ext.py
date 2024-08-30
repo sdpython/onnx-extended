@@ -41,7 +41,7 @@ def numpy_diagonal(m: numpy.ndarray, axis: int, axes: Tuple[int, ...]) -> numpy.
     output = numpy.empty(tuple(shape), dtype=m.dtype)
     index_in: List[Union[int, slice]] = [slice(s) for s in m.shape]
     index_out: List[Union[int, slice]] = [slice(s) for s in m.shape]
-    for i in range(0, shape[axis]):
+    for i in range(shape[axis]):
         for a in axes:
             index_in[a] = i
             index_out[a] = i if a == axis else 0
@@ -358,7 +358,7 @@ def _numpy_extended_dot_python_intermediate(
             kind[i] += 4
 
     pos = numpy.zeros(len(names), dtype=numpy.int64)
-    for j in range(0, pos.shape[0]):
+    for j in range(pos.shape[0]):
         pos[j] = cols[names[j]]
     common = [(kind[i] & 3) == 3 for i in range(len(kind))]
     broadcast = [
@@ -730,7 +730,7 @@ def numpy_extended_dot_matrix(
         dim0 = int(numpy.prod([trm1.shape[i] for i in perm_common_axes]))
         dim0b = int(numpy.prod([trm2.shape[i] for i in perm_common_axes]))
         if len(axes) > 0:
-            all_axes = list(range(0, len(m1.shape)))
+            all_axes = list(range(len(m1.shape)))
             new_axes = all_axes[-len(axes) :]
         else:
             new_axes = []
@@ -772,13 +772,13 @@ def numpy_extended_dot_matrix(
 
         # Transpose again
         not_in_both = []
-        for i in range(0, len(m1.shape)):
+        for i in range(len(m1.shape)):
             if i not in left and i not in right:
                 not_in_both.append(i)
         ordered_axes = (
             common_axes
-            + list(i for i in left if i not in right)
-            + list(i for i in right if i not in left)
+            + [i for i in left if i not in right]
+            + [i for i in right if i not in left]
             + not_in_both
         )
 
@@ -818,7 +818,7 @@ def numpy_extended_dot_matrix(
         l_axes = set(left) & set(axes)
         r_axes = set(right) & set(axes)
         if r_axes and not l_axes:
-            new_axes = list(a for a in axes if a not in right)
+            new_axes = [a for a in axes if a not in right]
             new_left = list(sorted(set(left) | r_axes))
             if verbose:
                 eq1 = _numpy_extended_dot_equation(

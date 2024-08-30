@@ -259,7 +259,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
         if save_intermediate is not None:
             self._cached_saved_results = {}
 
-    def run(
+    def run(  # type: ignore[override]
         self,
         output_names,
         feed_inputs: Dict[str, Any],

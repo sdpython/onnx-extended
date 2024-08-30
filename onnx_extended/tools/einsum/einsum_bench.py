@@ -128,7 +128,7 @@ def einsum_benchmark(
     :return: list of dictionaries as an iterator
     """
     scenarios = []
-    if isinstance(shape, list) and all(map(lambda t: isinstance(t, int), shape)):
+    if isinstance(shape, list) and all(isinstance(t, int) for t in shape):
         shape_list = shape
     else:
         shape_list = [shape]

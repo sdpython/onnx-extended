@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -20,6 +20,7 @@ from onnx.helper import (
 )
 from onnx.shape_inference import infer_shapes
 from onnx.version_converter import convert_version
+from onnx.onnx_cpp2py_export.checker import ValidationError
 from ...reference import CReferenceEvaluator, from_array_extended
 
 
@@ -91,7 +92,7 @@ class Node:
                 kind = NodeKind.NODE
             elif kind != NodeKind.NODE:
                 raise ValueError(
-                    f"Unexpected kind {kind!r} for a node type " f"{proto.op_type!r}."
+                    f"Unexpected kind {kind!r} for a node type {proto.op_type!r}."
                 )
         if isinstance(proto, TensorProto):
             if kind is None:
@@ -159,7 +160,16 @@ class Node:
     def __str__(self) -> str:
         if self.is_node:
             if self.op_type == "Constant":
-                t = self.get_tensor()
+                t = None
+                try:
+                    t = self.get_tensor()
+                except ValidationError:
+                    # probably external date
+                    for att in self.proto.attribute:
+                        if att.name == "value":
+                            t = att.t
+                assert t is not None, f"Unable to extract shape from {self.proto}"
+
                 shape = tuple(t.dims)
                 stype = f"{t.data_type}:{shape}"
                 return (
@@ -167,9 +177,20 @@ class Node:
                     f"<parent>, <{self.op_type}>) "
                     f"[{stype}] -> [{','.join(self.outputs)}]"
                 )
+            atts = []
+            for att in self.proto.attribute:
+                if att.name == "to":
+                    atts.append(f"{att.name}={att.i}")
+                elif att.name == "perm":
+                    atts.append(f"{att.name}={att.ints}")
+            if atts:
+                jatts = ", ".join(atts)
+                jatts = f"[{jatts}]"
+            else:
+                jatts = ""
             return (
-                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
-                f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>)"
+                f"{jatts} [{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
             )
         if isinstance(self.proto, TensorProto):
             shape = tuple(self.proto.dims)
@@ -353,9 +374,8 @@ class NodeSet:
     def __len__(self) -> int:
         return len(self.nodes)
 
-    def __iter__(self) -> Iterable[Node]:
-        for n in self.nodes:
-            yield n
+    def __iter__(self) -> Iterator[Node]:
+        yield from self.nodes
 
 
 class Graph:
@@ -611,13 +631,12 @@ class Graph:
             raise IndexError(f"This node was probably reduced {index}.")
         return node
 
-    def __iter__(self) -> Iterable[Node]:
+    def __iter__(self) -> Iterator[Node]:
         "Iterates on nodes or initializer."
         for index, node in enumerate(self.nodes):
             if node is None or node.index in self.removed:
                 if index in self.nodes_sets:
-                    for n in self.nodes_sets[index]:
-                        yield n
+                    yield from self.nodes_sets[index]
                 continue
             yield node
 

@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 from onnx import TensorProto
 from onnx.defs import OpSchema
@@ -115,16 +116,16 @@ class GemmFloat8(OpRun):
         A,
         B,
         *args,
-        transA: int = None,
-        transB: int = None,
-        alpha: float = None,
-        beta: float = None,
-        smCount: int = None,
-        fastAccumulationMode: int = None,
-        computeType: str = None,
-        dtype: int = None,
-        rowMajor: int = None,
-        activation: str = None,
+        transA: Optional[int] = None,
+        transB: Optional[int] = None,
+        alpha: Optional[float] = None,
+        beta: Optional[float] = None,
+        smCount: Optional[int] = None,
+        fastAccumulationMode: Optional[int] = None,
+        computeType: Optional[str] = None,
+        dtype: Optional[int] = None,
+        rowMajor: Optional[int] = None,
+        activation: Optional[str] = None,
     ):
         if len(A.shape) != 2:
             raise ValueError(f"A is not a matrix, its shape is {A.shape}.")

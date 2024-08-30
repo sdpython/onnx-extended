@@ -95,8 +95,7 @@ class Tokenizer(OpRun):
         """
 
         def split(t):
-            for c in t:
-                yield c
+            yield from t
 
         return Tokenizer._run_tokenization(text, stops, split, mark, pad_value)
 

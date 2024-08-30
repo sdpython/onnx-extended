@@ -183,7 +183,7 @@ class MemorySpy:
 
         n_gpus = self.parent_conn.recv()
         gpus = []
-        for i in range(n_gpus):
+        for _i in range(n_gpus):
             gpus.append(Monitor.recv(self.parent_conn))
 
         self.parent_conn.close()

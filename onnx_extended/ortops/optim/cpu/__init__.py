@@ -30,11 +30,11 @@ def documentation() -> List[str]:
     All null values are skipped.
 
     **Provider**
-    
+
     CPUExecutionProvider
 
     **Inputs**
-    
+
     * X (T): 2D tensor
 
     **Outputs**
@@ -53,11 +53,11 @@ def documentation() -> List[str]:
     All missing values are replaced by 0.
 
     **Provider**
-    
+
     CPUExecutionProvider
 
     **Inputs**
-    
+
     * X (T): 1D tensor
 
     **Outputs**
@@ -75,20 +75,20 @@ def documentation() -> List[str]:
     Implements TfIdfVectorizer.
 
     **Provider**
-    
+
     CPUExecutionProvider
-    
+
     **Attributes**
 
     See `onnx TfIdfVectorizer
     <https://onnx.ai/onnx/operators/onnx_aionnxml_TfIdfVectorizer.html>`_.
     The implementation does not support string labels. It is adding one attribute.
-    
+
     * sparse: INT64, default is 0, the output and the computation are sparse,
-      see 
+      see
 
     **Inputs**
-    
+
     * X (T1): tensor of type T1
 
     **Outputs**
@@ -109,7 +109,7 @@ def documentation() -> List[str]:
     It does the sum of two tensors.
 
     **Provider**
-    
+
     CPUExecutionProvider
 
     **Attributes**
@@ -122,7 +122,7 @@ def documentation() -> List[str]:
     nodes_modes: string contenation with `,`
 
     **Inputs**
-    
+
     * X (T1): tensor of type T1
 
     **Outputs**
@@ -143,7 +143,7 @@ def documentation() -> List[str]:
     It does the sum of two tensors.
 
     **Provider**
-    
+
     CPUExecutionProvider
 
     **Attributes**
@@ -156,7 +156,7 @@ def documentation() -> List[str]:
     nodes_modes: string contenation with `,`
 
     **Inputs**
-    
+
     * X (T1): tensor of type T1 (sparse)
 
     **Outputs**
@@ -177,8 +177,8 @@ def documentation() -> List[str]:
     It does the sum of two tensors.
 
     **Provider**
-    
-    CPUExecutionProvider    
+
+    CPUExecutionProvider
 
     **Attributes**
 
@@ -189,7 +189,7 @@ def documentation() -> List[str]:
     nodes_modes: string contenation with `,`
 
     **Inputs**
-    
+
     * X (T1): tensor of type T1
 
     **Outputs**
@@ -208,8 +208,8 @@ def documentation() -> List[str]:
     It does the sum of two tensors.
 
     **Provider**
-    
-    CPUExecutionProvider    
+
+    CPUExecutionProvider
 
     **Attributes**
 
@@ -220,7 +220,7 @@ def documentation() -> List[str]:
     nodes_modes: string contenation with `,`
 
     **Inputs**
-    
+
     * X (T1): tensor of type T1 (sparse)
 
     **Outputs**

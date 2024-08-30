@@ -78,11 +78,11 @@ def _apply_optimisation_on_graph(
     if hasattr(onnx_model, "graph"):
         if debug_info is None:
             debug_info = []
-        graph = fct(onnx_model.graph, debug_info=debug_info + ["GRAPH"], **kwargs)
+        graph = fct(onnx_model.graph, debug_info=[*debug_info, "GRAPH"], **kwargs)
         functions = [
             fct(
                 f,
-                debug_info=debug_info + [f"FUNCTION {f.name}"],
+                debug_info=[*debug_info, f"FUNCTION {f.name}"],
                 recursive=recursive,
                 **kwargs,
             )
@@ -123,9 +123,7 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     if debug_info is None:
         debug_info = [str(type(onnx_model)).rsplit(".", maxsplit=1)[-1].strip("'>")]
     else:
-        debug_info = debug_info + [
-            str(type(onnx_model)).rsplit(".", maxsplit=1)[-1].strip("'>")
-        ]
+        debug_info.extend(str(type(onnx_model)).rsplit(".", maxsplit=1)[-1].strip("'>"))
 
     if hasattr(onnx_model, "graph"):
         return _apply_optimisation_on_graph(
@@ -237,7 +235,7 @@ def get_tensor_shape(
         shape.append(v)
     if not shape:
         return shape
-    return list(None if s in (0, "") else s for s in shape)
+    return [None if s in (0, "") else s for s in shape]
 
 
 def get_hidden_inputs(nodes: Iterable[NodeProto]) -> Set[str]:
@@ -260,7 +258,7 @@ def get_hidden_inputs(nodes: Iterable[NodeProto]) -> Set[str]:
             ):
                 continue
             hidden = get_hidden_inputs(att.g.node)
-            inits = set([i.name for i in att.g.initializer])
+            inits = set(i.name for i in att.g.initializer)
             inputs |= hidden - (inits & hidden)
     return inputs - (outputs & inputs)
 
@@ -431,14 +429,12 @@ def select_model_inputs_outputs(
         for node in nodes:
             s = "+" if mark_op[id(node)] == 1 else "-"
             logger.info(
-                "[select_model_inputs_outputs] %s %s (%s) -> %s [%s]"
-                % (
-                    s,
-                    node.op_type,
-                    ", ".join(node.input),
-                    ", ".join(node.output),
-                    node.name,
-                )
+                "[select_model_inputs_outputs] %s %s (%s) -> %s [%s]",
+                s,
+                node.op_type,
+                ", ".join(node.input),
+                ", ".join(node.output),
+                node.name,
             )
 
     known_shapes = {}
@@ -498,14 +494,15 @@ def select_model_inputs_outputs(
 
     if verbose > 0:
         logger.info(
-            "[select_model_inputs_outputs] nodes %r --> %r"
-            % (len(model.graph.node), len(keep_nodes))
+            "[select_model_inputs_outputs] nodes %r --> %r",
+            len(model.graph.node),
+            len(keep_nodes),
         )
         logger.info(
-            "[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_in]
+            "[select_model_inputs_outputs] inputs: %r", [_.name for _ in var_in]
         )
         logger.info(
-            "[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_out]
+            "[select_model_inputs_outputs] inputs: %r", [_.name for _ in var_out]
         )
 
     graph = make_graph(
@@ -960,7 +957,7 @@ def multiply_tree(node: NodeProto, n: int, random: bool = True) -> NodeProto:
         [i for i, m in zip(np.arange(len(nodes_featureids)), not_leave_mask) if m]
     )
     permuted_indices = indices.copy()
-    for i in range(n):
+    for _i in range(n):
         new_feature_ids.extend(nodes_featureids.tolist())
         new_nodes_values.extend(nodes_values.tolist())
         if random:
@@ -1019,7 +1016,7 @@ def multiply_tree(node: NodeProto, n: int, random: bool = True) -> NodeProto:
         elif att.name in {"class_treeids", "nodes_treeids", "target_treeids"}:
             ints = []
             arr = np.array(att.ints, dtype=np.int64)
-            for i in range(n):
+            for _i in range(n):
                 ints.extend(arr.tolist())
                 arr += 1
             kwargs[att.name] = ints

@@ -27,7 +27,7 @@ To change the training parameters:
         --max_depth=10
         --n_features=50
         --batch_size=100000
-    
+
 Another example with a full list of parameters:
 
     python plot_op_tree_ensemble_optim.py
@@ -49,7 +49,7 @@ Another example:
 ::
 
     python plot_op_tree_ensemble_optim.py
-        --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT        
+        --n_trees=100 --n_features=10 --batch_size=10000 --max_depth=8 -s SHORT
 """
 
 import logging
@@ -185,9 +185,7 @@ def transform_model(model, **kwargs):
     onx = ModelProto()
     onx.ParseFromString(model.SerializeToString())
     att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-    modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
-        "BRANCH_", ""
-    )
+    modes = ",".join([s.decode("ascii") for s in att.strings]).replace("BRANCH_", "")
     return change_onnx_operator_domain(
         onx,
         op_type="TreeEnsembleRegressor",
@@ -307,12 +305,12 @@ elif script_args.scenario == "LONG":
     )
 elif script_args.scenario == "CUSTOM":
     optim_params = dict(
-        parallel_tree=list(int(i) for i in script_args.parallel_tree.split(",")),
-        parallel_tree_N=list(int(i) for i in script_args.parallel_tree_N.split(",")),
-        parallel_N=list(int(i) for i in script_args.parallel_N.split(",")),
-        batch_size_tree=list(int(i) for i in script_args.batch_size_tree.split(",")),
-        batch_size_rows=list(int(i) for i in script_args.batch_size_rows.split(",")),
-        use_node3=list(int(i) for i in script_args.use_node3.split(",")),
+        parallel_tree=[int(i) for i in script_args.parallel_tree.split(",")],
+        parallel_tree_N=[int(i) for i in script_args.parallel_tree_N.split(",")],
+        parallel_N=[int(i) for i in script_args.parallel_N.split(",")],
+        batch_size_tree=[int(i) for i in script_args.batch_size_tree.split(",")],
+        batch_size_rows=[int(i) for i in script_args.batch_size_rows.split(",")],
+        use_node3=[int(i) for i in script_args.use_node3.split(",")],
     )
 else:
     raise ValueError(

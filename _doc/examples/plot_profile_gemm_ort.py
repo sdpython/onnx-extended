@@ -345,7 +345,7 @@ for tt, engine, provider, dim, domain in pbar:
         first_it_out=True,
         agg=True,
     ).reset_index(drop=False)
-    columns = ["xdim", "xdomain", "xdtype"] + list(df.columns)
+    columns = ["xdim", "xdomain", "xdtype", *df.columns]
     df["xdim"] = "x".join(map(str, dim))
     df["xdomain"] = {
         "onnx_extended.ortops.tutorial.cuda": "EXT",

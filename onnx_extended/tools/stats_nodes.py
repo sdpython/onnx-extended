@@ -1,6 +1,6 @@
 import pprint
 from collections import Counter
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, Iterable, Optional, Tuple, Union
 import numpy as np
 from onnx import (
     AttributeProto,
@@ -32,10 +32,10 @@ def enumerate_nodes(
     """
     if isinstance(onx, ModelProto):
         for c, parent, node in enumerate_nodes(onx.graph, recursive=recursive):
-            yield (onx.graph.name,) + c, parent, node
+            yield (onx.graph.name, *c), parent, node
         for f in onx.functions:
             for c, parent, node in enumerate_nodes(f, recursive=recursive):
-                yield (f.name,) + c, parent, node
+                yield (f.name, *c), parent, node
     elif isinstance(onx, (GraphProto, FunctionProto)):
         if isinstance(onx, GraphProto):
             for init in onx.initializer:
@@ -64,7 +64,7 @@ def enumerate_nodes(
                                 n = node.indices.name or node.values.name
                             else:
                                 raise TypeError(f"Unexpected type {type(node)}.")
-                            yield (f"{n}/{att.name}",) + c, parent, node
+                            yield (f"{n}/{att.name}", *c), parent, node
 
 
 def extract_attributes(node: NodeProto) -> Dict[str, Tuple[AttributeProto, Any]]:
@@ -132,9 +132,8 @@ class _Statistics:
         assert name not in self._statistics, f"Statistics {name!r} was already added."
         self._statistics[name] = value
 
-    def __iter__(self) -> Iterable[Tuple[str, Any]]:
-        for it in self._statistics.items():
-            yield it
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+        yield from self._statistics.items()
 
     def __getitem__(self, name: str) -> Any:
         "Returns one statistics."

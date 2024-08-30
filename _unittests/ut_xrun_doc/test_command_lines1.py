@@ -188,10 +188,12 @@ class TestCommandLines1(ExtTestCase):
         with tempfile.NamedTemporaryFile(suffix=".onnx") as f:
             f.write(onnx_model.SerializeToString())
             f.seek(0)
-            with tempfile.NamedTemporaryFile(suffix=".csv") as root:
-                with redirect_stdout(st):
-                    args = ["display", "-m", f.name, "-s", root.name]
-                    main(args)
+            with (
+                tempfile.NamedTemporaryFile(suffix=".csv") as root,
+                redirect_stdout(st),
+            ):
+                args = ["display", "-m", f.name, "-s", root.name]
+                main(args)
         text = st.getvalue()
         self.assertIn("input       tensor      X           FLOAT", text)
 
@@ -263,7 +265,7 @@ class TestCommandLines1(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     ),
                 ),
                 make_node("MatMul", ["X", "mat"], ["Z"]),

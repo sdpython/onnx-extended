@@ -30,11 +30,11 @@ def documentation() -> List[str]:
     It calls CUDA library for Gemm :math:`\\alpha A B + \\beta C`.
 
     **Provider**
-    
+
     CUDAExecutionProvider
-    
+
     **Inputs**
-    
+
     * A (T): tensor of type T
     * B (T): tensor of type T
     * C (T): tensor of type T

@@ -63,7 +63,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
 
         # transformation
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings)).replace(
+        modes = ",".join([s.decode("ascii") for s in att.strings]).replace(
             "BRANCH_", ""
         )
         onx2 = change_onnx_operator_domain(
@@ -116,7 +116,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
 
         def transform_model(onx, **kwargs):
             att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-            modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+            modes = ",".join([s.decode("ascii") for s in att.strings])
             return change_onnx_operator_domain(
                 onx,
                 op_type="TreeEnsembleRegressor",
@@ -183,7 +183,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
 
         # transformation
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+        modes = ",".join([s.decode("ascii") for s in att.strings])
 
         for params in [
             dict(
@@ -278,7 +278,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
 
         # transformation
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+        modes = ",".join([s.decode("ascii") for s in att.strings])
 
         for params in [
             dict(
@@ -382,7 +382,7 @@ class TestOrtOpOptimTreeEnsembleCpu(ExtTestCase):
         opsets = {d.domain: d.version for d in onx.opset_import}
         self.assertEqual({"ai.onnx.ml": 3, "": 18}, opsets)
         att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-        modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+        modes = ",".join([s.decode("ascii") for s in att.strings])
         onx2 = change_onnx_operator_domain(
             onx,
             op_type="TreeEnsembleRegressor",

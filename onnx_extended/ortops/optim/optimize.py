@@ -29,7 +29,7 @@ def get_node_attribute(node: NodeProto, name: str) -> AttributeProto:
         if att.name == name:
             return att
     raise KeyError(
-        f"Unable to find {name!r} among {list(att.name for att in node.attribute)}."
+        f"Unable to find {name!r} among {[att.name for att in node.attribute]}."
     )
 
 
@@ -198,7 +198,7 @@ def optimize_model(
     See example :ref:`l-plot-optim-tree-ensemble` for an example.
     """
     assert sleep < 1, f"sleep={sleep} >= 1, probably a mistake."
-    keys = ["TRY"] + list(params.keys())
+    keys = ["TRY", *list(params.keys())]
     sets = [list(range(n_tries))] + [params[k] for k in keys[1:]]
     loops = list(product(*sets))
     if verbose:
