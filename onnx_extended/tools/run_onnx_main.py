@@ -66,8 +66,7 @@ def main(argv):
         spl = args.runtime.split(".")
         op_name = spl[0].replace("Custom", "")
         params = [int(a) for a in spl[1:]]
-        if len(params) > 6:
-            raise ValueError(f"Unexpected runtime {args.runtime!r}.")
+        assert len(params) <= 6, "Unexpected runtime {args.runtime!r}."
 
         optim_params = {}
         for i, k in enumerate(
@@ -86,12 +85,12 @@ def main(argv):
 
         def transform_model(onx, **kwargs):
             att = get_node_attribute(onx.graph.node[0], "nodes_modes")
-            modes = ",".join(map(lambda s: s.decode("ascii"), att.strings))
+            modes = ",".join([s.decode("ascii") for s in att.strings])
             return change_onnx_operator_domain(
                 onx,
                 op_type=op_name,
                 op_domain="ai.onnx.ml",
-                new_op_domain="onnx_extented.ortops.optim.cpu",
+                new_op_domain="onnx_extended.ortops.optim.cpu",
                 nodes_modes=modes,
                 **kwargs,
             )

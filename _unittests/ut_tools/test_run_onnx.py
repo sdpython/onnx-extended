@@ -15,7 +15,7 @@ from onnx.helper import (
     make_opsetid,
 )
 from onnx.checker import check_model
-from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
+from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings, skipif_ci_apple
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.run_onnx import (
     save_for_benchmark_or_test,
@@ -156,6 +156,7 @@ class TestRunOnnx(ExtTestCase):
                 self.assertEqual(examples["bench"][k], bench["bench"][k])
 
     @ignore_warnings(DeprecationWarning)
+    @skipif_ci_apple("crash")
     def test_test_run_cmd_engine_rf(self):
         folder = os.path.join(os.path.dirname(__file__), "bench_rf")
 

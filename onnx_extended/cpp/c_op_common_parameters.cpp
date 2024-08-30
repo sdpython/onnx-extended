@@ -18,19 +18,19 @@ POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value) {
 }
 
 NODE_MODE to_NODE_MODE(const std::string &value) {
-  if (value.compare("BRANCH_LEQ") == 0)
+  if (value.compare("BRANCH_LEQ") == 0 || value.compare("LEQ") == 0)
     return NODE_MODE::BRANCH_LEQ;
-  if (value.compare("BRANCH_LT") == 0)
+  if (value.compare("BRANCH_LT") == 0 || value.compare("LT") == 0)
     return NODE_MODE::BRANCH_LT;
-  if (value.compare("BRANCH_GTE") == 0)
+  if (value.compare("BRANCH_GTE") == 0 || value.compare("GTE") == 0)
     return NODE_MODE::BRANCH_GTE;
-  if (value.compare("BRANCH_GT") == 0)
+  if (value.compare("BRANCH_GT") == 0 || value.compare("GT") == 0)
     return NODE_MODE::BRANCH_GT;
-  if (value.compare("BRANCH_EQ") == 0)
+  if (value.compare("BRANCH_EQ") == 0 || value.compare("EQ") == 0)
     return NODE_MODE::BRANCH_EQ;
-  if (value.compare("BRANCH_NEQ") == 0)
+  if (value.compare("BRANCH_NEQ") == 0 || value.compare("NEQ") == 0)
     return NODE_MODE::BRANCH_NEQ;
-  if (value.compare("LEAF") == 0)
+  if (value.compare("LEAF") == 0 || value.compare("F") == 0)
     return NODE_MODE::LEAF;
   throw std::invalid_argument(std::string("NODE_MODE '") + value +
                               std::string("' is not defined."));

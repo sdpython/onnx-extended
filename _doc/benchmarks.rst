@@ -9,8 +9,17 @@ Shows the list of benchmarks implemented the :ref:`l-example-gallery`.
 CPU
 ===
 
-plot_optim_tree_ensemble
-++++++++++++++++++++++++
+plot_bench_tfidf
+++++++++++++++++
+
+See :ref:`l-plot-optim-tfidf`.
+
+This benchmark measures the computation time when the kernel outputs
+sparse tensors.
+
+
+plot_op_tree_ensemble_optim
++++++++++++++++++++++++++++
 
 See :ref:`l-plot-optim-tree-ensemble`.
 
@@ -20,6 +29,24 @@ and let the users choose the parallelization parameters.
 This scripts tries many values to select the best one
 for trees trains with :epkg:`scikit-learn` and a 
 :class:`sklearn.ensemble.RandomForestRegressor`.
+
+plot_op_tree_ensemble_sparse
+++++++++++++++++++++++++++++
+
+See :ref:`l-plot-optim-tree-ensemble-sparse`.
+
+This packages implements a custom kernel for
+:epkg:`TreeEnsembleRegressor` and :epkg:`TreeEnsembleClassifier`
+and let the users choose the parallelization parameters.
+This scripts tries many values to select the best one
+for trees trains with :epkg:`scikit-learn` and a 
+:class:`sklearn.ensemble.RandomForestRegressor`.
+
+plot_op_tree_ensemble_implementations
++++++++++++++++++++++++++++++++++++++
+
+Test several implementations of TreeEnsemble is more simple way,
+see :ref:`l-plot_op_tree_ensemble_implementations`.
 
 plot_op_einsum
 ++++++++++++++
@@ -63,6 +90,44 @@ See :ref:`l-example-plot-profile-gemm`.
 The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
+
+plot_op_gemm2_cuda
+++++++++++++++++++
+
+See :ref:`l-example-op-gemm2_cuda`.
+
+One big Gemm or two smaller gemm.
+
+plot_op_mul_cuda
+++++++++++++++++
+
+See :ref:`l-example-op-mul_cuda`.
+
+The benchmark compares two operators Mul profiles
+with their fusion into a single operator.
+
+plot_op_scatternd_cuda
+++++++++++++++++++++++
+
+See :ref:`l-example-op-scatternd_cuda`.
+
+The benchmark compares two operators ScatterND, using
+atomic, no atomic.
+
+plot_op_scatternd_mask_cuda
++++++++++++++++++++++++++++
+
+See :ref:`l-example-op-scatternd_mask_cuda`.
+
+The benchmark compares three operators ScatterND to update
+a matrix.
+
+plot_op_transpose2dcast_cuda
+++++++++++++++++++++++++++++
+
+See :ref:`l-example-op-transpose2dcast_cuda`.
+
+The benchmark looks into the fusion to Transpose + Cast.
 
 No specific provider
 ====================

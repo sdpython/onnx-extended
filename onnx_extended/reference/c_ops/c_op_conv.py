@@ -48,19 +48,12 @@ class Conv(OpRun):
 
         rt = self.cache_[X.dtype]
 
-        if X is None:
-            raise ValueError(f"X cannot be None for operator {type(self)}.")
-        if min(X.shape) == 0:
-            raise RuntimeError(
-                f"Unable to run operator Conv on an empty matrix. X.shape={X.shape!r}."
-            )
-        if min(W.shape) == 0:
-            raise RuntimeError(
-                f"Unable to run operator Conv on an empty matrix. W.shape={W.shape!r}."
-            )
-        if B is not None and min(B.shape) == 0:
-            raise RuntimeError(
-                f"Unable to run operator Conv on an empty matrix. B.shape={B.shape!r}."
-            )
+        assert X is not None, f"X cannot be None for operator {type(self)}."
+        assert (
+            min(X.shape) != 0
+        ), f"Unable to run operator Conv on an empty matrix. X.shape={X.shape!r}."
+        assert (
+            B is None or min(B.shape) != 0
+        ), f"Unable to run operator Conv on an empty matrix. B.shape={B.shape!r}."
         cv = rt.compute(X, W, B)
         return (cv,)

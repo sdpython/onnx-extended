@@ -8,6 +8,7 @@ The benchmark profiles the execution of Gemm for different
 types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 """
+
 import pprint
 from itertools import product
 import numpy
@@ -46,7 +47,8 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.ext_test_case import unit_test_going, get_parsed_args
+from onnx_extended.args import get_parsed_args
+from onnx_extended.ext_test_case import unit_test_going
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
@@ -91,7 +93,7 @@ pprint.pprint(properties)
 # It includes one Gemm. The operator changes.
 # It can the regular Gemm, a custom Gemm from domain `com.microsoft`
 # or a custom implementation from domain
-# `onnx_extented.ortops.tutorial.cuda`.
+# `onnx_extended.ortops.tutorial.cuda`.
 
 
 def create_model(
@@ -162,7 +164,7 @@ def create_model(
         opset_imports=[
             make_opsetid("", opset),
             make_opsetid("com.microsoft", 1),
-            make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+            make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
         ],
         ir_version=ir,
     )
@@ -230,7 +232,7 @@ providers = [
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
 dims = [tuple(int(i) for i in line.split(",")) for line in script_args.dims.split(";")]
-domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
+domains = ["onnx_extended.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
 ####################################
@@ -343,15 +345,15 @@ for tt, engine, provider, dim, domain in pbar:
         first_it_out=True,
         agg=True,
     ).reset_index(drop=False)
-    columns = ["xdim", "xdomain", "xdtype"] + list(df.columns)
+    columns = ["xdim", "xdomain", "xdtype", *df.columns]
     df["xdim"] = "x".join(map(str, dim))
     df["xdomain"] = {
-        "onnx_extented.ortops.tutorial.cuda": "EXT",
+        "onnx_extended.ortops.tutorial.cuda": "EXT",
         "": "ORT",
         "com.microsoft": "COM",
     }[domain]
     df["args_op_name"] = {
-        "onnx_extented.ortops.tutorial.cuda": "CG",
+        "onnx_extended.ortops.tutorial.cuda": "CG",
         "": "Gemm",
         "com.microsoft": "G8",
     }[domain]
@@ -366,7 +368,7 @@ for tt, engine, provider, dim, domain in pbar:
 # Results
 # +++++++
 
-if len(data) > 0:
+if data:
     df = concat(data, axis=0)
     df.to_excel("plot_profile_gemm_ort.xlsx")
     df.to_csv("plot_profile_gemm_ort.csv")
@@ -376,7 +378,7 @@ if len(data) > 0:
 # Summary
 # +++++++
 
-if len(data) > 0:
+if data:
     piv = pivot_table(
         df[df["it==0"] == 0],
         index=["xdim", "cat", "event_name"],
@@ -394,7 +396,7 @@ if len(data) > 0:
 ##############################
 # plot
 
-if len(data) > 0:
+if data:
     print()
     print("compact")
 
@@ -418,7 +420,7 @@ if len(data) > 0:
     print(pivinot)
 
 
-if len(data) > 0:
+if data:
     fig, ax = plt.subplots(2, 2, figsize=(12, 8))
     pivi.T.plot(
         ax=ax[0, 0],

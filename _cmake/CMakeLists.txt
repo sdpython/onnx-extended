@@ -43,9 +43,8 @@ include("targets/common.cmake")
 
 include("targets/_validation.cmake")
 include("targets/_validation_cuda_example_py.cmake")
-include("targets/vector_function_cy.cmake")
+include("targets/_validation_cuda_monitor.cmake")
 include("targets/fp8_cy.cmake")
-include("targets/direct_blas_lapack_cy.cmake")
 
 #
 # common libraries for kernel implementations
@@ -59,6 +58,8 @@ include("targets/common_kernels.cmake")
 
 include("targets/ortinf.cmake")
 include("targets/c_op_conv_.cmake")
+include("targets/c_op_svm_py_.cmake")
+include("targets/c_op_tfidf_vectorizer_py_.cmake")
 include("targets/c_op_tree_ensemble_py_.cmake")
 
 #
@@ -75,6 +76,7 @@ message(STATUS "REFOPS_INCLUDE_DIR=${REFOPS_INCLUDE_DIR}")
 include("targets/ortops_tutorial_cpu.cmake")
 include("targets/ortops_tutorial_cuda.cmake")
 include("targets/ortops_optim_cpu.cmake")
+include("targets/ortops_optim_cuda.cmake")
 
 #
 # finalize
@@ -87,7 +89,7 @@ include("finalize.cmake")
 #
 
 message(STATUS "---------------------------------------------------")
-message(STATUS "CONTENT\n ${config_content}")
+message(STATUS "CONTENT\n${config_content}")
 message(STATUS "WRITE _CONFIG: '${ROOT_PROJECT_PATH}/onnx_extended/_config.py'")
 file(WRITE "${ROOT_PROJECT_PATH}/onnx_extended/_config.py" "${config_content}")
 message(STATUS "WRITE _CONFIG: '${SETUP_BUILD_LIB}/onnx_extended/_config.py'")

@@ -21,6 +21,7 @@ The code shows which optimisation is used for the custom
 implementation, *AVX* or *SSE* and the number of available processors,
 equal to the default number of used threads to parallelize.
 """
+
 import logging
 import numpy
 import pandas
@@ -70,6 +71,7 @@ def build_ort_einsum(equation, op_version=18):  # opset=13, 14, ...
             [make_tensor_value_info("z", TensorProto.FLOAT, None)],
         ),
         opset_imports=[make_opsetid("", op_version)],
+        ir_version=9,
     )
     sess = InferenceSession(onx.SerializeToString(), providers=["CPUExecutionProvider"])
     return lambda x, y: sess.run(None, {"x": x, "y": y})

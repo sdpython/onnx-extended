@@ -109,9 +109,7 @@ class Runner:
                 setattr(tests, name, item.func)
         return tests
 
-    def run(
-        self, verbose: int = 0, exc_cls: Optional[type] = AssertionError
-    ) -> Tuple[
+    def run(self, verbose: int = 0, exc_cls: Optional[type] = AssertionError) -> Tuple[
         List[Tuple[str, Callable]],
         List[Tuple[str, Callable, Any]],
         List[Tuple[str, Callable, Exception]],
@@ -130,9 +128,9 @@ class Runner:
             if att.startswith("test_"):
                 test = getattr(tests, att)
                 methods.append((att, test))
-        if len(methods) == 0:
-            msg = "\n".join(dir(tests))
-            raise RuntimeError(f"No test was detected. Available tests are:\n{msg}")
+        assert (
+            methods
+        ), f"No test was detected. Available tests are:\n{', '.join(dir(tests))}"
 
         if verbose:
             from tqdm import tqdm

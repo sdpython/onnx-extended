@@ -36,7 +36,7 @@ html_logo = "_static/logo.png"
 source_suffix = ".rst"
 master_doc = "index"
 project = "onnx-extended"
-copyright = "2023, Xavier Dupré"
+copyright = "2023-2024, Xavier Dupré"
 author = "Xavier Dupré"
 version = __version__
 release = __version__
@@ -145,6 +145,7 @@ epkg_dictionary = {
     "opt-einsum": "https://optimized-einsum.readthedocs.io/en/stable/",
     "pandas": "https://pandas.pydata.org/",
     "protobuf": "https://github.com/protocolbuffers/protobuf",
+    "psutil": "https://psutil.readthedocs.io/en/latest/",
     "pybind11": "https://github.com/pybind/pybind11",
     "pyinstrument": "https://github.com/joerick/pyinstrument",
     "python": "https://www.python.org/",

@@ -31,7 +31,7 @@ def get_main_parser() -> ArgumentParser:
         help=dedent(
             """
         Selects a command.
-        
+
         'bench' runs a benchmark,
         'check' checks a runtime on stored intermediate results,
         'cvt' conversion into another format,
@@ -349,7 +349,7 @@ def get_parser_external() -> ArgumentParser:
         prog="external",
         description=dedent(
             """
-        Takes an onnx model and split the model and the coefficients.    
+        Takes an onnx model and split the model and the coefficients.
         """
         ),
         epilog="The functions stores the coefficients as external data. "
@@ -427,12 +427,10 @@ def _process_options(text: Optional[str]) -> "QuantizeOptions":  # noqa: F821
     value = QuantizeOptions.NONE
     for name in names:
         name = name.upper()
-        if hasattr(QuantizeOptions, name):
-            value |= getattr(QuantizeOptions, name)
-        else:
-            raise ValueError(
-                f"Unable to parse option name among {dir(QuantizeOptions)}."
-            )
+        assert hasattr(
+            QuantizeOptions, name
+        ), f"Unable to parse option name among {dir(QuantizeOptions)}."
+        value |= getattr(QuantizeOptions, name)
 
     return value
 
@@ -530,7 +528,7 @@ def get_parser_plot() -> ArgumentParser:
         help=dedent(
             """
         Kind of plot to draw.
-        
+
         'profile_op' shows the time spent in every kernel per operator type,
         'profile_node' shows the time spent in every kernel per operator node,
         """
@@ -902,20 +900,15 @@ def _cmd_cvt(argv: List[Any]):
             df = pandas.read_excel(infile)
         else:
             raise ValueError(f"Unexpected filename extension {infile!r}.")
-    if df is None:
-        raise ValueError(f"Unable to interpret input file {infile!r}.")
+    assert df is not None, f"Unable to interpret input file {infile!r}."
     index = df.index.tolist() != list(np.arange(df.index.size).tolist())
-    if extout in {".csv", ".xlsx"}:
-        if args.verbose:
-            print(f"[cvt] save {outfile!r} with pandas")
-        if extout == ".csv":
-            df.to_csv(outfile, index=index)
-        elif extout == ".xlsx":
-            df.to_excel(outfile, index=index)
-        else:
-            raise ValueError(f"Unexpected filename extension {infile!r}.")
-    else:
-        raise ValueError(f"Unable to interpret output file {outfile!r}.")
+    assert extout in {".csv", ".xlsx"}, f"Unable to interpret output file {outfile!r}."
+    if args.verbose:
+        print(f"[cvt] save {outfile!r} with pandas")
+    if extout == ".csv":
+        df.to_csv(outfile, index=index)
+    else:  #  extout == ".xlsx":
+        df.to_excel(outfile, index=index)
 
 
 def main(argv: Optional[List[Any]] = None):
@@ -956,18 +949,15 @@ def main(argv: Optional[List[Any]] = None):
                 store=get_parser_store,
             )
             cmd = argv[0]
-            if cmd not in parsers:
-                raise ValueError(
-                    f"Unknown command {cmd!r}, it should be in {list(sorted(parsers))}."
-                )
+            assert (
+                cmd in parsers
+            ), f"Unknown command {cmd!r}, it should be in {list(sorted(parsers))}."
             parser = parsers[cmd]()
             parser.parse_args(argv[1:])
         raise RuntimeError("The programme should have exited before.")
 
     cmd = argv[0]
-    if cmd in fcts:
-        fcts[cmd](argv)
-    else:
-        raise ValueError(
-            f"Unknown command {cmd!r}, use --help to get the list of known command."
-        )
+    assert (
+        cmd in fcts
+    ), f"Unknown command {cmd!r}, use --help to get the list of known command."
+    fcts[cmd](argv)

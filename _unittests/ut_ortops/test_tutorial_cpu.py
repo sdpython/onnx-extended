@@ -31,7 +31,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
     def test_documentation(self):
         doc = documentation()
         self.assertIsInstance(doc, list)
-        self.assertEqual(len(doc), 3)
+        self.assertEqual(len(doc), 4)
         for d in doc:
             self.assertIn("~~~~", d)
             self.assertIsInstance(d, str)
@@ -44,12 +44,12 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         node1 = make_node(
-            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extended.ortops.tutorial.cpu"
         )
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)
@@ -77,7 +77,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
             "MyCustomOpWithAttributes",
             ["X", "A"],
             ["Y"],
-            domain="onnx_extented.ortops.tutorial.cpu",
+            domain="onnx_extended.ortops.tutorial.cpu",
             att_string="string_att",
             att_int64=5,
             att_float=4.5,
@@ -86,7 +86,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)
@@ -129,9 +129,11 @@ class TestOrtOpTutorialCpu(ExtTestCase):
                 [X],
                 [Y, scale],
             ),
-            opset_imports=[make_opsetid(domain, opset)]
-            if domain == ""
-            else [make_opsetid(domain, opset), make_opsetid("", 19)],
+            opset_imports=(
+                [make_opsetid(domain, opset)]
+                if domain == ""
+                else [make_opsetid(domain, opset), make_opsetid("", 19)]
+            ),
             ir_version=9,
         )
         try:
@@ -144,7 +146,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
 
     @unittest.skipIf(InferenceSession is None, reason="onnxruntime not installed")
     @unittest.skipIf(
-        onnx_opset_version() < 21, reason="DynamicQuantizeLinear not updated for float8"
+        onnx_opset_version() < 22, reason="DynamicQuantizeLinear not updated for float8"
     )
     def test_dynamic_quantize_linear(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
@@ -171,7 +173,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
         opts.register_custom_ops_library(r[0])
         sess = InferenceSession(
             self._get_dql_model(
-                "onnx_extented.ortops.tutorial.cpu", 1
+                "onnx_extended.ortops.tutorial.cpu", 1
             ).SerializeToString(),
             opts,
             providers=["CPUExecutionProvider"],

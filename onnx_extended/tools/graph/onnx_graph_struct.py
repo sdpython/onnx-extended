@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
 from onnx import (
     AttributeProto,
     FunctionProto,
@@ -20,6 +20,7 @@ from onnx.helper import (
 )
 from onnx.shape_inference import infer_shapes
 from onnx.version_converter import convert_version
+from onnx.onnx_cpp2py_export.checker import ValidationError
 from ...reference import CReferenceEvaluator, from_array_extended
 
 
@@ -91,7 +92,7 @@ class Node:
                 kind = NodeKind.NODE
             elif kind != NodeKind.NODE:
                 raise ValueError(
-                    f"Unexpected kind {kind!r} for a node type " f"{proto.op_type!r}."
+                    f"Unexpected kind {kind!r} for a node type {proto.op_type!r}."
                 )
         if isinstance(proto, TensorProto):
             if kind is None:
@@ -159,7 +160,16 @@ class Node:
     def __str__(self) -> str:
         if self.is_node:
             if self.op_type == "Constant":
-                t = self.get_tensor()
+                t = None
+                try:
+                    t = self.get_tensor()
+                except ValidationError:
+                    # probably external date
+                    for att in self.proto.attribute:
+                        if att.name == "value":
+                            t = att.t
+                assert t is not None, f"Unable to extract shape from {self.proto}"
+
                 shape = tuple(t.dims)
                 stype = f"{t.data_type}:{shape}"
                 return (
@@ -167,9 +177,20 @@ class Node:
                     f"<parent>, <{self.op_type}>) "
                     f"[{stype}] -> [{','.join(self.outputs)}]"
                 )
+            atts = []
+            for att in self.proto.attribute:
+                if att.name == "to":
+                    atts.append(f"{att.name}={att.i}")
+                elif att.name == "perm":
+                    atts.append(f"{att.name}={att.ints}")
+            if atts:
+                jatts = ", ".join(atts)
+                jatts = f"[{jatts}]"
+            else:
+                jatts = ""
             return (
-                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>) "
-                f"[{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
+                f"{self.__class__.__name__}({self.index}, <parent>, <{self.op_type}>)"
+                f"{jatts} [{','.join(self.inputs)}] -> [{','.join(self.outputs)}]"
             )
         if isinstance(self.proto, TensorProto):
             shape = tuple(self.proto.dims)
@@ -332,7 +353,7 @@ class NodeWithSubGraph(Node):
         for att in proto.attribute:
             if att.data_type == AttributeProto.GRAPH:
                 self.subgraphs[att.name] = Graph(att.g)
-        if len(self.subgraphs) == 0:
+        if not self.subgraphs:
             raise ValueError(f"A node type {self.proto.op_type!r} has no subgraph.")
 
     @property
@@ -353,9 +374,8 @@ class NodeSet:
     def __len__(self) -> int:
         return len(self.nodes)
 
-    def __iter__(self) -> Iterable[Node]:
-        for n in self.nodes:
-            yield n
+    def __iter__(self) -> Iterator[Node]:
+        yield from self.nodes
 
 
 class Graph:
@@ -404,7 +424,7 @@ class Graph:
         self.proto = proto
         if isinstance(proto, ModelProto):
             graph = proto.graph
-            if len(proto.functions) > 0:
+            if proto.functions:
                 raise NotImplementedError(
                     "Class Graph does not handle model included functions yet."
                 )
@@ -611,13 +631,12 @@ class Graph:
             raise IndexError(f"This node was probably reduced {index}.")
         return node
 
-    def __iter__(self) -> Iterable[Node]:
+    def __iter__(self) -> Iterator[Node]:
         "Iterates on nodes or initializer."
         for index, node in enumerate(self.nodes):
             if node is None or node.index in self.removed:
                 if index in self.nodes_sets:
-                    for n in self.nodes_sets[index]:
-                        yield n
+                    yield from self.nodes_sets[index]
                 continue
             yield node
 
@@ -651,16 +670,14 @@ class Graph:
         for index in indices:
             if index <= len(self.nodes):
                 node = self.nodes[index]
-                if node is None:
-                    raise RuntimeError(f"Node index {index} was already removed.")
+                assert node is not None, f"Node index {index} was already removed."
                 removed.append((index, self.nodes[index]))
                 self.nodes[index] = None
             elif index not in self.nodes_added:
                 raise RuntimeError(
                     f"Node index {index} does not exists or was already removed."
                 )
-            if index in self.removed:
-                raise RuntimeError(f"Node index {index} was already removed.")
+            assert index not in self.removed, f"Node index {index} was already removed."
 
         kind = None
         for index, node in removed:
@@ -677,19 +694,17 @@ class Graph:
                 del self.index_output[o]
             if node.is_input:
                 ni = node.outputs[0]
-                if ni not in self.graph_inputs:
-                    raise RuntimeError(
-                        f"Removing node {node} but it was not "
-                        f"found in self.graph_inputs."
-                    )
+                assert ni in self.graph_inputs, (
+                    f"Removing node {node} but it was not "
+                    f"found in self.graph_inputs."
+                )
                 del self.graph_inputs[self.graph_inputs.index(ni)]
             elif node.is_output:
                 ni = node.outputs[0]
-                if ni not in self.graph_outputs:
-                    raise RuntimeError(
-                        f"Removing node {node} but it was not "
-                        f"found in self.graph_outputs."
-                    )
+                assert ni in self.graph_outputs, (
+                    f"Removing node {node} but it was not "
+                    f"found in self.graph_outputs."
+                )
                 del self.graph_outputs[self.graph_outputs.index(ni)]
 
         if kind == NodeKind.UNDEFINED:
@@ -765,7 +780,7 @@ class Graph:
                 to_remove.append(node)
                 self.removed.add(node.index)
 
-            if len(to_remove) == 0:
+            if not to_remove:
                 break
 
             total_remove.extend(to_remove)
@@ -778,10 +793,9 @@ class Graph:
 
         :param new_opsets: dictionary { domain: new version }
         """
-        if not isinstance(self.proto, ModelProto):
-            raise RuntimeError(
-                f"Upgrading a model only works on a ModelProto not {type(self.proto)}."
-            )
+        assert isinstance(
+            self.proto, ModelProto
+        ), f"Upgrading a model only works on a ModelProto not {type(self.proto)}."
         if len(new_opsets) != 1 or "" not in new_opsets:
             raise RuntimeError(
                 f"Upgrade an opset only work for domain '' "
@@ -838,11 +852,9 @@ class Graph:
                 doc_string=self.proto.doc_string,
                 # training_info=self.proto.training_info,
                 opset_imports=[make_opsetid(k, v) for k, v in opsets.items()],
-                functions=None
-                if len(self.functions) == 0
-                else list(self.functions.values()),
+                functions=None if not self.functions else list(self.functions.values()),
             )
-            if len(self.proto.metadata_props) > 0:
+            if self.proto.metadata_props:
                 set_model_props(
                     model, {p.key: p.value for p in self.proto.metadata_props}
                 )

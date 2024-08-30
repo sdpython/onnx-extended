@@ -26,8 +26,10 @@ def _process_shape(shape_df):
     for val in shape_df:
         if len(val) != 1:
             raise ValueError(f"Unable to process shape {val!r} from {values!r}.")
-        k, v = list(val.items())[0]
-        if len(v) > 0:
+        for _k, _v in val.items():
+            k, v = _k, _v
+            break
+        if v:
             vs = "x".join(map(str, v))
             values.append(f"{_mapping_types.get(k,k)}[{vs}]")
         else:
@@ -103,7 +105,7 @@ def post_process_df_profile(
     for c in agg_cols:
         df[c] = df[c].fillna("")
     df["dur"] = df["dur"].fillna(0)
-    agg = df[agg_cols + ["dur"]].groupby(agg_cols).sum()
+    agg = df[[*agg_cols, "dur"]].groupby(agg_cols).sum()
     return agg
 
 
@@ -164,6 +166,9 @@ def _preprocess_graph1(df):
     for c in ["it==0", "args_input_type_shape"]:
         if c in df.columns:
             agg_cols.append(c)
+    if "it==0" in df.columns:
+        vs = ["t>=1", "t=0"]
+        df["it==0"] = df["it==0"].apply(lambda v: vs[v])
     gr_dur = df[agg_cols].groupby(agg_cols[1:]).sum().sort_values("dur")
     gr_n = df[agg_cols].groupby(agg_cols[1:]).count()
     gr_n = gr_n.loc[gr_dur.index, :]
@@ -186,6 +191,9 @@ def _preprocess_graph2(df):
     for c in ["it==0", "args_input_type_shape"]:
         if c in df.columns:
             agg_cols.append(c)
+    if "it==0" in df.columns:
+        vs = ["t>=1", "t=0"]
+        df["it==0"] = df["it==0"].apply(lambda v: vs[v])
     df = df[agg_cols].groupby(agg_cols[1:]).sum()
     df = df.sort_index(ascending=False)
     df["ratio"] = df["dur"] / df["dur"].sum()
@@ -199,7 +207,7 @@ def plot_ort_profile(
     title: Optional[str] = None,
 ) -> "matplotlib.axes.Axes":
     """
-    Plots time spend in computation based on dataframe
+    Plots time spend in computation based on a dataframe
     produced by function :func:`js_profile_to_dataframe`.
 
     :param df: dataframe
@@ -210,7 +218,7 @@ def plot_ort_profile(
     """
     fontsize = 10
     if ax0 is None:
-        import matplotlib as plt
+        import matplotlib.pyplot as plt
 
         ax0 = plt.gca()
 
@@ -249,3 +257,115 @@ def plot_ort_profile(
         ax0.get_yaxis().set_label_text("")
         ax0.set_yticklabels(ax0.get_yticklabels(), fontsize=fontsize)
     return ax0
+
+
+def plot_ort_profile_timeline(
+    df: DataFrame,
+    ax: Optional["matplotlib.axes.Axes"] = None,
+    iteration: int = -2,
+    title: Optional[str] = None,
+    quantile: float = 0.5,
+    fontsize: int = 12,
+) -> "matplotlib.axes.Axes":
+    """
+    Creates a timeline based on a dataframe
+    produced by function :func:`js_profile_to_dataframe`.
+
+    :param df: dataframe
+    :param ax: first axis to draw time
+    :param iteration: iteration to plot, negative value to start from the end
+    :param title: graph title
+    :param quantile: draw the 10% less consuming operators in a different color
+    :param fontsize: font size
+    :return: the graph
+    """
+    if ax is None:
+        import matplotlib.pyplot as plt
+
+        ax = plt.gca()
+
+    df = df.copy()
+    df["iteration"] = df["iteration"].astype(int)
+    iterations = set(df["iteration"])
+    n_iter = iteration if iteration >= 0 else max(iterations) + 1 + iteration
+    dfi = df[df["iteration"] == n_iter]
+    assert dfi.shape[0] > 0, f"Iteration {iteration} cannot be found in {iterations}."
+
+    started = {}
+    data = []
+    for irow in dfi.iterrows():
+        assert isinstance(
+            irow, tuple
+        ), f"pandas has changed its api, type is {type(row)}"
+        assert len(irow) == 2, f"pandas has changed its api, row is {row}"
+        row = irow[1]
+        it = row["iteration"]
+        op_type = row["args_op_name"]
+        op_name = row["op_name"]
+        event_name = row["event_name"]
+        provider = row["args_provider"]
+        ts = float(row["ts"])
+        dur = float(row["dur"])
+        if event_name == "fence_before":
+            started[op_type, op_name, it] = dict(
+                op_name=op_name, op_type=op_type, begin=ts
+            )
+        elif event_name == "kernel_time":
+            obs = started[op_type, op_name, it]
+            obs["duration"] = dur
+            obs["begin_kernel"] = ts
+            obs["provider"] = provider
+        elif event_name == "fence_after":
+            obs = started[op_type, op_name, it]
+            obs["end"] = ts
+            data.append(obs)
+            del started[op_type, op_name, it]
+        else:
+            assert event_name in {
+                "SequentialExecutor::Execute",
+                "model_run",
+            }, f"Unexpected event_name={event_name!r}, row={row}"
+
+    # durations
+    data_dur = list(sorted(d["duration"] for d in data))
+    threshold = data_dur[int(quantile * len(data_dur))]
+    origin = dfi["ts"].min()
+
+    colors = ["blue", "green", "red", "orange"]
+
+    import matplotlib.patches as mpatches
+
+    cs = [0, 0]
+    for i, obs in enumerate(data):
+        dur = obs["duration"]
+        cat = int(dur >= threshold)
+
+        # color
+        color = colors[cat * 2 + cs[cat] % 2]
+        cs[cat] += 1
+
+        # rectangle
+        t1 = obs["begin"] - origin
+        t2 = obs["end"] - origin
+        shape = mpatches.Rectangle((0, t1), 1, t2 - t1, ec="none", color=color)
+        ax.add_artist(shape)
+        tk1 = obs["begin_kernel"] - origin
+        tk2 = (obs["begin_kernel"] + obs["duration"]) - origin
+        ax.plot([0, 1], [tk1, tk1], "b--")
+        ax.plot([0, 1], [tk2, tk2], "b--")
+        if i == 0:
+            ax.plot([0, 2], [tk1, tk1], "b")
+        elif i == len(data) - 1:
+            ax.plot([0, 2], [tk2, tk2], "b")
+
+        # text
+        y = (tk1 + tk2) / 2
+        text = obs["op_type"]
+        prov = obs["provider"].replace("ExecutionProvider", "")
+        name = obs["op_name"]
+        if len(name) >= 10:
+            name = name[:5] + "..." + name[5:]
+        ax.text(1, y, f"{i}:{prov}:{text}-{name}", fontsize=fontsize, va="center")
+
+    ax.invert_yaxis()
+    return ax

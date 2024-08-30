@@ -215,7 +215,7 @@ class TestRun:
                 checks[name] = (max_diff, rel_diff, reason)
                 continue
 
-        if len(checks) == 0:
+        if not checks:
             return None
         if exc:
             raise AssertionError(
@@ -287,7 +287,7 @@ class TestRun:
         stats["index"] = index
 
         ts = []
-        for i in range(repeat):
+        for _i in range(repeat):
             begin = time.perf_counter()
             f_run(rt, feeds)
             ts.append(time.perf_counter() - begin)
@@ -327,8 +327,7 @@ def _run_cmd(args: List[str]) -> str:
 def _extract_version(out: str) -> str:
     reg = re.compile("Version: ([0-9][0-9.]*)")
     r = reg.findall(out)
-    if not r:
-        raise RuntimeError(f"Unable to find a version in\n{out}")
+    assert r, "Unable to find a version in\n{out}"
     return r[0]
 
 
@@ -367,7 +366,7 @@ def bench_virtual(
         starting to measure the model
     :param repeat: number of iterations to measure
     :param modules: modules to install, example:
-        `modules=[{"onnxruntime": "1.16.1", "onnx": "1.14.1"}]`
+        `modules=[{"onnxruntime": "1.17.3", "onnx": "1.15.0"}]`
     :param filter_fct: to disable some of the configuration
         based on the runtime and the installed modules
     :param verbose: verbosity
@@ -382,7 +381,7 @@ def bench_virtual(
         if verbose > 2:
             print(out)
         if not os.path.exists(exe):
-            raise RuntimeError(f"The virtual environment was not created:\n{out}")
+            raise FileNotFoundError(f"The virtual environment was not created:\n{out}")
         get_pip = os.path.join(virtual_path, "get_pip.py")
         if not os.path.exists(get_pip):
             if verbose > 2:
@@ -395,9 +394,10 @@ def bench_virtual(
     if modules is None:
         # ext = "https://github.com/sdpython/onnx-extended.git"
         modules = [
-            {"onnxruntime": "1.16.1", "onnx": None, "onnx-extended": "0.2.3"},
+            {"onnxruntime": "1.18.0", "onnx": None, "onnx-extended": "0.3.0"},
+            {"onnxruntime": "1.17.1", "onnx": None, "onnx-extended": "0.2.3"},
             {
-                "onnxruntime": "1.15.1",
+                "onnxruntime": "1.16.3",
                 "onnx": None,
                 "onnx-extended": "0.2.3",  # f"git+{ext}"},
             },
@@ -495,9 +495,7 @@ def bench_virtual(
             out = "\n".join(
                 line for line in out.split("\n") if "[W:onnxruntime:" not in line
             )
-            if out.startswith("The requested API version [") or out.startswith(
-                "The given version ["
-            ):
+            if out.startswith(("The requested API version [", "The given version [")):
                 js = {}
             else:
                 try:

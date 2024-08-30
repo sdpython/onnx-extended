@@ -4,17 +4,17 @@
 #include <cfloat>
 #include <cmath>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace onnx_c_ops {
 
-#define is_a_ge_zero_and_a_lt_b(a, b)                                          \
-  (static_cast<uint64_t>(a) < static_cast<uint64_t>(b))
+#define is_a_ge_zero_and_a_lt_b(a, b) (static_cast<uint64_t>(a) < static_cast<uint64_t>(b))
 
 #define InlinedVector std::vector
 #define InlinedHashSet std::unordered_set
 
-#if defined(_WIN32) || defined(WIN32)
+#if defined(_WIN32)
 
 inline bool _isnan_(float x) { return _isnanf(x); }
 inline bool _isnan_(double x) { return _isnan(x); }
@@ -34,9 +34,7 @@ inline bool _isnan_(double x) {
     double f;
   } ieee754;
   ieee754.f = x;
-  return ((unsigned)(ieee754.u >> 32) & 0x7fffffff) +
-             ((unsigned)ieee754.u != 0) >
-         0x7ff00000;
+  return ((unsigned)(ieee754.u >> 32) & 0x7fffffff) + ((unsigned)ieee754.u != 0) > 0x7ff00000;
 }
 
 inline bool _isnan_(float x) { return _isnan_((double)x); }
@@ -95,8 +93,7 @@ template <class NTYPE> inline NTYPE ComputeProbit(NTYPE val) {
   return ml_sqrt2 * ErfInv(val * 2 - 1);
 }
 
-template <class NTYPE>
-inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
+template <class NTYPE> inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
   // ref:
   // https://github.com/arnaudsj/libsvm/blob/eaaefac5ebd32d0e07902e1ae740e038eaaf0826/svm.cpp#L1818
   NTYPE val = score * proba + probb;
@@ -119,13 +116,11 @@ template <typename NTYPE> inline void ComputeSoftmax(NTYPE *begin, NTYPE *end) {
     *it /= this_sum;
 }
 
-template <typename NTYPE>
-inline void ComputeSoftmax(std::vector<NTYPE> &values) {
+template <typename NTYPE> inline void ComputeSoftmax(std::vector<NTYPE> &values) {
   ComputeSoftmax(values.data(), values.data() + values.size());
 }
 
-template <typename NTYPE>
-inline void ComputeSoftmaxZero(NTYPE *begin, NTYPE *end) {
+template <typename NTYPE> inline void ComputeSoftmaxZero(NTYPE *begin, NTYPE *end) {
   NTYPE v_max = -std::numeric_limits<NTYPE>::max();
   NTYPE *it;
   for (it = begin; it != end; ++it) {
@@ -146,28 +141,24 @@ inline void ComputeSoftmaxZero(NTYPE *begin, NTYPE *end) {
     *it /= this_sum;
 }
 
-template <typename NTYPE>
-inline void ComputeSoftmaxZero(std::vector<NTYPE> &values) {
+template <typename NTYPE> inline void ComputeSoftmaxZero(std::vector<NTYPE> &values) {
   ComputeSoftmaxZero(values.data(), values.data() + values.size());
 }
 
 template <typename NTYPE, typename T>
-std::size_t write_scores(std::vector<NTYPE> &scores,
-                         POST_EVAL_TRANSFORM post_transform, T *Z,
+std::size_t write_scores(std::vector<NTYPE> &scores, POST_EVAL_TRANSFORM post_transform, T *Z,
                          int add_second_class) {
   if ((scores.size() == 1) && add_second_class) {
     scores.push_back(scores[0]);
     scores[1] = 0.f;
     return write_scores(1, scores.data(), post_transform, Z, add_second_class);
   }
-  return write_scores(scores.size(), scores.data(), post_transform, Z,
-                      add_second_class);
+  return write_scores(scores.size(), scores.data(), post_transform, Z, add_second_class);
 }
 
 template <typename NTYPE, typename T>
 std::size_t write_scores(std::size_t n_classes, NTYPE *scores,
-                    POST_EVAL_TRANSFORM post_transform, T *Z,
-                    int add_second_class) {
+                         POST_EVAL_TRANSFORM post_transform, T *Z, int add_second_class) {
   if (n_classes >= 2) {
     NTYPE *end = scores + n_classes;
     switch (post_transform) {
@@ -239,7 +230,7 @@ std::size_t write_scores(std::size_t n_classes, NTYPE *scores,
 
 template <typename NTYPE, typename T>
 std::size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *Z,
-                     int add_second_class) {
+                          int /* add_second_class */) {
   switch (post_transform) {
   case POST_EVAL_TRANSFORM::PROBIT:
     Z[0] = ComputeProbit(scores[0]);
@@ -268,8 +259,6 @@ std::size_t write_scores2(NTYPE *scores, POST_EVAL_TRANSFORM post_transform, T *
   return 2;
 }
 
-template <typename T, T b> constexpr T roundUpPow2(T a) {
-  return (a + (b - 1)) & (~(b - 1));
-}
+template <typename T, T b> constexpr T roundUpPow2(T a) { return (a + (b - 1)) & (~(b - 1)); }
 
 } // namespace onnx_c_ops

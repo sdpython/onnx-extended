@@ -23,7 +23,7 @@ be evaluated on. This is done with function :func:`save_for_benchmark_or_test
     from sklearn.ensemble import RandomForestRegressor
     from skl2onnx import to_onnx
     from onnx_extended.tools.run_onnx import save_for_benchmark_or_test
-    from onnx_extended.ext_test_case import get_parsed_args
+    from onnx_extended.args import get_parsed_args
 
     # The dimension of the problem.
 
@@ -92,7 +92,7 @@ It calls function :func:`bench_virtual <onnx_extended.tools.run_onnx.bench_virtu
     import platform
     import psutil
     from onnx_extended.tools.run_onnx import bench_virtual
-    from onnx_extended.ext_test_case import get_parsed_args
+    from onnx_extended.args import get_parsed_args
 
     args = get_parsed_args(
         "run_bench",
@@ -112,12 +112,13 @@ It calls function :func:`bench_virtual <onnx_extended.tools.run_onnx.bench_virtu
 
     runtimes = ["onnxruntime"]
     modules = [
-        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.16.1"},
-        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.16.0"},
-        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.15.1"},
-        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.14.1"},
-        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.13.1"},
-        {"onnx-extended": "0.2.3", "onnx": "1.14.1", "onnxruntime": "1.12.1"},
+        {"onnx-extended": "0.3.0", "onnx": "1.15.0", "onnxruntime": "1.18.0"},
+        {"onnx-extended": "0.2.3", "onnx": "1.15.0", "onnxruntime": "1.17.3"},
+        {"onnx-extended": "0.2.3", "onnx": "1.15.0", "onnxruntime": "1.16.3"},
+        {"onnx-extended": "0.2.3", "onnx": "1.15.0", "onnxruntime": "1.15.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.15.0", "onnxruntime": "1.14.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.15.0", "onnxruntime": "1.13.1"},
+        {"onnx-extended": "0.2.3", "onnx": "1.15.0", "onnxruntime": "1.12.1"},
     ]
 
     print("--------------------------")

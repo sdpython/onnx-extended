@@ -51,6 +51,7 @@ if has_cuda():
 
     try:
         device_props = get_device_prop()
+        print(device_props)
     except RuntimeError:
         device_props = {}
 else:
@@ -71,7 +72,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     ),
                 ),
                 make_node("MatMul", ["X", "mat"], ["Z"], name="m1"),
@@ -167,10 +168,11 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqualArray(expected, got2, rtol=0.05)
 
     @unittest.skipIf(
-        onnx_opset_version() < 20 and (not has_cuda() or not ort_has_cuda),
+        onnx_opset_version() < 20 or (not has_cuda() or not ort_has_cuda),
         reason="onnx not recent enough or onnxruntime not "
         "installed or cuda is not available",
     )
+    @unittest.skipIf(device_props.get("major", 0) < 8, reason="no fp8 support")
     def test_quantize_f8_onnx_onnxruntime(self):
         x = np.arange(12).reshape((4, 3)).astype(np.float32)
         feeds = {"X": x}
@@ -214,8 +216,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             if "Current official support for domain ai.onnx is till opset 19." in str(
                 e
             ):
-                # onnxruntime not recent enough
-                return
+                raise unittest.SkipTest("onnxruntime not recent enough")  # noqa: B904
         got2 = ref2.run(None, feeds)[0]
         self.assertEqualArray(expected, got2, rtol=0.05)
 
@@ -249,7 +250,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph, version="onnx-extended")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
     @unittest.skipIf(
         not has_cuda() or not ort_has_cuda,
@@ -292,8 +293,8 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(graph, version="onnx-extended")
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
-        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cpu", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
         opts = SessionOptions()
         r = get_ort_ext_libs_cpu()
@@ -348,12 +349,12 @@ class TestOnnxToolsGraph(ExtTestCase):
         new_graph = quantize_float8(
             graph,
             version="onnx-extended",
-            domain_ops={"CustomGemmFloat8E4M3FN": "onnx_extented.ortops.tutorial.cpu"},
+            domain_ops={"CustomGemmFloat8E4M3FN": "onnx_extended.ortops.tutorial.cpu"},
         )
         onx2 = new_graph.to_onnx()
         check_model(onx2)
-        self.assertIn("onnx_extented.ortops.tutorial.cpu", str(onx2))
-        self.assertNotIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cpu", str(onx2))
+        self.assertNotIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
         opts = SessionOptions()
         r = get_ort_ext_libs_cpu()
@@ -402,7 +403,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         onx2 = new_graph.to_onnx()
         check_model(onx2)
         self.assertIn("local.quant.domain", str(onx2))
-        self.assertIn("onnx_extented.ortops.tutorial.cuda", str(onx2))
+        self.assertIn("onnx_extended.ortops.tutorial.cuda", str(onx2))
 
     @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
     def test_quantize_f8_onnxruntime(self):
@@ -438,7 +439,7 @@ class TestOnnxToolsGraph(ExtTestCase):
             got2 = ref2.run(None, feeds)[0]
         except ValueError as e:
             raise AssertionError(
-                f"Unable to run model\n----\n" f"{onnx_simple_text_plot(onx2)}\n------"
+                f"Unable to run model\n----\n{onnx_simple_text_plot(onx2)}\n------"
             ) from e
         self.assertEqualArray(expected, got2, rtol=0.05)
 
@@ -455,7 +456,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [2, 3] if transpose else [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     ),
                 ),
                 make_node("MatMul", ["mat", "X"] if transpose else ["X", "mat"], ["Z"]),
@@ -552,7 +553,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "mat",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     )
                 ],
             )
@@ -567,7 +568,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                             "one",
                             TensorProto.FLOAT,
                             [3, 2],
-                            list(float(i) for i in range(11, 17)),
+                            [float(i) for i in range(11, 17)],
                         ),
                     ),
                     make_node("MatMul", ["X", "mat"], ["Z"]),

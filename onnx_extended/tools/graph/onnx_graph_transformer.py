@@ -107,7 +107,7 @@ def estimation_quantization_scale(
         else:
             raise ValueError(f"Unexpected to={to!r}.")
 
-        float8 = [fct(i) for i in range(0, 256)]
+        float8 = [fct(i) for i in range(256)]
         quant_float = [f for f in float8 if not np.isnan(f) and not np.isinf(f)]
         std_coef = np.mean(coef.ravel() ** 2) ** 0.5
         std_quant = np.std(np.array(quant_float, dtype=np.float32))
@@ -209,7 +209,7 @@ class _MainQuantizeState:
         elif version == "onnx-extended":
             self.op_gemm = "CustomGemmFloat8E4M3FN"
             self.domain_gemm = domain_ops.get(
-                "CustomGemmFloat8E4M3FN", "onnx_extented.ortops.tutorial.cuda"
+                "CustomGemmFloat8E4M3FN", "onnx_extended.ortops.tutorial.cuda"
             )
         else:
             raise ValueError(f"Unexpected value {version!r} for version.")
@@ -288,13 +288,13 @@ class _QuantizeState:
                 fname,
             ) not in self.main_state.local_functions:
                 # use local functions
-                self.main_state.local_functions[
-                    self.main_state.domain_dq, fname
-                ] = make_matmul_reshape_transpose_function_proto(
-                    domain=self.main_state.domain_dq,
-                    opset=self.main_state.opset,
-                    index=index,
-                    transpose=do_transpose,
+                self.main_state.local_functions[self.main_state.domain_dq, fname] = (
+                    make_matmul_reshape_transpose_function_proto(
+                        domain=self.main_state.domain_dq,
+                        opset=self.main_state.opset,
+                        index=index,
+                        transpose=do_transpose,
+                    )
                 )
 
         new_name = node.parent.generate_name(f"{name}_f8")
@@ -391,19 +391,19 @@ class _QuantizeState:
             gemm_outputs = node.outputs
             do_reshape = False
 
+        atts = dict(
+            dtype=output_type,
+            transA=1 if (self.main_state.index_transpose & 1) else 0,
+            transB=1 if (self.main_state.index_transpose & 2) else 0,
+            domain=self.main_state.domain_gemm,
+            name=node.parent.generate_node_name("GEMMFP8"),
+        )
+        if self.main_state.domain_gemm != "com.microsoft":
+            atts["rowMajor"] = 0
+            atts["computeType"] = "CUBLAS_COMPUTE_32F_FAST_TF32"
+
         self.added.append(
-            make_node(
-                self.main_state.op_gemm,
-                gemm_inputs,
-                gemm_outputs,
-                rowMajor=0,
-                dtype=output_type,
-                transA=1 if (self.main_state.index_transpose & 1) else 0,
-                transB=1 if (self.main_state.index_transpose & 2) else 0,
-                domain=self.main_state.domain_gemm,
-                computeType="CUBLAS_COMPUTE_32F_FAST_TF32",
-                name=node.parent.generate_node_name("GEMMFP8"),
-            )
+            make_node(self.main_state.op_gemm, gemm_inputs, gemm_outputs, **atts)
         )
         if do_reshape:
             # One of the inputs had 3 dimensions.
@@ -445,12 +445,12 @@ class _QuantizeState:
                 fname,
             ) not in self.main_state.local_functions:
                 # use local functions
-                self.main_state.local_functions[
-                    self.main_state.domain_dq, fname
-                ] = make_matmul_reshape_transpose_back_function_proto(
-                    domain=self.main_state.domain_dq,
-                    opset=self.main_state.opset,
-                    index=index,
+                self.main_state.local_functions[self.main_state.domain_dq, fname] = (
+                    make_matmul_reshape_transpose_back_function_proto(
+                        domain=self.main_state.domain_dq,
+                        opset=self.main_state.opset,
+                        index=index,
+                    )
                 )
 
             elif self.was_reshaped[1]:
@@ -660,7 +660,7 @@ def quantize_float8(
         graph.upgrade_opsets({"": 19})
         main_opset = 19
 
-    if len(graph.functions) > 0:
+    if graph.functions:
         raise NotImplementedError("Quantization of local functions is not implemented.")
     local_functions = graph.functions.copy()
     n_local_functions = len(local_functions)
@@ -696,7 +696,7 @@ def quantize_float8(
                 )
             except (QuantizationError, NotImplementedError) as e:
                 if quiet:
-                    logger.warn(
+                    logger.warning(
                         "[quantize_float8] %d/%d failed to quantize due to %s",
                         index,
                         n_nodes,
@@ -718,13 +718,13 @@ def quantize_float8(
                 continue
             rem, add = results.removed_nodes, results.added_nodes
             to_add.append((rem, add))
-            if len(results.new_opsets) > 0:
+            if results.new_opsets:
                 n_changes += 1
                 new_opsets.update(results.new_opsets)
             if early_stop > 0 and n_changes >= early_stop:
                 break
 
-    if len(to_add) == 0:
+    if not to_add:
         return None
 
     for rem, add in to_add:
@@ -836,7 +836,7 @@ def cast_constant(
     The graph is modified inplace.
     Enables the logs gives a better idea of the progress.
     """
-    if len(graph.functions) > 0:
+    if graph.functions:
         raise NotImplementedError("Conversion of local functions is not implemented.")
 
     to_add = []
@@ -850,7 +850,7 @@ def cast_constant(
             rem, add = results.removed_nodes, results.added_nodes
             to_add.append((rem, add))
 
-    if len(to_add) == 0:
+    if not to_add:
         return None
 
     for rem, add in to_add:

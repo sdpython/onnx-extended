@@ -1,10 +1,9 @@
-# coding: utf-8
 """
 More operators for onnx reference implementation and onnxruntime.
 Experimentation with openmp, CUDA.
 """
 
-__version__ = "0.2.4"
+__version__ = "0.3.0"
 __author__ = "Xavier Dupré"
 
 
@@ -35,7 +34,7 @@ def _check_installation_ortcy(onnx_model, verbose):
 
         this = os.path.dirname(cyfile)
         files = os.listdir(this)
-        if "libonnxruntime.so.1.16.1" in files:
+        if "libonnxruntime.so.1.18.0" in files:
             if verbose:
                 local_print(
                     "[check_installation_ortcy] weird issue as the "
@@ -192,12 +191,12 @@ def check_installation(
         A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         node1 = make_node(
-            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extended.ortops.tutorial.cpu"
         )
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)
@@ -225,8 +224,7 @@ def cuda_version() -> str:
     """
     Tells which version of CUDA was used to build the CUDA extensions.
     """
-    if not has_cuda():
-        raise RuntimeError("CUDA extensions are not available.")
+    assert has_cuda(), "CUDA extensions are not available."
     from ._config import CUDA_VERSION
 
     return CUDA_VERSION

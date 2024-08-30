@@ -6,17 +6,19 @@ cython>=3.0
 cython-lint
 flake8
 furo; sys_platform == 'linux'
+google-re2
 isort
 lightgbm
 matplotlib
 ml-dtypes
 onnx-array-api
 onnxmltools
-onnxruntime
+onnxruntime>=1.18.0
 openpyxl
 opt_einsum
 packaging
 pandas
+Pillow
 psutil
 pytest
 pytest-cov

@@ -8,6 +8,7 @@ ort_add_custom_op(
   "CPU"
   onnx_extended/ortops/tutorial/cpu
   ../onnx_extended/ortops/tutorial/cpu/custom_gemm.cc
+  ../onnx_extended/ortops/tutorial/cpu/custom_tree_assembly.cc
   ../onnx_extended/ortops/tutorial/cpu/dynamic_quantize_linear.cc
   ../onnx_extended/ortops/tutorial/cpu/my_kernel.cc
   ../onnx_extended/ortops/tutorial/cpu/my_kernel_attr.cc

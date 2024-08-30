@@ -57,51 +57,6 @@ def _make_att_graph(name: str, new_body: GraphProto) -> AttributeProto:
     return attr
 
 
-def _make_node(
-    op_type: str,
-    inputs: List[str],
-    outputs: List[str],
-    name: Optional[str] = None,
-    doc_string: Optional[str] = None,
-    domain: str = "",
-    attributes: Optional[Dict[str, Any]] = None,
-) -> NodeProto:
-    """
-    Constructs a NodeProto.
-
-    :param op_type: (string): The name of the operator to construct
-    :param inputs: list of input names
-    :param outputs: list of output names
-    :param name: optional unique identifier for NodeProto
-    :param doc_string: optional documentation
-        string for NodeProto
-    :param domain: optional domain for NodeProto.
-        If it's None, we will just use default domain (which is empty)
-    :param attributes: the attributes of the node. The acceptable values
-        are documented in `make_attribute`.
-    :return: node
-    """
-    node = NodeProto()
-    node.op_type = op_type
-    node.input.extend(inputs)
-    node.output.extend(outputs)
-    if name:
-        node.name = name
-    if doc_string:
-        node.doc_string = doc_string
-    if domain is not None:
-        node.domain = domain
-    if isinstance(attributes, dict):
-        if len(attributes) > 0:
-            node.attribute.extend(
-                make_attribute(key, value) for key, value in sorted(attributes.items())
-            )
-    elif attributes:
-        for att in attributes:
-            node.attribute.extend([att])
-    return node
-
-
 def _apply_optimisation_on_graph(
     fct: Callable,
     onnx_model: Union[ModelProto, GraphProto, FunctionProto],
@@ -123,9 +78,14 @@ def _apply_optimisation_on_graph(
     if hasattr(onnx_model, "graph"):
         if debug_info is None:
             debug_info = []
-        graph = fct(onnx_model.graph, debug_info=debug_info + ["GRAPH"], **kwargs)
+        graph = fct(onnx_model.graph, debug_info=[*debug_info, "GRAPH"], **kwargs)
         functions = [
-            fct(f, debug_info=debug_info + [f"FUNCTION {f.name}"], **kwargs)
+            fct(
+                f,
+                debug_info=[*debug_info, f"FUNCTION {f.name}"],
+                recursive=recursive,
+                **kwargs,
+            )
             for f in onnx_model.functions
         ]
         if hasattr(onnx_model, "value_info"):
@@ -149,81 +109,6 @@ def _apply_optimisation_on_graph(
     )
 
 
-def _apply_remove_node_fct_node(
-    fct: Callable, node: NodeProto, recursive: bool, debug_info: str
-) -> NodeProto:
-    """
-    Applies an optimizing function on a subgraphs.
-
-    :param node: onnx node
-    :param recursive: does it in subgraphs as well
-    :return: new node
-    """
-    if not hasattr(node, "attribute"):
-        return node
-    modified = 0
-    new_atts = []
-    for att in node.attribute:
-        if att.name in ("body", "then_branch", "else_branch"):
-            new_body = fct(
-                att.g, recursive=recursive, debug_info=debug_info + [att.name]
-            )
-            new_atts.append(_make_att_graph(att.name, new_body))
-            modified += 1
-        else:
-            new_atts.append(att)
-    if modified > 0:
-        new_node = _make_node(
-            node.op_type, node.input, node.output, name=node.name, attributes=new_atts
-        )
-        return new_node
-    return node
-
-
-def _process_node(
-    node: NodeProto,
-    data: Dict,
-    edges: Dict,
-    paths: Dict,
-    prefix: str = "",
-    sep: str = ":X:",
-    path: Optional[List[str]] = None,
-):
-    node_name = prefix + node.name
-    data[node_name, 1] = node
-    path = [] if path is None else path.copy()
-    paths[node_name, 1] = path
-    path = path.copy()
-    path.append(node_name)
-    for inp in node.input:
-        data[inp, 0] = node
-        edges[(inp, 0), (node_name, 1)] = node
-        paths[inp, 0] = path
-        if sep in node_name:
-            # We need to link an input to the parent node
-            # if the node is part of subgraph.
-            # path_r = paths[inp, 0]
-            if len(path) <= 1:
-                raise RuntimeError(
-                    f"Unexpected path {path!r}, this may happen "
-                    f"if sep={sep!r} is already used in the original model."
-                )
-            edges[(inp, 0), (path[-2], 1)] = node
-
-    for out in node.output:
-        data[out, 0] = node
-        paths[out, 0] = node_name
-        edges[(node_name, 1), (out, 0)] = node
-    if len(node.attribute) > 0:
-        for att in node.attribute:
-            if not hasattr(att, "g"):
-                continue
-            if not isinstance(att.g, GraphProto):
-                continue
-            for no in att.g.node:
-                _process_node(no, data, edges, paths, prefix=node_name + sep, path=path)
-
-
 def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **options):
     """
     Removes unused nodes of the graph. An unused node
@@ -238,9 +123,7 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     if debug_info is None:
         debug_info = [str(type(onnx_model)).rsplit(".", maxsplit=1)[-1].strip("'>")]
     else:
-        debug_info = debug_info + [
-            str(type(onnx_model)).rsplit(".", maxsplit=1)[-1].strip("'>")
-        ]
+        debug_info.extend(str(type(onnx_model)).rsplit(".", maxsplit=1)[-1].strip("'>"))
 
     if hasattr(onnx_model, "graph"):
         return _apply_optimisation_on_graph(
@@ -254,48 +137,57 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     graph = onnx_model
     logger.debug("onnx_remove_node_unused:begin with %d nodes.", len(graph.node))
     is_function = isinstance(graph, FunctionProto)
-    data = {}
-    valid = {}
-    edges = {}
-    paths = {}
+
+    # mark outputs
+    if is_function:
+        marked = {o: set() for o in graph.output}
+    else:
+        marked = {o.name: set() for o in graph.output}
+    nodes = list(graph.node)
+
+    # Handles subgraphs.
+    sub_graphs = []
+    for node in nodes:
+        for att in node.attribute:
+            if att.type == AttributeProto.GRAPH:
+                sub_graphs.append(node)
+                break
+
+    if sub_graphs:
+        raise NotImplementedError(
+            "Remove unused is not implemented when there are subgraphs."
+        )
+
+    # mark node output
+    for node in reversed(nodes):
+        used = False
+        for o in node.output:
+            if o in marked:
+                for i in node.input:
+                    marked[o].add(i)
+                    used = True
+        if used:
+            for i in node.input:
+                marked[i] = set()
+
+    # removed nodes
+    removed = set()
+    marked_set = set(marked)
+    for ind, node in enumerate(nodes):
+        if not (set(node.output) & marked_set):
+            removed.add(ind)
 
     if not is_function:
-        for init in graph.initializer:
-            data[init.name, 0] = init
+        initializers = [i for i in graph.initializer if i.name in marked]
+        sparse_initializers = [i for i in graph.sparse_initializer if i.name in marked]
+    new_nodes = [node for i, node in enumerate(nodes) if i not in removed]
 
-    for node in graph.node:
-        _process_node(node, data, edges, paths)
-
-    for out in graph.output:
-        valid[out if is_function else out.name, 0] = True
-
-    modif = 1
-    while modif > 0:
-        modif = 0
-        for e1, e2 in edges:
-            if valid.get(e2, False) and not valid.get(e1, False):
-                valid[e1] = True
-                modif += 1
-
-    new_nodes = [n for n in graph.node if (n.name, 1) in valid]
-    if not is_function:
-        new_inits = [n for n in graph.initializer if (n.name, 0) in valid]
-
-    if recursive:
-        # Handles subgraphs.
-        for i in range(len(new_nodes)):
-            node = new_nodes[i]
-            if node is None or not (node.attribute):
-                continue
-            new_nodes[i] = _apply_remove_node_fct_node(
-                onnx_remove_node_unused,
-                node,
-                recursive=True,
-                debug_info=debug_info + [node.name],
-            )
+    if sub_graphs and recursive:
+        raise NotImplementedError(
+            "Remove unused is not implemented when there are subgraphs."
+        )
 
     # Finally create the new graph.
-    nodes = list(filter(lambda n: n is not None, new_nodes))
     if is_function:
         logger.debug("onnx_remove_node_unused:end function with %d nodes.", len(nodes))
         return make_function(
@@ -303,13 +195,18 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             onnx_model.name,
             onnx_model.input,
             onnx_model.output,
-            nodes,
+            new_nodes,
             opset_imports=onnx_model.opset_import,
             attributes=onnx_model.attribute,
             doc_string=onnx_model.doc_string,
         )
     graph = make_graph(
-        nodes, onnx_model.name, onnx_model.input, onnx_model.output, new_inits
+        new_nodes,
+        onnx_model.name,
+        onnx_model.input,
+        onnx_model.output,
+        initializers,
+        sparse_initializers,
     )
     graph.value_info.extend(onnx_model.value_info)
     logger.debug("onnx_remove_node_unused:end graph with %d nodes.", len(nodes))
@@ -336,9 +233,9 @@ def get_tensor_shape(
     for d in obj.tensor_type.shape.dim:
         v = d.dim_value if d.dim_value > 0 else d.dim_param
         shape.append(v)
-    if len(shape) == 0:
+    if not shape:
         return shape
-    return list(None if s in (0, "") else s for s in shape)
+    return [None if s in (0, "") else s for s in shape]
 
 
 def get_hidden_inputs(nodes: Iterable[NodeProto]) -> Set[str]:
@@ -361,7 +258,7 @@ def get_hidden_inputs(nodes: Iterable[NodeProto]) -> Set[str]:
             ):
                 continue
             hidden = get_hidden_inputs(att.g.node)
-            inits = set([i.name for i in att.g.initializer])
+            inits = set(i.name for i in att.g.initializer)
             inputs |= hidden - (inits & hidden)
     return inputs - (outputs & inputs)
 
@@ -379,8 +276,9 @@ def enumerate_model_node_outputs(
     :param order: goes through outputs following the graph order
     :return: enumerator
     """
-    if not hasattr(model, "graph"):
-        raise TypeError(f"Parameter model is not an ONNX model but {type(model)}")
+    assert hasattr(
+        model, "graph"
+    ), "Parameter model is not an ONNX model but {type(model)}"
     if order:
         edges = []
         dorder = {}
@@ -488,8 +386,7 @@ def select_model_inputs_outputs(
     for inp in inputs:
         mark_var[inp] = 0
     for out in outputs:
-        if out not in mark_var:
-            raise ValueError(f"Output '{out}' not found in model.")
+        assert out in mark_var, "Output '{out}' not found in model."
         mark_var[out] = 1
 
     nodes = list(model.graph.node[::-1])
@@ -532,14 +429,12 @@ def select_model_inputs_outputs(
         for node in nodes:
             s = "+" if mark_op[id(node)] == 1 else "-"
             logger.info(
-                "[select_model_inputs_outputs] %s %s (%s) -> %s [%s]"
-                % (
-                    s,
-                    node.op_type,
-                    ", ".join(node.input),
-                    ", ".join(node.output),
-                    node.name,
-                )
+                "[select_model_inputs_outputs] %s %s (%s) -> %s [%s]",
+                s,
+                node.op_type,
+                ", ".join(node.input),
+                ", ".join(node.output),
+                node.name,
             )
 
     known_shapes = {}
@@ -599,14 +494,15 @@ def select_model_inputs_outputs(
 
     if verbose > 0:
         logger.info(
-            "[select_model_inputs_outputs] nodes %r --> %r"
-            % (len(model.graph.node), len(keep_nodes))
+            "[select_model_inputs_outputs] nodes %r --> %r",
+            len(model.graph.node),
+            len(keep_nodes),
         )
         logger.info(
-            "[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_in]
+            "[select_model_inputs_outputs] inputs: %r", [_.name for _ in var_in]
         )
         logger.info(
-            "[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_out]
+            "[select_model_inputs_outputs] inputs: %r", [_.name for _ in var_out]
         )
 
     graph = make_graph(
@@ -624,7 +520,7 @@ def select_model_inputs_outputs(
     onnx_model.domain = model.domain
     onnx_model.model_version = model.model_version
     onnx_model.doc_string = model.doc_string
-    if len(model.metadata_props) > 0:
+    if model.metadata_props:
         values = {p.key: p.value for p in model.metadata_props}
         set_model_props(onnx_model, values)
 
@@ -799,7 +695,7 @@ def onnx_merge_models(
         if v1 == v2:
             continue
         update[k] = max(v1, v2)
-    if len(update) > 0 and verbose > 0:
+    if update and verbose > 0:
         print(f"[onnx_merge_models] selected opsets: {update}")
     if "" in update:
         if opsets1[""] != update[""]:
@@ -901,8 +797,7 @@ def convert_onnx_model(
             d.version = v
 
     if isinstance(onnx_model, ModelProto):
-        if _from_opset is not None:
-            raise RuntimeError("_from_opset must be None for ModelProto.")
+        assert _from_opset is None, "_from_opset must be None for ModelProto."
         old_opsets = {d.domain: d.version for d in onnx_model.opset_import}
         if verbose > 0:
             print(
@@ -1019,42 +914,91 @@ def convert_onnx_model(
     return graph
 
 
-def multiply_tree(node: NodeProto, n: int) -> NodeProto:
+def multiply_tree(node: NodeProto, n: int, random: bool = True) -> NodeProto:
     """
     Multiplies the number of trees in TreeEnsemble operator.
-    It replicates the existing trees.
+    It replicates the existing trees but permutes features ids
+    and node values if random is True.
 
     :param node: tree ensemble operator
     :param n: number of times the existing trees must be multiplied
+    :param random: permutation or thresholds
     :return: the new trees
     """
-    if not isinstance(node, NodeProto):
-        raise TypeError(f"node is not a NodeProto but {type(node)}.")
-    if not node.op_type.startswith("TreeEnsemble"):
-        raise ValueError(f"Unexpected node type {node.op_type!r}.")
+    assert isinstance(node, NodeProto), f"node is not a NodeProto but {type(node)}."
+    assert node.op_type.startswith(
+        "TreeEnsemble"
+    ), "Unexpected node type {node.op_type!r}."
     args = [node.op_type, node.input, node.output]
     kwargs = {"domain": node.domain}
+
+    nodes_featureids = None
+    not_leave_mask = None
+    nodes_values = None
     for att in node.attribute:
-        if att.name in {"aggregate_function", "post_transform"}:
+        if att.name == "nodes_modes":
+            not_leave_mask = np.array(att.strings) != "LEAF"
+        elif att.name == "nodes_featureids":
+            nodes_featureids = np.array(att.ints)
+        elif att.name == "nodes_values":
+            nodes_values = np.array(att.floats, dtype=np.float32)
+        elif att.name == "nodes_values_as_tensor":
+            nodes_values = to_array(att)
+    assert not_leave_mask is not None, "Attribute nodes_modes is missing."
+    assert nodes_featureids is not None, "Attribute nodes_featureids is missing."
+    assert (
+        nodes_values is not None
+    ), "Attribute nodes_values or nodes_values_as_tensor is missing."
+
+    # permutation
+    new_nodes_values = []
+    new_feature_ids = []
+    indices = np.array(
+        [i for i, m in zip(np.arange(len(nodes_featureids)), not_leave_mask) if m]
+    )
+    permuted_indices = indices.copy()
+    for _i in range(n):
+        new_feature_ids.extend(nodes_featureids.tolist())
+        new_nodes_values.extend(nodes_values.tolist())
+        if random:
+            permuted_indices = np.random.permutation(permuted_indices)
+            nodes_featureids[indices] = nodes_featureids[permuted_indices]
+            nodes_values[indices] = nodes_values[permuted_indices]
+    assert len(new_feature_ids) == len(
+        new_nodes_values
+    ), f"Dimension mismatch {len(nodes_featureids)} != {len(nodes_values)}"
+    assert len(nodes_featureids) * n == len(
+        new_nodes_values
+    ), f"Dimension mismatch {len(nodes_featureids) * n} != {len(new_nodes_values)}"
+
+    # other attributes
+    for att in node.attribute:
+        if att.name == "nodes_featureids":
+            kwargs[att.name] = new_feature_ids
+        elif att.name == "nodes_values":
+            kwargs[att.name] = new_nodes_values
+        elif att.name == "nodes_values_as_tensor":
+            kwargs[att.name] = from_array(np.array(new_nodes_values, dtype=np.int64))
+        elif att.name in {"aggregate_function", "post_transform"}:
             kwargs[att.name] = att.s
         elif att.name in {"n_targets"}:
             kwargs[att.name] = att.i
         elif att.name == "classlabels_int64s":
             ints = att.ints
-            if len(ints) > 0:
+            if ints:
                 kwargs[att.name] = list(ints)
         elif att.name == "classlabels_strings":
             vals = att.strings
-            if len(vals) > 0:
+            if vals:
                 kwargs[att.name] = list(vals)
         elif att.name == "base_values":
             fs = list(att.floats)
-            if len(fs) > 0:
+            if fs:
                 kwargs.att[att.name] = fs
-        elif att.name.endswith("_as_tensor"):
+        elif att.name.endswith("_as_tensor") and att.name != "nodes_values_as_tensor":
             v = to_array(att.t)
             if att.name == "base_values_as_tensor":
-                if len(v.shape) > 0:
+                if v.shape:
                     kwargs[att.name] = from_array(v)
             else:
                 kwargs[att.name] = from_array(np.repeat(v, n))
@@ -1062,7 +1006,6 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             "class_ids",
             "class_nodeids",
             "nodes_falsenodeids",
-            "nodes_featureids",
             "nodes_missing_value_tracks_true",
             "nodes_nodeids",
             "nodes_truenodeids",
@@ -1073,7 +1016,7 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
         elif att.name in {"class_treeids", "nodes_treeids", "target_treeids"}:
             ints = []
             arr = np.array(att.ints, dtype=np.int64)
-            for i in range(n):
+            for _i in range(n):
                 ints.extend(arr.tolist())
                 arr += 1
             kwargs[att.name] = ints
@@ -1081,12 +1024,11 @@ def multiply_tree(node: NodeProto, n: int) -> NodeProto:
             kwargs[att.name] = list(att.strings) * n
         elif att.name in {
             "nodes_hitrates",
-            "nodes_values",
             "target_weights",
             "class_weights",
         }:
             fs = list(att.floats)
-            if len(fs) > 0:
+            if fs:
                 kwargs[att.name] = fs * n
 
     return make_node(*args, **kwargs)

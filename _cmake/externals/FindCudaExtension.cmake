@@ -50,6 +50,7 @@ if(CUDAToolkit_FOUND)
   message(STATUS "CUDA_VERSION=${CUDA_VERSION}")
   message(STATUS "CUDA_BUILD=${CUDA_BUILD}")
   message(STATUS "CUDAARCHS=${CUDAARCHS}")
+  message(STATUS "CMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")
   message(STATUS "CMAKE_CUDA_COMPILER_VERSION=${CMAKE_CUDA_COMPILER_VERSION}")
   message(STATUS "CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
   message(STATUS "CMAKE_LIBRARY_ARCHITECTURE=${CMAKE_LIBRARY_ARCHITECTURE}")
@@ -77,9 +78,8 @@ if(CUDAToolkit_FOUND)
     # matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
     set(CMAKE_CUDA_ARCHITECTURES 90)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=sm_90a")
-    set(CMAKE_CUDA_FLAGS
-        "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=compute_90a")
+    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=sm_90a")
+    # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90a,code=compute_90a")
 
   else()  # H100, DEFAULT
 
@@ -181,10 +181,10 @@ if(CUDAToolkit_FOUND)
   set(CUDA_VERSION ${CUDAToolkit_VERSION})
   if (CUDA_LINK STREQUAL "STATIC")
     set(CUDA_LIBRARIES CUDA::cudart_static
-                       CUDA::cufft_static CUDA::cufftw_static
                        CUDA::curand_static
                        CUDA::cublas_static CUDA::cublasLt_static
                        CUDA::cusolver_static
+                       CUDA::cufft_static CUDA::cufftw_static
                        CUDA::cupti_static)
   else()
     set(CUDA_LIBRARIES CUDA::cudart

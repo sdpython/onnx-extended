@@ -1,5 +1,5 @@
 from itertools import permutations
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 import time
 import math
 import numpy
@@ -23,10 +23,9 @@ class OnnxMicroRuntime:
     """
 
     def __init__(self, model_onnx):
-        if not hasattr(model_onnx, "graph"):
-            raise TypeError(
-                f"model_onnx is not an ONNX graph but {type(model_onnx)!r}."
-            )
+        assert hasattr(
+            model_onnx, "graph"
+        ), f"model_onnx is not an ONNX graph but {type(model_onnx)!r}."
         self.model_onnx = model_onnx
 
     @property
@@ -49,8 +48,9 @@ class OnnxMicroRuntime:
         :param inputs: dictionary
         :return: all intermediates results and output as a dictionary
         """
-        if not isinstance(inputs, dict):
-            raise TypeError(f"inputs must be a dictionary not {type(inputs)!r}.")
+        assert isinstance(
+            inputs, dict
+        ), f"inputs must be a dictionary not {type(inputs)!r}."
         results = inputs.copy()
 
         for init in self.model_onnx.graph.initializer:
@@ -124,10 +124,12 @@ class OnnxMicroRuntime:
                 o += c * beta
             return o
 
-        if not isinstance(transA, (int, bool, numpy.int64)):
-            raise TypeError(f"Unexpected type for transA: {type(transA)!r}.")
-        if not isinstance(transB, (int, bool, numpy.int64)):
-            raise TypeError(f"Unexpected type for transA: {type(transB)!r}.")
+        assert isinstance(
+            transA, (int, bool, numpy.int64)
+        ), f"Unexpected type for transA: {type(transA)!r}."
+        assert isinstance(
+            transB, (int, bool, numpy.int64)
+        ), f"Unexpected type for transA: {type(transB)!r}."
         if transA:
             fct = _gemm11 if transB else _gemm10
         else:
@@ -207,13 +209,12 @@ class OnnxMicroRuntime:
         return (numpy.expand_dims(x, axis=axes),)
 
 
-def enumerate_cached_einsum() -> Iterable[Tuple[int, Any]]:
+def enumerate_cached_einsum() -> Iterator[Tuple[int, Any]]:
     """
     Enumerates all cached einsum function.
     """
     global _einsum_cache
-    for k, v in _einsum_cache.items():
-        yield k, v
+    yield from _einsum_cache.items()
 
 
 class CachedEinsum:
@@ -317,10 +318,9 @@ class CachedEinsum:
 
     def _build_optimize(self) -> str:
         # loops over all permutations
-        if self.equation.lower() != self.equation:
-            raise RuntimeError(
-                f"Only lower equation can be optimized, {self.equation!r} is not."
-            )
+        assert (
+            self.equation.lower() == self.equation
+        ), f"Only lower equation can be optimized, {self.equation!r} is not."
         letters = list(sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
@@ -353,7 +353,7 @@ class CachedEinsum:
                 inputs = inst.default_inputs()
                 inst(*inputs)
             ts = time.perf_counter()
-            for _ in range(0, 10):
+            for _ in range(10):
                 inst(*inputs)
             delta = time.perf_counter() - ts
             confs.append((delta, eq))
@@ -372,10 +372,9 @@ class CachedEinsum:
 
     def _build_optimize_ml(self) -> str:
         # loops over all permutations
-        if self.equation.lower() != self.equation:
-            raise RuntimeError(
-                f"Only lower equation can be optimized, {self.equation!r} is not."
-            )
+        assert (
+            self.equation.lower() == self.equation
+        ), f"Only lower equation can be optimized, {self.equation!r} is not."
         letters = list(sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
@@ -510,7 +509,7 @@ class CachedEinsum:
                 self.onnx_ = onx
                 self.oinf_ = cls(self.onnx_.SerializeToString())
                 self.runtime_ = lambda *inputs: self.oinf_.run(
-                    None, {i: v for i, v in zip(self.onnx_names_, inputs)}
+                    None, dict(zip(self.onnx_names_, inputs))
                 )[0]
         else:
             n_inputs = len(self.equation.split("->")[0].split(","))
@@ -519,15 +518,14 @@ class CachedEinsum:
             self.onnx_names_ = input_names
             self.oinf_ = cls(self.onnx_.SerializeToString())
             self.runtime_ = lambda *inputs: self.oinf_.run(
-                None, {i: v for i, v in zip(self.onnx_names_, inputs)}
+                None, dict(zip(self.onnx_names_, inputs))
             )[0]
 
     def __call__(self, *inputs: List[numpy.ndarray]) -> List[numpy.ndarray]:
         """
         Calls the runtime `self.runtime_`.
         """
-        if not hasattr(self, "runtime_"):
-            raise RuntimeError("Method build_runtime was not called.")
+        assert hasattr(self, "runtime_"), "Method 'build_runtime' was not called."
         return self.runtime_(*inputs)
 
     @staticmethod
@@ -928,15 +926,12 @@ def einsum(
         print(root)
         print(clean(res[1]))
     """
-    if len(inputs) == 0:
-        raise ValueError("No inputs found.")
+    assert inputs, "No inputs found."
     dtypes = set(i.dtype for i in inputs)
-    if len(dtypes) != 1:
-        raise ValueError(
-            "All inputs do not have the same type (%r), "
-            "all of them should be cast before called einsum."
-            "" % dtypes
-        )
+    assert len(dtypes) == 1, (
+        f"All inputs do not have the same type ({dtypes!r}), "
+        f"all of them should be cast before called einsum."
+    )
     cached = optimize_decompose_einsum_equation(
         equation,
         inputs[0].dtype,

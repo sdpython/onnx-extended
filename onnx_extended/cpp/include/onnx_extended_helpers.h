@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <float.h>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -50,14 +51,11 @@ void MakeStringInternalElement(StringStream &ss, const float &t);
 
 void MakeStringInternalElement(StringStream &ss, const double &t);
 
-void MakeStringInternalElement(StringStream &ss,
-                               const std::vector<uint16_t> &t);
+void MakeStringInternalElement(StringStream &ss, const std::vector<uint16_t> &t);
 
-void MakeStringInternalElement(StringStream &ss,
-                               const std::vector<uint32_t> &t);
+void MakeStringInternalElement(StringStream &ss, const std::vector<uint32_t> &t);
 
-void MakeStringInternalElement(StringStream &ss,
-                               const std::vector<uint64_t> &t);
+void MakeStringInternalElement(StringStream &ss, const std::vector<uint64_t> &t);
 
 void MakeStringInternalElement(StringStream &ss, const std::vector<int16_t> &t);
 
@@ -75,8 +73,7 @@ inline void MakeStringInternal(StringStream &ss, const T &t) {
 }
 
 template <typename T, typename... Args>
-inline void MakeStringInternal(StringStream &ss, const T &t,
-                               const Args &...args) {
+inline void MakeStringInternal(StringStream &ss, const T &t, const Args &...args) {
   MakeStringInternalElement(ss, t);
   MakeStringInternal(ss, args...);
 }
@@ -90,20 +87,19 @@ template <typename... Args> inline std::string MakeString(const Args &...args) {
 }
 
 #if !defined(_THROW_DEFINED)
-#define EXT_THROW(...)                                                         \
-  throw std::runtime_error(onnx_extended_helpers::MakeString(                  \
+#define EXT_THROW(...)                                                                         \
+  throw std::runtime_error(onnx_extended_helpers::MakeString(                                  \
       "[onnx-extended] ", onnx_extended_helpers::MakeString(__VA_ARGS__)));
 #define _THROW_DEFINED
 #endif
 
 #if !defined(_ENFORCE_DEFINED)
-#define EXT_ENFORCE(cond, ...)                                                 \
-  if (!(cond))                                                                 \
-    throw std::runtime_error(onnx_extended_helpers::MakeString(                \
-        "`", #cond, "` failed. ",                                              \
-        onnx_extended_helpers::MakeString(                                     \
-            "[onnx-extended] ",                                                \
-            onnx_extended_helpers::MakeString(__VA_ARGS__))));
+#define EXT_ENFORCE(cond, ...)                                                                 \
+  if (!(cond))                                                                                 \
+    throw std::runtime_error(onnx_extended_helpers::MakeString(                                \
+        "`", #cond, "` failed. ",                                                              \
+        onnx_extended_helpers::MakeString("[onnx-extended] ",                                  \
+                                          onnx_extended_helpers::MakeString(__VA_ARGS__))));
 #define _ENFORCE_DEFINED
 #endif
 

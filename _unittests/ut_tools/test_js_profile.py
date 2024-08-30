@@ -17,6 +17,7 @@ from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 from onnx_extended.tools.js_profile import (
     js_profile_to_dataframe,
     plot_ort_profile,
+    plot_ort_profile_timeline,
     _process_shape,
 )
 
@@ -54,6 +55,7 @@ class TestJsProfile(ExtTestCase):
                 ],
             ),
             opset_imports=[make_opsetid("", 18)],
+            ir_version=9,
         )
         check_model(model_def0)
         return model_def0
@@ -74,28 +76,26 @@ class TestJsProfile(ExtTestCase):
         self.assertEqual(df.shape, (189, 18))
         self.assertEqual(
             set(df.columns),
-            set(
-                [
-                    "cat",
-                    "pid",
-                    "tid",
-                    "dur",
-                    "ts",
-                    "ph",
-                    "name",
-                    "args_op_name",
-                    "op_name",
-                    "args_thread_scheduling_stats",
-                    "args_output_size",
-                    "args_parameter_size",
-                    "args_activation_size",
-                    "args_node_index",
-                    "args_provider",
-                    "event_name",
-                    "iteration",
-                    "it==0",
-                ]
-            ),
+            {
+                "cat",
+                "pid",
+                "tid",
+                "dur",
+                "ts",
+                "ph",
+                "name",
+                "args_op_name",
+                "op_name",
+                "args_thread_scheduling_stats",
+                "args_output_size",
+                "args_parameter_size",
+                "args_activation_size",
+                "args_node_index",
+                "args_provider",
+                "event_name",
+                "iteration",
+                "it==0",
+            },
         )
 
         df = js_profile_to_dataframe(prof, agg=True)
@@ -106,27 +106,25 @@ class TestJsProfile(ExtTestCase):
         self.assertEqual(df.shape, (189, 17))
         self.assertEqual(
             set(df.columns),
-            set(
-                [
-                    "cat",
-                    "pid",
-                    "tid",
-                    "dur",
-                    "ts",
-                    "ph",
-                    "name",
-                    "args_op_name",
-                    "op_name",
-                    "args_thread_scheduling_stats",
-                    "args_output_size",
-                    "args_parameter_size",
-                    "args_activation_size",
-                    "args_node_index",
-                    "args_provider",
-                    "event_name",
-                    "iteration",
-                ]
-            ),
+            {
+                "cat",
+                "pid",
+                "tid",
+                "dur",
+                "ts",
+                "ph",
+                "name",
+                "args_op_name",
+                "op_name",
+                "args_thread_scheduling_stats",
+                "args_output_size",
+                "args_parameter_size",
+                "args_activation_size",
+                "args_node_index",
+                "args_provider",
+                "event_name",
+                "iteration",
+            },
         )
 
         os.remove(prof)
@@ -207,7 +205,7 @@ class TestJsProfile(ExtTestCase):
                         "CustomGemmFloat",
                         ["X", "Xt"],
                         ["final"],
-                        domain="onnx_extented.ortops.tutorial.cpu",
+                        domain="onnx_extended.ortops.tutorial.cpu",
                     ),
                 ],
                 "test",
@@ -216,8 +214,9 @@ class TestJsProfile(ExtTestCase):
             ),
             opset_imports=[
                 make_opsetid("", 18),
-                make_opsetid("onnx_extented.ortops.tutorial.cpu", 1),
+                make_opsetid("onnx_extended.ortops.tutorial.cpu", 1),
             ],
+            ir_version=9,
         )
         check_model(model_def0)
         return model_def0
@@ -244,6 +243,54 @@ class TestJsProfile(ExtTestCase):
         plot_ort_profile(df, ax, title="test_title")
         fig.tight_layout()
         # fig.savefig("graph3.png")
+        self.assertNotEmpty(fig)
+
+        os.remove(prof)
+
+    def _get_model2(self):
+        model_def0 = make_model(
+            make_graph(
+                [
+                    make_node("Add", ["X", "init1"], ["X1"]),
+                    make_node("Abs", ["X"], ["X2"]),
+                    make_node("Add", ["X", "init3"], ["inter"]),
+                    make_node("Mul", ["X1", "inter"], ["Xm"]),
+                    make_node("MatMul", ["X1", "Xm"], ["Xm2"]),
+                    make_node("Sub", ["X2", "Xm2"], ["final"]),
+                ],
+                "test",
+                [make_tensor_value_info("X", TensorProto.FLOAT, [None, None])],
+                [make_tensor_value_info("final", TensorProto.FLOAT, [None, None])],
+                [
+                    from_array(np.array([1], dtype=np.float32), name="init1"),
+                    from_array(np.array([3], dtype=np.float32), name="init3"),
+                ],
+            ),
+            opset_imports=[make_opsetid("", 18)],
+            ir_version=9,
+        )
+        check_model(model_def0)
+        return model_def0
+
+    @ignore_warnings(UserWarning)
+    def test_plot_profile_timeline(self):
+        sess_options = SessionOptions()
+        sess_options.enable_profiling = True
+        sess = InferenceSession(
+            self._get_model2().SerializeToString(),
+            sess_options,
+            providers=["CPUExecutionProvider"],
+        )
+        for _ in range(11):
+            sess.run(None, dict(X=np.random.rand(2**10, 2**10).astype(np.float32)))
+        prof = sess.end_profiling()
+
+        df = js_profile_to_dataframe(prof, first_it_out=True)
+
+        fig, ax = plt.subplots(1, 1, figsize=(5, 10))
+        plot_ort_profile_timeline(df, ax, title="test_timeline", quantile=0.5)
+        fig.tight_layout()
+        fig.savefig("test_plot_profile_timeline.png")
         self.assertNotEmpty(fig)
 
         os.remove(prof)

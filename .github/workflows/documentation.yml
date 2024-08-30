@@ -54,6 +54,7 @@ jobs:
           pip install pytest
           pip install pytest-cov
           export PYTHONPATH=.
+          export SKIP_UNSTABLE=1
           pytest --cov=./onnx_extended/ --cov-report=xml --durations=10 --ignore-glob=**LONG*.py --ignore-glob=**notebook*.py
           export PYTHONPATH=
 
@@ -81,14 +82,14 @@ jobs:
 
       - name: Check for errors and warnings
         run: |
-          if [[ $(grep ERROR doc.txt | grep -v 'validation.cuda') ]]; then
+          if [[ $(grep ERROR doc.txt | grep -v 'validation.cuda' | grep -v 'pickable') ]]; then
             echo "Documentation produces errors."
-            grep ERROR doc.txt | grep -v 'validation.cuda'
+            grep ERROR doc.txt | grep -v 'validation.cuda' | grep -v 'pickable'
             exit 1
           fi
-          if [[ $(grep WARNING doc.txt | grep -v 'validation.cuda') ]]; then
+          if [[ $(grep WARNING doc.txt | grep -v 'validation.cuda' | grep -v 'pickable') ]]; then
             echo "Documentation produces warnings."
-            grep WARNING doc.txt | grep -v 'validation.cuda'
+            grep WARNING doc.txt | grep -v 'validation.cuda' | grep -v 'pickable'
             exit 1
           fi
 

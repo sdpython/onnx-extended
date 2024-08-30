@@ -21,6 +21,7 @@ from onnxruntime import InferenceSession, SessionOptions
 from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended._command_lines_parser import (
     get_parser_bench,
+    get_parser_check,
     get_parser_cvt,
     get_parser_merge,
     get_parser_plot,
@@ -39,6 +40,14 @@ class TestCommandLines2(ExtTestCase):
         self.assertIn("kind", text)
         self.assertIn("verbose", text)
 
+    def test_parser_check(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_check().print_help()
+        text = st.getvalue()
+        self.assertIn("ortops", text)
+        self.assertIn("verbose", text)
+
     def test_command_store(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None])
         Z = make_tensor_value_info("Z", TensorProto.FLOAT, [None])
@@ -51,7 +60,9 @@ class TestCommandLines2(ExtTestCase):
             [X],
             [Z],
         )
-        onnx_model = make_model(graph, opset_imports=[make_opsetid("", 18)])
+        onnx_model = make_model(
+            graph, opset_imports=[make_opsetid("", 18)], ir_version=9
+        )
         check_model(onnx_model)
 
         sess_options = SessionOptions()
@@ -83,7 +94,8 @@ class TestCommandLines2(ExtTestCase):
             st = StringIO()
             with redirect_stdout(st):
                 main(args)
-            self.assertIn("[plot_profile] save", st.getvalue())
+            text = st.getvalue()
+            self.assertIn("[plot_profile] save", text)
             self.assertExists(png)
             self.assertExists(csv)
 
@@ -215,6 +227,39 @@ class TestCommandLines2(ExtTestCase):
 
     def test_stat(self):
         onx = self._get_model_init()
+        with tempfile.TemporaryDirectory() as root:
+            m = os.path.join(root, "m.onnx")
+            with open(m, "wb") as f:
+                f.write(onx.SerializeToString())
+            o = os.path.join(root, "stat.scsv")
+            args = [
+                "stat",
+                "--input",
+                m,
+                "--output",
+                o,
+                "-v",
+            ]
+            st = StringIO()
+            with redirect_stdout(st):
+                main(args)
+            text = st.getvalue()
+            self.assertIn("[cmd_stat]", text)
+            self.assertIn("[cmd_stat] prints out", text)
+
+    def test_stat_tree(self):
+        from sklearn.datasets import make_regression
+        from sklearn.ensemble import RandomForestRegressor
+        from skl2onnx import to_onnx
+
+        X, y = make_regression(100, 2, n_informative=1, random_state=32)
+        X = X.astype(np.float32)
+        y = y.astype(np.float32)
+
+        rf = RandomForestRegressor(3, max_depth=2, random_state=32, n_jobs=-1)
+        rf.fit(X[:80], y[:80])
+        onx = to_onnx(rf, X[:1])
+
         with tempfile.TemporaryDirectory() as root:
             m = os.path.join(root, "m.onnx")
             with open(m, "wb") as f:

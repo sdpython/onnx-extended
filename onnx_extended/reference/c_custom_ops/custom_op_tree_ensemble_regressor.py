@@ -11,7 +11,7 @@ from ..c_ops.cpu.c_op_tree_ensemble_py_ import (
 
 
 class TreeEnsembleRegressorCommon(OpRun):
-    op_domain = "onnx_extented.ortops.optim.cpu"
+    op_domain = "onnx_extended.ortops.optim.cpu"
 
     def __init__(
         self, onnx_node: NodeProto, run_params: Dict[str, Any], schema: Any = None
@@ -109,6 +109,7 @@ class TreeEnsembleRegressorCommon(OpRun):
             kwargs["target_nodeids"],  # 17
             kwargs["target_treeids"],  # 18
             tw,  # 19
+            False,
         )
         if self.parallel is not None:
             self.rt_.set(*self.parallel)

@@ -29,7 +29,7 @@ def get_node_attribute(node: NodeProto, name: str) -> AttributeProto:
         if att.name == name:
             return att
     raise KeyError(
-        f"Unable to find {name!r} among {list(att.name for att in node.attribute)}."
+        f"Unable to find {name!r} among {[att.name for att in node.attribute]}."
     )
 
 
@@ -113,7 +113,7 @@ def change_onnx_operator_domain(
         )
 
     if isinstance(onx, FunctionProto):
-        raise NotImplementedError()
+        raise NotImplementedError("onx is FunctionProto, not implemented yet.")
 
     if not isinstance(onx, ModelProto):
         raise TypeError(f"Unexpected type for onx {type(onx)}.")
@@ -133,11 +133,10 @@ def change_onnx_operator_domain(
 
     if new_op_domain is None:
         new_op_domain = op_domain
-    if new_op_domain == op_domain and new_opset is not None:
-        raise ValueError(
-            f"If new_op_domain=={new_op_domain!r}, "
-            f"new_opset must be None not {new_opset}."
-        )
+    assert new_op_domain != op_domain or new_opset is None, (
+        f"If new_op_domain=={new_op_domain!r}, "
+        f"new_opset must be None not {new_opset}."
+    )
     opsets = list(onx.opset_import)
     if new_op_domain != op_domain:
         opsets.append(make_opsetid(new_op_domain, new_opset or 1))
@@ -198,9 +197,8 @@ def optimize_model(
 
     See example :ref:`l-plot-optim-tree-ensemble` for an example.
     """
-    if sleep >= 1:
-        raise ValueError(f"sleep={sleep} >= 1, probably a mistake.")
-    keys = ["TRY"] + list(params.keys())
+    assert sleep < 1, f"sleep={sleep} >= 1, probably a mistake."
+    keys = ["TRY", *list(params.keys())]
     sets = [list(range(n_tries))] + [params[k] for k in keys[1:]]
     loops = list(product(*sets))
     if verbose:
@@ -229,11 +227,26 @@ def optimize_model(
         obs["TRY"] = 0
         obs["name"] = "baseline"
         res.append(obs)
+        base_perf = obs["average"]
+    else:
+        base_perf = None
+
+    min_perf = None
+    _s = dict(
+        parallel_tree="//tree",
+        parallel_tree_N="//tree_N",
+        parallel_N="//N",
+        batch_size_tree="bs_tree",
+        batch_size_ows="bs_rows",
+        use_node3="n3",
+    )
 
     for it, values in enumerate(loop):
         if verbose:
             msg = [f"i={it+1}/{len(loops)}"]
-            msg.extend([f"{k}={v}" for k, v in zip(keys, values)])
+            msg.extend([f"{_s.get(k,k)}={v}" for k, v in zip(keys, values)])
+            if min_perf and base_perf:
+                msg.append(f" ~={base_perf/min_perf:1.2f}x")
             loop.set_description(" ".join(msg))
 
         kwargs = dict(zip(keys, values))
@@ -248,6 +261,8 @@ def optimize_model(
             repeat=repeat,
             warmup=warmup,
         )
+        if not min_perf or min_perf > obsl["average"]:
+            min_perf = obsl["average"]
         obsl.update(kwargs)
         obsl["n_exp"] = it
         obsl["n_exp_name"] = ",".join(f"{k}={v}" for k, v in zip(keys, values))

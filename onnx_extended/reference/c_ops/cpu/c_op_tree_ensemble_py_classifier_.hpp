@@ -5,20 +5,24 @@
 
 namespace onnx_c_ops {
 
-template <typename NTYPE>
+template <typename FeatureType>
 class RuntimeTreeEnsembleClassifier
-    : public TreeEnsembleCommonClassifier<NTYPE, NTYPE, NTYPE> {
+    : public TreeEnsembleCommonClassifier<FeatureType, typename FeatureType::ValueType,
+                                          typename FeatureType::ValueType> {
 public:
+  typedef typename FeatureType::ValueType NTYPE;
+
   RuntimeTreeEnsembleClassifier()
-      : TreeEnsembleCommonClassifier<NTYPE, NTYPE, NTYPE>() {}
+      : TreeEnsembleCommonClassifier<FeatureType, typename FeatureType::ValueType,
+                                     typename FeatureType::ValueType>() {}
   ~RuntimeTreeEnsembleClassifier() {}
 
-  void init(const std::string &aggregate_function, // only classifier
-            py_array_t_ntype_t base_values,        // 4
-            int64_t n_targets_or_classes,          // 5
-            py_array_t_int64_t nodes_falsenodeids, // 6
-            py_array_t_int64_t nodes_featureids,   // 7
-            py_array_t_ntype_t nodes_hitrates,     // 8
+  void init(const std::string &aggregate_function,              // only classifier
+            py_array_t_ntype_t base_values,                     // 4
+            int64_t n_targets_or_classes,                       // 5
+            py_array_t_int64_t nodes_falsenodeids,              // 6
+            py_array_t_int64_t nodes_featureids,                // 7
+            py_array_t_ntype_t nodes_hitrates,                  // 8
             py_array_t_int64_t nodes_missing_value_tracks_true, // 9
             const std::vector<std::string> &nodes_modes,        // 10
             py_array_t_int64_t nodes_nodeids,                   // 11
@@ -47,8 +51,7 @@ public:
     array2vector(tnodes_falsenodeids, nodes_falsenodeids, int64_t);
     array2vector(tnodes_featureids, nodes_featureids, int64_t);
     array2vector(tnodes_hitrates, nodes_hitrates, NTYPE);
-    array2vector(tmissing_tracks_true, nodes_missing_value_tracks_true,
-                 int64_t);
+    array2vector(tmissing_tracks_true, nodes_missing_value_tracks_true, int64_t);
     array2vector(tnodes_truenodeids, nodes_truenodeids, int64_t);
     // nodes_modes_names_ = nodes_modes;
     array2vector(tnodes_nodeids, nodes_nodeids, int64_t);
@@ -83,16 +86,16 @@ public:
            ttarget_class_ids,     // 16
            ttarget_class_nodeids, // 17
            ttarget_class_treeids, // 18
-           ttarget_class_weights  // 19
+           ttarget_class_weights // 19
     );
   }
 
-  void init_c(const std::string &aggregate_function,          // only classifier
-              const std::vector<NTYPE> &base_values,          // 4
-              int64_t n_targets_or_classes,                   // 5
-              const std::vector<int64_t> &nodes_falsenodeids, // 6
-              const std::vector<int64_t> &nodes_featureids,   // 7
-              const std::vector<NTYPE> &nodes_hitrates,       // 8
+  void init_c(const std::string &aggregate_function,                       // only classifier
+              const std::vector<NTYPE> &base_values,                       // 4
+              int64_t n_targets_or_classes,                                // 5
+              const std::vector<int64_t> &nodes_falsenodeids,              // 6
+              const std::vector<int64_t> &nodes_featureids,                // 7
+              const std::vector<NTYPE> &nodes_hitrates,                    // 8
               const std::vector<int64_t> &nodes_missing_value_tracks_true, // 9
               const std::vector<std::string> &nodes_modes,                 // 10
               const std::vector<int64_t> &nodes_nodeids,                   // 11
@@ -121,7 +124,8 @@ public:
                target_class_ids,                // 16
                target_class_nodeids,            // 17
                target_class_treeids,            // 18
-               target_class_weights             // 19
+               target_class_weights,            // 19
+               true
     );
   }
 
@@ -151,8 +155,8 @@ public:
 
 private:
   void compute_gil_free(const std::vector<int64_t> &x_dims, int64_t /* N */,
-                        int64_t /* stride */, py_array_t_ntype_t &X,
-                        py_array_t_ntype_t &Z, py_array_t_int64_t &label) {
+                        int64_t /* stride */, py_array_t_ntype_t &X, py_array_t_ntype_t &Z,
+                        py_array_t_int64_t &label) {
     auto Z_ = _mutable_unchecked1(Z);
     auto label_ = _mutable_unchecked1(label);
     const NTYPE *x_data = X.data(0);

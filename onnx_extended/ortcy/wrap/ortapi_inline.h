@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ortapi_version.h"
 #include "onnx_extended_helpers.h"
+#include "ortapi_version.h"
 
 namespace ortapi {
 
@@ -12,14 +12,12 @@ inline static const OrtApi *GetOrtApi() {
 
 inline const char *ort_version() { return OrtGetApiBase()->GetVersionString(); }
 
-inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename,
-                           int line) {
+inline void _ThrowOnError_(OrtStatus *ort_status, const char *filename, int line) {
   if (ort_status) {
     std::string message(GetOrtApi()->GetErrorMessage(ort_status));
     OrtErrorCode code = GetOrtApi()->GetErrorCode(ort_status);
     throw std::runtime_error(onnx_extended_helpers::MakeString(
-        "error: onnxruntime(", code, "), ", message, "\n    ", filename, ":",
-        line));
+        "error: onnxruntime(", code, "), ", message, "\n    ", filename, ":", line));
   }
 }
 

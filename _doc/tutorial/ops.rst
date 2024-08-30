@@ -1,38 +1,37 @@
-
+===============================
 Focus on operators optimization
 ===============================
 
-Conv
-====
+.. toctree::
+    :maxdepth: 1
+    :caption: Conv
+
+    ../auto_examples/plot_op_conv_py_vs_c
+    ../auto_examples/plot_op_conv_denorm
 
 .. toctree::
     :maxdepth: 1
-
-    ../auto_examples/plot_conv
-    ../auto_examples/plot_conv_denorm
-
-Gemm
-++++
-
-.. toctree::
-    :maxdepth: 1
+    :caption: Gemm
 
     ../auto_examples/plot_bench_gemm_f8
     ../auto_examples/plot_bench_gemm_ort
     ../auto_examples/plot_profile_gemm_ort
 
-Einsum
-++++++
-
 .. toctree::
     :maxdepth: 1
+    :caption: Einsum
 
     ../auto_examples/plot_op_einsum
 
-TreeEnsemble
-++++++++++++
+.. toctree::
+    :maxdepth: 1
+    :caption: Mul
+
+    ../auto_examples/plot_op_mul_cuda
 
 .. toctree::
     :maxdepth: 1
+    :caption: TreeEnsemble
 
-    ../auto_examples/plot_optim_tree_ensemble
+    ../auto_examples/plot_op_tree_ensemble_optim
+    ../auto_examples/plot_op_tree_ensemble_sparse

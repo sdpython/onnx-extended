@@ -24,12 +24,12 @@ def analyse_einsum_equation(
         \\end{array}\\right.
     """
     spl = equation.strip(" ,").split("->")
-    if len(spl) != 2 or len(spl[1]) == 0 or len(spl[0]) == 0:
+    if len(spl) != 2 or not spl[1] or not spl[0]:
         raise NotImplementedError(
             "The function only implements the case when there are "
             "two sides in the equation: %r." % equation
         )
-    inputs = list(map(lambda s: s.strip(), spl[0].split(",")))
+    inputs = [s.strip() for s in spl[0].split(",")]
     output = spl[1]
     all_letters = set(inputs[0])
 
@@ -46,11 +46,10 @@ def analyse_einsum_equation(
 
     rev = {c: i for i, c in enumerate(letters)}
     for c in output:
-        if c not in letters:
-            raise ValueError(
-                "Output contains one unexpected letter %r in "
-                "equation %r." % (c, equation)
-            )
+        assert c in letters, (
+            f"Output contains one unexpected letter {c!r} in equation "
+            f"{equation!r}, letters={letters!r}."
+        )
     mat = numpy.full((len(inputs) + 1, len(letters)), -1, dtype=numpy.int8)
     for i, inp in enumerate(inputs):
         for k, c in enumerate(inp):
@@ -62,7 +61,7 @@ def analyse_einsum_equation(
 
     # Look for duplicates
     duplicates: List[Optional[Dict[str, List[int]]]] = []
-    for inp in inputs + [output]:
+    for inp in [*inputs, output]:
         if len(inp) == len(set(inp)):
             duplicates.append(None)
             continue
@@ -136,7 +135,7 @@ def decompose_einsum_equation(
             "bac,cd,def->ebc", (2, 2, 2), (2, 2), (2, 2, 2))
         print("DOT-SECTION", seq.to_dot())
     """
-    if len(shapes) > 0:
+    if shapes:
         for sh in shapes:
             if not isinstance(sh, tuple):
                 raise TypeError(f"All shapes must be tuples for {sh!r} is not.")
@@ -212,17 +211,24 @@ def is_transpose_identity(perm: Tuple[int, ...]) -> bool:
 def _basic_verification(
     lengths: List[int], shapes: List[Tuple[int, ...]], equation: str
 ):
-    if len(lengths) - 1 != len(shapes):
-        raise ValueError(
-            "Equation %r has %d inputs but %d shapes are given."
-            "" % (equation, len(lengths), len(shapes))
-        )
+    assert len(lengths) - 1 == len(
+        shapes
+    ), "Equation %r has %d inputs but %d shapes are given." % (  # noqa: ISC001
+        equation,
+        len(lengths),
+        len(shapes),
+    )
     for i, (le, sh) in enumerate(zip(lengths, shapes)):
-        if le != len(sh):
-            raise ValueError(
-                "Inputs %d has %d dimensions but shapes %r has %d "
-                " in equation %r." % (i, le, sh, len(sh), equation)
+        assert le == len(sh), (
+            "Inputs %d has %d dimensions but shapes %r has %d in equation %r."
+            % (  # noqa: ISC001
+                i,
+                le,
+                sh,
+                len(sh),
+                equation,
             )
+        )
 
 
 def _apply_transpose_reshape(
@@ -284,7 +290,7 @@ def _apply_squeeze_transpose(
     if not is_transpose_identity(new_perm):
         op = EinsumSubOp(len(row_last), "transpose", op, perm=tuple(new_perm))
         yield op
-    if len(sq) > 0:
+    if sq:
         op = EinsumSubOp(len(row_last), "squeeze", op, axes=tuple(sq))
         yield op
 
@@ -298,10 +304,9 @@ def _apply_einsum_matmul(
     *op_matmul* (see :func:`decompose_einsum_equation`).
     """
     allowed = {"matmul", "batch_dot", "dot"}
-    if op_matmul not in allowed:
-        raise ValueError(
-            f"Unknown operator op_matmul={op_matmul!r} not in {allowed!r}."
-        )
+    assert (
+        op_matmul in allowed
+    ), f"Unknown operator op_matmul={op_matmul!r} not in {allowed!r}."
     if op_matmul == "matmul":
         if verbose:
             print(f"  -- MATMUL -> matmul axes={axes!r} left={left!r} right={right!r}")
@@ -309,12 +314,12 @@ def _apply_einsum_matmul(
             fd, "matmul", op1, op2, axes=axes, left=left, right=right, ndim=ndim
         )
 
-    elif len(axes) == 0 and len(set(left) & set(right)) == 0:
+    elif len(axes) == 0 and not (set(left) & set(right)):
         if verbose:
             print(f"  -- MATMUL -> mul axes={axes!r} left={left!r} right={right!r}")
         yield EinsumSubOp(fd, "mul", op1, op2)
 
-    elif len(set(axes) & set(left)) == 0 and len(set(axes) & set(right)) == 0:
+    elif not (set(axes) & set(left)) and not (set(axes) & set(right)):
         # No intersection between axes and right: matrix multiplication
         if verbose:
             print(
@@ -364,11 +369,11 @@ def _apply_einsum_matmul(
             yield op2
 
         # Reshape
-        all_axes = list(range(0, ndim))
+        all_axes = list(range(ndim))
         new_axes = all_axes[-len(axes) :] if len(axes) > 0 else []
         new_common_axes = all_axes[: len(common_axes)]
         not_in_both = []
-        for i in range(0, ndim):
+        for i in range(ndim):
             if i not in left and i not in right and i not in common_axes:
                 not_in_both.append(i)
 
@@ -389,8 +394,8 @@ def _apply_einsum_matmul(
         # Transpose again
         ordered_axes = (
             common_axes
-            + list(i for i in left if i not in right)
-            + list(i for i in right if i not in left)
+            + [i for i in left if i not in right]
+            + [i for i in right if i not in left]
             + not_in_both
         )
         rev_perm = [(a, i) for i, a in enumerate(ordered_axes)]
@@ -427,11 +432,10 @@ def _decompose_einsum_equation_simple(
         *reduce_sum*, or just *dot*
     """
     letters, mat, lengths, duplicates = analyse_einsum_equation(equation)
-    if len(letters) != mat.shape[1]:
-        raise RuntimeError(
-            f"Unexpected number of letters {letters!r}, shape={mat.shape!r}."
-        )
-    if len(shapes) == 0:
+    assert (
+        len(letters) == mat.shape[1]
+    ), f"Unexpected number of letters {letters!r}, shape={mat.shape!r}."
+    if not shapes:
         shapes = [(2,) * le for le in lengths[:-1]]
     _basic_verification(lengths, shapes, equation)
 
@@ -471,16 +475,17 @@ def _decompose_einsum_equation_simple(
             diag = None
             tr_row = mat[i]
 
-        for op in _apply_transpose_reshape(op, tr_row):
-            op.compute_output_row(rows[1, :], verbose=verbose)
-            marked = graph.append(op)
+        for iop in _apply_transpose_reshape(op, tr_row):
+            op = iop
+            iop.compute_output_row(rows[1, :], verbose=verbose)
+            marked = graph.append(iop)
 
         # Reduction? (a dimension not used later)
         red = []
-        for d in range(0, mat.shape[1]):
+        for d in range(mat.shape[1]):
             if mat[i + 1 :, d].max() == -1 and rows[1, d] != -1 and rows[0, d] == -1:
                 red.append(d)
-        if len(red) > 0:
+        if red:
             if verbose:
                 print("  -- REDUCE1 row=%d axes=%r" % (i, red))
                 print(mat)
@@ -495,7 +500,7 @@ def _decompose_einsum_equation_simple(
             common_dims = []
             left = []
             right = []
-            for d in range(0, mat.shape[1]):
+            for d in range(mat.shape[1]):
                 if rows[:, d].min() >= 0:
                     if mat[i + 1 :, d].max() >= 0:
                         left.append(d)
@@ -539,7 +544,7 @@ def _decompose_einsum_equation_simple(
     if mat[len(shapes), :].max() >= 0:
         rows[1, :] = mat[len(shapes), :]
         red = []
-        for d in range(0, mat.shape[1]):
+        for d in range(mat.shape[1]):
             if rows[0, d] > 0 and rows[1, d] == -1:
                 red.append(d)
             elif rows[0, d] == -1 and rows[1, d] >= 0:
@@ -547,7 +552,7 @@ def _decompose_einsum_equation_simple(
                     "Issue in equation %r, variable %d, last_result is %r, "
                     "output is %r." % (equation, d, rows[0, :], rows[1, :])
                 )
-        if len(red) > 0:
+        if red:
             if verbose:
                 print(f"-- REDUCE2 axes={red!r}")
                 print(mat)
@@ -556,7 +561,8 @@ def _decompose_einsum_equation_simple(
             op.compute_output_row(rows[1, :], verbose=verbose)
 
         # Removes empty axes.
-        for op in _apply_squeeze_transpose(op, rows[1, :], mat[len(shapes), :]):
-            op.compute_output_row(rows[1, :], verbose=verbose)
-            graph.append(op)
+        for iop in _apply_squeeze_transpose(op, rows[1, :], mat[len(shapes), :]):
+            op = iop
+            iop.compute_output_row(rows[1, :], verbose=verbose)
+            graph.append(iop)
     return graph

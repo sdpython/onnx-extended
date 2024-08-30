@@ -4,11 +4,11 @@
 #include <mutex>
 #include <vector>
 
-#include "ortapi_version.h"
 #include "custom_gemm.h"
 #include "ort_tutorial_cuda_lib.h"
+#include "ortapi_version.h"
 
-static const char *c_OpDomain = "onnx_extented.ortops.tutorial.cuda";
+static const char *c_OpDomain = "onnx_extended.ortops.tutorial.cuda";
 
 static void AddOrtCustomOpDomainToContainer(Ort::CustomOpDomain &&domain) {
   static std::vector<Ort::CustomOpDomain> ort_custom_op_domain_container;
@@ -25,21 +25,17 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   // An instance remaining available until onnxruntime unload the library.
   static ortops::CustomGemmOp c_CustomGemmFloat(
       "CustomGemmFloat", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-      false);
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, false);
   static ortops::CustomGemmOp c_CustomGemmFloat16(
       "CustomGemmFloat16", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, false);
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, false);
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
   static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FN(
       "CustomGemmFloat8E4M3FN", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-      false);
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, false);
   static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FNTime(
       "CustomGemmFloat8E4M3FNTime", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN,
-      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-      false);
+      ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, false);
 #endif
 
   try {

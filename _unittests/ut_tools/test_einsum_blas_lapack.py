@@ -2,7 +2,7 @@ import unittest
 import numpy
 from scipy.linalg.blas import sgemm
 from onnx_extended.ext_test_case import ExtTestCase
-from onnx_extended.validation.cython.blas_lapack import gemm_dot, pygemm
+from onnx_extended.tools.einsum.blas_lapack import gemm_dot, pygemm
 
 
 class TestBlasLapack(ExtTestCase):
@@ -108,7 +108,7 @@ class TestBlasLapack(ExtTestCase):
             lambda: pygemm(
                 False, False, 1, 1, 1, 1.0, b.ravel(), 1, a.ravel(), 1, 0.0, c, 1
             ),
-            ValueError,
+            AssertionError,
         )
         c = numpy.empty((1,), dtype=a.dtype)
         self.assertRaise(
@@ -210,7 +210,7 @@ class TestBlasLapack(ExtTestCase):
 
                             cc[:, :] = 0
                             sgemm(1, a, b, 0, cc, t1, t2, 1)
-                            try:
+                            try:  # noqa: SIM105
                                 self.assertEqualArray(exp, cc)
                             except AssertionError:
                                 # Overwriting the result does not seem
@@ -284,7 +284,7 @@ class TestBlasLapack(ExtTestCase):
 
                             cc[:, :] = 0
                             sgemm(1, a, b, 0, cc, t1, t2, 1)
-                            try:
+                            try:  # noqa: SIM105
                                 self.assertEqualArray(exp, cc)
                             except AssertionError:
                                 # Overwriting the result does not seem
@@ -358,7 +358,7 @@ class TestBlasLapack(ExtTestCase):
 
                             cc[:, :] = 0
                             sgemm(1, a, b, 0, cc, t1, t2, 1)
-                            try:
+                            try:  # noqa: SIM105
                                 self.assertEqualArray(exp, cc)
                             except AssertionError:
                                 # Overwriting the result does not seem

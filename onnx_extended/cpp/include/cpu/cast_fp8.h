@@ -32,9 +32,8 @@ inline uint8_t float_to_e4m3fn(float v, bool saturate = true) {
           val |= 1;
         }
         auto mask = 1 << (20 + d);
-        if ((m & mask) &&
-            ((val & 1) || ((m & (mask - 1)) > 0) ||
-             ((m & mask) && (m & (mask << 1)) && ((m & (mask - 1)) == 0)))) {
+        if ((m & mask) && ((val & 1) || ((m & (mask - 1)) > 0) ||
+                           ((m & mask) && (m & (mask << 1)) && ((m & (mask - 1)) == 0)))) {
           // rounding
           val += 1;
         }
@@ -69,16 +68,15 @@ inline uint8_t float_to_e4m3fn(float v, bool saturate = true) {
   return val;
 }
 
-inline void float_to_e4m3fn(int64_t n, const float *src, uint8_t *dst,
-                            bool saturate = true) {
+inline void float_to_e4m3fn(int64_t n, const float *src, uint8_t *dst, bool saturate = true) {
 #pragma omp parallel for
   for (int64_t i = 0; i < n; ++i) {
     dst[i] = float_to_e4m3fn(src[i], saturate);
   }
 }
 
-inline void float_to_e4m3fn(int64_t n, const float *src, uint8_t *dst,
-                            float scale, bool saturate = true) {
+inline void float_to_e4m3fn(int64_t n, const float *src, uint8_t *dst, float scale,
+                            bool saturate = true) {
 #pragma omp parallel for
   for (int64_t i = 0; i < n; ++i) {
     dst[i] = float_to_e4m3fn(src[i] / scale, saturate);

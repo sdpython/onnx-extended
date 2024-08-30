@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 from onnx import TensorProto
 from onnx.defs import OpSchema
@@ -18,7 +19,12 @@ try:
 except ImportError:
     from onnx.reference.ops.op_cast import Cast
     from onnx.reference.ops.op_quantize_linear import QuantizeLinear
-from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
+try:
+    from onnx.reference.ops.op_dequantize_linear import (
+        DequantizeLinear_21 as DequantizeLinear,
+    )
+except ImportError:
+    from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 
 
 def _make_schema_gemm_float8(cls_name: str) -> OpSchema:
@@ -110,22 +116,22 @@ class GemmFloat8(OpRun):
         A,
         B,
         *args,
-        transA: int = None,
-        transB: int = None,
-        alpha: float = None,
-        beta: float = None,
-        smCount: int = None,
-        fastAccumulationMode: int = None,
-        computeType: str = None,
-        dtype: int = None,
-        rowMajor: int = None,
-        activation: str = None,
+        transA: Optional[int] = None,
+        transB: Optional[int] = None,
+        alpha: Optional[float] = None,
+        beta: Optional[float] = None,
+        smCount: Optional[int] = None,
+        fastAccumulationMode: Optional[int] = None,
+        computeType: Optional[str] = None,
+        dtype: Optional[int] = None,
+        rowMajor: Optional[int] = None,
+        activation: Optional[str] = None,
     ):
         if len(A.shape) != 2:
             raise ValueError(f"A is not a matrix, its shape is {A.shape}.")
         if len(B.shape) != 2:
             raise ValueError(f"B is not a matrix, its shape is {B.shape}.")
-        C = args[0] if len(args) > 0 else None
+        C = args[0] if args else None
         scaleA = args[1] if len(args) > 1 else None
         scaleB = args[2] if len(args) > 2 else None
         scaleR = args[3] if len(args) > 3 else None

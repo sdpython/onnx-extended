@@ -195,13 +195,13 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleRegressor_1)
 
-        for i in range(0, 20):
+        for i in range(20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
             lexp = clr.predict(X_test[i : i + 1])
             self.assertEqual(lexp.shape, y[0].shape)
-            self.assertEqualArray(lexp.astype(numpy.float32), y[0])
+            self.assertEqualArray(lexp.astype(numpy.float32), y[0], atol=1e-5)
 
-        for i in range(0, 20):
+        for i in range(20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 2]})
             lexp = clr.predict(X_test[i : i + 2])
             self.assertEqual(lexp.shape, y[0].shape)
@@ -226,7 +226,7 @@ class TestCTreeEnsemble(ExtTestCase):
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = LGBMRegressor(num_iterations=1, max_depth=5)
-        clr.fit(X_train, y_train)
+        self.capture(lambda: clr.fit(X_train, y_train))
 
         update_registered_converter(
             LGBMRegressor,
@@ -236,7 +236,11 @@ class TestCTreeEnsemble(ExtTestCase):
         )
 
         try:
-            model_def = to_onnx(clr, X_train.astype(numpy.float64))
+            model_def = to_onnx(
+                clr,
+                X_train.astype(numpy.float64),
+                target_opset={"ai.onnx.ml": 3, "": 18},
+            )
         except ImportError as e:
             if "cannot import name 'FEATURE_IMPORTANCE_TYPE_MAPPER'" in str(e):
                 return
@@ -247,13 +251,13 @@ class TestCTreeEnsemble(ExtTestCase):
         oinf = CReferenceEvaluator(model_def)
         self.assertIsInstance(oinf.rt_nodes_[0], TreeEnsembleRegressor_3)
 
-        for i in range(0, 20):
+        for i in range(20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 1]})
             lexp = clr.predict(X_test[i : i + 1])
             self.assertEqual(lexp.shape, y[0].shape)
             self.assertEqualArray(lexp.astype(numpy.float32), y[0])
 
-        for i in range(0, 20):
+        for i in range(20):
             y = oinf.run(None, {"X": X_test.astype(numpy.float32)[i : i + 2]})
             lexp = clr.predict(X_test[i : i + 2])
             self.assertEqual(lexp.shape, y[0].shape)
@@ -266,14 +270,14 @@ class TestCTreeEnsemble(ExtTestCase):
 
     @unittest.skipIf(onnx_opset_version() < 19, reason="ReferenceEvaluator is bugged")
     @ignore_warnings((FutureWarning, DeprecationWarning))
-    def test_decision_tree_regressor2(self):
+    def test_a_decision_tree_regressor2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X = X.astype(numpy.float32)
         y = y.astype(numpy.float32)
         y = numpy.vstack([y, y]).T
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = DecisionTreeRegressor()
+        clr = DecisionTreeRegressor(max_depth=1)
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))

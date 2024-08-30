@@ -106,8 +106,7 @@ void gemm(bool transA, bool transB, std::size_t M, std::size_t N, std::size_t K,
     }
   }
 #endif
-  throw std::invalid_argument(
-      "Not implemented for adjointd matrices (Gemm<T>).");
+  throw std::invalid_argument("Not implemented for adjointd matrices (Gemm<T>).");
 }
 
 }; // namespace onnx_c_ops

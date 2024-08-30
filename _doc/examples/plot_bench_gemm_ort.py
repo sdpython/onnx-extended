@@ -10,6 +10,7 @@ types and configuration. That includes a custom operator
 only available on CUDA calling function :epkg:`cublasLtMatmul`.
 This function offers many options.
 """
+
 import pprint
 import platform
 from itertools import product
@@ -48,7 +49,8 @@ try:
     from onnx_extended.reference import CReferenceEvaluator
 except ImportError:
     CReferenceEvaluator = ReferenceEvaluator
-from onnx_extended.ext_test_case import unit_test_going, measure_time, get_parsed_args
+from onnx_extended.args import get_parsed_args
+from onnx_extended.ext_test_case import unit_test_going, measure_time
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import get_device_prop
@@ -113,7 +115,7 @@ else:
 # It includes one Gemm. The operator changes.
 # It can the regular Gemm, a custom Gemm from domain `com.microsoft`
 # or a custom implementation from domain
-# `onnx_extented.ortops.tutorial.cuda`.
+# `onnx_extended.ortops.tutorial.cuda`.
 
 
 def create_model(
@@ -184,7 +186,7 @@ def create_model(
         opset_imports=[
             make_opsetid("", opset),
             make_opsetid("com.microsoft", 1),
-            make_opsetid("onnx_extented.ortops.tutorial.cuda", 1),
+            make_opsetid("onnx_extended.ortops.tutorial.cuda", 1),
         ],
         ir_version=ir,
     )
@@ -235,7 +237,7 @@ print(onnx_simple_text_plot(create_cast(TensorProto.FLOAT16)))
 #
 # The benchmark will run the following configurations.
 
-types = list(getattr(TensorProto, a) for a in script_args.types.split(","))
+types = [getattr(TensorProto, a) for a in script_args.types.split(",")]
 engine = [InferenceSession, CReferenceEvaluator]
 providers = [
     ["CUDAExecutionProvider", "CPUExecutionProvider"],
@@ -243,8 +245,8 @@ providers = [
 ]
 # M, N, K
 # we use multiple of 8, otherwise, float8 does not work.
-dims = [list(int(i) for i in line.split(",")) for line in script_args.dims.split(";")]
-domains = ["onnx_extented.ortops.tutorial.cuda", "", "com.microsoft"]
+dims = [[int(i) for i in line.split(",")] for line in script_args.dims.split(";")]
+domains = ["onnx_extended.ortops.tutorial.cuda", "", "com.microsoft"]
 
 
 ####################################
@@ -337,7 +339,7 @@ def rendering_obs(obs, dim, number, repeat, domain, provider, internal_time):
             domain={
                 "": "ORT",
                 "com.microsoft": "COM",
-                "onnx_extented.ortops.tutorial.cuda": "EXT",
+                "onnx_extended.ortops.tutorial.cuda": "EXT",
             }[domain],
             provider={
                 "CPUExecutionProvider": "cpu",
@@ -418,7 +420,11 @@ for tt, engine, provider, dim, domain in pbar:
         feeds = {"A": matrices[k1].numpy(), "B": matrices[k2].numpy()}
         sess = engine(onx)
         sess.run(None, feeds)
-        obs = measure_time(lambda: sess.run(None, feeds), repeat=repeat, number=number)
+        obs = measure_time(
+            lambda sess=sess, feeds=feeds: sess.run(None, feeds),
+            repeat=repeat,
+            number=number,
+        )
 
     elif engine == InferenceSession:
         if provider[0] not in get_available_providers():
@@ -439,20 +445,22 @@ for tt, engine, provider, dim, domain in pbar:
         out_names = ["C"]
 
         # warmup
-        for i in range(script_args.warmup):
+        for _i in range(script_args.warmup):
             sess._sess.run_with_ort_values(the_feeds, out_names, None)[0]
 
         # benchamrk
         times = []
 
-        def fct_benchmarked():
+        def fct_benchmarked(
+            sess=sess, times=times, out_names=out_names, the_feeds=the_feeds
+        ):
             got = sess._sess.run_with_ort_values(the_feeds, out_names, None)
             if len(got) > 1:
                 times.append(got[1])
 
         obs = measure_time(fct_benchmarked, repeat=repeat, number=number)
         internal_time = None
-        if len(times) > 0:
+        if times:
             np_times = [t.numpy() for t in times]
             internal_time = (sum(np_times) / len(times))[0]
 

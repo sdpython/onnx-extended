@@ -2,25 +2,22 @@
 
 namespace ortops {
 
-MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
-    const OrtApi &api, const OrtKernelInfo *info) {
+MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(const OrtApi &api,
+                                                           const OrtKernelInfo *info) {
   // A float attribute.
   float value_float;
-  ThrowOnError(
-      api, api.KernelInfoGetAttribute_float(info, "att_float", &value_float));
+  ThrowOnError(api, api.KernelInfoGetAttribute_float(info, "att_float", &value_float));
   att_float = value_float;
 
   // An integer attribute.
   int64_t value_int64;
-  ThrowOnError(
-      api, api.KernelInfoGetAttribute_int64(info, "att_int64", &value_int64));
+  ThrowOnError(api, api.KernelInfoGetAttribute_int64(info, "att_int64", &value_int64));
   att_int64 = value_int64;
 
   // A string attribute.
   char value_string[1000];
   std::size_t size = 1000;
-  ThrowOnError(api, api.KernelInfoGetAttribute_string(info, "att_string",
-                                                      value_string, &size));
+  ThrowOnError(api, api.KernelInfoGetAttribute_string(info, "att_string", value_string, &size));
   att_string = value_string;
 
   // A tensor attribute
@@ -29,8 +26,8 @@ MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
   ThrowOnError(api, api.GetAllocatorWithDefaultOptions(&cpu_allocator));
 
   OrtValue *value_tensor = nullptr;
-  ThrowOnError(api, api.KernelInfoGetAttribute_tensor(
-                        info, "att_tensor", cpu_allocator, &value_tensor));
+  ThrowOnError(
+      api, api.KernelInfoGetAttribute_tensor(info, "att_tensor", cpu_allocator, &value_tensor));
 
   // Retrieve the dimensions and the element type.
   OrtTensorTypeAndShapeInfo *shape_info;
@@ -39,8 +36,7 @@ MyCustomKernelWithAttributes::MyCustomKernelWithAttributes(
   // Retrieve the element type.
   ONNXTensorElementDataType elem_type;
   ThrowOnError(api, api.GetTensorElementType(shape_info, &elem_type));
-  if (elem_type !=
-      ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE) {
+  if (elem_type != ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE) {
     api.ReleaseTensorTypeAndShapeInfo(shape_info);
     api.ReleaseValue(value_tensor);
     throw std::runtime_error(
@@ -81,8 +77,7 @@ void MyCustomKernelWithAttributes::Compute(OrtKernelContext *context) {
   const double *Y = input_Y.GetTensorData<double>();
 
   // Setup output, which is assumed to have the same dimensions as the inputs.
-  std::vector<int64_t> dimensions =
-      input_X.GetTensorTypeAndShapeInfo().GetShape();
+  std::vector<int64_t> dimensions = input_X.GetTensorTypeAndShapeInfo().GetShape();
 
   Ort::UnownedValue output = ctx.GetOutput(0, dimensions);
   double *out = output.GetTensorMutableData<double>();
@@ -91,8 +86,7 @@ void MyCustomKernelWithAttributes::Compute(OrtKernelContext *context) {
 
   // Do computation
   double cst = att_tensor_double[0] + static_cast<double>(att_float) +
-               static_cast<double>(att_int64) +
-               static_cast<double>(att_string[0]);
+               static_cast<double>(att_int64) + static_cast<double>(att_string[0]);
 
   for (std::size_t i = 0; i < size; i++) {
     out[i] = X[i] + Y[i] + cst;
@@ -104,9 +98,7 @@ void *MyCustomOpWithAttributes::CreateKernel(const OrtApi &api,
   return std::make_unique<MyCustomKernelWithAttributes>(api, info).release();
 }
 
-const char *MyCustomOpWithAttributes::GetName() const {
-  return "MyCustomOpWithAttributes";
-}
+const char *MyCustomOpWithAttributes::GetName() const { return "MyCustomOpWithAttributes"; }
 
 const char *MyCustomOpWithAttributes::GetExecutionProviderType() const {
   return "CPUExecutionProvider";

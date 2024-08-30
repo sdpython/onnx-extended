@@ -1,9 +1,42 @@
 Change Logs
 ===========
 
+0.3.0
++++++
+
+* :pr:`186`: support numpy 2.0
+* :pr:`187`: Fix compilation with GCC>=13 #187 
+* :pr:`185`: adds custom operator MulMulSigmoid on CUDA
+* :pr:`184`: use onnxruntime==1.18.0 as default
+* :pr:`181`: adds MaskedScatterNDOfShape custom operator
+* :pr:`175`: adds custom operator MulSub and SubMul on CUDA
+* :pr:`173`: adds custom operator AddSharedInput, MulSharedInput on CUDA
+* :pr:`170`: adds custom operator TriMatrix on CUDA
+* :pr:`169`: adds custom operator ReplaceZero on CUDA
+* :pr:`168`: adds custom operator MulSigmoid on CUDA
+* :pr:`167`: adds custom operator Rotary on CUDA
+* :pr:`166`, :pr:`178`: adds custom operators AddMul, MulAdd on CUDA
+* :pr:`165`: adds custom operators AddAddAdd, MulMulMul on CUDA
+* :pr:`163`: use onnxruntime==1.17.3 as default
+* :pr:`162`: add ScatterNDOfShape implementation on CUDA without atomics
+* :pr:`159`: add AddAdd custom operator on CUDA
+* :pr:`158`: add MulMul custom operator on CUDA
+* :pr:`157`: add ScatterNDOfShape custom operator
+* :pr:`155`: add a function to draw a timeline from a profile
+* :pr:`154`: improves ploting legend for profiling
+* :pr:`151`: refactoring of TreeEnsemble code to make them faster
+* :pr:`129`, :pr:`132`: support sparse features for TreeEnsemble
+
 0.2.4
 +++++
 
+* :pr:`120`: use onnxruntime==1.16.3 as default
+* :pr:`115`, :pr:`116`, :pr:`118`: adds C implementation of SVMRegressor, SVMClassifier
+  reference operator based on it, and custom kernels for onnxruntime as well
+* :pr:`111`, :pr:`117`, :pr:`119`: adds C implementation of TfIdfVectorizer +
+  python implementation of Tokenizer + custom kernel for onnxruntime
+* :pr:`110`: allows LEQ as an alias for BRANCH_LEQ for nodes_modes in TreeEnsemble* operators
+* :pr:`108`: improves command lines documentation, fix an issue in command line stats
 * :pr:`103`: add methods to compute statistics on TreeEnsemble and initializers
 
 0.2.3

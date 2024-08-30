@@ -27,14 +27,15 @@ except ImportError as e:
         path = onnx_extended.ortcy.wrap.ortinf.__file__
     except ImportError as ee:
         path = str(ee)
-    msg = "libonnxruntime.so.1.16.1: cannot open shared object file"
+    msg = "libonnxruntime.so.1.18.0: cannot open shared object file"
     if msg in str(e):
         from onnx_extended.ortcy.wrap import __file__ as loc
 
         all_files = os.listdir(os.path.dirname(loc))
         warnings.warn(
             f"Unable to find onnxruntime {e!r}, found files in {os.path.dirname(loc)}: "
-            f"{all_files}, path={path!r}."
+            f"{all_files}, path={path!r}.",
+            stacklevel=0,
         )
         OrtSession = None
         get_ort_c_api_supported_version = None
@@ -126,12 +127,12 @@ class TestOrtCy(ExtTestCase):
         A = make_tensor_value_info("A", TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None])
         node1 = make_node(
-            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extented.ortops.tutorial.cpu"
+            "MyCustomOp", ["X", "A"], ["Y"], domain="onnx_extended.ortops.tutorial.cpu"
         )
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)
@@ -162,7 +163,7 @@ class TestOrtCy(ExtTestCase):
             "MyCustomOpWithAttributes",
             ["X", "A"],
             ["Y"],
-            domain="onnx_extented.ortops.tutorial.cpu",
+            domain="onnx_extended.ortops.tutorial.cpu",
             att_string="string_att",
             att_int64=5,
             att_float=4.5,
@@ -171,7 +172,7 @@ class TestOrtCy(ExtTestCase):
         graph = make_graph([node1], "lr", [X, A], [Y])
         onnx_model = make_model(
             graph,
-            opset_imports=[make_opsetid("onnx_extented.ortops.tutorial.cpu", 1)],
+            opset_imports=[make_opsetid("onnx_extended.ortops.tutorial.cpu", 1)],
             ir_version=8,
         )
         check_model(onnx_model)

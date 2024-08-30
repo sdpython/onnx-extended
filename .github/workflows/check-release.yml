@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest]
-        python-version: ['3.11', '3.10']
+        python-version: ['3.12', '3.11', '3.10']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-python@v4
@@ -48,7 +48,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
-        python-version: ['3.11', '3.10']
+        python-version: ['3.12', '3.11', '3.10']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-python@v4

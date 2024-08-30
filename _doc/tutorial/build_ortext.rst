@@ -6,6 +6,25 @@ This package includes a wrapper for :epkg:`onnxruntime` based on
 For that purpose, it includes the onnxruntime binaries released
 on github (see :epkg:`onnxruntime releases`).
 
+build onnxruntime
++++++++++++++++++
+
+::
+
+    clear&&CUDA_VERSION=11.8 CUDACXX=/usr/local/cuda-11.8/bin/nvcc python ./tools/ci_build/build.py \
+            --config Release --build_wheel --build_dir ./build/linux_cuda \
+            --build_shared_lib --use_cuda --cuda_home /usr/local/cuda-11.8/ \
+            --cudnn_home /usr/local/cuda-11.8/ --cuda_version=11.8 --enable_training --enable_training_ops \
+            --cmake_extra_defines "CMAKE_CUDA_ARCHITECTURES=61" \
+            --parallel --skip_tests
+
+    clear&&CUDA_VERSION=12.1 CUDACXX=/usr/local/cuda-12.1/bin/nvcc python ./tools/ci_build/build.py \
+            --config Release --build_wheel --build_dir ./build/linux_cuda \
+            --build_shared_lib --use_cuda --cuda_home /usr/local/cuda-12.1/ \
+            --cudnn_home /usr/local/cuda-12.1/ --cuda_version=12.1 --enable_training --enable_training_ops \
+            --cmake_extra_defines "CMAKE_CUDA_ARCHITECTURES=70;72" \
+            --parallel --skip_tests
+
 cmake
 +++++
 

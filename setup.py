@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 import distutils
 import os
+import multiprocessing
 import platform
 import shutil
 import subprocess
@@ -249,13 +249,23 @@ class cmake_build_class_extension(Command):
             "cuda-link=",
             None,
             "CUDA can statically linked (STATIC) or dynamically "
-            "(SHARED), default is STATIC."
-            "STATIC",
+            "(SHARED), default is SHARED."
+            "SHARED",
+        ),
+        (
+            "cuda-nvcc=",
+            None,
+            "Path to nvcc, sets variable CMAKE_CUDA_COMPILER",
         ),
         (
             "manylinux=",
             None,
-            "Enforces the compilation with manylinux, " "default is set to 0.",
+            "Enforces the compilation with manylinux, default is set to 0.",
+        ),
+        (
+            "cfg=",
+            None,
+            "Builds a specific configuration, default is set to Release.",
         ),
     ]
 
@@ -278,13 +288,15 @@ class cmake_build_class_extension(Command):
         self.cuda_build = "DEFAULT"
         self.cuda_link = "STATIC"
         self.noverbose = None
+        self.cfg = None
+        self.cuda_nvcc = None
 
         self._parent.initialize_options(self)
 
         # boolean
         b_values = {0, 1, "1", "0", True, False}
         t_values = {1, "1", True}
-        for att in ["use_nvtx", "use_cuda", "manylinux", "noverbose"]:
+        for att in ["use_nvtx", "use_cuda", "manylinux", "noverbose", "cfg"]:
             v = getattr(self, att)
             if v is not None:
                 continue
@@ -314,6 +326,8 @@ class cmake_build_class_extension(Command):
             self.manylinux = False
         if self.noverbose is None:
             self.noverbose = False
+        if self.cfg is None:
+            self.cfg = "Release"
 
     def finalize_options(self):
         self._parent.finalize_options(self)
@@ -339,6 +353,9 @@ class cmake_build_class_extension(Command):
         link = {"STATIC", "SHARED"}
         if self.cuda_link not in link:
             raise ValueError(f"cuda-link={self.cuda_link!r} not in {link}.")
+        cfg_names = {"Debug", "Release"}
+        if self.cfg not in cfg_names:
+            raise ValueError(f"cfg={self.cfg!r} not in {cfg_names}.")
 
         options = {o[0]: o for o in self.user_options}
         keys = list(sorted(options.keys()))
@@ -350,6 +367,12 @@ class cmake_build_class_extension(Command):
                 continue
             print(f"-- setup: option {name}={v}")
 
+        if self.cuda_nvcc in (None, ""):
+            self.cuda_nvcc = None
+        else:
+            if not os.path.exists(self.cuda_nvcc):
+                raise FileNotFoundError(f"Unable to find nvcc: {self.cuda_nvcc!r}.")
+
     def get_cmake_args(self, cfg: str) -> List[str]:
         """
         Returns the argument for cmake.
@@ -359,7 +382,7 @@ class cmake_build_class_extension(Command):
         """
         iswin = is_windows()
         isdar = is_darwin()
-        cmake_cmd_args = []
+        cmake_cmd_args: List[str] = []
 
         path = sys.executable
         vers = (
@@ -406,13 +429,12 @@ class cmake_build_class_extension(Command):
             f"-DORT_VERSION={self.ort_version}",
             f"-DONNX_EXTENDED_VERSION={get_version_str(here, None)}",
             f"-DPYTHON_MANYLINUX={1 if is_manylinux else 0}",
+            f"-DAUDITWHEEL_PLAT={os.environ.get('AUDITWHEEL_PLAT', '')}",
         ]
         if self.noverbose:
             cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=OFF")
         elif self.verbose:
             cmake_args.append("-DCMAKE_VERBOSE_MAKEFILE=ON")
-        if self.parallel is not None:
-            cmake_args.append(f"-j{self.parallel}")
 
         if self.use_nvtx:
             cmake_args.append("-DUSE_NVTX=1")
@@ -420,6 +442,8 @@ class cmake_build_class_extension(Command):
         if self.use_cuda:
             cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
             cmake_args.append(f"-DCUDA_LINK={self.cuda_link}")
+            if self.cuda_nvcc:
+                cmake_args.append(f"-DCMAKE_CUDA_COMPILER={self.cuda_nvcc}")
         cuda_version = self.cuda_version
         if cuda_version not in (None, ""):
             cmake_args.append(f"-DCUDA_VERSION={cuda_version}")
@@ -466,7 +490,8 @@ class cmake_build_class_extension(Command):
         # Builds the project.
         build_path = os.path.abspath(build_temp)
         build_lib = getattr(self, "build_lib", build_path)
-        cmake_args = cmake_args + [
+        cmake_args = [
+            *cmake_args,
             f"-DSETUP_BUILD_PATH={os.path.abspath(build_path)}",
             f"-DSETUP_BUILD_LIB={os.path.abspath(build_lib)}",
         ]
@@ -482,6 +507,8 @@ class cmake_build_class_extension(Command):
         source_path = os.path.join(this_dir, "_cmake")
 
         cmd = ["cmake", "-S", source_path, "-B", build_path, *cmake_args]
+
+        print(f"-- setup: LD_LIBRARY_PATH={os.environ.get('LD_LIBRARY_PATH','')}")
         print(f"-- setup: version={sys.version_info!r}")
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: source_path={source_path!r}")
@@ -494,6 +521,11 @@ class cmake_build_class_extension(Command):
         # then build
         print()
         cmd = ["cmake", "--build", build_path, "--config", cfg]
+        if sys.platform != "win32":
+            if self.parallel is not None:
+                cmd.extend(["--", f"-j{self.parallel}"])
+            else:
+                cmd.extend(["--", f"-j{multiprocessing.cpu_count()}"])
         print(f"-- setup: cwd={os.getcwd()!r}")
         print(f"-- setup: build_path={build_path!r}")
         print(f"-- setup: cmd={' '.join(cmd)}")
@@ -557,10 +589,10 @@ class cmake_build_class_extension(Command):
         # Ensure that CMake is present and working
         try:
             subprocess.check_output(["cmake", "--version"])
-        except OSError:
-            raise RuntimeError("Cannot find CMake executable")
+        except OSError as e:
+            raise RuntimeError("Cannot find CMake executable") from e
 
-        cfg = "Release"
+        cfg = self.cfg if self.cfg else "Release"
         cmake_args = self.get_cmake_args(cfg)
         build_path, build_lib = self.build_cmake(cfg, cmake_args)
         if hasattr(self, "extensions"):
@@ -648,7 +680,11 @@ def get_ext_modules():
                     CMakeExtension(
                         "onnx_extended.validation.cuda.cuda_example_py",
                         f"onnx_extended/validation/cuda/cuda_example_py.{ext}",
-                    )
+                    ),
+                    CMakeExtension(
+                        "onnx_extended.validation.cuda.cuda_monitor",
+                        f"onnx_extended/validation/cuda/cuda_monitor.{ext}",
+                    ),
                 ]
             )
     elif "--use-cuda=1" in sys.argv or "--use-cuda" in sys.argv:
@@ -658,16 +694,8 @@ def get_ext_modules():
         )
     ext_modules = [
         CMakeExtension(
-            "onnx_extended.validation.cython.vector_function_cy",
-            f"onnx_extended/validation/cython/vector_function_cy.{ext}",
-        ),
-        CMakeExtension(
             "onnx_extended.validation.cython.fp8",
             f"onnx_extended/validation/cython/fp8.{ext}",
-        ),
-        CMakeExtension(
-            "onnx_extended.validation.cython.direct_blas_lapack_cy",
-            f"onnx_extended/validation/cython/direct_blas_lapack_cy.{ext}",
         ),
         CMakeExtension(
             "onnx_extended.validation.cpu._validation",
@@ -678,8 +706,16 @@ def get_ext_modules():
             f"onnx_extended/reference/c_ops/cpu/c_op_conv_.{ext}",
         ),
         CMakeExtension(
+            "onnx_extended.reference.c_ops.cpu.c_op_svm_py_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_svm_py_.{ext}",
+        ),
+        CMakeExtension(
             "onnx_extended.reference.c_ops.cpu.c_op_tree_ensemble_py_",
             f"onnx_extended/reference/c_ops/cpu/c_op_tree_ensemble_py_.{ext}",
+        ),
+        CMakeExtension(
+            "onnx_extended.reference.c_ops.cpu.c_op_tfidf_vectorizer_py_",
+            f"onnx_extended/reference/c_ops/cpu/c_op_tfidf_vectorizer_py_.{ext}",
         ),
         CMakeExtension(
             "onnx_extended.ortcy.wrap.ortinf",
@@ -694,7 +730,7 @@ def get_ext_modules():
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.16.1"
+DEFAULT_ORT_VERSION = "1.18.0"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."
@@ -722,6 +758,7 @@ def get_package_data():
         "onnx_extended.include.cpu": known_extensions,
         "onnx_extended.include.cuda": known_extensions,
         "onnx_extended.ortops.optim.cpu": known_extensions,
+        "onnx_extended.ortops.optim.cuda": known_extensions,
         "onnx_extended.ortops.tutorial.cpu": known_extensions,
         "onnx_extended.ortops.tutorial.cuda": known_extensions,
         "onnx_extended.ortcy.wrap": known_extensions,

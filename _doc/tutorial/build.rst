@@ -1,6 +1,6 @@
 
-Build
-=====
+Build from source
+=================
 
 The packages relies on :epkg:`cmake` to build the C++ extensions.
 whether it wrapped with :epkg:`pybind11` or :epkg:`cython`.
@@ -41,3 +41,4 @@ The development versions of :epkg:`onnxruntime` can be used if it was already bu
     build_pybind11
     build_cuda
     build_ortext
+    readings

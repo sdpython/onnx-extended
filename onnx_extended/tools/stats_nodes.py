@@ -1,6 +1,6 @@
 import pprint
 from collections import Counter
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, Iterable, Optional, Tuple, Union
 import numpy as np
 from onnx import (
     AttributeProto,
@@ -32,10 +32,10 @@ def enumerate_nodes(
     """
     if isinstance(onx, ModelProto):
         for c, parent, node in enumerate_nodes(onx.graph, recursive=recursive):
-            yield (onx.graph.name,) + c, parent, node
+            yield (onx.graph.name, *c), parent, node
         for f in onx.functions:
             for c, parent, node in enumerate_nodes(f, recursive=recursive):
-                yield (f.name,) + c, parent, node
+                yield (f.name, *c), parent, node
     elif isinstance(onx, (GraphProto, FunctionProto)):
         if isinstance(onx, GraphProto):
             for init in onx.initializer:
@@ -43,8 +43,9 @@ def enumerate_nodes(
             for initp in onx.sparse_initializer:
                 yield (initp.indices.name or initp.values.name,), onx, initp
         for i, node in enumerate(onx.node):
-            if not isinstance(node, NodeProto):
-                raise TypeError(f"A NodeProto is expected not {type(node)}.")
+            assert isinstance(
+                node, NodeProto
+            ), f"A NodeProto is expected not {type(node)}."
             if node.op_type == "Constant":
                 yield (node.output[0],), onx, node
             else:
@@ -63,7 +64,7 @@ def enumerate_nodes(
                                 n = node.indices.name or node.values.name
                             else:
                                 raise TypeError(f"Unexpected type {type(node)}.")
-                            yield (f"{n}/{att.name}",) + c, parent, node
+                            yield (f"{n}/{att.name}", *c), parent, node
 
 
 def extract_attributes(node: NodeProto) -> Dict[str, Tuple[AttributeProto, Any]]:
@@ -128,17 +129,19 @@ class _Statistics:
 
     def add(self, name: str, value: Any):
         "Adds one statictics."
-        if name in self._statistics:
-            raise ValueError(f"Statistics {name!r} was already added.")
+        assert name not in self._statistics, f"Statistics {name!r} was already added."
         self._statistics[name] = value
 
-    def __iter__(self) -> Iterable[Tuple[str, Any]]:
-        for it in self._statistics.items():
-            yield it
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+        yield from self._statistics.items()
 
     def __getitem__(self, name: str) -> Any:
         "Returns one statistics."
         return self._statistics[name]
+
+    def get(self, name: str, default_value: Optional[Any] = None) -> Any:
+        "Returns one statistics or a default value if not found."
+        return self._statistics.get(name, default_value)
 
     def __str__(self) -> str:
         "Usual"
@@ -147,7 +150,7 @@ class _Statistics:
     @property
     def dict_values(self) -> Dict[str, Any]:
         """
-        Converts the statistics the class holds into a single rows in order
+        Converts the statistics the class holds into a single row in order
         to build a dataframe.
         """
         raise NotImplementedError(
@@ -170,6 +173,40 @@ class NodeStatistics(_Statistics):
             f"{self.__class__.__name__}(<{self.parent.name}>, <{self.node.op_type}>,\n"
             f"{pprint.pformat(self._statistics)})"
         )
+
+    @property
+    def dict_values(self) -> Dict[str, Any]:
+        "Returns the statistics as a dictionary."
+        obs = {}
+        for k, v in self._statistics.items():
+            if isinstance(
+                v, (int, float, str, np.int64, np.int32, np.float32, np.float64)
+            ):
+                obs[k] = v
+            elif isinstance(v, set):
+                obs[k] = ",".join(map(str, sorted(v)))
+            elif isinstance(v, Counter):
+                for kk, vv in v.items():
+                    obs[f"{k}__{kk}"] = vv
+            elif isinstance(v, list):
+                if len(v) == 0:
+                    continue
+                if isinstance(v[0], (HistTreeStatistics, TreeStatistics)):
+                    # It is the statistics for every tree.
+                    # Let's skip that.
+                    continue
+                raise TypeError(
+                    f"Unexpected type {type(v)} for statistics {k!r} "
+                    f"with element {type(v[0])}."
+                )
+            elif isinstance(v, _Statistics):
+                dv = v.dict_values
+                for kk, vv in dv.items():
+                    if isinstance(vv, (int, float, str)):
+                        obs[f"{k}__{kk}"] = vv
+            else:
+                raise TypeError(f"Unexpected type {type(v)} for statistics {k!r}: {v}.")
+        return obs
 
 
 class TreeStatistics(_Statistics):
@@ -414,7 +451,7 @@ def enumerate_stats_nodes(
     :return: enumerate tuple *(name, parent, statistics)*
     """
     if stats_fcts is None:
-        dom_optim = "onnx_extented.ortops.optim.cpu"
+        dom_optim = "onnx_extended.ortops.optim.cpu"
         stats_fcts = {
             ("ai.onnx.ml", "TreeEnsembleRegressor"): stats_tree_ensemble,
             ("ai.onnx.ml", "TreeEnsembleClassifier"): stats_tree_ensemble,

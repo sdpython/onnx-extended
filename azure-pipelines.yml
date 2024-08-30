@@ -5,7 +5,7 @@ jobs:
   strategy:
     matrix:
       Python311-Linux:
-        python.version: '3.11'
+        python.version: '3.12'
     maxParallel: 3
 
   steps:
@@ -24,7 +24,7 @@ jobs:
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: |
-      ruff .
+      ruff check .
     displayName: 'Ruff'
   - script: |
       black --diff .
@@ -99,7 +99,7 @@ jobs:
   - script: pip install -r requirements-dev.txt
     displayName: 'Install Requirements dev'
   - script: |
-      ruff .
+      ruff check .
     displayName: 'Ruff'
   - script: |
       black --diff .
@@ -201,7 +201,7 @@ jobs:
         ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
-      python -m pytest _unittests --durations=10
+      python -m pytest _unittests --durations=10 -v
     displayName: 'Runs Unit Tests'
   - script: |
         python -u setup.py bdist_wheel
@@ -240,8 +240,9 @@ jobs:
     displayName: 'Print'
   - script: brew install libomp
     displayName: 'Install omp'
-  - script: brew install llvm
-    displayName: 'Install llvm'
+  # macOS already provides this software and installing another version in parallel can cause all kinds of trouble.
+  # - script: brew install llvm
+  #   displayName: 'Install llvm'
   - script: |
       pip install -r requirements.txt
     displayName: 'Install Requirements'

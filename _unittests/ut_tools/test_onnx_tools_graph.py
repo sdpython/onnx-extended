@@ -1,8 +1,7 @@
 import itertools
 import unittest
 import numpy as np
-from packaging.version import Version
-from onnx import TensorProto, __version__ as onnx_version
+from onnx import TensorProto
 from onnx.checker import check_model
 from onnx.helper import (
     make_model,
@@ -13,9 +12,14 @@ from onnx.helper import (
     make_opsetid,
 )
 from onnx.reference import ReferenceEvaluator
-from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
+
+try:
+    from onnx.reference.ops.op_dequantize_linear import (
+        DequantizeLinear_21 as DequantizeLinear,
+    )
+except ImportError:
+    from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
 from onnx.reference.op_run import to_array_extended
-from onnx.onnx_cpp2py_export.defs import SchemaError
 
 try:
     from onnxruntime import InferenceSession, SessionOptions
@@ -25,7 +29,6 @@ except ImportError:
     ort_version = "0.0"
 if InferenceSession is not None:
     from onnxruntime import get_available_providers
-    from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
 
     ort_has_cuda = "CUDAExecutionProvider" in get_available_providers()
 else:
@@ -36,7 +39,7 @@ try:
 except ImportError:
     onnx_simple_text_plot = str
 
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_windows
 from onnx_extended.helper import make_dynamic_quantize_linear_function_proto
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.tools.graph.onnx_graph_struct import Graph
@@ -60,15 +63,19 @@ else:
 
 
 class TestOnnxToolsGraph(ExtTestCase):
-    def _get_basic_square_model(self, init, n_dim_x, n_dim_c, side_x):
+    def _get_basic_square_model(self, init, n_dim_x, n_dim_c, side_x, simple=-1):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None] * n_dim_x)
         Y = make_tensor_value_info(
             "Y", TensorProto.FLOAT, [None] * max(n_dim_x, n_dim_c)
         )
         shape_cst = np.array([2] * n_dim_c).astype(np.int64)
-        value_cst = (np.arange(np.prod(shape_cst)) / np.prod(shape_cst)).astype(
-            np.float32
-        )
+        if simple == -1:
+            value_cst = (np.arange(np.prod(shape_cst)) / np.prod(shape_cst)).astype(
+                np.float32
+            )
+        else:
+            value_cst = np.zeros(np.prod(shape_cst), dtype=np.float32)
+            value_cst[simple] = 1
         matmul = make_node(
             "MatMul", ["X", "cst"] if side_x == 0 else ["cst", "X"], ["Y"]
         )
@@ -90,8 +97,13 @@ class TestOnnxToolsGraph(ExtTestCase):
             graph, opset_imports=[make_opsetid("", 18)], ir_version=8
         )
         check_model(onnx_model)
-        return onnx_model, value_cst.reshape(tuple(shape_cst.tolist()))
+        if side_x == 0:
+            fct = lambda X: X @ value_cst.reshape(tuple(shape_cst))
+        else:
+            fct = lambda X: value_cst.reshape(tuple(shape_cst)) @ X
+        return onnx_model, value_cst.reshape(tuple(shape_cst.tolist())), fct
 
+    @skipif_ci_windows("unstable on Windows")
     def test_basic_all(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
@@ -142,34 +154,43 @@ class TestOnnxToolsGraph(ExtTestCase):
             [0, 1],  # side_
             [2, 3],  # n_dim_x
             [3, 2],  # n_dim_c
+            # [0, 1, 2, 3, -1] if __name__ == "__main__" else [-1],  # simple
+            [-1],
         )
 
-        for it, (init, tr, side_x, n_dim_x, n_dim_c) in enumerate(options):
+        # 7, 5, 5, 6, 6, 4, 4, 7, 7, 5, 5, 6, 6, 4, 4
+        for _it, (init, tr, side_x, n_dim_x, n_dim_c, simple) in enumerate(options):
             msg = (
                 f"init={init}, tr={tr}, side_x={side_x}, "
-                f"n_dim_x={n_dim_x}, n_dim_c={n_dim_c}"
+                f"n_dim_x={n_dim_x}, n_dim_c={n_dim_c}, simple={simple}"
             )
             with self.subTest(msg=msg):
-                # print(f"-----------------------------\n{msg}")
-                model, cst = self._get_basic_square_model(
-                    init=init, n_dim_x=n_dim_x, n_dim_c=n_dim_c, side_x=side_x
+                model, cst, fct = self._get_basic_square_model(
+                    init=init,
+                    n_dim_x=n_dim_x,
+                    n_dim_c=n_dim_c,
+                    side_x=side_x,
+                    simple=simple,
                 )
 
-                x = np.random.random((2,) * n_dim_x).astype(np.float32)
+                x = (
+                    (np.arange(2**n_dim_x) + 1)
+                    .reshape((2,) * n_dim_x)
+                    .astype(np.float32)
+                )
                 feeds = dict(X=x)
 
-                try:
-                    ref = CReferenceEvaluator(model)
-                except RuntimeError as e:
-                    raise AssertionError(
-                        f"Unable to load model\n----\n{onnx_simple_text_plot(model)}"
-                    ) from e
+                ref = self.tryCall(
+                    lambda model=model: CReferenceEvaluator(model),
+                    f"Unable to load model\n----\n{onnx_simple_text_plot(model)}",
+                )
                 z0 = ref.run(None, feeds)[0]
 
                 # Let's compute expected value after quandization
                 qx, qc = dynamic_qdq_linear(x), dynamic_qdq_linear(cst)
                 expected = qx @ qc if side_x == 0 else qc @ qx
-                self.assertEqualArray(expected, z0, atol=0.5)
+                self.assertEqualArray(expected, z0, rtol=0.1)
+                self.assertEqualArray(fct(x), expected, rtol=0.1)
 
                 graph = Graph(model)
                 try:
@@ -196,40 +217,27 @@ class TestOnnxToolsGraph(ExtTestCase):
                 for node in onx.graph.node:
                     if node.op_type == "GemmFloat8":
                         node.op_type = "GemmFloat8Quiet"
-                try:
-                    ref2 = CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet])
-                except RuntimeError as e:
-                    raise AssertionError(
-                        f"Unable to load model\n----\n{msg}\n"
-                        f"{onnx_simple_text_plot(onx)}"
-                    ) from e
-                try:
-                    got = ref2.run(None, dict(X=x))[0]
-                except SchemaError as es:
-                    if Version(onnx_version) < Version("1.16.0") and (
-                        "No schema registered for 'Cast_19'" in str(es)
-                    ):
-                        continue
-                    raise es
-                except (ValueError, RuntimeError) as e:
-                    if Version(onnx_version) < Version("1.16.0") and (
-                        "Both types must be float 8" in str(e)
-                    ):
-                        continue
-                    raise AssertionError(
-                        f"Unable to run model with x.shape={x.shape}"
-                        f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}"
-                    ) from e
-                try:
-                    self.assertEqualArray(expected, got, atol=1e-5)
-                except AssertionError as e:
-                    raise AssertionError(
+                ref2 = self.tryCall(
+                    lambda onx=onx: CReferenceEvaluator(onx, new_ops=[GemmFloat8Quiet]),
+                    f"Unable to load model\n----\n{msg}\n{onnx_simple_text_plot(onx)}",
+                )
+                got = self.tryCall(
+                    lambda ref2=ref2, x=x: ref2.run(None, dict(X=x))[0],
+                    f"Unable to run model with x.shape={x.shape}"
+                    f"\n----\n{msg}\n{onnx_simple_text_plot(onx)}",
+                )
+                self.assertEqualArray(
+                    expected,
+                    got,
+                    atol=1e-5,
+                    msg=(
                         f"Verification failed with GemmFloat8Quiet\n"
                         f"expected.shape={expected.shape} got.shape={got.shape}\n"
                         f"x=\n{x}\nqx=\n{qx}\ncst=\n{cst}\nqc=\n{qc}\n--\n"
                         f"expected=\n{expected}\ngot={got}\n----\n{msg}\n"
                         f"onx={onnx_simple_text_plot(onx)}"
-                    ) from e
+                    ),
+                )
 
                 # check with onnxruntime and CPU kernel
                 graph = Graph(model)
@@ -237,29 +245,39 @@ class TestOnnxToolsGraph(ExtTestCase):
                     graph,
                     version="onnx-extended",
                     domain_ops={
-                        "CustomGemmFloat8E4M3FN": "onnx_extented.ortops.tutorial.cpu"
+                        "CustomGemmFloat8E4M3FN": "onnx_extended.ortops.tutorial.cpu"
                     },
                     index_transpose=tr,
                 )
                 onxo = new_graph.to_onnx()
                 check_onx(onxo, tr)
-                try:
-                    sess = InferenceSession(
+                sess = self.tryCall(
+                    lambda onxo=onxo: InferenceSession(
                         onxo.SerializeToString(),
                         sess_opts,
                         providers=["CPUExecutionProvider"],
+                    ),
+                    msg=(
+                        f"onnxruntime inference fails with\n"
+                        f"{onnx_simple_text_plot(onxo)}"
+                    ),
+                    none_if="type inference failed",
+                )
+                if sess is not None:
+                    got = sess.run(None, dict(X=x))[0]
+                    self.assertEqualArray(
+                        expected,
+                        got,
+                        rtol=1e-5,
+                        msg=(
+                            f"Discrepancies with\n"
+                            f"x={x}\ncst={cst}\nqx={qx}\nqc={qc}"
+                            f"\nexpected={expected}\nfct(x)={fct(x)}"
+                            f"\n{onnx_simple_text_plot(onxo)}"
+                            f"\n-------------------------\n"
+                            f"{onnx_simple_text_plot(onxo)}"
+                        ),
                     )
-                except OrtFail as e:
-                    if "type inference failed" in str(e):
-                        # bug of onnxruntime
-                        with open(
-                            f"custom_ops_type_inference_fails_{it}.onnx", "wb"
-                        ) as f:
-                            f.write(onxo.SerializeToString())
-                        continue
-                    raise e
-                got = sess.run(None, dict(X=x))[0]
-                self.assertEqualArray(expected, got, atol=1e-5)
 
     def _get_model(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])
@@ -302,7 +320,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(z.shape, (3, 3))
         self.assertEqualArray(x @ x @ (x + 2), z, atol=1e-5)
         self.assertEqual(len(list(graph)), 7)
-        for i in range(0, 7):
+        for i in range(7):
             node = graph[i]
             self.assertIn(
                 node.op_type, {"input", "output", "Constant", "Add", "MatMul"}
@@ -367,9 +385,9 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(len(graph), 7)
         self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, 7):
+        for i in range(7):
             if i == 3:
-                self.assertRaise(lambda: graph[i], IndexError)
+                self.assertRaise(lambda i=i: graph[i], IndexError)
                 continue
             node = graph[i]
             ops.append(node.op_type)
@@ -390,7 +408,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(len(graph), 7)
         self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, len(graph)):
+        for i in range(len(graph)):
             node = graph[i]
             ops.append(node.op_type)
             self.assertIn(
@@ -410,7 +428,7 @@ class TestOnnxToolsGraph(ExtTestCase):
         self.assertEqual(len(graph), 7)
         self.assertEqual(len(list(graph)), 7)
         ops = []
-        for i in range(0, len(graph)):
+        for i in range(len(graph)):
             node = graph[i]
             ops.append(node.op_type)
             self.assertIn(
@@ -460,7 +478,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "one",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     ),
                 ),
                 make_node("MatMul", ["X", "mat"], ["Z"], name="m1"),
@@ -489,7 +507,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "mat",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     )
                 ],
             )
@@ -504,7 +522,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                             "one",
                             TensorProto.FLOAT,
                             [3, 2],
-                            list(float(i) for i in range(11, 17)),
+                            [float(i) for i in range(11, 17)],
                         ),
                     ),
                     make_node("MatMul", ["X", "mat"], ["Z"]),
@@ -602,7 +620,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                         "mat",
                         TensorProto.FLOAT,
                         [3, 2],
-                        list(float(i) for i in range(11, 17)),
+                        [float(i) for i in range(11, 17)],
                     )
                 ],
             )
@@ -618,7 +636,7 @@ class TestOnnxToolsGraph(ExtTestCase):
                             "one",
                             TensorProto.FLOAT,
                             [3, 2],
-                            list(float(i) for i in range(11, 17)),
+                            [float(i) for i in range(11, 17)],
                         ),
                     ),
                     make_node("MatMul", ["Xc", "mat"], ["Z"]),
@@ -673,4 +691,5 @@ if __name__ == "__main__":
     for name in ["onnx-extended", "skl2onnx", "onnx-extended/transformer"]:
         log = logging.getLogger(name)
         log.setLevel(logging.ERROR)
+    TestOnnxToolsGraph().test_basic_all()
     unittest.main(verbosity=2)

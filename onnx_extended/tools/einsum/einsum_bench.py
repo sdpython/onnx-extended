@@ -96,10 +96,9 @@ def _make_inputs(equation, shapes):
         N = shapes
         shapes = [(N,) * le for le in dims]
     else:
-        if len(shapes) != len(inputs):
-            raise ValueError(
-                f"Unexpected number of shapes {shapes!r} with equation {equation!r}."
-            )
+        assert len(shapes) == len(
+            inputs
+        ), f"Unexpected number of shapes {shapes!r} with equation {equation!r}."
     inputs = [numpy.random.randn(*sh) for sh in shapes]
     return [i.astype(numpy.float32) for i in inputs]
 
@@ -129,17 +128,16 @@ def einsum_benchmark(
     :return: list of dictionaries as an iterator
     """
     scenarios = []
-    if isinstance(shape, list) and all(map(lambda t: isinstance(t, int), shape)):
+    if isinstance(shape, list) and all(isinstance(t, int) for t in shape):
         shape_list = shape
     else:
         shape_list = [shape]
 
     if perm:
-        if equation.lower() != equation:
-            raise ValueError(
-                "Only equations with lower letters are allowed but equation %r "
-                "is not." % equation
-            )
+        assert equation.lower() == equation, (
+            "Only equations with lower letters are allowed but equation %r "
+            "is not." % equation
+        )
         letters = list(
             sorted(set(c for c in equation if "a" <= c < "z" or "A" <= c < "Z"))
         )
@@ -181,8 +179,7 @@ def einsum_benchmark(
             if dec == "einsum":
                 onx = _make_einsum_model(equation, opset=opset)
             else:
-                if seq is None:
-                    raise RuntimeError("seq cannot be None.")
+                assert seq is not None, "seq cannot be None."
                 onx = seq.to_onnx(
                     "Y", *["X%d" % i for i in range(len(inputs))], opset=opset
                 )
@@ -196,8 +193,7 @@ def einsum_benchmark(
             if dec == "einsum":
                 onx = _make_einsum_model(equation, opset=opset)
             else:
-                if seq is None:
-                    raise RuntimeError("seq must not be None.")
+                assert seq is not None, "seq must not be None."
                 onx = seq.to_onnx(
                     "Y", *["X%d" % i for i in range(len(inputs))], opset=opset
                 )

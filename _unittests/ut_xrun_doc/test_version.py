@@ -41,5 +41,4 @@ class TestVersion(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestCommandLines().test_command_external()
     unittest.main(verbosity=2)

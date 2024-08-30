@@ -152,6 +152,8 @@ class CReferenceEvaluator(ReferenceEvaluator):
     @staticmethod
     def default_ops():
         from onnx_extended.reference.c_ops.c_op_conv import Conv
+        from onnx_extended.reference.c_ops.c_op_svm_classifier import SVMClassifier
+        from onnx_extended.reference.c_ops.c_op_svm_regressor import SVMRegressor
         from onnx_extended.reference.c_ops.c_op_tree_ensemble_regressor import (
             TreeEnsembleRegressor_1,
             TreeEnsembleRegressor_3,
@@ -164,9 +166,19 @@ class CReferenceEvaluator(ReferenceEvaluator):
             TreeEnsembleRegressor_1 as TreeEnsembleRegressor_1_Float,
             TreeEnsembleRegressor_3 as TreeEnsembleRegressor_3_Float,
         )
+        from onnx_extended.reference.c_ops.c_op_tfidf_vectorizer import TfIdfVectorizer
+        from onnx_extended.reference.other_ops.op_tokenizer import Tokenizer
+        from onnx_extended.reference.other_ops.op_scatternd_of_shape import (
+            ScatterNDOfShape,
+        )
 
         return [
             Conv,
+            ScatterNDOfShape,
+            SVMClassifier,
+            SVMRegressor,
+            TfIdfVectorizer,
+            Tokenizer,
             TreeEnsembleClassifier_1,
             TreeEnsembleClassifier_3,
             TreeEnsembleRegressor_1,
@@ -247,7 +259,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
         if save_intermediate is not None:
             self._cached_saved_results = {}
 
-    def run(
+    def run(  # type: ignore[override]
         self,
         output_names,
         feed_inputs: Dict[str, Any],
@@ -307,11 +319,10 @@ class CReferenceEvaluator(ReferenceEvaluator):
         # return the results
         list_results: list[Any] = []
         for name in output_names:
-            if name not in results:
-                raise RuntimeError(
-                    f"Unable to find output name {name!r} "
-                    f"in {sorted(results)}, proto is\n{self.proto_}"
-                )
+            assert name in results, (
+                f"Unable to find output name {name!r} "
+                f"in {sorted(results)}, proto is\n{self.proto_}"
+            )
             list_results.append(results[name])
         return list_results
 
@@ -383,6 +394,7 @@ class CReferenceEvaluator(ReferenceEvaluator):
                 ],
             ),
             opset_imports=self.proto_.opset_import,
+            ir_version=self.proto_.ir_version,
         )
         model_bytes = model.SerializeToString()
         if model_bytes not in self._cached_saved_results:

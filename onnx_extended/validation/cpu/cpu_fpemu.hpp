@@ -13,9 +13,15 @@
 
 #pragma once
 
+#if defined(__SSSE3__)
+
 #include <immintrin.h>
 
+#endif
+
 namespace cpu_fpemu {
+
+#if defined(__SSSE3__)
 
 inline float __double2float_rn(double inval) {
   float out[4] = {0};
@@ -28,8 +34,7 @@ inline float __double2float_rn(double inval) {
 #ifdef _WIN32
 
 inline unsigned short __float2half_rn(float inval) {
-  __m128i m = _mm_cvtps_ph(_mm_set_ss(inval),
-                           (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+  __m128i m = _mm_cvtps_ph(_mm_set_ss(inval), (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
   return _mm_extract_epi16(m, 0);
 }
 
@@ -45,6 +50,8 @@ inline unsigned short __float2half_rn(float inval) {
 }
 
 inline float __half2float(unsigned short h_val) { return _cvtsh_ss(h_val); }
+
+#endif
 
 #endif
 

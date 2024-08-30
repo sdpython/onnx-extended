@@ -5,11 +5,13 @@
 #include <vector>
 
 #include "ort_optim_cpu_lib.h"
+#include "ort_sparse.hpp"
+#include "ort_svm.hpp"
+#include "ort_tfidf_vectorizer.hpp"
+#include "ort_tree_ensemble.hpp"
 #include "ortapi_version.h"
-#include "tree_ensemble.h"
-#include "tree_ensemble.hpp"
 
-static const char *c_OpDomain = "onnx_extented.ortops.optim.cpu";
+static const char *c_OpDomain = "onnx_extended.ortops.optim.cpu";
 
 static void AddOrtCustomOpDomainToContainer(Ort::CustomOpDomain &&domain) {
   static std::vector<Ort::CustomOpDomain> ort_custom_op_domain_container;
@@ -24,16 +26,32 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   Ort::UnownedSessionOptions session_options(options);
 
   // An instance remaining available until onnxruntime unload the library.
-  static ortops::TreeEnsembleRegressor<float, float, float>
+  static ortops::DenseToSparse<float> c_DenseToSparse;
+  static ortops::SparseToDense<float> c_SparseToDense;
+  static ortops::SVMClassifier<float> c_SVMClassifier;
+  static ortops::SVMRegressor<float> c_SVMRegressor;
+  static ortops::TreeEnsembleRegressor<onnx_c_ops::DenseFeatureAccessor<float>, float, float>
       c_TreeEnsembleRegressor;
-  static ortops::TreeEnsembleClassifier<float, float, float>
+  static ortops::TreeEnsembleClassifier<onnx_c_ops::DenseFeatureAccessor<float>, float, float>
       c_TreeEnsembleClassifier;
+  static ortops::TreeEnsembleRegressor<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
+      c_TreeEnsembleRegressorSparse;
+  static ortops::TreeEnsembleClassifier<onnx_c_ops::SparseFeatureAccessor<float>, float, float>
+      c_TreeEnsembleClassifierSparse;
+  static ortops::TfIdfVectorizer<int64_t, float> c_TfIdfVectorizer;
 
   try {
     Ort::CustomOpDomain domain{c_OpDomain};
 
-    domain.Add(&c_TreeEnsembleRegressor);
+    domain.Add(&c_DenseToSparse);
+    domain.Add(&c_SparseToDense);
+    domain.Add(&c_SVMClassifier);
+    domain.Add(&c_SVMRegressor);
     domain.Add(&c_TreeEnsembleClassifier);
+    domain.Add(&c_TreeEnsembleClassifierSparse);
+    domain.Add(&c_TreeEnsembleRegressor);
+    domain.Add(&c_TreeEnsembleRegressorSparse);
+    domain.Add(&c_TfIdfVectorizer);
 
     session_options.Add(domain);
     AddOrtCustomOpDomainToContainer(std::move(domain));

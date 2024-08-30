@@ -10,6 +10,9 @@
 *.cmake
 *.whl
 *.def
+*.ll
+*.pdb
+*.s
 /*.png
 /*.onnx
 .build_path.txt
@@ -24,7 +27,7 @@ Testing/*
 plot_*.csv
 plot_*.xlsx
 *.data
-test_ort_version/*
+test_ort_version*
 x64/*
 CMakeFiles/*
 dist/*
@@ -38,6 +41,7 @@ _doc/LICENSE.rst
 _doc/LICENSE.txt
 _doc/CHANGELOGS.rst
 _doc/examples/_cache/*
+_doc/sg_execution_times.rst
 _doc/auto_examples/*
 _doc/examples/*.xlsx
 _doc/examples/plot*.csv

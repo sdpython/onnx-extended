@@ -112,8 +112,7 @@ inline cudaDataType_t ToCudaDataType(ONNXTensorElementDataType element_type) {
   default:
 #if defined(CUDA_VERSION)
     EXT_THROW("(ToCudaDataType) Unexpected element_type=", (int64_t)element_type,
-              " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION,
-              ".");
+              " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION, ".");
 #else
     EXT_THROW("(ToCudaDataType) Unexpected element_type=", (int64_t)element_type,
               " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
@@ -137,8 +136,7 @@ inline int32_t TypeSize(ONNXTensorElementDataType element_type) {
   default:
 #if defined(CUDA_VERSION)
     EXT_THROW("(TypeSize) Unexpected element_type=", element_type,
-              " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION,
-              ".");
+              " CUDA_VERSION=", CUDA_VERSION, " ORT_VERSION=", ORT_VERSION, ".");
 #else
     EXT_THROW("(TypeSize) Unexpected element_type=", (int64_t)element_type,
               " (no CUDA), ORT_VERSION=", ORT_VERSION, ".");
@@ -146,24 +144,21 @@ inline int32_t TypeSize(ONNXTensorElementDataType element_type) {
   }
 }
 
-inline void _CublasThrowOnError_(cublasStatus_t status, const char *file,
-                                 int line, const char *expr) {
+inline void _CublasThrowOnError_(cublasStatus_t status, const char *file, int line,
+                                 const char *expr) {
   if (status != CUBLAS_STATUS_SUCCESS) {
-    EXT_THROW("Status=", cublasGetErrorEnum(status), " Expression [", expr,
-              "] failed.\nFile ", file, ":", line);
+    EXT_THROW("Status=", cublasGetErrorEnum(status), " Expression [", expr, "] failed.\nFile ",
+              file, ":", line);
   }
 }
 
-#define CUBLAS_THROW_IF_ERROR(expr)                                            \
-  _CublasThrowOnError_((expr), __FILE__, __LINE__, #expr)
+#define CUBLAS_THROW_IF_ERROR(expr) _CublasThrowOnError_((expr), __FILE__, __LINE__, #expr)
 
 template <typename T>
-void _check_cuda(T err, const char *const func, const char *const file,
-                 const int line) {
+void _check_cuda(T err, const char *const func, const char *const file, const int line) {
   if (err != cudaSuccess) {
     throw std::runtime_error(onnx_extended_helpers::MakeString(
-        "CUDA error at: ", file, ":", line, "\n", cudaGetErrorString(err), " ",
-        func, "\n"));
+        "CUDA error at: ", file, ":", line, "\n", cudaGetErrorString(err), " ", func, "\n"));
   }
 }
 

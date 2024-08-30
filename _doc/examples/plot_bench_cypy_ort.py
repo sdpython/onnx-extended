@@ -9,6 +9,7 @@ against a :epkg:`cython` binding.
 The time spent in it is not significant when the computation is huge
 but it may be for small matrices.
 """
+
 import numpy
 from pandas import DataFrame
 import matplotlib.pyplot as plt
@@ -24,7 +25,8 @@ from onnx.helper import (
 from onnx.checker import check_model
 from onnxruntime import InferenceSession
 from onnx_extended.ortcy.wrap.ortinf import OrtSession
-from onnx_extended.ext_test_case import measure_time, unit_test_going, get_parsed_args
+from onnx_extended.args import get_parsed_args
+from onnx_extended.ext_test_case import measure_time, unit_test_going
 
 
 script_args = get_parsed_args(
@@ -87,7 +89,7 @@ print(f"t_ext2={t_ext2}")
 #############################################
 # Benchmark
 # +++++++++
-dims = list(int(i) for i in script_args.dims.split(","))
+dims = [int(i) for i in script_args.dims.split(",")]
 
 data = []
 for dim in tqdm(dims):
@@ -97,18 +99,18 @@ for dim in tqdm(dims):
         number, repeat = script_args.number * 5, script_args.repeat * 5
     x = numpy.random.randn(dim, dim).astype(numpy.float32)
     t_ort = measure_time(
-        lambda: sess_ort.run(None, {"X": x})[0], number=number, repeat=50
+        lambda x=x: sess_ort.run(None, {"X": x})[0], number=number, repeat=50
     )
     t_ort["name"] = "ort"
     t_ort["dim"] = dim
     data.append(t_ort)
 
-    t_ext = measure_time(lambda: sess_ext.run([x])[0], number=number, repeat=repeat)
+    t_ext = measure_time(lambda x=x: sess_ext.run([x])[0], number=number, repeat=repeat)
     t_ext["name"] = "ext"
     t_ext["dim"] = dim
     data.append(t_ext)
 
-    t_ext2 = measure_time(lambda: sess_ext.run_1_1(x), number=number, repeat=repeat)
+    t_ext2 = measure_time(lambda x=x: sess_ext.run_1_1(x), number=number, repeat=repeat)
     t_ext2["name"] = "ext_1_1"
     t_ext2["dim"] = dim
     data.append(t_ext2)
@@ -128,4 +130,5 @@ piv = df.pivot(index="dim", columns="name", values="average")
 
 fig, ax = plt.subplots(1, 1)
 piv.plot(ax=ax, title="Binding Comparison", logy=True, logx=True)
+fig.tight_layout()
 fig.savefig("plot_bench_ort.png")

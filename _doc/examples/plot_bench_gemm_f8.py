@@ -8,13 +8,15 @@ This benchmark looks into various combinations allowed by functions
 :epkg:`cublasLtMatmul`. The tested configurations are available at
 :epkg:`cuda_gemm.cu`.
 """
+
 import pprint
 import warnings
 from itertools import product
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pandas import DataFrame
-from onnx_extended.ext_test_case import unit_test_going, get_parsed_args
+from onnx_extended.args import get_parsed_args
+from onnx_extended.ext_test_case import unit_test_going
 
 try:
     from onnx_extended.validation.cuda.cuda_example_py import (
@@ -109,14 +111,14 @@ if gemm_benchmark_test is not None:
             dims.append((m, n, k))
         else:
             dims.append(int(d))
-    tests = list(int(i) for i in script_args.tests.split(","))
+    tests = [int(i) for i in script_args.tests.split(",")]
 
 pbar = tqdm(list(product(tests, dims)))
 obs = []
 for test, dim in pbar:
     pbar.set_description(f"type={test} dim={dim}")
     if test in {8, 9, 10, 12, 13}:
-        warnings.warn(f"unsupported configuration {test}.")
+        warnings.warn(f"unsupported configuration {test}.", stacklevel=0)
         continue
     mdim = dim if isinstance(dim, int) else max(dim)
     if mdim < 128:
@@ -185,7 +187,7 @@ if df.shape[0] > 0:
 # ++++++++++++++++++++++++
 
 if df.shape[0] > 0:
-    dfi = df[col_def + ["~dim", "mnk", "t-total", "t-gemm_sync"]]
+    dfi = df[[*col_def, "~dim", "mnk", "t-total", "t-gemm_sync"]]
     print(dfi)
 
 ###################################

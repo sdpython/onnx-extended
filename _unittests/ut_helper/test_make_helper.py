@@ -16,9 +16,25 @@ from onnx_extended.helper import (
     make_simple_dynamic_quantize_linear_function_proto,
 )
 from onnx_extended.reference import CReferenceEvaluator
+from onnx_extended._common import pick
 
 
 class TestMakeHelper(ExtTestCase):
+    def test_pick_exc(self):
+        self.assertRaise(lambda: pick(None, None), ValueError)
+
+    def test_matmul_reshape_transpose_function_proto_exc(self):
+        self.assertRaise(
+            lambda: make_matmul_reshape_transpose_function_proto("", 18, 2, False),
+            ValueError,
+        )
+
+    def test_matmul_reshape_transpose_back_function_proto_exc(self):
+        self.assertRaise(
+            lambda: make_matmul_reshape_transpose_back_function_proto("", 18, 2),
+            ValueError,
+        )
+
     def test_dynamic_quantize_linear(self):
         onx = make_model(
             make_graph(
@@ -46,6 +62,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.array([1, 4, 5, 10, -10], dtype=np.float32)}
@@ -92,6 +109,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.array([1, 4, 5, 10, -10], dtype=np.float32)}
@@ -125,6 +143,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.arange(24).reshape((2, 3, 4)).astype(np.float32)}
@@ -158,6 +177,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {"X": np.arange(24).reshape((2, 3, 4)).astype(np.float32)}
@@ -197,6 +217,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {
@@ -236,6 +257,7 @@ class TestMakeHelper(ExtTestCase):
                 make_opsetid("", 18),
                 make_opsetid("qtest", 1),
             ],
+            ir_version=9,
         )
         ref = CReferenceEvaluator(onx)
         feeds = {
