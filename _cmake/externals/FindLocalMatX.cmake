@@ -19,9 +19,10 @@ FetchContent_MakeAvailable(matx)
 FetchContent_GetProperties(matx)
 
 set(matx_VERSION ${matx_TAG})
+set(MATX_INCLUDE_DIR "${matx_SOURCE_DIR}/include")
 message(STATUS "matx_BINARY_DIR=${matx_BINARY_DIR}")
 message(STATUS "matx_SOURCE_DIR=${matx_SOURCE_DIR}")
-message(STATUS "matx_INCLUDE_DIR=${matx_INCLUDE_DIR}")
+message(STATUS "MATX_INCLUDE_DIR=${MATX_INCLUDE_DIR}")
 message(STATUS "matx_VERSION=${matx_VERSION}")
 
 include(FindPackageHandleStandardArgs)

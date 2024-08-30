@@ -6,14 +6,14 @@
 
 namespace ortops {
 
-struct MatxMatMulKernel {
-  MatxMatMulKernel(const OrtApi &api, const OrtKernelInfo *info);
+struct MatXMatMulKernel {
+  MatXMatMulKernel(const OrtApi &api, const OrtKernelInfo *info);
   void Compute(OrtKernelContext *context);
 };
 
-struct MatxMatMulOp : Ort::CustomOpBase<MatxMatMulOp, MatxMatMulKernel> {
-  typedef Ort::CustomOpBase<MatxMatMulOp, MatxMatMulKernel> parent_type;
-  MatxMatMulOp(const char *op_name, ONNXTensorElementDataType dtype) : parent_type() {
+struct MatXMatMulOp : Ort::CustomOpBase<MatXMatMulOp, MatXMatMulKernel> {
+  typedef Ort::CustomOpBase<MatXMatMulOp, MatXMatMulKernel> parent_type;
+  MatXMatMulOp(const char *op_name, ONNXTensorElementDataType dtype) : parent_type() {
     op_name_ = op_name;
     dtype_ = dtype;
   }

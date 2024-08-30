@@ -7,42 +7,42 @@
 namespace ortops {
 
 //////////////////
-// MatxMatMulOp...
+// MatXMatMulOp...
 //////////////////
 
-void *MatxMatMulOp::CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const {
-  return std::make_unique<MatxMatMulKernel>(api, info).release();
+void *MatXMatMulOp::CreateKernel(const OrtApi &api, const OrtKernelInfo *info) const {
+  return std::make_unique<MatXMatMulKernel>(api, info).release();
 }
 
-const char *MatxMatMulOp::GetName() const { return op_name_; }
+const char *MatXMatMulOp::GetName() const { return op_name_; }
 
-const char *MatxMatMulOp::GetExecutionProviderType() const { return "CUDAExecutionProvider"; }
+const char *MatXMatMulOp::GetExecutionProviderType() const { return "CUDAExecutionProvider"; }
 
-size_t MatxMatMulOp::GetInputTypeCount() const { return 2; };
+size_t MatXMatMulOp::GetInputTypeCount() const { return 2; };
 
-ONNXTensorElementDataType MatxMatMulOp::GetInputType(std::size_t index) const { return dtype_; }
+ONNXTensorElementDataType MatXMatMulOp::GetInputType(std::size_t index) const { return dtype_; }
 
 OrtCustomOpInputOutputCharacteristic
-MatxMatMulOp::GetInputCharacteristic(std::size_t index) const {
+MatXMatMulOp::GetInputCharacteristic(std::size_t index) const {
   return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
 }
 
-size_t MatxMatMulOp::GetOutputTypeCount() const { return 1; }
+size_t MatXMatMulOp::GetOutputTypeCount() const { return 1; }
 
-ONNXTensorElementDataType MatxMatMulOp::GetOutputType(std::size_t index) const {
+ONNXTensorElementDataType MatXMatMulOp::GetOutputType(std::size_t index) const {
   return dtype_;
 }
 
 OrtCustomOpInputOutputCharacteristic
-MatxMatMulOp::GetOutputCharacteristic(std::size_t index) const {
+MatXMatMulOp::GetOutputCharacteristic(std::size_t index) const {
   return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
 }
 
 ///////////////////
-// MatxMatMulKernel
+// MatXMatMulKernel
 ///////////////////
 
-MatxMatMulKernel::MatxMatMulKernel(const OrtApi &api, const OrtKernelInfo *info) {}
+MatXMatMulKernel::MatXMatMulKernel(const OrtApi &api, const OrtKernelInfo *info) {}
 
 void check_device(const Ort::ConstValue &input, const char *name) {
   EXT_ENFORCE(input.HasValue(), "Input '", name, "' is not empty.");
@@ -79,7 +79,7 @@ void ComputeMatMul(const std::vector<int64_t> &shape_A, const T *ptr_A,
   matx_td = matmul(matx_ta, matx_tb).run(exex);
 }
 
-void MatxMatMulKernel::Compute(OrtKernelContext *context) {
+void MatXMatMulKernel::Compute(OrtKernelContext *context) {
   Ort::KernelContext ctx(context);
 
   int n_inputs = ctx.GetInputCount();
