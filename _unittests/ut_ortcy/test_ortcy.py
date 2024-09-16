@@ -41,22 +41,33 @@ except ImportError as e:
         get_ort_c_api_supported_version = None
         here = os.path.dirname(__file__)
     else:
-        OrtSession = "OrtSession is not initialized"
+        OrtSession = f"OrtSession is not initialized:{e}"
         get_ort_c_api_supported_version = (
-            "get_ort_c_api_supported_version is not initialized"
+            f"get_ort_c_api_supported_version is not initialized:{e}"
         )
 
 
 class TestOrtCy(ExtTestCase):
+
+    def test_get_ort_c_api_supported_version_str(self):
+        assert not isinstance(get_ort_c_api_supported_version, str), (
+            f"Unexpected value for get_ort_c_api_supported_version="
+            f"{get_ort_c_api_supported_version!r}"
+        )
+
     @unittest.skipIf(
-        get_ort_c_api_supported_version is None,
+        get_ort_c_api_supported_version is None
+        or isinstance(get_ort_c_api_supported_version, str),
         reason="libonnxruntime installation failed",
     )
     def test_get_ort_c_api_supported_version(self):
         v = get_ort_c_api_supported_version()
         self.assertGreaterEqual(v, 16)
 
-    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
+    @unittest.skipIf(
+        OrtSession is None or isinstance(OrtSession, str),
+        reason="libonnxruntime installation failed",
+    )
     def test_ort_get_available_providers(self):
         from onnx_extended.ortcy.wrap.ortinf import ort_get_available_providers
 
@@ -65,7 +76,10 @@ class TestOrtCy(ExtTestCase):
         self.assertGreater(len(res), 0)
         self.assertIn("CPUExecutionProvider", res)
 
-    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
+    @unittest.skipIf(
+        OrtSession is None or isinstance(OrtSession, str),
+        reason="libonnxruntime installation failed",
+    )
     @unittest.skipIf(
         sys.platform == "darwin",
         reason="The test is unstable and leads to a crash `Illegal instruction`. "
@@ -115,7 +129,10 @@ class TestOrtCy(ExtTestCase):
         self.assertEqual(len(got), 1)
         self.assertEqualArray(got[0], x + y)
 
-    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
+    @unittest.skipIf(
+        OrtSession is None or isinstance(OrtSession, str),
+        reason="libonnxruntime installation failed",
+    )
     @unittest.skipIf(
         sys.platform == "darwin", reason="Compilation settings fails on darwin"
     )
@@ -148,7 +165,10 @@ class TestOrtCy(ExtTestCase):
         got = session.run_2(x, y)[0]
         self.assertEqualArray(x + y, got)
 
-    @unittest.skipIf(OrtSession is None, reason="libonnxruntime installation failed")
+    @unittest.skipIf(
+        OrtSession is None or isinstance(OrtSession, str),
+        reason="libonnxruntime installation failed",
+    )
     @unittest.skipIf(
         sys.platform == "darwin", reason="Compilation settings fails on darwin"
     )
