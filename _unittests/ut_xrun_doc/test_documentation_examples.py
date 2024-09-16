@@ -14,7 +14,7 @@ ROOT = os.path.realpath(os.path.abspath(os.path.join(onnx_extended_file, "..", "
 try:
     from onnx_extended.ortcy.wrap.ortinf import OrtSession
 except ImportError as e:
-    msg = "libonnxruntime.so.1.19.0: cannot open shared object file"
+    msg = "libonnxruntime.so.1.19.2: cannot open shared object file"
     if msg in str(e):
         from onnx_extended.ortcy.wrap import __file__ as loc
 
