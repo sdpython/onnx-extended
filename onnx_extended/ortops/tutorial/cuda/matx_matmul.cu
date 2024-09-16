@@ -4,6 +4,8 @@
 #include <cublasLt.h>
 #include <cublas_v2.h>
 
+using namespace matx;
+
 namespace ortops {
 
 //////////////////
@@ -69,14 +71,14 @@ ONNXTensorElementDataType GetTypeAndShape(const TValue &input, std::vector<int64
   return t.GetElementType();
 }
 
-template <typename T, int RANK>
+template <typename T>
 void ComputeMatMul(const std::vector<int64_t> &shape_A, const T *ptr_A,
                    const std::vector<int64_t> &shape_B, const T *ptr_B,
                    const std::vector<int64_t> &shape_D, const T *ptr_D, cudaExecutor &exec) {
-  auto matx_ta = make_tensor<T, RANK>(ptr_A, shape_A);
-  auto matx_tb = make_tensor<T, RANK>(ptr_B, shape_B);
-  auto matx_td = make_tensor<T, RANK>(ptr_D, shape_D);
-  matx_td = matmul(matx_ta, matx_tb).run(exex);
+  auto matx_ta = make_tensor(ptr_A, shape_A);
+  auto matx_tb = make_tensor(ptr_B, shape_B);
+  //auto matx_td = make_tensor(ptr_D, shape_D);
+  auto matx_td = matmul(matx_ta, matx_tb).run(exec);
 }
 
 void MatXMatMulKernel::Compute(OrtKernelContext *context) {
@@ -89,7 +91,6 @@ void MatXMatMulKernel::Compute(OrtKernelContext *context) {
 
   check_device(input_A, "A");
   check_device(input_B, "B");
-  cudaDataType_t cuda_type = ToCudaDataType(dtype_);
 
   std::vector<int64_t> shape_A, shape_B;
   ONNXTensorElementDataType dtype_A, dtype_B;
@@ -97,25 +98,25 @@ void MatXMatMulKernel::Compute(OrtKernelContext *context) {
   dtype_B = GetTypeAndShape(input_B, shape_B);
   EXT_ENFORCE(shape_A.size() == shape_B.size(), "Rank mismatch: ", shape_A.size(),
               "!=", shape_B.size(), ".");
-  EXT_ENFORCE(dtype_A == dtype_, "Unexpected type for A");
-  EXT_ENFORCE(dtype_B == dtype_, "Unexpected type for B");
+  EXT_ENFORCE(dtype_A == dtype_B, "Unexpected type for A or B");
+  cudaDataType_t cuda_type = ToCudaDataType(dtype_A);
 
   std::vector<int64_t> shape_D(shape_A.size());
   for (auto i = 0; i < shape_A.size() - 1; ++i)
     shape_D[i] = shape_A[i];
   shape_D[shape_D.size() - 1] = shape_B[shape_B.size() - 1];
-  Ort::UnownedValue output = c.GetOutput(0, shape_D);
+  Ort::UnownedValue output = ctx.GetOutput(0, shape_D);
 
   cudaExecutor exec{stream};
 
-  switch (dtype_) {
-  case case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+  switch (dtype_A) {
+  case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
     ComputeMatMul(shape_A, input_A.GetTensorData<float>(), shape_B,
                   input_B.GetTensorData<float>(), shape_D, output.GetTensorMutableData<float>(),
                   exec);
     break;
   default:
-    EXT_THROW("Not implemented for type: ", (uint64_t)dtype_, ".");
+    EXT_THROW("Not implemented for type: ", (uint64_t)dtype_A, ".");
   }
 }
 
