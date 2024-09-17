@@ -177,14 +177,14 @@ void CustomGemmKernel::SetParams(const std::vector<int64_t> &shape_A,
   }
 }
 
-void check_device(const Ort::ConstValue &input, const char *name) {
+static void check_device(const Ort::ConstValue &input, const char *name) {
   EXT_ENFORCE(input.HasValue(), "Input '", name, "' is not empty.");
   auto mem = input.GetTensorMemoryInfo();
   EXT_ENFORCE(mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
               "Input '", name, "' is not on CUDA");
 }
 
-void check_device(const Ort::UnownedValue &output, const char *name) {
+static void check_device(const Ort::UnownedValue &output, const char *name) {
   auto mem = output.GetTensorMemoryInfo();
   EXT_ENFORCE(mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
               "Output '", name, "' is not on CUDA");

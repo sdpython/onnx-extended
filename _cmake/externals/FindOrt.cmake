@@ -113,6 +113,16 @@ if(MSVC)
                         "with extension 'pdb'.")
   endif()
   list(APPEND ORT_LIB_FILES ${ORT_LIB_FILES_PDB})
+
+  file(GLOB ORT_LIB_FILES_LIB ${ONNXRUNTIME_LIB_DIR}/*.lib)
+  list(LENGTH ORT_LIB_FILES_LIB ORT_LIB_FILES_LIB_LENGTH)
+  if (ORT_LIB_FILES_LIB_LENGTH LESS_EQUAL 1)
+    message(FATAL_ERROR "No pdb file found in '${ONNXRUNTIME_LIB_DIR}' "
+                        "from path or url '${ORT_URL}', "
+                        "found files [${ORT_LIB_FILES}] "
+                        "with extension 'lib'.")
+  endif()
+  list(APPEND ORT_LIB_FILES ${ORT_LIB_FILES_LIB})
 endif()
 
 #
@@ -133,19 +143,19 @@ function(ort_add_dependency name folder_copy)
   foreach(file_i ${ORT_LIB_FILES})
     message(STATUS "ort: copy ${file_i} to '${destination_dir}'")
     add_custom_command(
-      TARGET ${name} POST_BUILD
+      TARGET ${name} PRE_BUILD
       COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
     if(folder_copy)
       message(STATUS "ort: copy '${file_i}' to '${ROOT_PROJECT_PATH}/${folder_copy}'")
       add_custom_command(
-        TARGET ${name} POST_BUILD
+        TARGET ${name} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${ROOT_PROJECT_PATH}/${folder_copy}")
       message(STATUS "ort: copy '${file_i}' to '${SETUP_BUILD_LIB}/${folder_copy}'")
       add_custom_command(
-        TARGET ${name} POST_BUILD
+        TARGET ${name} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E make_directory "${SETUP_BUILD_LIB}/${folder_copy}")
       add_custom_command(
-        TARGET ${name} POST_BUILD
+        TARGET ${name} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${SETUP_BUILD_LIB}/${folder_copy}")
     endif()
   endforeach()

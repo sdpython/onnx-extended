@@ -59,3 +59,4 @@ onnx_extended/validation/cython/*.c
 onnx_extended/validation/cython/*.cpp
 onnx_extended/validation/cython/vector_function_cy.c*
 onnx_extended/ortcy/wrap/ortinf.c*
+onnx_extended/ortcy/wrap/*.lib

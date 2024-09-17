@@ -13,7 +13,7 @@ matplotlib
 ml-dtypes
 onnx-array-api
 onnxmltools
-onnxruntime>=1.18.0
+onnxruntime>=1.19.2
 openpyxl
 opt_einsum
 packaging

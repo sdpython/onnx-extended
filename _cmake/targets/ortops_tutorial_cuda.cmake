@@ -1,5 +1,5 @@
 #
-# module: onnx_extended.reference.c_ops.cpu.c_op_conv_
+# custom ops: onnx_extended.ortops.tutorial.cuda
 #
 
 if(CUDA_AVAILABLE)
@@ -12,6 +12,7 @@ if(CUDA_AVAILABLE)
     onnx_extended/ortops/tutorial/cuda
     ../onnx_extended/cpp/onnx_extended_helpers.cpp
     ../onnx_extended/ortops/tutorial/cuda/custom_gemm.cu
+    ../onnx_extended/ortops/tutorial/cuda/matx_matmul.cu
     ../onnx_extended/ortops/tutorial/cuda/ort_tutorial_cuda_lib.cc)
 
   # needed to include onnx_extended_helpers.h
@@ -20,6 +21,9 @@ if(CUDA_AVAILABLE)
     PRIVATE
     "${ROOT_INCLUDE_PATH}"
     "${ORTAPI_INCLUDE_DIR}"
-    "${ORTOPS_INCLUDE_DIR}")
+    "${ORTOPS_INCLUDE_DIR}"
+    "${matx_INCLUDE_DIR}")
+
+  target_link_libraries(ortops_tutorial_cuda PRIVATE matx::matx)
 
 endif()
