@@ -45,11 +45,11 @@ except ImportError as e:
 
         OrtSession = (
             f"OrtSession is not initialized:\n{e}"
-            f"\n--found--\n{dir(os.path.dirname(wp.__file__))}"
+            f"\n--found--\n{os.listdir(os.path.dirname(wp.__file__))}"
         )
         get_ort_c_api_supported_version = (
             f"get_ort_c_api_supported_version is not initialized:\n{e}"
-            f"\n--found--\n{dir(os.path.dirname(wp.__file__))}"
+            f"\n--found--\n{os.listdir(os.path.dirname(wp.__file__))}"
         )
 
 
