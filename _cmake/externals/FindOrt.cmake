@@ -113,6 +113,16 @@ if(MSVC)
                         "with extension 'pdb'.")
   endif()
   list(APPEND ORT_LIB_FILES ${ORT_LIB_FILES_PDB})
+
+  file(GLOB ORT_LIB_FILES_LIB ${ONNXRUNTIME_LIB_DIR}/*.lib)
+  list(LENGTH ORT_LIB_FILES_LIB ORT_LIB_FILES_LIB_LENGTH)
+  if (ORT_LIB_FILES_LIB_LENGTH LESS_EQUAL 1)
+    message(FATAL_ERROR "No pdb file found in '${ONNXRUNTIME_LIB_DIR}' "
+                        "from path or url '${ORT_URL}', "
+                        "found files [${ORT_LIB_FILES}] "
+                        "with extension 'lib'.")
+  endif()
+  list(APPEND ORT_LIB_FILES ${ORT_LIB_FILES_LIB})
 endif()
 
 #
