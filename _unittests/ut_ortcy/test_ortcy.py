@@ -41,9 +41,15 @@ except ImportError as e:
         get_ort_c_api_supported_version = None
         here = os.path.dirname(__file__)
     else:
-        OrtSession = f"OrtSession is not initialized:{e}"
+        import onnx_extended.ortcy.wrap as wp
+
+        OrtSession = (
+            f"OrtSession is not initialized:\n{e}"
+            f"\n--found--\n{dir(os.path.dirname(wp.__file__))}"
+        )
         get_ort_c_api_supported_version = (
-            f"get_ort_c_api_supported_version is not initialized:{e}"
+            f"get_ort_c_api_supported_version is not initialized:\n{e}"
+            f"\n--found--\n{dir(os.path.dirname(wp.__file__))}"
         )
 
 
