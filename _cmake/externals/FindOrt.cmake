@@ -133,19 +133,19 @@ function(ort_add_dependency name folder_copy)
   foreach(file_i ${ORT_LIB_FILES})
     message(STATUS "ort: copy ${file_i} to '${destination_dir}'")
     add_custom_command(
-      TARGET ${name} POST_BUILD
+      TARGET ${name} PRE_BUILD
       COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${destination_dir})
     if(folder_copy)
       message(STATUS "ort: copy '${file_i}' to '${ROOT_PROJECT_PATH}/${folder_copy}'")
       add_custom_command(
-        TARGET ${name} POST_BUILD
+        TARGET ${name} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${ROOT_PROJECT_PATH}/${folder_copy}")
       message(STATUS "ort: copy '${file_i}' to '${SETUP_BUILD_LIB}/${folder_copy}'")
       add_custom_command(
-        TARGET ${name} POST_BUILD
+        TARGET ${name} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E make_directory "${SETUP_BUILD_LIB}/${folder_copy}")
       add_custom_command(
-        TARGET ${name} POST_BUILD
+        TARGET ${name} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} ARGS -E copy "${file_i}" "${SETUP_BUILD_LIB}/${folder_copy}")
     endif()
   endforeach()
