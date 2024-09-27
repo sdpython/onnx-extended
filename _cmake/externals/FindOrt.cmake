@@ -224,6 +224,8 @@ function(ort_add_custom_op name provider folder)
       PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set_target_properties(${name} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+  set_target_properties(${name} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)  
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
   message(STATUS "ort: copy after build '$<TARGET_FILE:${name}>' to '${ROOT_PROJECT_PATH}/${folder}'")
   add_custom_command(
