@@ -25,14 +25,14 @@ can be specified:
 
 ::
 
-    python setup.py build_ext --inplace --cuda-version=11.8
+    python setup.py build_ext --inplace --cuda-version=12.6
 
 The development versions of :epkg:`onnxruntime` can be used if it was already build
 ``--ort-version=<version or build path>``. Example:
 
 ::
 
-    python setup.py build_ext --inplace --cuda-version=11.8 --ort-version=/home/github/onnxruntime/build/linux_cuda/Release
+    python setup.py build_ext --inplace --cuda-version=12.6 --ort-version=/home/github/onnxruntime/build/linux_cuda/Release
 
 .. toctree::
     :maxdepth: 1    

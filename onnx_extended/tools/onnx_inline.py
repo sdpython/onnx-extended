@@ -21,7 +21,7 @@ from onnx.helper import (
 
 
 def enumerate_onnx_names(
-    onx: Union[FunctionProto, GraphProto, ModelProto]
+    onx: Union[FunctionProto, GraphProto, ModelProto],
 ) -> Iterator[str]:
     """
     Enumerates all existing names in one ONNX graph
@@ -66,7 +66,7 @@ def enumerate_onnx_names(
 
 
 def enumerate_onnx_nodes(
-    onx: Union[FunctionProto, GraphProto, ModelProto]
+    onx: Union[FunctionProto, GraphProto, ModelProto],
 ) -> Iterator[str]:
     """
     Enumerates all nodes in one ONNX graph
