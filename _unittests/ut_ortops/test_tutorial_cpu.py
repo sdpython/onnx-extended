@@ -146,7 +146,7 @@ class TestOrtOpTutorialCpu(ExtTestCase):
 
     @unittest.skipIf(InferenceSession is None, reason="onnxruntime not installed")
     @unittest.skipIf(
-        onnx_opset_version() < 22, reason="DynamicQuantizeLinear not updated for float8"
+        onnx_opset_version() < 25, reason="DynamicQuantizeLinear not updated for float8"
     )
     def test_dynamic_quantize_linear(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs

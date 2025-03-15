@@ -280,7 +280,9 @@ class TestCTreeEnsemble(ExtTestCase):
         clr = DecisionTreeRegressor(max_depth=1)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32), target_opset={"": 18, "ai.onnx.ml": 3}
+        )
         oinf = CReferenceEvaluator(model_def)
         y = oinf.run(None, {"X": X_test.astype(numpy.float32)})
         lexp = clr.predict(X_test)

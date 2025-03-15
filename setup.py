@@ -286,7 +286,7 @@ class cmake_build_class_extension(Command):
         self.manylinux = None
         self.ort_version = DEFAULT_ORT_VERSION
         self.cuda_build = "DEFAULT"
-        self.cuda_link = "STATIC"
+        self.cuda_link = "SHARED"
         self.noverbose = None
         self.cfg = None
         self.cuda_nvcc = None

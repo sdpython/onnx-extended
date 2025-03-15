@@ -2,7 +2,7 @@
 // onnxruntime/test/testdata/custom_op_get_const_input_test_library
 #pragma once
 
-#include <onnxruntime_c_api.h>
+#include "ortapi_c_api_header.h"
 
 #ifdef __cplusplus
 extern "C" {

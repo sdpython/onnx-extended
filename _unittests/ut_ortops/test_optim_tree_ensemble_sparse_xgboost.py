@@ -6,7 +6,6 @@ from onnx import TensorProto
 from onnx.helper import make_tensor_value_info
 from sklearn.datasets import make_regression
 import xgboost
-from onnxmltools.convert.xgboost.operator_converters.XGBoost import convert_xgboost
 from onnx_extended.ortops.optim.optimize import (
     change_onnx_operator_domain,
     get_node_attribute,
@@ -35,6 +34,9 @@ class TestXGBoostSparse(ExtTestCase):
         from skl2onnx import to_onnx, update_registered_converter
         from skl2onnx.common.shape_calculator import (
             calculate_linear_regressor_output_shapes,
+        )
+        from onnxmltools.convert.xgboost.operator_converters.XGBoost import (
+            convert_xgboost,
         )
 
         # training with sparse
