@@ -64,8 +64,8 @@ function(local_pybind11_add_module name omp_lib)
   set_target_properties(
     ${name} PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION ON
-    # CXX_VISIBILITY_PRESET "hidden"
-    # VISIBILITY_INLINES_HIDDEN ON
+    CXX_VISIBILITY_PRESET "hidden"
+    VISIBILITY_INLINES_HIDDEN ON
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}")
   message(STATUS "pybind11 added module '${name}'")
