@@ -144,11 +144,17 @@ jobs:
       python -m pip wheel . -v
     displayName: 'Build Package1'
   - script: |
+      echo "-------A"
       ls .
+      echo "-------B"
       cd dist
+      echo "-------C"
       ls .
-      ls ..
-      python -m pytest ../_unittests
+      echo "-------D"
+      ls ./..
+      echo "-------E"
+      python -m pytest ./../_unittests
+      echo "-------F"
     displayName: 'check unit test with the whl'
 
 - job: 'TestLinux'
