@@ -58,7 +58,7 @@ jobs:
       # python -m pip wheel . --global-option "--use_cuda=0" -v
       export USE_CUDA=0
       python -m pip wheel . -v
-    displayName: 'build wheel'
+    displayName: 'Build Package0'
   - script: |
       mkdir dist
       cp onnx_extended*.whl dist
@@ -140,8 +140,9 @@ jobs:
       python -m pytest _unittests/ut_reference --durations=10
     displayName: 'Test ortcy'
   - script: |
-      python -u setup.py bdist_wheel
-    displayName: 'Build Package'
+      export USE_CUDA=0
+      python -m pip wheel . -v
+    displayName: 'Build Package1'
   - script: |
       cd dist
       python -m pytest ../_unittests
@@ -209,7 +210,7 @@ jobs:
     displayName: 'Test ortcy'
   - script: |
       python -u setup.py bdist_wheel
-    displayName: 'Build Package'
+    displayName: 'Build Package2'
   - script: |
       pip install auditwheel-symbols
       auditwheel-symbols --manylinux 2014 dist/*.whl || exit 0
@@ -293,7 +294,7 @@ jobs:
     displayName: 'Test ortcy'
   - script: |
         python -u setup.py bdist_wheel
-    displayName: 'Build Package'
+    displayName: 'Build Package3'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-windows-$(python.version)'
@@ -364,7 +365,7 @@ jobs:
     displayName: 'Test ortcy'
   - script: |
       python -u setup.py build
-    displayName: 'Build Package'
+    displayName: 'Build Package4'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-mac-$(python.version)'
