@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "custom_gemm.h"
+#include "matx_matmul.h"
 #include "ort_tutorial_cuda_lib.h"
 #include "ortapi_version.h"
 
@@ -29,6 +30,10 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::CustomGemmOp c_CustomGemmFloat16(
       "CustomGemmFloat16", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16,
       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16, false);
+
+  static ortops::MatXMatMulOp c_MaxMatMulFloat("MaXMatMulFloat",
+                                               ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
+
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
   static ortops::CustomGemmOp c_CustomGemmFloat8E4M3FN(
       "CustomGemmFloat8E4M3FN", ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT8E4M3FN,
@@ -43,6 +48,7 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
 
     domain.Add(&c_CustomGemmFloat);
     domain.Add(&c_CustomGemmFloat16);
+    domain.Add(&c_MaxMatMulFloat);
 #if ORT_VERSION >= 1160 && CUDA_VERSION >= 11080
     domain.Add(&c_CustomGemmFloat8E4M3FN);
     domain.Add(&c_CustomGemmFloat8E4M3FNTime);

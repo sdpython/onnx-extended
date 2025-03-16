@@ -9,6 +9,7 @@ Change Logs
 0.3.0
 +++++
 
+* :pr:`189`: use onnxruntime==1.19.2 as default, pybind11 2.13.5, MatX 0.8.0
 * :pr:`187`: Fix compilation with GCC>=13 #187 
 * :pr:`185`: adds custom operator MulMulSigmoid on CUDA
 * :pr:`184`: use onnxruntime==1.18.0 as default
