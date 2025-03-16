@@ -145,6 +145,7 @@ jobs:
     displayName: 'Build Package1'
   - script: |
       cd dist
+      ls ..
       python -m pytest ../_unittests
     displayName: 'check unit test with the whl'
 
