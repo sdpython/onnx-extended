@@ -73,7 +73,7 @@ class TestJsProfile(ExtTestCase):
         prof = sess.end_profiling()
 
         df = js_profile_to_dataframe(prof, first_it_out=True)
-        self.assertEqual(df.shape, (189, 18))
+        self.assertEqual(df.shape, (79, 18))
         self.assertEqual(
             set(df.columns),
             {
@@ -99,11 +99,11 @@ class TestJsProfile(ExtTestCase):
         )
 
         df = js_profile_to_dataframe(prof, agg=True)
-        self.assertEqual(df.shape, (17, 1))
+        self.assertEqual(df.shape, (9, 1))
         self.assertEqual(list(df.columns), ["dur"])
 
         df = js_profile_to_dataframe(prof, agg_op_name=True)
-        self.assertEqual(df.shape, (189, 17))
+        self.assertEqual(df.shape, (79, 17))
         self.assertEqual(
             set(df.columns),
             {

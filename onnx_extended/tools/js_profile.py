@@ -291,40 +291,58 @@ def plot_ort_profile_timeline(
     dfi = df[df["iteration"] == n_iter]
     assert dfi.shape[0] > 0, f"Iteration {iteration} cannot be found in {iterations}."
 
-    started = {}
-    data = []
-    for irow in dfi.iterrows():
-        assert isinstance(
-            irow, tuple
-        ), f"pandas has changed its api, type is {type(row)}"
-        assert len(irow) == 2, f"pandas has changed its api, row is {row}"
-        row = irow[1]
-        it = row["iteration"]
-        op_type = row["args_op_name"]
-        op_name = row["op_name"]
-        event_name = row["event_name"]
-        provider = row["args_provider"]
-        ts = float(row["ts"])
-        dur = float(row["dur"])
-        if event_name == "fence_before":
-            started[op_type, op_name, it] = dict(
-                op_name=op_name, op_type=op_type, begin=ts
+    if "fence_before" in set(dfi["event_name"]):
+        started = {}
+        data = []
+        for irow in dfi.iterrows():
+            assert isinstance(
+                irow, tuple
+            ), f"pandas has changed its api, type is {type(row)}"
+            assert len(irow) == 2, f"pandas has changed its api, row is {row}"
+            row = irow[1]
+            it = row["iteration"]
+            op_type = row["args_op_name"]
+            op_name = row["op_name"]
+            event_name = row["event_name"]
+            provider = row["args_provider"]
+            ts = float(row["ts"])
+            dur = float(row["dur"])
+            if event_name == "fence_before":
+                started[op_type, op_name, it] = dict(
+                    op_name=op_name, op_type=op_type, begin=ts
+                )
+            elif event_name == "kernel_time":
+                obs = started[op_type, op_name, it]
+                obs["duration"] = dur
+                obs["begin_kernel"] = ts
+                obs["provider"] = provider
+            elif event_name == "fence_after":
+                obs = started[op_type, op_name, it]
+                obs["end"] = ts
+                data.append(obs)
+                del started[op_type, op_name, it]
+            else:
+                assert event_name in {
+                    "SequentialExecutor::Execute",
+                    "model_run",
+                }, f"Unexpected event_name={event_name!r}, row={row}"
+    else:
+        # New format
+        data = []
+        for irow in dfi.iterrows():
+            row = irow[1]
+            if row["event_name"] != "kernel_time":
+                continue
+            obs = dict(
+                duration=float(row["dur"]),
+                op_name=row["op_name"],
+                op_type=row["args_op_name"],
+                provider=row["args_provider"],
+                begin=float(row["ts"]),
+                end=float(row["ts"]) + float(row["dur"]),
+                begin_kernel=float(row["ts"]),
             )
-        elif event_name == "kernel_time":
-            obs = started[op_type, op_name, it]
-            obs["duration"] = dur
-            obs["begin_kernel"] = ts
-            obs["provider"] = provider
-        elif event_name == "fence_after":
-            obs = started[op_type, op_name, it]
-            obs["end"] = ts
             data.append(obs)
-            del started[op_type, op_name, it]
-        else:
-            assert event_name in {
-                "SequentialExecutor::Execute",
-                "model_run",
-            }, f"Unexpected event_name={event_name!r}, row={row}"
 
     # durations
     data_dur = list(sorted(d["duration"] for d in data))
