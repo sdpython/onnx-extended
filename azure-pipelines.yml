@@ -44,8 +44,14 @@ jobs:
       python -m pip install -e . -v
     displayName: 'pip install -e . -v'
   - script: |
-      python -m pytest _unittests --durations=10
-    displayName: 'Runs Unit Tests'
+      python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
+    displayName: 'Unit Tests'
+  - script: |
+      python -m pytest _unittests/ut_ortcy --durations=10
+    displayName: 'Test ortcy'
+  - script: |
+      python -m pytest _unittests/ut_reference --durations=10
+    displayName: 'Test ortcy'
   - script: |
       # --config-settings does not work yet.
       # python -m pip wheel . --config-settings="--use_cuda=0" -v
@@ -125,8 +131,14 @@ jobs:
       python -m pip install "numpy<2.0"
     displayName: 'install numpy<2'
   - script: |
-      python -m pytest _unittests --durations=10
-    displayName: 'Runs Unit Tests'
+      python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
+    displayName: 'Unit Tests'
+  - script: |
+      python -m pytest _unittests/ut_ortcy --durations=10
+    displayName: 'Test ortcy'
+  - script: |
+      python -m pytest _unittests/ut_reference --durations=10
+    displayName: 'Test ortcy'
   - script: |
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
@@ -187,8 +199,14 @@ jobs:
       ctest --rerun-failed --output-on-failure
     displayName: 'Run C++ Unit Tests'
   - script: |
-      python -m pytest _unittests --durations=10
-    displayName: 'Runs Unit Tests'
+      python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
+    displayName: 'Unit Tests'
+  - script: |
+      python -m pytest _unittests/ut_ortcy --durations=10
+    displayName: 'Test ortcy'
+  - script: |
+      python -m pytest _unittests/ut_reference --durations=10
+    displayName: 'Test ortcy'
   - script: |
       python -u setup.py bdist_wheel
     displayName: 'Build Package'
@@ -265,8 +283,14 @@ jobs:
         ctest -C Release --rerun-failed --output-on-failure
     displayName: 'Runs C++ Unit Tests'
   - script: |
-      python -m pytest _unittests --durations=10 -v
-    displayName: 'Runs Unit Tests'
+      python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
+    displayName: 'Unit Tests'
+  - script: |
+      python -m pytest _unittests/ut_ortcy --durations=10
+    displayName: 'Test ortcy'
+  - script: |
+      python -m pytest _unittests/ut_reference --durations=10
+    displayName: 'Test ortcy'
   - script: |
         python -u setup.py bdist_wheel
     displayName: 'Build Package'
@@ -328,8 +352,16 @@ jobs:
     displayName: 'build wheel'
   - script: |
       source activate myEnvironment
-      python -m pytest _unittests --durations=10 -v
-    displayName: 'Runs Unit Tests'
+      python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
+    displayName: 'Unit Tests'
+  - script: |
+      source activate myEnvironment
+      python -m pytest _unittests/ut_ortcy --durations=10
+    displayName: 'Test ortcy'
+  - script: |
+      source activate myEnvironment
+      python -m pytest _unittests/ut_reference --durations=10
+    displayName: 'Test ortcy'
   - script: |
       python -u setup.py build
     displayName: 'Build Package'
