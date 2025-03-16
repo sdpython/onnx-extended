@@ -133,7 +133,7 @@ class TestCommandLines2(ExtTestCase):
             {
                 C0 = Add(B01, B11)
                 C1 = Sub(B11, B21)
-                M1 = Mul(C0, C1)
+                D0 = Mul(C0, C1)
             }
             """
 

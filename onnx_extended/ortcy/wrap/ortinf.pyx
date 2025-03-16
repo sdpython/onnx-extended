@@ -1,5 +1,5 @@
 import numpy
-cimport numpy
+cimport numpy as cnumpy
 cimport cython
 from libc.stdint cimport int64_t
 from libc.stdlib cimport free, malloc
@@ -11,7 +11,7 @@ from cpython.buffer cimport (
     PyBUF_ANY_CONTIGUOUS,
     PyBUF_SIMPLE,
 )
-numpy.import_array()
+# numpy.import_array()
 
 
 cdef extern from "<string>" namespace "std":
@@ -273,7 +273,7 @@ cdef class OrtSession:
             )
         cdef OrtShape shapes[10]
         cdef OrtCpuValue in_values[10]
-        cdef numpy.ndarray value
+        cdef cnumpy.ndarray value
 
         values = []
         for n in range(len(inputs)):
@@ -299,8 +299,8 @@ cdef class OrtSession:
         # onnxruntime does not implement the DLPack protocol through the C API.
         # DLPack protocol should be used.
 
-        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape
-        cdef numpy.ndarray tout
+        cdef cnumpy.ndarray[cnumpy.int64_t, ndim=1] shape
+        cdef cnumpy.ndarray tout
         res = list()
         for i in range(n_outputs):
             shape = numpy.empty(out_shapes[i].ndim(), dtype=numpy.int64)
@@ -323,7 +323,7 @@ cdef class OrtSession:
     @cython.wraparound(False)
     def run_1_1(
         self,
-        numpy.ndarray input1,
+        cnumpy.ndarray input1,
     ):
         """
         Runs the inference assuming the model has one input and one output.
@@ -334,7 +334,7 @@ cdef class OrtSession:
         for i in range(input1.ndim):
             shapes[0].set(i, input1.shape[i])
 
-        cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
+        cdef cnumpy.ndarray value1 = numpy.ascontiguousarray(input1)
         cdef OrtCpuValue in_values[1]
 
         in_values[0].init(
@@ -355,12 +355,12 @@ cdef class OrtSession:
         # onnxruntime does not implement the DLPack protocol through the C API.
         # DLPack protocol should be used.
 
-        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape = numpy.empty(
+        cdef cnumpy.ndarray[cnumpy.int64_t, ndim=1] shape = numpy.empty(
             out_shapes[0].ndim(), dtype=numpy.int64)
         memcpy(shape.data,
                out_shapes[0].dims(),
                out_shapes[0].ndim() * 8)  # 8 = sizeof(int64)
-        cdef numpy.ndarray tout = numpy.empty(
+        cdef cnumpy.ndarray tout = numpy.empty(
             shape=shape,
             dtype=OrtSession._dtypes[out_values[0].elem_type()]
         )
@@ -375,8 +375,8 @@ cdef class OrtSession:
     @cython.wraparound(False)
     def run_2(
         self,
-        numpy.ndarray input1,
-        numpy.ndarray input2
+        cnumpy.ndarray input1,
+        cnumpy.ndarray input2
     ):
         """
         Runs the inference assuming the model has two inputs.
@@ -391,8 +391,8 @@ cdef class OrtSession:
         for i in range(input2.ndim):
             shapes[1].set(i, input2.shape[i])
 
-        cdef numpy.ndarray value1 = numpy.ascontiguousarray(input1)
-        cdef numpy.ndarray value2 = numpy.ascontiguousarray(input2)
+        cdef cnumpy.ndarray value1 = numpy.ascontiguousarray(input1)
+        cdef cnumpy.ndarray value2 = numpy.ascontiguousarray(input2)
 
         cdef OrtCpuValue in_values[2]
         in_values[0].init(
@@ -417,8 +417,8 @@ cdef class OrtSession:
         # onnxruntime does not implement the DLPack protocol through the C API.
         # DLPack protocol should be used.
 
-        cdef numpy.ndarray[numpy.int64_t, ndim=1] shape
-        cdef numpy.ndarray tout
+        cdef cnumpy.ndarray[cnumpy.int64_t, ndim=1] shape
+        cdef cnumpy.ndarray tout
         res = list()
         for i in range(n_outputs):
             shape = numpy.empty(out_shapes[i].ndim(), dtype=numpy.int64)

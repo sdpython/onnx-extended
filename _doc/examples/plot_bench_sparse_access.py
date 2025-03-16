@@ -34,7 +34,7 @@ script_args = get_parsed_args(
         "sparsities to try",
     ),
     repeat=2 if unit_test_going() else 5,
-    warmup=2 if unit_test_going() else 2,
+    warmup=1 if unit_test_going() else 3,
     nrnd=(10, "number of random features to access"),
     expose=expose,
 )

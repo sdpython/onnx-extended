@@ -1,6 +1,6 @@
 #pragma once
 
-#include <onnxruntime_c_api.h>
+#include "ortapi_c_api_header.h"
 
 #ifdef __cplusplus
 extern "C" {

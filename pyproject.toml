@@ -19,14 +19,14 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["numpy", "onnx>=1.15.0", "scipy"]
+dependencies = ["numpy", "onnx>=1.17.0", "scipy"]
 description = "Extends the list of supported operators in onnx reference implementation and onnxruntime, or implements faster versions in C++."
 keywords = ["onnx", "onnxruntime", "CUDA", "openmp", "cmake", "cython", "pybind11"]
 license = {file = "LICENSE.txt"}
 name = "onnx-extended"
 readme = "README.rst"
 requires-python = ">=3.10"
-version = "0.3.0"
+version = "0.4.0"
 
 [project.urls]
 Homepage = "https://sdpython.github.io/doc/onnx-extended/dev/"
@@ -73,12 +73,12 @@ dev = [
 requires = [
     "abi3audit; sys_platform == 'linux'",
     "auditwheel-symbols; sys_platform == 'linux'",
-    "Cython",
+    "Cython>=3.0.10",
     "cmake",
-    "numpy",
+    "numpy>=2.0",
     "onnx",
-    "pybind11",
-    "scipy",
+    "pybind11>=2.12",
+    "scipy>=1.13.1",
     "setuptools",
     "wheel",
 ]
@@ -111,7 +111,7 @@ test-command = "python -m pip install onnxruntime&&python -c \"import onnx_exten
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "pypy* *musllinux* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
+skip = "pypy* *musllinux* cp36-* cp37-* cp38-* cp39-* cp313-* cp314-* cp315-*"
 manylinux-x86_64-image = "manylinux_2_28"
 before-build = "pip install auditwheel-symbols abi3audit;python -c 'import sysconfig;print(sysconfig.get_platform())'"
 build-verbosity = 1
@@ -119,16 +119,24 @@ repair-wheel-command = "auditwheel-symbols --manylinux 2_28 {wheel} ; abi3audit 
 test-command = "yum list installed&&python -m pip install onnxruntime&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortops=True)\"&&python -c \"import onnx_extended;onnx_extended.check_installation(val=True,ortcy=True,verbose=True)\""
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64"]
+archs = "arm64"  # or "universal2" for a single universal wheel
+environment = """
+    MACOSX_DEPLOYMENT_TARGET=14.0
+    LDFLAGS='-L$(brew --prefix libomp)/lib'
+    CPPFLAGS='-I$(brew --prefix libomp)/include'
+    CFLAGS='-I$(brew --prefix libomp)/include -arch x86_64 -arch arm64'
+    CXXFLAGS='-I$(brew --prefix libomp)/include -arch x86_64 -arch arm64'
+    DYLD_LIBRARY_PATH='$(brew --prefix libomp)/lib:$DYLD_LIBRARY_PATH'
+"""
 build = "cp*"
 before-build = "brew install llvm libomp"
-skip = "pypy* pp* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
+skip = "pypy* pp* cp36-* cp37-* cp38-* cp39-* cp313-* cp314-* cp315-*"
 # environment="LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
 build = "cp*"
-skip = "pypy* cp36-* cp37-* cp38-* cp39-* cp312-* cp313-* cp314-*"
+skip = "pypy* cp36-* cp37-* cp38-* cp39-* cp313-* cp314-* cp315-*"
 
 [tool.cython-lint]
 max-line-length = 88

@@ -52,11 +52,8 @@ if(ORT_VERSION_LENGTH LESS_EQUAL 12)
   set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)
   set(ONNXRUNTIME_LIB_DIR ${onnxruntime_SOURCE_DIR}/lib)
 
-  if ("${ORT_VERSION}" EQUAL "1.16.0")
-    # The following files are missing in this release.
-    # See https://github.com/microsoft/onnxruntime/issues/17645.
-    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/_forgotten_files/onnxruntime_float16.h"
-         DESTINATION ${onnxruntime_SOURCE_DIR}/include)
+  if ("${ORT_VERSION}" LESS "1.17.0")
+    message(FATAL_ERROR "onnxruntime version must be >= 1.17.0 but it ${ORT_VERSION}.")
   endif()
 
 else()
@@ -224,6 +221,8 @@ function(ort_add_custom_op name provider folder)
       PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
   endif()
   set_property(TARGET ${name} PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set_target_properties(${name} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+  set_target_properties(${name} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)  
   get_target_property(target_file ${name} LIBRARY_OUTPUT_NAME)
   message(STATUS "ort: copy after build '$<TARGET_FILE:${name}>' to '${ROOT_PROJECT_PATH}/${folder}'")
   add_custom_command(

@@ -6,7 +6,7 @@ from .c_reference_evaluator import CReferenceEvaluator, from_array_extended
 
 
 def to_array_extended(
-    tensor: Union[SparseTensorProto, TensorProto]
+    tensor: Union[SparseTensorProto, TensorProto],
 ) -> Union[np.ndarray, "scipy.sparse.coo_matrix"]:  # noqa: F821
     """
     Overwrites function `onnx.reference.op_run.to_array_extended`

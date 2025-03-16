@@ -218,7 +218,7 @@ def _guess_proto_dtype(dtype) -> int:
 
 
 def get_tensor_shape(
-    obj: Union[ValueInfoProto, TypeProto, TensorProto]
+    obj: Union[ValueInfoProto, TypeProto, TensorProto],
 ) -> Optional[List[Union[int, str, None]]]:
     """
     Returns the shape if that makes sense for this object.

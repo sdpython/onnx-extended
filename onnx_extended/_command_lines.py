@@ -19,7 +19,7 @@ from onnx.reference import ReferenceEvaluator
 
 
 def _type_shape(
-    input_def: Union[str, ValueInfoProto]
+    input_def: Union[str, ValueInfoProto],
 ) -> Tuple[Any, Tuple[Union[int, str], ...], Any]:
     if isinstance(input_def, str):
         reg = re.compile(

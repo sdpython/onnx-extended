@@ -124,7 +124,7 @@ if(CUDAToolkit_FOUND)
       # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_86,code=sm_86")
       # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_87,code=sm_87")
     endif()
-    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.8)
+    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
       # H series
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_90,code=sm_90")
     endif()

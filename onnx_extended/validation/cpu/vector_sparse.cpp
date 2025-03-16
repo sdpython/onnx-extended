@@ -2,6 +2,7 @@
 #include "common/c_op_helpers.h"
 
 #include <omp.h>
+#include <chrono>
 #if __cpluscplus >= 202002L
 #include <span>
 #else

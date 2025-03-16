@@ -1,10 +1,10 @@
 import numpy
-cimport numpy
+cimport numpy as cnumpy
 cimport cython
 from libcpp cimport bool
 from cython.cimports.libc.stdint import uint8_t, int64_t
 
-numpy.import_array()
+# numpy.import_array()
 
 
 cdef extern from "cpu/cast_fp8.h":
@@ -23,8 +23,8 @@ def cast_float32_to_e4m3fn(m, bool saturate = True):
     :param saturate: saturate the conversion
     :return: casted array
     """
-    cdef numpy.ndarray cm = numpy.ascontiguousarray(m)
-    cdef numpy.ndarray res = numpy.empty(m.shape, dtype=numpy.uint8)
+    cdef cnumpy.ndarray cm = numpy.ascontiguousarray(m)
+    cdef cnumpy.ndarray res = numpy.empty(m.shape, dtype=numpy.uint8)
     cdef int64_t n = m.size
     cdef const float* src = <float*> cm.data
     cdef uint8_t* dst = <uint8_t*> res.data
@@ -43,8 +43,8 @@ def cast_e4m3fn_to_float32(m):
     :param m: any array
     :return: casted array
     """
-    cdef numpy.ndarray cm = numpy.ascontiguousarray(m)
-    cdef numpy.ndarray res = numpy.empty(m.shape, dtype=numpy.float32)
+    cdef cnumpy.ndarray cm = numpy.ascontiguousarray(m)
+    cdef cnumpy.ndarray res = numpy.empty(m.shape, dtype=numpy.float32)
     cdef int64_t n = m.size
     cdef const uint8_t* src = <uint8_t*> cm.data
     cdef float* dst = <float*> res.data
