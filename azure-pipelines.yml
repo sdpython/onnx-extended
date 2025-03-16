@@ -144,7 +144,9 @@ jobs:
       python -m pip wheel . -v
     displayName: 'Build Package1'
   - script: |
+      ls .
       cd dist
+      ls .
       ls ..
       python -m pytest ../_unittests
     displayName: 'check unit test with the whl'
