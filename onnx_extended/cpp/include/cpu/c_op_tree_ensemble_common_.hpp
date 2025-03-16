@@ -39,8 +39,10 @@
 
 #if defined(DEBUG_STEP)
 #define DEBUG_PRINT_STEP(msg) printf("%s\n", msg);
+#define DEBUG_PRINT_F(f, t, x) printf("%d: %f ? %f\n", f, t, x)
 #else
 #define DEBUG_PRINT_STEP(msg)
+#define DEBUG_PRINT_F(f, t, x)
 #endif
 
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf

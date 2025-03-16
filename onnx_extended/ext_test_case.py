@@ -346,3 +346,23 @@ class ExtTestCase(unittest.TestCase):
 
             return onnx_simple_text_plot(onx)
         raise RuntimeError(f"Unable to print type {type(onx)}")
+
+    def get_dump_file(self, name: str, folder: Optional[str] = None) -> str:
+        """Returns a filename to dump a model."""
+        if folder is None:
+            folder = "dump_test"
+        if folder and not os.path.exists(folder):
+            os.mkdir(folder)
+        return os.path.join(folder, name)
+
+    def dump_onnx(
+        self,
+        name: str,
+        proto: Any,
+        folder: Optional[str] = None,
+    ) -> str:
+        """Dumps an onnx file."""
+        fullname = self.get_dump_file(name, folder=folder)
+        with open(fullname, "wb") as f:
+            f.write(proto.SerializeToString())
+        return fullname

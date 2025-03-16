@@ -356,12 +356,14 @@ public:
     if (this->use_base_values_) {
       auto it2 = this->base_values_.cbegin();
       OutputType bias = this->bias_ * this->n_trees_;
-      for (; it != predictions.end(); ++it, ++it2)
+      for (; it != predictions.end(); ++it, ++it2) {
         it->score = it->score + *it2 + bias;
+      }
     } else if (this->bias_ != 0) {
       OutputType bias = this->bias_ * this->n_trees_;
-      for (; it != predictions.end(); ++it)
-        it->score += bias;
+      for (; it != predictions.end(); ++it) {
+        it->score += bias + *it;
+      }
     }
     write_scores(predictions, this->post_transform_, Z, add_second_class);
   }
