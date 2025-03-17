@@ -139,7 +139,7 @@ def create_model(
             node_output = ["C"]
         elif mat_type == TensorProto.FLOAT16:
             op_name = "CustomGemmFloat16"
-            computeType = "CUBLAS_COMPUTE_16F"
+            computeType = "CUBLAS_COMPUTE_32F"
             node_output = ["C"]
         elif mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
             f8 = True
@@ -377,6 +377,7 @@ for tt, engine, provider, dim, domain in pbar:
     elif provider[0] == "CPUExecutionProvider" and max(dim) > 2000:
         # too long
         continue
+
     if max(dim) <= 200:
         repeat, number = script_args.repeat * 4, script_args.number * 4
     elif max(dim) <= 256:

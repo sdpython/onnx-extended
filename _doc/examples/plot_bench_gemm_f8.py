@@ -42,8 +42,7 @@ if has_cuda:
         # No float 8.
         dtests, ddims = (
             "0,1,2,3,4,15",
-            "16,32,64,128,256,512,1024,2048,4096,8192,"
-            "128x768x768,128x3072x768,128x768x3072",
+            "16,32,64,128,128x128x128,128x512x128,128x512x512",
         )
     else:
         dtests, ddims = (
@@ -138,7 +137,11 @@ for test, dim in pbar:
         gemm_args = [m, n, k, lda, ldb, ldd]
 
     # warmup
-    gemm_benchmark_test(test, N, *gemm_args)
+    try:
+        gemm_benchmark_test(test, N, *gemm_args)
+    except RuntimeError:
+        # Not working.
+        continue
 
     # benchmark
     res = gemm_benchmark_test(test, N, *gemm_args)
