@@ -117,7 +117,7 @@ def create_model(
             node_output = ["C"]
         elif mat_type == TensorProto.FLOAT16:
             op_name = "CustomGemmFloat16"
-            computeType = "CUBLAS_COMPUTE_16F"
+            computeType = "CUBLAS_COMPUTE_32F"
             node_output = ["C"]
         elif mat_type in (TensorProto.FLOAT8E4M3FN, TensorProto.FLOAT8E5M2):
             f8 = True
@@ -435,19 +435,20 @@ if data:
         logx=True,
     )
 
-    for i, name in enumerate(["fence_before", "fence_after"]):
+    for i, name in enumerate(["kernel_time"]):
         pivi = pivot_table(
             df[(df["it==0"] == 0) & (df["event_name"] == name)],
             index=["xdim"],
             columns=["xdtype", "xdomain", "args_op_name"],
             values="dur",
         )
-        pivi.T.plot(
-            ax=ax[i, 1],
-            title=f"{name}",
-            kind="barh",
-            logx=True,
-        )
+        if pivi.shape[0]:
+            pivi.T.plot(
+                ax=ax[i, 1],
+                title=f"{name}",
+                kind="barh",
+                logx=True,
+            )
 
     fig.tight_layout()
     fig.savefig("plot_bench_gemm_ort.png")

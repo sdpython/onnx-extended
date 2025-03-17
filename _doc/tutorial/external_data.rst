@@ -59,6 +59,9 @@ on how to do it. It relies on function
     
     # size_threshold: every constant tensor whose size is above this
     # threshold is taken out externally.
+    data_file = "an_onnx_model.onnx.data"
+    if os.path.exists(data_file):
+        os.remove(data_file)
     save_model(model, "an_onnx_model.onnx", external=True, size_threshold=15)
     
     pprint.pprint([n for n in os.listdir() if "an_onnx" in n])
