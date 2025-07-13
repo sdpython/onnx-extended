@@ -804,9 +804,9 @@ def numpy_extended_dot_matrix(
 
         res = res.reshape(current_shape)
 
-        perm = [(a, i) for i, a in enumerate(ordered_axes)]
-        perm.sort()
-        perm = [p[1] for p in perm]
+        permf = [(a, i) for i, a in enumerate(ordered_axes)]
+        permf.sort()
+        perm = [p[1] for p in permf]
 
         if verbose:
             print(f"[GENERICDOT] ordered_axes={ordered_axes!r} perm={perm!r}")
