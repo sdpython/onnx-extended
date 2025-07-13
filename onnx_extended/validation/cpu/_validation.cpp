@@ -6,6 +6,7 @@
 #include "murmur_hash3.h"
 #include "speed_metrics.h"
 #include "vector_sparse.h"
+#include "onnx2.h"
 
 namespace py = pybind11;
 using namespace validation;
@@ -164,5 +165,21 @@ or to keep the sparse representation to do random access to the structures.
       into the sparse structures
 :return: 3-tuple, intialization time (conversion to dense, or sparse initialization),
       measure of the random accesses, control sum
+)pbdoc");
+
+  m.def(
+      "onnx2_read_int64",
+      [](py::bytes data) -> py::tuple {
+        std::string raw = data;
+        const uint8_t* ptr = reinterpret_cast<const uint8_t*>(raw.data());        
+        size_t pos = 0;
+        int64_t value = onnx2::readVarint64(ptr, pos, raw.size());
+        return py::make_tuple(value, pos);
+      },
+      py::arg("data"),
+      R"pbdoc(Reads a int64_t (protobuf format)
+
+:param data: bytes
+:return: 2-tuple, value and number of read bytes
 )pbdoc");
 }
