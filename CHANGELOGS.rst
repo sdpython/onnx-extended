@@ -4,7 +4,7 @@ Change Logs
 0.5.0
 +++++
 
-
+* :pr:`192`: use onnxruntime==1.22.1
 
 0.4.0
 +++++

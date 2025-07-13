@@ -362,7 +362,13 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**" = ["B905", "C401", "C408", "C413", "RUF012", "RUF100", "RUF010", "SIM108", "SIM910", "SIM110", "SIM102", "SIM114", "SIM103", "UP015", "UP027", "UP031", "UP034", "UP032", "UP006", "UP035", "UP007", "UP038"]
+"**" = [
+    "B905",
+    "C401", "C408", "C413",
+    "RUF012", "RUF100", "RUF010",
+    "SIM108", "SIM910", "SIM110", "SIM102", "SIM114", "SIM103",
+    "UP015", "UP027", "UP031", "UP034", "UP032", "UP006", "UP035", "UP007", "UP038", "UP045",
+]
 "**/plot*.py" = ["B018"]
 "_doc/examples/plot_op_gemm2_cuda.py" = ["E402"]
 "_doc/examples/plot_op_mul_cuda.py" = ["E402"]
