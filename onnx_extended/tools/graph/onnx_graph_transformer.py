@@ -162,7 +162,7 @@ def quantize_weights(
         else:
             # second input
             values = (
-                values.reshape((-1,) + values.shape[-2:])
+                values.reshape((-1, *values.shape[-2:]))
                 .transpose((1, 0, 2))
                 .reshape((values.shape[-2], -1))
             )

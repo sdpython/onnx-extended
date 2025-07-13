@@ -184,7 +184,7 @@ class TestMakeHelper(ExtTestCase):
         got = ref.run(None, feeds)
         b = np.arange(24).reshape((2, 3, 4)).astype(np.float32)
         eb = (
-            b.reshape((-1,) + b.shape[-2:])
+            b.reshape((-1, *b.shape[-2:]))
             .transpose((1, 0, 2))
             .reshape((b.shape[-2], -1))
         )
@@ -270,7 +270,7 @@ class TestMakeHelper(ExtTestCase):
         final = (
             b.reshape(6, -1, b.shape[-1])
             .transpose((1, 0, 2))
-            .reshape(b.shape[:-2] + (-1, b.shape[-1]))
+            .reshape((*b.shape[:-2], -1, b.shape[-1]))
         )
 
         self.assertEqualArray(final, got[0])

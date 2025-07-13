@@ -13,7 +13,7 @@ matplotlib
 ml-dtypes
 onnx-array-api
 onnxmltools
-onnxruntime>=1.21.0
+onnxruntime>=1.22.0
 openpyxl
 opt_einsum
 packaging
@@ -25,7 +25,7 @@ pytest-cov
 pytest-subtests
 rstcheck[sphinx,toml]
 ruff
-scikit-learn>=1.5
+scikit-learn>=1.7
 skl2onnx>=1.14.1
 sphinx>=8; sys_platform == 'linux'
 sphinx-gallery; sys_platform == 'linux'

@@ -3,7 +3,7 @@ More operators for onnx reference implementation and onnxruntime.
 Experimentation with openmp, CUDA.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 __author__ = "Xavier Dupré"
 
 
@@ -34,7 +34,7 @@ def _check_installation_ortcy(onnx_model, verbose):
 
         this = os.path.dirname(cyfile)
         files = os.listdir(this)
-        if "libonnxruntime.so.1.19.2" in files:
+        if "libonnxruntime.so.1.22.0" in files:
             if verbose:
                 local_print(
                     "[check_installation_ortcy] weird issue as the "
