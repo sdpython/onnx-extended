@@ -19,9 +19,9 @@ class BinaryStream {
 public:
   inline BinaryStream() {}
   virtual uint64_t next_uint64() = 0;
-  virtual int64_t next_int64() = 0;
+  virtual int64_t next_int64();
   virtual float next_float32() = 0;
-  virtual std::string next_string() = 0;
+  virtual std::string next_string();
   virtual void can_read(uint64_t len, const char *msg) = 0;
   virtual bool not_end() const = 0;
   virtual offset_t tell() const = 0;
@@ -51,9 +51,7 @@ public:
       : BinaryStream(), pos_(0), size_(size), data_(data) {}
   virtual void can_read(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
-  virtual int64_t next_int64() override;
   virtual float next_float32() override;
-  virtual std::string next_string() override;
   virtual const uint8_t *read_bytes(offset_t n_bytes) override;
   virtual bool not_end() const override { return pos_ < size_; }
   virtual offset_t tell() const override { return static_cast<offset_t>(pos_); }
