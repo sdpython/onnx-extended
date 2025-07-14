@@ -172,7 +172,7 @@ or to keep the sparse representation to do random access to the structures.
       [](py::bytes data) -> py::tuple {
         std::string raw = data;
         const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-        size_t pos = 0;
+        offset_t pos = 0;
         int64_t value = onnx2::utils::readVarint64(ptr, pos, raw.size());
         return py::make_tuple(value, pos);
       },
