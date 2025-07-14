@@ -783,7 +783,6 @@ setup(
     classifiers=[
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: C",
         "Programming Language :: Python",
         "Topic :: Software Development",
