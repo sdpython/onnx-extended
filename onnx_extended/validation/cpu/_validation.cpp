@@ -172,9 +172,9 @@ or to keep the sparse representation to do random access to the structures.
       [](py::bytes data) -> py::tuple {
         std::string raw = data;
         const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-        offset_t pos = 0;
-        int64_t value = onnx2::utils::readVarint64(ptr, pos, raw.size());
-        return py::make_tuple(value, pos);
+        onnx2::utils::StringStream st(ptr, raw.size());
+        int64_t value = st.next_int64();
+        return py::make_tuple(value, st.tell());
       },
       py::arg("data"),
       R"pbdoc(Reads a int64_t (protobuf format)
@@ -193,8 +193,8 @@ or to keep the sparse representation to do random access to the structures.
           [](onnx2::StringStringEntryProto &self, py::bytes data) {
             std::string raw = data;
             const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-            size_t pos = 0;
-            self.ParseFromString(ptr, pos, raw.size());
+            onnx2::utils::StringStream st(ptr, raw.size());
+            self.ParseFromString(st);
           },
           "Parses a sequence of bytes to fill this instance");
 
@@ -251,8 +251,8 @@ or to keep the sparse representation to do random access to the structures.
           [](onnx2::TensorProto &self, py::bytes data) {
             std::string raw = data;
             const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-            size_t pos = 0;
-            self.ParseFromString(ptr, pos, raw.size());
+            onnx2::utils::StringStream st(ptr, raw.size());
+            self.ParseFromString(st);
           },
           "Parses a sequence of bytes to fill this instance");
 }

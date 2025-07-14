@@ -11,46 +11,58 @@ namespace validation {
 namespace onnx2 {
 namespace utils {
 
-typedef uint64_t offset_t;
+typedef int64_t offset_t;
 
 inline int64_t decodeZigZag64(uint64_t n) { return (n >> 1) ^ -(n & 1); }
 
-uint64_t readVaruint64(const uint8_t *data, offset_t &pos, offset_t size);
-int64_t readVarint64(const uint8_t *data, offset_t &pos, offset_t size);
-float readFloat32(const uint8_t *data, offset_t &pos, offset_t size);
+class BinaryStream {
+public:
+  inline BinaryStream() {}
+  virtual uint64_t next_uint64() = 0;
+  virtual int64_t next_int64() = 0;
+  virtual float next_float32() = 0;
+  virtual std::string next_string() = 0;
+  virtual void can_read(uint64_t len, const char *msg) = 0;
+  virtual bool not_end() const = 0;
+  virtual offset_t tell() const = 0;
+  virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
+  virtual void next_packed_element(int64_t &);
+  virtual void next_packed_element(uint64_t &);
 
-std::string readStringField(const uint8_t *data, offset_t &pos, offset_t size);
+  template <typename T> inline void next_packed_array(std::vector<T> &values) {
+    values.clear();
 
-template <typename T>
-inline void readPackedElement(const uint8_t *data, offset_t &pos, offset_t size, T &value);
+    // read size
+    int64_t length = next_uint64();
+    can_read(length, "[BinaryStream::next_packed_array]");
 
-template <>
-inline void readPackedElement(const uint8_t *data, offset_t &pos, offset_t size,
-                              int64_t &value) {
-  value = readVarint64(data, pos, size);
-}
-template <>
-inline void readPackedElement(const uint8_t *data, offset_t &pos, offset_t size,
-                              uint64_t &value) {
-  value = readVaruint64(data, pos, size);
-}
-
-template <typename T>
-void readPacked(const uint8_t *data, offset_t &pos, offset_t size, std::vector<T> &values) {
-  values.clear();
-
-  // read size
-  int64_t length = readVarint64(data, pos, size);
-  size_t end = pos + length;
-  EXT_ENFORCE(end <= size, "readPacked<T>, end=", end, ", size=", size);
-
-  // read the array
-  int64_t raw;
-  while (pos < end) {
-    readPackedElement(data, pos, size, raw);
-    values.push_back(raw);
+    // read the array
+    T raw;
+    for (; length > 0; --length) {
+      next_packed_ekement(raw);
+      values.push_back(raw);
+    }
   }
-}
+};
+
+class StringStream : public BinaryStream {
+public:
+  inline StringStream(const uint8_t *data, int64_t size)
+      : BinaryStream(), pos_(0), size_(size), data_(data) {}
+  virtual void can_read(uint64_t len, const char *msg) override;
+  virtual uint64_t next_uint64() override;
+  virtual int64_t next_int64() override;
+  virtual float next_float32() override;
+  virtual std::string next_string() override;
+  virtual const uint8_t *read_bytes(offset_t n_bytes) override;
+  virtual bool not_end() const override { return pos_ < size_; }
+  virtual offset_t tell() const override { return static_cast<offset_t>(pos_); }
+
+private:
+  offset_t pos_;
+  offset_t size_;
+  const uint8_t *data_;
+};
 
 } // namespace utils
 
@@ -61,7 +73,7 @@ public:
   std::string key;
   std::string value;
   inline StringStringEntryProto() {}
-  void ParseFromString(const uint8_t *data, offset_t &pos, offset_t size);
+  void ParseFromString(utils::BinaryStream &stream);
 };
 
 class TensorProto {
@@ -127,7 +139,7 @@ public:
 
   // methods
   inline TensorProto() { data_type = DataType::UNDEFINED; }
-  void ParseFromString(const uint8_t *data, offset_t &pos, offset_t size);
+  void ParseFromString(utils::BinaryStream &stream);
 
   // data
   std::vector<int64_t> dims;                         // 1
