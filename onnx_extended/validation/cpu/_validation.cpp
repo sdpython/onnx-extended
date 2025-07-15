@@ -198,6 +198,37 @@ or to keep the sparse representation to do random access to the structures.
           },
           "Parses a sequence of bytes to fill this instance");
 
+  py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",
+                                                 "Dimension, an integer value or a string")
+      .def(py::init<>())
+      .def_readwrite("dim_value", &onnx2::TensorShapeProto::Dimension::dim_value, "dim_value")
+      .def_readwrite("dim_param", &onnx2::TensorShapeProto::Dimension::dim_param, "dim_param")
+      .def_readwrite("denotation", &onnx2::TensorShapeProto::Dimension::denotation,
+                     "denotation")
+      .def(
+          "ParseFromString",
+          [](onnx2::TensorShapeProto::Dimension &self, py::bytes data) {
+            std::string raw = data;
+            onnx2::utils::StringStream st(reinterpret_cast<const uint8_t *>(raw.data()),
+                                          raw.size());
+            self.ParseFromString(st);
+          },
+          "Parses a sequence of bytes to fill this instance");
+
+  py::class_<onnx2::TensorShapeProto>(m, "TensorShapeProto",
+                                      "TensorShapeProto, multiple DimProto")
+      .def(py::init<>())
+      .def_readwrite("dim", &onnx2::TensorShapeProto::dim, "dim")
+      .def(
+          "ParseFromString",
+          [](onnx2::TensorShapeProto &self, py::bytes data) {
+            std::string raw = data;
+            onnx2::utils::StringStream st(reinterpret_cast<const uint8_t *>(raw.data()),
+                                          raw.size());
+            self.ParseFromString(st);
+          },
+          "Parses a sequence of bytes to fill this instance");
+
   py::enum_<onnx2::TensorProto::DataType>(m, "DataType", py::arithmetic())
       .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
       .value("FLOAT", onnx2::TensorProto::DataType::FLOAT)
@@ -250,8 +281,8 @@ or to keep the sparse representation to do random access to the structures.
           "ParseFromString",
           [](onnx2::TensorProto &self, py::bytes data) {
             std::string raw = data;
-            const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-            onnx2::utils::StringStream st(ptr, raw.size());
+            onnx2::utils::StringStream st(reinterpret_cast<const uint8_t *>(raw.data()),
+                                          raw.size());
             self.ParseFromString(st);
           },
           "Parses a sequence of bytes to fill this instance");

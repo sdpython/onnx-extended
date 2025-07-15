@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import onnx
+import onnx.helper as oh
 import onnx.numpy_helper as onh
 from onnx_extended.ext_test_case import ExtTestCase
 import onnx_extended.validation.cpu._validation as onnx2
@@ -66,6 +67,20 @@ class TestOnnx2(ExtTestCase):
         p2 = onnx2.StringStringEntryProto()
         p2.ParseFromString(s)
         self.assertEqual((p2.key, p2.value), (p.key, p.value))
+
+    def test_tensor_shape_proto(self):
+        vts = oh.make_tensor_value_info(
+            "iname", onnx.TensorProto.FLOAT, (4, "dyn"), "hello", ["D1", "D2"]
+        )
+        ts = vts.type.tensor_type.shape
+        bin = ts.SerializeToString()
+        ts2 = onnx2.TensorShapeProto()
+        ts2.ParseFromString(bin)
+        self.assertEqual(len(ts.dim), len(ts2.dim))
+        for d1, d2 in zip(ts.dim, ts2.dim):
+            self.assertEqual(d1.dim_value, d2.dim_value)
+            self.assertEqual(d1.dim_param, d2.dim_param)
+            self.assertEqual(d1.denotation, d2.denotation)
 
 
 if __name__ == "__main__":

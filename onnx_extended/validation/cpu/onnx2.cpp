@@ -35,6 +35,16 @@ const uint8_t *StringStream::read_bytes(offset_t n_bytes) {
   return res;
 }
 
+void StringStream::read_string_stream(StringStream &stream) {
+  uint64_t length = next_uint64();
+  can_read(length, "[StringStream::read_string_stream]");
+  const uint8_t *res = data_ + pos_;
+  pos_ += length;
+  stream.data_ = res;
+  stream.pos_ = 0;
+  stream.size_ = length;
+}
+
 uint64_t StringStream::next_uint64() {
   uint64_t result = 0;
   int shift = 0;
@@ -81,6 +91,43 @@ void StringStringEntryProto::ParseFromString(utils::BinaryStream &stream) {
     } else {
       EXT_THROW("[StringStringEntryProto::ParseFromString] unknown field number: ",
                 field_number);
+    }
+  }
+}
+
+void TensorShapeProto::Dimension::ParseFromString(utils::BinaryStream &stream) {
+  while (stream.not_end()) {
+    uint64_t key = stream.next_uint64();
+    uint64_t field_number = key >> 3;
+    uint64_t wire_type = key & 0x07;
+
+    if (field_number == 1 && wire_type == 0) {
+      dim_value = stream.next_uint64();
+    } else if (field_number == 2 && wire_type == 2) {
+      dim_param = stream.next_string();
+    } else if (field_number == 3 && wire_type == 2) {
+      denotation = stream.next_string();
+    } else {
+      EXT_THROW("[TensorShapeProto::Dimension::ParseFromString] unknown field number: ",
+                field_number);
+    }
+  }
+}
+
+void TensorShapeProto::ParseFromString(utils::BinaryStream &stream) {
+  while (stream.not_end()) {
+    uint64_t key = stream.next_uint64();
+    uint64_t field_number = key >> 3;
+    uint64_t wire_type = key & 0x07;
+
+    if (field_number == 1 && wire_type == 2) { // repeated dim
+      utils::StringStream dim_buf;
+      stream.read_string_stream(dim_buf);
+      Dimension d;
+      d.ParseFromString(dim_buf);
+      dim.emplace_back(d);
+    } else {
+      EXT_THROW("[TensorShapeProto::ParseFromString] unknown field number: ", field_number);
     }
   }
 }
