@@ -5,7 +5,6 @@ message(STATUS "+ PYBIND11 onnx_extended.validation.cpu._validation")
 
 add_library(lib_validation_cpp STATIC
   ../onnx_extended/validation/cpu/murmur_hash3.cpp
-  ../onnx_extended/validation/cpu/onnx2.cpp
   ../onnx_extended/validation/cpu/speed_metrics.cpp)
 target_compile_definitions(lib_validation_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(lib_validation_cpp PRIVATE "${ROOT_INCLUDE_PATH}")

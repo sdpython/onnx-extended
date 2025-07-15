@@ -375,6 +375,7 @@ select = [
 "_doc/examples/plot_op_scatternd_mask_cuda.py" = ["E402"]
 "_doc/examples/plot_op_transpose_2d_cast_cuda.py" = ["E402"]
 "onnx_extended/helper/__init__.py" = ["F401"]
+"onnx_extended/onnx2/__init__.py" = ["F401"]
 "onnx_extended/plotting/data.py" = ["E501"]
 "onnx_extended/reference/__init__.py" = ["F401"]
 "onnx_extended/tools/__init__.py" = ["F401"]
