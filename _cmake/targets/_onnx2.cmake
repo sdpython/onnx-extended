@@ -4,7 +4,8 @@
 message(STATUS "+ PYBIND11 onnx_extended.onnx2.cpu._onnx2py")
 
 add_library(lib_onnx2_cpp STATIC
-  ../onnx_extended/onnx2/cpu/onnx2.cpp)
+  ../onnx_extended/onnx2/cpu/onnx2.cpp
+  ../onnx_extended/onnx2/cpu/stream.cpp)
 target_compile_definitions(lib_onnx2_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(lib_onnx2_cpp PRIVATE "${ROOT_INCLUDE_PATH}")
 set_property(TARGET lib_onnx2_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
