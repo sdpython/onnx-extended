@@ -1,0 +1,74 @@
+#include "stream.h"
+#include <cstddef>
+#include <cstring>
+#include <stdexcept>
+#include <stdint.h>
+#include <vector>
+
+namespace validation {
+namespace onnx2 {
+namespace utils {
+
+void BinaryStream::next_packed_element(int64_t &value) { value = next_int64(); }
+void BinaryStream::next_packed_element(uint64_t &value) { value = next_uint64(); }
+
+std::string BinaryStream::next_string() {
+  uint64_t length = next_uint64();
+  this->can_read(length, "[StringStream::next_string]");
+  std::string result(reinterpret_cast<const char *>(read_bytes(length)), length);
+  return result;
+}
+
+int64_t BinaryStream::next_int64() {
+  uint64_t value = next_uint64();
+  return decodeZigZag64(value);
+}
+
+void StringStream::can_read(uint64_t len, const char *msg) {
+  EXT_ENFORCE(pos_ + static_cast<int64_t>(len) <= size_, msg, " unable to read ", len,
+              " bytes, pos_=", pos_, ", size_=", size_);
+}
+
+const uint8_t *StringStream::read_bytes(offset_t n_bytes) {
+  const uint8_t *res = data_ + pos_;
+  pos_ += n_bytes;
+  return res;
+}
+
+void StringStream::read_string_stream(StringStream &stream) {
+  uint64_t length = next_uint64();
+  can_read(length, "[StringStream::read_string_stream]");
+  const uint8_t *res = data_ + pos_;
+  pos_ += length;
+  stream.data_ = res;
+  stream.pos_ = 0;
+  stream.size_ = length;
+}
+
+uint64_t StringStream::next_uint64() {
+  uint64_t result = 0;
+  int shift = 0;
+
+  for (int i = 0; i < 10 && pos_ < size_; ++i) {
+    uint8_t byte = data_[pos_++];
+    result |= static_cast<uint64_t>(byte & 0x7F) << shift;
+
+    if ((byte & 0x80) == 0)
+      return result;
+
+    shift += 7;
+  }
+  EXT_THROW("[StringStream::next_uint64] unable to read an int64 at pos=", pos_,
+            ", size=", size_);
+}
+
+float StringStream::next_float32() {
+  this->can_read(sizeof(float), "[StringStream::next_float]");
+  const float *value = reinterpret_cast<const float *>(data_ + pos_);
+  pos_ += sizeof(float);
+  return *value;
+}
+
+} // namespace utils
+} // namespace onnx2
+} // namespace validation
