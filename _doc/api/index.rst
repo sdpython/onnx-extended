@@ -10,6 +10,7 @@ API
     ext_test_case
     memory_peak
     helper
+    onnx2
     ortcy
     ortops
     plotting

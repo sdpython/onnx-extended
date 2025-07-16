@@ -51,6 +51,7 @@ endforeach()
 # standalone modules
 #
 
+include("targets/_onnx2.cmake")
 include("targets/_validation.cmake")
 include("targets/_validation_cuda_example_py.cmake")
 include("targets/_validation_cuda_monitor.cmake")
