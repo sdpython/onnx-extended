@@ -9,6 +9,11 @@ namespace validation {
 namespace onnx2 {
 namespace utils {
 
+std::string FieldNumber::string() const {
+  return onnx_extended_helpers::MakeString("[field_number=", field_number,
+                                           ", wire_type=", wire_type, "]");
+}
+
 void BinaryStream::next_packed_element(int64_t &value) { value = next_int64(); }
 void BinaryStream::next_packed_element(uint64_t &value) { value = next_uint64(); }
 
@@ -22,6 +27,14 @@ std::string BinaryStream::next_string() {
 int64_t BinaryStream::next_int64() {
   uint64_t value = next_uint64();
   return decodeZigZag64(value);
+}
+
+FieldNumber BinaryStream::next_field() {
+  FieldNumber n;
+  n.wire_type = next_uint64();
+  n.field_number = n.wire_type >> 3;
+  n.wire_type = n.wire_type & 0x07;
+  return n;
 }
 
 void StringStream::can_read(uint64_t len, const char *msg) {
@@ -68,6 +81,38 @@ float StringStream::next_float32() {
   pos_ += sizeof(float);
   return *value;
 }
+
+void BinaryWriteStream::write_variant_uint64(uint64_t value) {
+  uint8_t v;
+  while (value > 127) {
+    v = static_cast<uint8_t>((value & 0x7F) | 0x80);
+    write_raw_bytes(&v, 1);
+    value >>= 7;
+  }
+  v = static_cast<uint8_t>(value);
+  write_raw_bytes(reinterpret_cast<uint8_t *>(&v), 1);
+}
+
+void BinaryWriteStream::write_field_header(uint32_t field_number, uint8_t wire_type) {
+  write_variant_uint64((field_number << 3) | wire_type);
+}
+
+void BinaryWriteStream::write_string(const std::string &value) {
+  write_variant_uint64(value.size());
+  write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
+}
+
+void BinaryWriteStream::write_string_stream(StringWriteStream &stream) {
+  write_variant_uint64(stream.size());
+  write_raw_bytes(stream.data(), stream.size());
+}
+
+void StringWriteStream::write_raw_bytes(const uint8_t *ptr, offset_t n_bytes) {
+  buffer_.insert(buffer_.end(), ptr, ptr + n_bytes);
+}
+
+int64_t StringWriteStream::size() const { return buffer_.size(); }
+const uint8_t *StringWriteStream::data() const { return buffer_.data(); }
 
 } // namespace utils
 } // namespace onnx2

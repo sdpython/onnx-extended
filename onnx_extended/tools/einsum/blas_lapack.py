@@ -44,9 +44,9 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
                 a_index = i * a_i_stride + k * a_k_stride
                 if a_index >= A.shape[0]:
                     raise IndexError(
-                        "A: i=%d a_index=%d >= %d "
+                        "A: i=%d k=%d/%d a_index=%d >= %d "
                         "(a_i_stride=%d a_k_stride=%d)"
-                        % (i, a_index, A.shape[0], a_i_stride, a_k_stride)
+                        % (i, k, K, a_index, A.shape[0], a_i_stride, a_k_stride)
                     )
                 a_val = A[a_index]
 

@@ -6,13 +6,17 @@ from onnx.defs import get_schema
 from onnx.helper import make_graph, make_model, make_node, make_tensor_value_info
 from onnx.numpy_helper import from_array
 from onnx.reference import ReferenceEvaluator
-from onnx.reference.custom_element_types import (
-    bfloat16,
-    float8e4m3fn,
-    float8e4m3fnuz,
-    float8e5m2,
-    float8e5m2fnuz,
-)
+
+try:
+    from onnx.reference.custom_element_types import (
+        bfloat16,
+        float8e4m3fn,
+        float8e4m3fnuz,
+        float8e5m2,
+        float8e5m2fnuz,
+    )
+except ImportError:
+    bfloat16 = None
 from onnx.reference.op_run import OpRun
 
 
@@ -25,23 +29,24 @@ def from_array_extended(tensor: np.ndarray, name: Optional[str] = None) -> Tenso
     :return: TensorProto
     """
     dt = tensor.dtype
-    if dt == float8e4m3fn and dt.descr[0][0] == "e4m3fn":
-        to = TensorProto.FLOAT8E4M3FN
-        dt_to = np.uint8  # type: ignore[assignment]
-    elif dt == float8e4m3fnuz and dt.descr[0][0] == "e4m3fnuz":
-        to = TensorProto.FLOAT8E4M3FNUZ
-        dt_to = np.uint8  # type: ignore[assignment]
-    elif dt == float8e5m2 and dt.descr[0][0] == "e5m2":
-        to = TensorProto.FLOAT8E5M2
-        dt_to = np.uint8  # type: ignore[assignment]
-    elif dt == float8e5m2fnuz and dt.descr[0][0] == "e5m2fnuz":
-        to = TensorProto.FLOAT8E5M2FNUZ
-        dt_to = np.uint8  # type: ignore[assignment]
-    elif dt == bfloat16 and dt.descr[0][0] == "bfloat16":
-        to = TensorProto.BFLOAT16
-        dt_to = np.uint16  # type: ignore[assignment]
-    else:
-        return from_array(tensor, name)
+    if bfloat16 is not None:
+        if dt == float8e4m3fn and dt.descr[0][0] == "e4m3fn":
+            to = TensorProto.FLOAT8E4M3FN
+            dt_to = np.uint8  # type: ignore[assignment]
+        elif dt == float8e4m3fnuz and dt.descr[0][0] == "e4m3fnuz":
+            to = TensorProto.FLOAT8E4M3FNUZ
+            dt_to = np.uint8  # type: ignore[assignment]
+        elif dt == float8e5m2 and dt.descr[0][0] == "e5m2":
+            to = TensorProto.FLOAT8E5M2
+            dt_to = np.uint8  # type: ignore[assignment]
+        elif dt == float8e5m2fnuz and dt.descr[0][0] == "e5m2fnuz":
+            to = TensorProto.FLOAT8E5M2FNUZ
+            dt_to = np.uint8  # type: ignore[assignment]
+        elif dt == bfloat16 and dt.descr[0][0] == "bfloat16":
+            to = TensorProto.BFLOAT16
+            dt_to = np.uint16  # type: ignore[assignment]
+        else:
+            return from_array(tensor, name)
 
     t = from_array(tensor.astype(dt_to), name)
     t.data_type = to
