@@ -75,7 +75,11 @@ class TestOnnx2(ExtTestCase):
 
     def test_tensor_shape_proto(self):
         vts = oh.make_tensor_value_info(
-            "iname", onnx.TensorProto.FLOAT, (4, "dyn"), "hello", ["D1", "D2"]
+            "iname",
+            onnx.TensorProto.FLOAT,
+            (4, "dyndyn"),
+            "hellohello",
+            ["DDDDD1", "DDDD2"],
         )
         ts = vts.type.tensor_type.shape
         bin = ts.SerializeToString()

@@ -3,7 +3,7 @@
 #include "onnx_extended_helpers.h"
 #include "stream.h"
 
-#define FIELD_VARINT 2
+#define FIELD_VARINT 0
 #define FIELD_FIXED_SIZE 2
 
 namespace validation {

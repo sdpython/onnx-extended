@@ -17,18 +17,29 @@ inline int64_t decodeZigZag64(uint64_t n) { return (n >> 1) ^ -(n & 1); }
 
 class StringStream;
 
+struct FieldNumber {
+  uint64_t field_number;
+  uint64_t wire_type;
+  std::string string() const;
+};
+
 class BinaryStream {
 public:
   inline BinaryStream() {}
+
+  // to overwrite
   virtual uint64_t next_uint64() = 0;
-  virtual int64_t next_int64();
   virtual float next_float32() = 0;
-  virtual std::string next_string();
   virtual void can_read(uint64_t len, const char *msg) = 0;
   virtual bool not_end() const = 0;
   virtual offset_t tell() const = 0;
   virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
   virtual void read_string_stream(StringStream &stream) = 0;
+
+  // defines from the previous ones
+  virtual std::string next_string();
+  virtual int64_t next_int64();
+  virtual FieldNumber next_field();
   virtual void next_packed_element(int64_t &);
   virtual void next_packed_element(uint64_t &);
 

@@ -9,6 +9,11 @@ namespace validation {
 namespace onnx2 {
 namespace utils {
 
+std::string FieldNumber::string() const {
+  return onnx_extended_helpers::MakeString("[field_number=", field_number,
+                                           ", wire_type=", wire_type, "]");
+}
+
 void BinaryStream::next_packed_element(int64_t &value) { value = next_int64(); }
 void BinaryStream::next_packed_element(uint64_t &value) { value = next_uint64(); }
 
@@ -22,6 +27,14 @@ std::string BinaryStream::next_string() {
 int64_t BinaryStream::next_int64() {
   uint64_t value = next_uint64();
   return decodeZigZag64(value);
+}
+
+FieldNumber BinaryStream::next_field() {
+  FieldNumber n;
+  n.wire_type = next_uint64();
+  n.field_number = n.wire_type >> 3;
+  n.wire_type = n.wire_type & 0x07;
+  return n;
 }
 
 void StringStream::can_read(uint64_t len, const char *msg) {
