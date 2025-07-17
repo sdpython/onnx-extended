@@ -3,6 +3,9 @@
 #include "onnx_extended_helpers.h"
 #include "stream.h"
 
+#define FIELD_VARINT 2
+#define FIELD_FIXED_SIZE 2
+
 namespace validation {
 namespace onnx2 {
 
@@ -14,6 +17,7 @@ public:
   std::string value;
   inline StringStringEntryProto() {}
   void ParseFromString(utils::BinaryStream &stream);
+  void SerializeToString(utils::BinaryWriteStream &stream) const;
 };
 
 class TensorShapeProto {
@@ -21,14 +25,16 @@ public:
   class Dimension {
   public:
     inline Dimension() : dim_value(0), dim_param(), denotation() {}
-    int64_t dim_value;
-    std::string dim_param;
-    std::string denotation;
+    int64_t dim_value;      // 1
+    std::string dim_param;  // 2
+    std::string denotation; // 3
     void ParseFromString(utils::BinaryStream &stream);
+    void SerializeToString(utils::BinaryWriteStream &stream) const;
   };
 
   inline TensorShapeProto() : dim() {}
   void ParseFromString(utils::BinaryStream &stream);
+  void SerializeToString(utils::BinaryWriteStream &stream) const;
 
   std::vector<Dimension> dim; // 1
 };

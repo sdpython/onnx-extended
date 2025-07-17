@@ -67,6 +67,11 @@ class TestOnnx2(ExtTestCase):
         p2 = onnx2.StringStringEntryProto()
         p2.ParseFromString(s)
         self.assertEqual((p2.key, p2.value), (p.key, p.value))
+        # way back
+        s2 = p2.SerializeToString()
+        p = onnx.StringStringEntryProto()
+        p.ParseFromString(s2)
+        self.assertEqual((p2.key, p2.value), (p.key, p.value))
 
     def test_tensor_shape_proto(self):
         vts = oh.make_tensor_value_info(
@@ -76,6 +81,16 @@ class TestOnnx2(ExtTestCase):
         bin = ts.SerializeToString()
         ts2 = onnx2.TensorShapeProto()
         ts2.ParseFromString(bin)
+        self.assertEqual(len(ts.dim), len(ts2.dim))
+        for d1, d2 in zip(ts.dim, ts2.dim):
+            self.assertEqual(d1.dim_value, d2.dim_value)
+            self.assertEqual(d1.dim_param, d2.dim_param)
+            self.assertEqual(d1.denotation, d2.denotation)
+        # way back
+        s2 = ts2.SerializeToString()
+        onnx2.TensorShapeProto().ParseFromString(s2)
+        ts = onnx.TensorShapeProto()
+        ts.ParseFromString(s2)
         self.assertEqual(len(ts.dim), len(ts2.dim))
         for d1, d2 in zip(ts.dim, ts2.dim):
             self.assertEqual(d1.dim_value, d2.dim_value)

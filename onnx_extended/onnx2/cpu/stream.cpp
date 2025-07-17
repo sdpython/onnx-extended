@@ -77,7 +77,7 @@ void BinaryWriteStream::write_variant_uint64(uint64_t value) {
     value >>= 7;
   }
   v = static_cast<uint8_t>(value);
-  write_raw_bytes(reinterpret_cast<uint8_t*>(&v), 1);
+  write_raw_bytes(reinterpret_cast<uint8_t *>(&v), 1);
 }
 
 void BinaryWriteStream::write_field_header(uint32_t field_number, uint8_t wire_type) {
@@ -86,7 +86,7 @@ void BinaryWriteStream::write_field_header(uint32_t field_number, uint8_t wire_t
 
 void BinaryWriteStream::write_string(const std::string &value) {
   write_variant_uint64(value.size());
-  write_raw_bytes(reinterpret_cast<const uint8_t*>(value.data()), value.size());
+  write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 }
 
 void BinaryWriteStream::write_string_stream(StringWriteStream &stream) {

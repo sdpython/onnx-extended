@@ -7,6 +7,25 @@
 namespace py = pybind11;
 using namespace validation;
 
+#define ADD_PROTO_SERIALIZATION(cls)                                                           \
+  .def(                                                                                        \
+      "ParseFromString",                                                                       \
+      [](onnx2::cls &self, py::bytes data) {                                                   \
+        std::string raw = data;                                                                \
+        const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                    \
+        onnx2::utils::StringStream st(ptr, raw.size());                                        \
+        self.ParseFromString(st);                                                              \
+      },                                                                                       \
+      "Parses a sequence of bytes to fill this instance")                                      \
+      .def(                                                                                    \
+          "SerializeToString",                                                                 \
+          [](onnx2::cls &self) {                                                               \
+            onnx2::utils::StringWriteStream buf;                                               \
+            self.SerializeToString(buf);                                                       \
+            return py::bytes(reinterpret_cast<const char *>(buf.data()), buf.size());          \
+          },                                                                                   \
+          "Serialize into a sequence of bytes.")
+
 PYBIND11_MODULE(_onnx2py, m) {
   m.doc() =
 #if defined(__APPLE__)
@@ -37,15 +56,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .def(py::init<>())
       .def_readwrite("key", &onnx2::StringStringEntryProto::key, "key")
       .def_readwrite("value", &onnx2::StringStringEntryProto::value, "value")
-      .def(
-          "ParseFromString",
-          [](onnx2::StringStringEntryProto &self, py::bytes data) {
-            std::string raw = data;
-            const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-            onnx2::utils::StringStream st(ptr, raw.size());
-            self.ParseFromString(st);
-          },
-          "Parses a sequence of bytes to fill this instance");
+          ADD_PROTO_SERIALIZATION(StringStringEntryProto);
 
   py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",
                                                  "Dimension, an integer value or a string")
@@ -53,30 +64,13 @@ PYBIND11_MODULE(_onnx2py, m) {
       .def_readwrite("dim_value", &onnx2::TensorShapeProto::Dimension::dim_value, "dim_value")
       .def_readwrite("dim_param", &onnx2::TensorShapeProto::Dimension::dim_param, "dim_param")
       .def_readwrite("denotation", &onnx2::TensorShapeProto::Dimension::denotation,
-                     "denotation")
-      .def(
-          "ParseFromString",
-          [](onnx2::TensorShapeProto::Dimension &self, py::bytes data) {
-            std::string raw = data;
-            onnx2::utils::StringStream st(reinterpret_cast<const uint8_t *>(raw.data()),
-                                          raw.size());
-            self.ParseFromString(st);
-          },
-          "Parses a sequence of bytes to fill this instance");
+                     "denotation") ADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
 
   py::class_<onnx2::TensorShapeProto>(m, "TensorShapeProto",
                                       "TensorShapeProto, multiple DimProto")
       .def(py::init<>())
       .def_readwrite("dim", &onnx2::TensorShapeProto::dim, "dim")
-      .def(
-          "ParseFromString",
-          [](onnx2::TensorShapeProto &self, py::bytes data) {
-            std::string raw = data;
-            onnx2::utils::StringStream st(reinterpret_cast<const uint8_t *>(raw.data()),
-                                          raw.size());
-            self.ParseFromString(st);
-          },
-          "Parses a sequence of bytes to fill this instance");
+          ADD_PROTO_SERIALIZATION(TensorShapeProto);
 
   py::enum_<onnx2::TensorProto::DataType>(m, "DataType", py::arithmetic())
       .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
