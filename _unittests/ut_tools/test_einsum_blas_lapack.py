@@ -5,6 +5,39 @@ from onnx_extended.ext_test_case import ExtTestCase
 from onnx_extended.tools.einsum.blas_lapack import gemm_dot, pygemm
 
 
+def gemm_pure_python(TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
+    """
+    GEMM: C = alpha * op(A) * op(B)
+    All matrices are stored in 1D row-major layout.
+    TransA, TransB : bool (True = transpose)
+    M, N, K        : matrix dimensions
+    lda, ldb, ldc  : leading dimensions (stride between rows)
+    A, B, C        : 1D float lists representing 2D matrices
+    """
+    assert beta == 0
+    for i in range(M):  # rows of C
+        for j in range(N):  # cols of C
+            acc = 0.0
+            for k in range(K):
+                # Access A[i, k] or A[k, i]
+                if not TransA:
+                    a_index = i * lda + k
+                else:
+                    a_index = k * lda + i
+
+                # Access B[k, j] or B[j, k]
+                if not TransB:
+                    b_index = k * ldb + j
+                else:
+                    b_index = j * ldb + k
+
+                acc += A[a_index] * B[b_index]
+
+            # Store in C[i, j]
+            c_index = i * ldc + j
+            C[c_index] += alpha * acc
+
+
 class TestBlasLapack(ExtTestCase):
     def test_gemm(self):
         A = numpy.arange(4).reshape((2, 2)) + 1
@@ -367,6 +400,170 @@ class TestBlasLapack(ExtTestCase):
 
                         got = gemm_dot(a, b, t1, t2)
                         self.assertEqualArray(exp, got)
+
+    def test_pygemm_lda_lda_ldc(self):
+        A = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
+        B = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
+        A[:, 0, 0, :] = 1
+        A[:, 0, 2, :] = 10
+        A[:, 1, 1, :] = -1
+        B[:, 0, 0, :] = 1
+        B[:, 0, 2, :] = 10
+        B[:, 1, 1, :] = -1
+        expected = numpy.matmul(A, numpy.transpose(B, (0, 1, 3, 2)))
+        shape_c = (A.shape[0], A.shape[1], A.shape[2], B.shape[2])
+        C = numpy.zeros(shape_c, dtype=numpy.float32)
+
+        shape_a = A.shape
+        shape_b = B.shape
+        shape_c = C.shape
+        M, N, K = shape_a[2], shape_b[2], shape_b[3]
+        lda, ldb, ldc = shape_a[3], shape_b[3], shape_c[3]
+        A = A.ravel()
+        B = B.ravel()
+        C = C.ravel()
+        for i in range(shape_a[0] * shape_a[1]):
+            ai, aj = i * shape_a[2] * shape_a[3], (i + 1) * shape_a[2] * shape_a[3]
+            bi, bj = i * shape_b[2] * shape_b[3], (i + 1) * shape_b[2] * shape_b[3]
+            ci, cj = i * shape_c[2] * shape_c[3], (i + 1) * shape_c[2] * shape_c[3]
+
+            pygemm(
+                False,
+                True,
+                M,
+                N,
+                K,
+                1.0,
+                A[ai:aj],
+                lda,
+                B[bi:bj],
+                ldb,
+                0.0,
+                C[ci:cj],
+                ldc,
+            )
+
+        got = C.reshape(shape_c)
+        self.assertEqualArray(expected, got)
+
+    def test_gemm_lda_lda_ldc_trans(self):
+        A = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
+        B = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
+        A[:, 0, 0, :] = 1
+        A[:, 0, 2, :] = 10
+        A[:, 1, 1, :] = -1
+        B[:, 0, 0, :] = 1
+        B[:, 0, 2, :] = 10
+        B[:, 1, 1, :] = -1
+        expected = numpy.matmul(A, numpy.transpose(B, (0, 1, 3, 2)))
+        shape_c = (A.shape[0], A.shape[1], A.shape[2], B.shape[2])
+        C = numpy.zeros(shape_c, dtype=numpy.float32)
+
+        shape_a = A.shape
+        shape_b = B.shape
+        shape_c = C.shape
+        M, N, K = shape_a[2], shape_b[2], shape_b[3]
+
+        # same for attention
+        A = numpy.transpose(A, (0, 2, 1, 3))
+        B = numpy.transpose(B, (0, 2, 1, 3))
+
+        lda, ldb, ldc = shape_a[3] * shape_a[1], shape_b[3] * shape_b[1], shape_c[3]
+        A = A.ravel()
+        B = B.ravel()
+        C = C.ravel()
+        for i1 in range(shape_a[0]):
+            for i2 in range(shape_a[1]):
+                da = shape_a[1] * shape_a[2] * shape_a[3]
+                db = shape_b[1] * shape_b[2] * shape_b[3]
+                dc = shape_c[1] * shape_c[2] * shape_c[3]
+
+                ai = i1 * da + i2 * shape_a[3]
+                aj = ai + da
+
+                bi = i1 * db + i2 * shape_b[3]
+                bj = bi + db
+
+                ci = i1 * dc + i2 * shape_c[2] * shape_c[3]
+                cj = ci + dc // shape_c[1]
+
+                gemm_pure_python(
+                    False,
+                    True,
+                    M,
+                    N,
+                    K,
+                    1.0,
+                    A[ai:aj],
+                    lda,
+                    B[bi:bj],
+                    ldb,
+                    0.0,
+                    C[ci:cj],
+                    ldc,
+                )
+
+        got = C.reshape(shape_c)
+        self.assertEqualArray(expected, got)
+
+    def test_gemm_lda_lda_ldc_notrans(self):
+        A = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
+        B = numpy.zeros((1, 2, 5, 3), dtype=numpy.float32)
+        A[:, 0, 0, :] = 1
+        A[:, 0, 2, :] = 10
+        A[:, 1, 1, :] = -1
+        B[:, 0, 0, :] = 1
+        B[:, 0, 2, :] = 10
+        B[:, 1, 1, :] = -1
+        expected = numpy.matmul(A, B)
+        shape_c = (A.shape[0], A.shape[1], A.shape[2], B.shape[3])
+        C = numpy.zeros(shape_c, dtype=numpy.float32)
+
+        shape_a = A.shape
+        shape_b = B.shape
+        shape_c = C.shape
+        M, N, K = shape_a[2], shape_b[3], shape_b[2]
+
+        # same for attention
+        B = numpy.transpose(B, (0, 2, 1, 3))
+
+        lda, ldb, ldc = shape_a[3], shape_b[3] * shape_b[1], shape_c[3]
+        A = A.ravel()
+        B = B.ravel()
+        C = C.ravel()
+        for i1 in range(shape_a[0]):
+            for i2 in range(shape_a[1]):
+                da = shape_a[1] * shape_a[2] * shape_a[3]
+                db = shape_b[1] * shape_b[2] * shape_b[3]
+                dc = shape_c[1] * shape_c[2] * shape_c[3]
+
+                ai = i1 * da + i2 * shape_a[3] * shape_a[2]
+                aj = ai + da // shape_a[1]
+
+                bi = i1 * db + i2 * shape_b[3]
+                bj = bi + db
+
+                ci = i1 * dc + i2 * shape_c[2] * shape_c[3]
+                cj = ci + dc // shape_c[1]
+
+                gemm_pure_python(
+                    False,
+                    False,
+                    M,
+                    N,
+                    K,
+                    1.0,
+                    A[ai:aj],
+                    lda,
+                    B[bi:bj],
+                    ldb,
+                    0.0,
+                    C[ci:cj],
+                    ldc,
+                )
+
+        got = C.reshape(shape_c)
+        self.assertEqualArray(expected, got)
 
 
 if __name__ == "__main__":

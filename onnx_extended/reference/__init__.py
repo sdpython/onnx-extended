@@ -1,7 +1,11 @@
 from typing import Union
 import numpy as np
 from onnx import SparseTensorProto, TensorProto
-from onnx.reference.op_run import to_array_extended as onnx_to_array_extended
+
+try:
+    from onnx.reference.op_run import to_array_extended as onnx_to_array_extended
+except ImportError:
+    from onnx.numpy_helper import to_array as onnx_to_array_extended
 from .c_reference_evaluator import CReferenceEvaluator, from_array_extended
 
 

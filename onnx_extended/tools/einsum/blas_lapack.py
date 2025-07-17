@@ -18,14 +18,14 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
             f"Dimension mismatch for C.shape={C.shape!r} M={M!r} N={N!r} K={K!r}."
         )
 
-    if transA:
+    if not transA:
         a_i_stride = lda
         a_k_stride = 1
     else:
         a_i_stride = 1
         a_k_stride = lda
 
-    if transB:
+    if not transB:
         b_j_stride = 1
         b_k_stride = ldb
     else:
@@ -44,9 +44,9 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
                 a_index = i * a_i_stride + k * a_k_stride
                 if a_index >= A.shape[0]:
                     raise IndexError(
-                        "A: i=%d a_index=%d >= %d "
+                        "A: i=%d k=%d/%d a_index=%d >= %d "
                         "(a_i_stride=%d a_k_stride=%d)"
-                        % (i, a_index, A.shape[0], a_i_stride, a_k_stride)
+                        % (i, k, K, a_index, A.shape[0], a_i_stride, a_k_stride)
                     )
                 a_val = A[a_index]
 
