@@ -72,12 +72,12 @@ class StringWriteStream;
 class BinaryWriteStream {
 public:
   inline BinaryWriteStream() {}
-  virtual void write_variant_uint64(const uint64_t &);
-  virtual void write_string(const std::string &);
+  virtual void write_variant_uint64(uint64_t value);
+  virtual void write_string(const std::string &value);
   virtual void write_string_stream(StringWriteStream &stream);
   virtual void write_field_header(uint32_t field_number, uint8_t wire_type);
 
-  virtual void write_raw_bytes(const uint8t *, offset_t n_bytes) = 0;
+  virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) = 0;
   virtual int64_t size() const = 0;
   virtual const uint8_t *data() const = 0;
 };
@@ -85,7 +85,7 @@ public:
 class StringWriteStream : public BinaryWriteStream {
 public:
   inline StringWriteStream() : BinaryWriteStream(), buffer_() {}
-  virtual void write_raw_bytes(const uint8t *, offset_t n_bytes) override;
+  virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) override;
   virtual int64_t size() const override;
   virtual const uint8_t *data() const override;
 
