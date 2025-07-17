@@ -100,14 +100,14 @@ void TensorProto::ParseFromString(utils::BinaryStream &stream) {
     auto f = stream.next_field();
     switch (f.field_number) {
     case 1: // dims (repeated int64, varint)
-      EXT_ENFORCE(f.wire_type == 0,
+      EXT_ENFORCE(f.wire_type == FIELD_VARINT,
                   "[TensorProto::ParseFromString] dims: wrong wire type (dims), field ",
                   f.string());
       dims.push_back(static_cast<int64_t>(stream.next_uint64()));
       break;
 
     case 2: // data_type (int32, varint)
-      EXT_ENFORCE(f.wire_type == 0,
+      EXT_ENFORCE(f.wire_type == FIELD_VARINT,
                   "[TensorProto::ParseFromString] data_type: wrong wire type, field ",
                   f.string());
       data_type = static_cast<TensorProto::DataType>(stream.next_uint64());

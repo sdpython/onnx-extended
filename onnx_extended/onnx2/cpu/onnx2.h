@@ -6,6 +6,10 @@
 #define FIELD_VARINT 0
 #define FIELD_FIXED_SIZE 2
 
+#define SERIALIZATION_METHOD()                                                                 \
+  void ParseFromString(utils::BinaryStream &stream);                                           \
+  void SerializeToString(utils::BinaryWriteStream &stream) const;
+
 namespace validation {
 namespace onnx2 {
 
@@ -16,8 +20,7 @@ public:
   std::string key;
   std::string value;
   inline StringStringEntryProto() {}
-  void ParseFromString(utils::BinaryStream &stream);
-  void SerializeToString(utils::BinaryWriteStream &stream) const;
+  SERIALIZATION_METHOD()
 };
 
 class TensorShapeProto {
@@ -28,13 +31,11 @@ public:
     int64_t dim_value;      // 1
     std::string dim_param;  // 2
     std::string denotation; // 3
-    void ParseFromString(utils::BinaryStream &stream);
-    void SerializeToString(utils::BinaryWriteStream &stream) const;
+    SERIALIZATION_METHOD()
   };
 
   inline TensorShapeProto() : dim() {}
-  void ParseFromString(utils::BinaryStream &stream);
-  void SerializeToString(utils::BinaryWriteStream &stream) const;
+  SERIALIZATION_METHOD()
 
   std::vector<Dimension> dim; // 1
 };
