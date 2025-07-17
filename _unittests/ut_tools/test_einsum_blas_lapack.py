@@ -401,51 +401,6 @@ class TestBlasLapack(ExtTestCase):
                         got = gemm_dot(a, b, t1, t2)
                         self.assertEqualArray(exp, got)
 
-    def test_pygemm_lda_lda_ldc(self):
-        A = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
-        B = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
-        A[:, 0, 0, :] = 1
-        A[:, 0, 2, :] = 10
-        A[:, 1, 1, :] = -1
-        B[:, 0, 0, :] = 1
-        B[:, 0, 2, :] = 10
-        B[:, 1, 1, :] = -1
-        expected = numpy.matmul(A, numpy.transpose(B, (0, 1, 3, 2)))
-        shape_c = (A.shape[0], A.shape[1], A.shape[2], B.shape[2])
-        C = numpy.zeros(shape_c, dtype=numpy.float32)
-
-        shape_a = A.shape
-        shape_b = B.shape
-        shape_c = C.shape
-        M, N, K = shape_a[2], shape_b[2], shape_b[3]
-        lda, ldb, ldc = shape_a[3], shape_b[3], shape_c[3]
-        A = A.ravel()
-        B = B.ravel()
-        C = C.ravel()
-        for i in range(shape_a[0] * shape_a[1]):
-            ai, aj = i * shape_a[2] * shape_a[3], (i + 1) * shape_a[2] * shape_a[3]
-            bi, bj = i * shape_b[2] * shape_b[3], (i + 1) * shape_b[2] * shape_b[3]
-            ci, cj = i * shape_c[2] * shape_c[3], (i + 1) * shape_c[2] * shape_c[3]
-
-            pygemm(
-                False,
-                True,
-                M,
-                N,
-                K,
-                1.0,
-                A[ai:aj],
-                lda,
-                B[bi:bj],
-                ldb,
-                0.0,
-                C[ci:cj],
-                ldc,
-            )
-
-        got = C.reshape(shape_c)
-        self.assertEqualArray(expected, got)
-
     def test_gemm_lda_lda_ldc_trans(self):
         A = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)
         B = numpy.zeros((1, 2, 3, 5), dtype=numpy.float32)

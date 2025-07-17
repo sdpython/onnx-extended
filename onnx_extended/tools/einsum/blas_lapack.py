@@ -18,14 +18,14 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
             f"Dimension mismatch for C.shape={C.shape!r} M={M!r} N={N!r} K={K!r}."
         )
 
-    if not transA:
+    if transA:
         a_i_stride = lda
         a_k_stride = 1
     else:
         a_i_stride = 1
         a_k_stride = lda
 
-    if not transB:
+    if transB:
         b_j_stride = 1
         b_k_stride = ldb
     else:
