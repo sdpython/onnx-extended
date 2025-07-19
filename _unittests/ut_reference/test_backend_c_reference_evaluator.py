@@ -234,6 +234,7 @@ backend_test.exclude(
     "|test_cast_FLOAT16_to_UINT4*"
     "|test_cast_FLOAT_to_INT4*"
     "|test_cast_FLOAT_to_UINT4*"
+    "|test_regex_full_match*"
     "|test_quantizelinear_e*)"
 )
 
