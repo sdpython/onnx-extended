@@ -4,6 +4,7 @@ Change Logs
 0.5.0
 +++++
 
+* :pr:`197`: add supports for python 3.13
 * :pr:`193`: read protobuf without protobuf
 * :pr:`192`: use onnxruntime==1.22.0
 

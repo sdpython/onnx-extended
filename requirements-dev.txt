@@ -6,7 +6,6 @@ cython>=3.0.10
 cython-lint
 flake8
 furo; sys_platform == 'linux'
-google-re2
 isort
 lightgbm
 matplotlib
