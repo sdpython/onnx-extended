@@ -52,8 +52,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   py::class_<onnx2::StringStringEntryProto>(m, "StringStringEntryProto",
                                             "StringStringEntryProto, a key, a value")
       .def(py::init<>())
-      .def_readwrite("key", &onnx2::StringStringEntryProto::key, "key")
-      .def_readwrite("value", &onnx2::StringStringEntryProto::value, "value")
+      .def_readwrite("key", &onnx2::StringStringEntryProto::key_, "key")
+      .def_readwrite("value", &onnx2::StringStringEntryProto::value_, "value")
           ADD_PROTO_SERIALIZATION(StringStringEntryProto);
 
   py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",

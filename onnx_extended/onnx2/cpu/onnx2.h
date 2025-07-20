@@ -2,23 +2,10 @@
 
 #include "onnx_extended_helpers.h"
 #include "stream.h"
+#include <optional>
 
 #define FIELD_VARINT 0
 #define FIELD_FIXED_SIZE 2
-
-#define SERIALIZATION_METHOD()                                                                 \
-  inline void ParseFromString(const std::string &raw) {                                        \
-    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                        \
-    onnx2::utils::StringStream st(ptr, raw.size());                                            \
-    ParseFromStream(st);                                                                       \
-  }                                                                                            \
-  inline void SerializeToString(std::string &out) const {                                      \
-    onnx2::utils::StringWriteStream buf;                                                       \
-    SerializeToStream(buf);                                                                    \
-    out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                 \
-  }                                                                                            \
-  void ParseFromStream(utils::BinaryStream &stream);                                           \
-  void SerializeToStream(utils::BinaryWriteStream &stream) const;
 
 /**
  * List of Protos
@@ -48,16 +35,48 @@
  * - ValueInfoProto
  */
 
+#define SERIALIZATION_METHOD()                                                                 \
+  inline void ParseFromString(const std::string &raw) {                                        \
+    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                        \
+    onnx2::utils::StringStream st(ptr, raw.size());                                            \
+    ParseFromStream(st);                                                                       \
+  }                                                                                            \
+  inline void SerializeToString(std::string &out) const {                                      \
+    onnx2::utils::StringWriteStream buf;                                                       \
+    SerializeToStream(buf);                                                                    \
+    out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                 \
+  }                                                                                            \
+  void ParseFromStream(utils::BinaryStream &stream);                                           \
+  void SerializeToStream(utils::BinaryWriteStream &stream) const;
+
+#if defined(FIELD)
+#pragma error("macro FIELD is already defined.")
+#endif
+#define FIELD(type, name, order)                                                               \
+public:                                                                                        \
+  inline type &name() { return name##_; }                                                      \
+  inline bool has_##name() const { return _has_field_(name##_); }                              \
+  type name##_;
+
 namespace validation {
 namespace onnx2 {
 
 using utils::offset_t;
 
+template <typename T> inline bool _has_field_(const T &) { return true; }
+template <> inline bool _has_field_<std::string>(const std::string &field) {
+  return !field.empty();
+}
+template <>
+inline bool _has_field_<std::optional<uint64_t>>(const std::optional<uint64_t> &field) {
+  return field.has_value();
+}
+
 class StringStringEntryProto {
 public:
-  std::string key;
-  std::string value;
   inline StringStringEntryProto() {}
+  FIELD(std::string, key, 1)
+  FIELD(std::string, value, 2)
   SERIALIZATION_METHOD()
 };
 
@@ -167,3 +186,7 @@ public:
 
 } // namespace onnx2
 } // namespace validation
+
+#if defined(FIELD)
+#undef FIELD
+#endif

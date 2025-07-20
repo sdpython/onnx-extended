@@ -9,8 +9,8 @@ namespace validation {
 namespace onnx2 {
 
 void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
-  key.clear();
-  value.clear();
+  key_.clear();
+  value_.clear();
   int n_read = 0;
   while (stream.not_end() && n_read < 2) {
     auto f = stream.next_field();
@@ -19,10 +19,10 @@ void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
         "[StringStringEntryProto::ParseFromStream] expected length-delimited wire type, field=",
         f.string());
     if (f.field_number == 1) {
-      key = stream.next_string();
+      key_ = stream.next_string();
       ++n_read;
     } else if (f.field_number == 2) {
-      value = stream.next_string();
+      value_ = stream.next_string();
       ++n_read;
     } else {
       EXT_THROW("[StringStringEntryProto::ParseFromStream] unknown field ", f.string());
@@ -31,13 +31,13 @@ void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
 }
 
 void StringStringEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  if (!key.empty()) {
+  if (!key_.empty()) {
     stream.write_field_header(1, FIELD_FIXED_SIZE);
-    stream.write_string(key);
+    stream.write_string(key_);
   }
-  if (!value.empty()) {
+  if (!value_.empty()) {
     stream.write_field_header(2, FIELD_FIXED_SIZE);
-    stream.write_string(value);
+    stream.write_string(value_);
   }
 }
 
