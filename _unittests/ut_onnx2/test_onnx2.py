@@ -28,6 +28,14 @@ class TestOnnx2(ExtTestCase):
         a.raw_data = b"012345"
         self.assertEqual(a.raw_data, b"012345")
 
+        # way back
+        s2 = t2.SerializeToString()
+        t = onnx.TensorProto()
+        t.ParseFromString(s2)
+        self.assertEqual(t.raw_data, t2.raw_data)
+        self.assertEqual(t.name, t2.name)
+        self.assertEqual(tuple(t.dims), tuple(t2.dims))
+
     def test_onnx2_tensorproto_metadata(self):
         a = onh.from_array(
             np.array([[10, 20, 30, 40, 50, 60]]).reshape((2, 3, 1, 1)).astype(np.int16),
