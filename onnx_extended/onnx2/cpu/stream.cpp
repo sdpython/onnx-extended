@@ -102,7 +102,12 @@ void BinaryWriteStream::write_string(const std::string &value) {
   write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 }
 
-void BinaryWriteStream::write_string_stream(StringWriteStream &stream) {
+void BinaryWriteStream::write_string_stream(const StringWriteStream &stream) {
+  write_variant_uint64(stream.size());
+  write_raw_bytes(stream.data(), stream.size());
+}
+
+void BinaryWriteStream::write_string_stream(const BorrowedWriteStream &stream) {
   write_variant_uint64(stream.size());
   write_raw_bytes(stream.data(), stream.size());
 }
@@ -113,6 +118,10 @@ void StringWriteStream::write_raw_bytes(const uint8_t *ptr, offset_t n_bytes) {
 
 int64_t StringWriteStream::size() const { return buffer_.size(); }
 const uint8_t *StringWriteStream::data() const { return buffer_.data(); }
+
+void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t) {
+  EXT_THROW("This method cannot be called on this class (BorrowedWriteStream).")
+}
 
 } // namespace utils
 } // namespace onnx2

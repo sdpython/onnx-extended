@@ -103,7 +103,7 @@ public:
 
   // methods
   inline TensorProto() { data_type = DataType::UNDEFINED; }
-  void ParseFromString(utils::BinaryStream &stream);
+  SERIALIZATION_METHOD()
 
   // data
   std::vector<int64_t> dims;                         // 1
