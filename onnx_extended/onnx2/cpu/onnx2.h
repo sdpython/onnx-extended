@@ -200,4 +200,5 @@ public:
 
 #if defined(FIELD)
 #undef FIELD
+#undef FIELD_REPEATED
 #endif

@@ -109,6 +109,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(TensorProto, data_type)
       .FIELD(TensorProto, name)
       .FIELD(TensorProto, doc_string)
+      .FIELD(TensorProto, external_data)
       .FIELD(TensorProto, metadata_props)
       .FIELD(TensorProto, dims)
       .def_property(
