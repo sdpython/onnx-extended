@@ -117,14 +117,5 @@ PYBIND11_MODULE(_onnx2py, m) {
             self.raw_data.resize(raw.size());
             memcpy(self.raw_data.data(), ptr, raw.size());
           },
-          "raw_data")
-      .def(
-          "ParseFromString",
-          [](onnx2::TensorProto &self, py::bytes data) {
-            std::string raw = data;
-            onnx2::utils::StringStream st(reinterpret_cast<const uint8_t *>(raw.data()),
-                                          raw.size());
-            self.ParseFromString(st);
-          },
-          "Parses a sequence of bytes to fill this instance");
+          "raw_data") ADD_PROTO_SERIALIZATION(TensorProto);
 }

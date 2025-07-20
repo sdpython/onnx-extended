@@ -79,13 +79,15 @@ private:
 };
 
 class StringWriteStream;
+class BorrowedWriteStream;
 
 class BinaryWriteStream {
 public:
   inline BinaryWriteStream() {}
   virtual void write_variant_uint64(uint64_t value);
   virtual void write_string(const std::string &value);
-  virtual void write_string_stream(StringWriteStream &stream);
+  virtual void write_string_stream(const StringWriteStream &stream);
+  virtual void write_string_stream(const BorrowedWriteStream &stream);
   virtual void write_field_header(uint32_t field_number, uint8_t wire_type);
 
   virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) = 0;
@@ -102,6 +104,19 @@ public:
 
 private:
   std::vector<uint8_t> buffer_;
+};
+
+class BorrowedWriteStream : public BinaryWriteStream {
+public:
+  inline BorrowedWriteStream(const uint8_t *data, int64_t size)
+      : BinaryWriteStream(), data_(data), size_(size) {}
+  virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) override;
+  virtual int64_t size() const override { return size_; }
+  virtual const uint8_t *data() const override { return data_; }
+
+private:
+  const uint8_t *data_;
+  int64_t size_;
 };
 
 } // namespace utils

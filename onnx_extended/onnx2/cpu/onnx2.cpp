@@ -154,5 +154,33 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream) {
   }
 }
 
+void TensorProto::SerializeToString(utils::BinaryWriteStream &stream) const {
+  // dims
+  for (auto d : dims) {
+    stream.write_field_header(1, FIELD_VARINT);
+    stream.write_variant_uint64(d);
+  }
+  // data_type
+  stream.write_field_header(2, FIELD_VARINT);
+  stream.write_variant_uint64(static_cast<uint64_t>(data_type));
+  // name
+  stream.write_field_header(8, FIELD_FIXED_SIZE);
+  stream.write_string(name);
+  // raw_data
+  stream.write_field_header(9, FIELD_FIXED_SIZE);
+  utils::BorrowedWriteStream local(raw_data.data(), raw_data.size());
+  stream.write_string_stream(local);
+  // doc_string
+  stream.write_field_header(12, FIELD_FIXED_SIZE);
+  stream.write_string(doc_string);
+  // metadata_props
+  for (auto entry : metadata_props) {
+    stream.write_field_header(16, FIELD_FIXED_SIZE);
+    utils::StringWriteStream lw;
+    entry.SerializeToString(lw);
+    stream.write_string_stream(lw);
+  }
+}
+
 } // namespace onnx2
 } // namespace validation
