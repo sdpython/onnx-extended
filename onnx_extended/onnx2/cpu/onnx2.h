@@ -59,6 +59,8 @@ public:                                                                         
   inline int order_##name() const { return order; }                                            \
   type name##_;
 
+#define FIELD_REPEATED(type, name, order) FIELD(std::vector<type>, name, order)
+
 #define FIELD_OPTIONAL(type, name, order)                                                      \
 public:                                                                                        \
   inline type &name() {                                                                        \
@@ -104,7 +106,7 @@ public:
   };
 
   inline TensorShapeProto() {}
-  FIELD(std::vector<Dimension>, dim, 1)
+  FIELD_REPEATED(Dimension, dim, 1)
   SERIALIZATION_METHOD()
 };
 
@@ -164,35 +166,33 @@ public:
     // Future extensions go here.
   };
 
-  struct Segment {
-    int64_t begin;
-    int64_t end;
+  enum DataLocation { DEFAULT = 0, EXTERNAL = 1 };
+
+  class Segment {
+    FIELD(int64_t, begin, 1)
+    FIELD(int64_t, end, 1)
   };
 
   // methods
-  inline TensorProto() { data_type = DataType::UNDEFINED; }
+  inline TensorProto() { data_type_ = DataType::UNDEFINED; }
   SERIALIZATION_METHOD()
 
   // data
-  std::vector<int64_t> dims;                         // 1
-  DataType data_type;                                // 2
-  Segment segment;                                   // 3
-  std::vector<float> float_data;                     // 4, packed
-  std::vector<int32_t> int32_data;                   // 5, packed
-  std::vector<uint8_t> string_data;                  // 6
-  std::vector<int64_t> int64_data;                   // 7, packed
-  std::string name;                                  // 8
-  std::vector<uint8_t> raw_data;                     // 9
-  std::vector<double> double_data;                   // 10, packed
-  std::vector<uint64_t> uint64_data;                 // 11, packed
-  std::string doc_string;                            // 12
-  std::vector<StringStringEntryProto> external_data; // 13
-
-  enum DataLocation { DEFAULT = 0, EXTERNAL = 1 };
-
-  DataLocation data_location; // 14
-
-  std::vector<StringStringEntryProto> metadata_props; // 16
+  FIELD_REPEATED(uint64_t, dims, 1)
+  FIELD(DataType, data_type, 2)
+  FIELD(Segment, segment, 3)
+  FIELD_REPEATED(float, float_data, 4)
+  FIELD_REPEATED(int32_t, int32_data, 5)
+  FIELD_REPEATED(std::string, string_data, 6)
+  FIELD_REPEATED(int64_t, int64_data, 7)
+  FIELD(std::string, name, 8)
+  FIELD(std::vector<uint8_t>, raw_data, 9)
+  FIELD_REPEATED(double, double_data, 10)
+  FIELD_REPEATED(uint64_t, uint64_data, 11)
+  FIELD(std::string, doc_string, 12)
+  FIELD_REPEATED(StringStringEntryProto, external_data, 13)
+  FIELD(DataLocation, data_location, 14)
+  FIELD_REPEATED(StringStringEntryProto, metadata_props, 16)
 };
 
 } // namespace onnx2

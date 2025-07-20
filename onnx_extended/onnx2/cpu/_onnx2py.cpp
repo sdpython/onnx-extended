@@ -105,22 +105,23 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   py::class_<onnx2::TensorProto>(m, "TensorProto", "TensorProto")
       .def(py::init<>())
-      .def_readwrite("dims", &onnx2::TensorProto::dims, "shape")
-      .def_readwrite("data_type", &onnx2::TensorProto::data_type, "data type")
-      .def_readwrite("name", &onnx2::TensorProto::name, "name")
-      .def_readwrite("doc_string", &onnx2::TensorProto::doc_string, "doc_string")
-      .def_readwrite("metadata_props", &onnx2::TensorProto::metadata_props, "metadata_props")
+      .FIELD(TensorProto, dims)
+      .FIELD(TensorProto, data_type)
+      .FIELD(TensorProto, name)
+      .FIELD(TensorProto, doc_string)
+      .FIELD(TensorProto, metadata_props)
+      .FIELD(TensorProto, dims)
       .def_property(
           "raw_data",
           [](const onnx2::TensorProto &self) -> py::bytes {
-            return py::bytes(reinterpret_cast<const char *>(self.raw_data.data()),
-                             self.raw_data.size());
+            return py::bytes(reinterpret_cast<const char *>(self.raw_data_.data()),
+                             self.raw_data_.size());
           },
           [](onnx2::TensorProto &self, py::bytes data) {
             std::string raw = data;
             const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-            self.raw_data.resize(raw.size());
-            memcpy(self.raw_data.data(), ptr, raw.size());
+            self.raw_data_.resize(raw.size());
+            memcpy(self.raw_data_.data(), ptr, raw.size());
           },
           "raw_data")
       .ADD_PROTO_SERIALIZATION(TensorProto);
