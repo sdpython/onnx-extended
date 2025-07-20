@@ -8,23 +8,25 @@ namespace py = pybind11;
 using namespace validation;
 
 #define ADD_PROTO_SERIALIZATION(cls)                                                           \
-  .def(                                                                                        \
+  def(                                                                                         \
       "ParseFromString",                                                                       \
       [](onnx2::cls &self, py::bytes data) {                                                   \
         std::string raw = data;                                                                \
-        const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                    \
-        onnx2::utils::StringStream st(ptr, raw.size());                                        \
-        self.ParseFromString(st);                                                              \
+        self.ParseFromString(raw);                                                             \
       },                                                                                       \
       "Parses a sequence of bytes to fill this instance")                                      \
       .def(                                                                                    \
           "SerializeToString",                                                                 \
           [](onnx2::cls &self) {                                                               \
-            onnx2::utils::StringWriteStream buf;                                               \
-            self.SerializeToString(buf);                                                       \
-            return py::bytes(reinterpret_cast<const char *>(buf.data()), buf.size());          \
+            std::string out;                                                                   \
+            self.SerializeToString(out);                                                       \
+            return py::bytes(out);                                                             \
           },                                                                                   \
           "Serialize into a sequence of bytes.")
+
+#define FIELD(cls, name)                                                                       \
+  def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
 
 PYBIND11_MODULE(_onnx2py, m) {
   m.doc() =
@@ -54,23 +56,24 @@ PYBIND11_MODULE(_onnx2py, m) {
   py::class_<onnx2::StringStringEntryProto>(m, "StringStringEntryProto",
                                             "StringStringEntryProto, a key, a value")
       .def(py::init<>())
-      .def_readwrite("key", &onnx2::StringStringEntryProto::key, "key")
-      .def_readwrite("value", &onnx2::StringStringEntryProto::value, "value")
-          ADD_PROTO_SERIALIZATION(StringStringEntryProto);
+      .FIELD(StringStringEntryProto, key)
+      .FIELD(StringStringEntryProto, value)
+      .ADD_PROTO_SERIALIZATION(StringStringEntryProto);
 
   py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",
                                                  "Dimension, an integer value or a string")
       .def(py::init<>())
-      .def_readwrite("dim_value", &onnx2::TensorShapeProto::Dimension::dim_value, "dim_value")
-      .def_readwrite("dim_param", &onnx2::TensorShapeProto::Dimension::dim_param, "dim_param")
-      .def_readwrite("denotation", &onnx2::TensorShapeProto::Dimension::denotation,
-                     "denotation") ADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
+      .FIELD(TensorShapeProto::Dimension, dim_value)
+      .FIELD(TensorShapeProto::Dimension, dim_param)
+      .FIELD(TensorShapeProto::Dimension, dim_value)
+      .FIELD(TensorShapeProto::Dimension, denotation)
+      .ADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
 
   py::class_<onnx2::TensorShapeProto>(m, "TensorShapeProto",
                                       "TensorShapeProto, multiple DimProto")
       .def(py::init<>())
-      .def_readwrite("dim", &onnx2::TensorShapeProto::dim, "dim")
-          ADD_PROTO_SERIALIZATION(TensorShapeProto);
+      .FIELD(TensorShapeProto, dim)
+      .ADD_PROTO_SERIALIZATION(TensorShapeProto);
 
   py::enum_<onnx2::TensorProto::DataType>(m, "DataType", py::arithmetic())
       .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
@@ -102,22 +105,25 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   py::class_<onnx2::TensorProto>(m, "TensorProto", "TensorProto")
       .def(py::init<>())
-      .def_readwrite("dims", &onnx2::TensorProto::dims, "shape")
-      .def_readwrite("data_type", &onnx2::TensorProto::data_type, "data type")
-      .def_readwrite("name", &onnx2::TensorProto::name, "name")
-      .def_readwrite("doc_string", &onnx2::TensorProto::doc_string, "doc_string")
-      .def_readwrite("metadata_props", &onnx2::TensorProto::metadata_props, "metadata_props")
+      .FIELD(TensorProto, dims)
+      .FIELD(TensorProto, data_type)
+      .FIELD(TensorProto, name)
+      .FIELD(TensorProto, doc_string)
+      .FIELD(TensorProto, external_data)
+      .FIELD(TensorProto, metadata_props)
+      .FIELD(TensorProto, dims)
       .def_property(
           "raw_data",
           [](const onnx2::TensorProto &self) -> py::bytes {
-            return py::bytes(reinterpret_cast<const char *>(self.raw_data.data()),
-                             self.raw_data.size());
+            return py::bytes(reinterpret_cast<const char *>(self.raw_data_.data()),
+                             self.raw_data_.size());
           },
           [](onnx2::TensorProto &self, py::bytes data) {
             std::string raw = data;
             const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-            self.raw_data.resize(raw.size());
-            memcpy(self.raw_data.data(), ptr, raw.size());
+            self.raw_data_.resize(raw.size());
+            memcpy(self.raw_data_.data(), ptr, raw.size());
           },
-          "raw_data") ADD_PROTO_SERIALIZATION(TensorProto);
+          "raw_data")
+      .ADD_PROTO_SERIALIZATION(TensorProto);
 }

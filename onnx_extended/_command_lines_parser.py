@@ -27,24 +27,26 @@ def get_main_parser() -> ArgumentParser:
             "select",
             "stat",
             "store",
+            "protoc",
         ],
         help=dedent(
             """
         Selects a command.
 
-        'bench' runs a benchmark,
-        'check' checks a runtime on stored intermediate results,
-        'cvt' conversion into another format,
-        'display' displays the shapes inferences results,
-        'external' saves the coefficients in a different files for an onnx model,
-        'merge' merges two models,
-        'print' prints out a model or a protobuf file on the standard output,
-        'plot' plots a graph like a profiling,
-        'quantize' quantizes an onnx model in simple ways,
-        'select' selects a subgraph inside a bigger models,
-        'stat' produces statistics on the graph (initializer, tree ensemble),
-        'store' executes a model with class CReferenceEvaluator and stores every
-        intermediate results on disk with a short onnx to execute the node.
+        'bench'     runs a benchmark,
+        'check'     checks a runtime on stored intermediate results,
+        'cvt'       conversion into another format,
+        'display'   displays the shapes inferences results,
+        'external'  saves the coefficients in a different files for an onnx model,
+        'merge'     merges two models,
+        'print'     prints out a model or a protobuf file on the standard output,
+        'plot'      plots a graph like a profiling,
+        'protoc'    parse a proto definition and produces a C++ script
+        'quantize'  quantizes an onnx model in simple ways,
+        'select'    selects a subgraph inside a bigger models,
+        'stat'      produces statistics on the graph (initializer, tree ensemble),
+        'store'     executes a model with class CReferenceEvaluator and stores every
+                    intermediate results on disk with a short onnx to execute the node.
         """
         ),
     )
@@ -911,6 +913,35 @@ def _cmd_cvt(argv: List[Any]):
         df.to_excel(outfile, index=index)
 
 
+def get_parser_protoc() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="protoc",
+        description=dedent(
+            """
+        Parses a protoc file defining protobuf structures
+        and outputs a C++ header.
+        """
+        ),
+        epilog="It does not use protobuf.",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=str,
+        required=True,
+        help="input file",
+    )
+    return parser
+
+
+def _cmd_protoc(argv: List[Any]):
+    from .tools.protoc import parse_proto
+
+    parser = get_parser_protoc()
+    args = parser.parse_args(argv[1:])
+    print(parse_proto(args.input))
+
+
 def main(argv: Optional[List[Any]] = None):
     fcts = dict(
         bench=_cmd_bench,
@@ -921,6 +952,7 @@ def main(argv: Optional[List[Any]] = None):
         merge=_cmd_merge,
         plot=_cmd_plot,
         print=_cmd_print,
+        protoc=_cmd_protoc,
         quantize=_cmd_quantize,
         select=_cmd_select,
         stat=_cmd_stat,
@@ -942,6 +974,7 @@ def main(argv: Optional[List[Any]] = None):
                 external=get_parser_external,
                 merge=get_parser_merge,
                 plot=get_parser_plot,
+                protoc=get_parser_protoc,
                 print=get_parser_print,
                 quantize=get_parser_quantize,
                 select=get_parser_select,
