@@ -154,7 +154,7 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream) {
   }
 }
 
-void TensorProto::SerializeToString(utils::BinaryWriteStream &stream) const {
+void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   // dims
   for (auto d : dims) {
     stream.write_field_header(1, FIELD_VARINT);
@@ -177,7 +177,7 @@ void TensorProto::SerializeToString(utils::BinaryWriteStream &stream) const {
   for (auto entry : metadata_props) {
     stream.write_field_header(16, FIELD_FIXED_SIZE);
     utils::StringWriteStream lw;
-    entry.SerializeToString(lw);
+    entry.SerializeToStream(lw);
     stream.write_string_stream(lw);
   }
 }
