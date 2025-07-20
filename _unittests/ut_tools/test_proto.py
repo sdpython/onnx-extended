@@ -1,6 +1,6 @@
 import textwrap
 import unittest
-from onnx_extended.ext_test_case import ExtTestCase
+from onnx_extended.ext_test_case import ExtTestCase, hide_stdout
 from onnx_extended.tools.protoc import parse_proto
 
 
@@ -22,6 +22,7 @@ class TestProto(ExtTestCase):
         self.assertIn("std::vector<Employee> employees;", out)
         self.assertIn("struct Employee {", out)
 
+    @hide_stdout()
     def test_onnx_ml_proto(self):
         text = textwrap.dedent(
             """
@@ -51,13 +52,13 @@ class TestProto(ExtTestCase):
                 string ref_attr_name = 21;
                 string doc_string = 13;
                 AttributeType type = 20;
-                float f = 2;
-                int64 i = 3;
-                bytes s = 4;
-                TensorProto t = 5;
-                GraphProto g = 6;
-                SparseTensorProto sparse_tensor = 22;
-                TypeProto tp = 14;
+                optional float f = 2;
+                optional int64 i = 3;
+                optional bytes s = 4;
+                optional TensorProto t = 5;
+                optional GraphProto g = 6;
+                optional SparseTensorProto sparse_tensor = 22;
+                optional TypeProto tp = 14;
                 repeated float floats = 7;
                 repeated int64 ints = 8;
                 repeated bytes strings = 9;
@@ -69,7 +70,7 @@ class TestProto(ExtTestCase):
 
             message ValueInfoProto {
                 string name = 1;
-                TypeProto type = 2;
+                optional TypeProto type = 2;
                 string doc_string = 3;
                 repeated StringStringEntryProto metadata_props = 4;
             }
@@ -95,7 +96,7 @@ class TestProto(ExtTestCase):
             message NodeDeviceConfigurationProto {
                 string configuration_id = 1;
                 repeated ShardingSpecProto sharding_spec = 2;
-                int32 pipeline_stage = 3;
+                optional int32 pipeline_stage = 3;
             }
 
             message ShardingSpecProto {
@@ -118,20 +119,13 @@ class TestProto(ExtTestCase):
                 int64 num_shards = 3;
             }
 
-            message TrainingInfoProto {
-                GraphProto initialization = 1;
-                GraphProto algorithm = 2;
-                repeated StringStringEntryProto initialization_binding = 3;
-                repeated StringStringEntryProto update_binding = 4;
-            }
-
             message ModelProto {
                 int64 ir_version = 1;
                 repeated OperatorSetIdProto opset_import = 8;
                 string producer_name = 2;
                 string producer_version = 3;
                 string domain = 4;
-                int64 model_version = 5;
+                optional int64 model_version = 5;
                 string doc_string = 6;
                 GraphProto graph = 7;
                 repeated StringStringEntryProto metadata_props = 14;
@@ -202,7 +196,7 @@ class TestProto(ExtTestCase):
 
                 repeated int64 dims = 1;
                 int32 data_type = 2;
-                Segment segment = 3;
+                optional Segment segment = 3;
                 repeated float float_data = 4 [packed = true];
                 repeated int32 int32_data = 5 [packed = true];
                 repeated bytes string_data = 6;
@@ -211,23 +205,23 @@ class TestProto(ExtTestCase):
                 string doc_string = 12;
                 bytes raw_data = 9;
                 repeated StringStringEntryProto external_data = 13;
-                DataLocation data_location = 14;
+                optional DataLocation data_location = 14;
                 repeated double double_data = 10 [packed = true];
                 repeated uint64 uint64_data = 11 [packed = true];
                 repeated StringStringEntryProto metadata_props = 16;
-                }
+            }
 
-                message SparseTensorProto {
+            message SparseTensorProto {
                 TensorProto values = 1;
                 TensorProto indices = 2;
                 repeated int64 dims = 3;
-                }
+            }
 
-                message TensorShapeProto {
+            message TensorShapeProto {
                 message Dimension {
                     oneof value {
-                    int64 dim_value = 1;
-                    string dim_param = 2;
+                        int64 dim_value = 1;
+                        string dim_param = 2;
                     };
                     string denotation = 3;
                 };
@@ -307,6 +301,7 @@ class TestProto(ExtTestCase):
         )
         out = parse_proto(text)
         self.assertIn("struct SparseTensorProto {", out)
+        print(out)
 
 
 if __name__ == "__main__":
