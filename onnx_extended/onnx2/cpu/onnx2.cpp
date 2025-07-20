@@ -10,6 +10,11 @@
     write_field(stream, order_##name(), name##_);                                              \
   }
 
+#define WRITE_REPEATED_FIELD(stream, name)                                                     \
+  if (has_##name()) {                                                                          \
+    write_repeated_field(stream, order_##name(), name##_);                                     \
+  }
+
 #define READ_BEGIN(stream, cls)                                                                \
   while (stream.not_end()) {                                                                   \
     utils::FieldNumber field_number = stream.next_field();                                     \
@@ -28,6 +33,11 @@
     read_field(stream, field_number.wire_type, name##_, #name);                                \
   }
 
+#define READ_REPEATED_FIELD(stream, name)                                                      \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
+    read_repeated_field(stream, field_number.wire_type, name##_, #name);                       \
+  }
+
 namespace validation {
 namespace onnx2 {
 
@@ -41,6 +51,26 @@ void write_field<std::string>(utils::BinaryWriteStream &stream, int order,
   stream.write_string(field);
 }
 
+template <>
+void write_field<std::optional<uint64_t>>(utils::BinaryWriteStream &stream, int order,
+                                          const std::optional<uint64_t> &field) {
+  if (field.has_value()) {
+    stream.write_field_header(order, FIELD_VARINT);
+    stream.write_variant_uint64(*field);
+  }
+}
+
+template <typename T>
+void write_repeated_field(utils::BinaryWriteStream &stream, int order,
+                          const std::vector<T> &field) {
+  for (auto d : field) {
+    utils::StringWriteStream local;
+    d.SerializeToStream(local);
+    stream.write_field_header(order, FIELD_FIXED_SIZE);
+    stream.write_string_stream(local);
+  }
+}
+
 template <typename T>
 void read_field(utils::BinaryStream &stream, int wire_type, T &field, const char *name);
 
@@ -52,11 +82,24 @@ void read_field<std::string>(utils::BinaryStream &stream, int wire_type, std::st
   field = stream.next_string();
 }
 
-void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, StringStringEntryProto)
-  READ_FIELD(stream, key)
-  READ_FIELD(stream, value)
-  READ_END(stream, StringStringEntryProto)
+template <>
+void read_field<std::optional<uint64_t>>(utils::BinaryStream &stream, int wire_type,
+                                         std::optional<uint64_t> &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = stream.next_uint64();
+}
+
+template <typename T>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<T> &field,
+                         const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  utils::StringStream dim_buf;
+  stream.read_string_stream(dim_buf);
+  T elem;
+  elem.ParseFromStream(dim_buf);
+  field.emplace_back(elem);
 }
 
 void StringStringEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
@@ -64,57 +107,35 @@ void StringStringEntryProto::SerializeToStream(utils::BinaryWriteStream &stream)
   WRITE_FIELD(stream, value)
 }
 
-void TensorShapeProto::Dimension::ParseFromStream(utils::BinaryStream &stream) {
-  while (stream.not_end()) {
-    auto f = stream.next_field();
-    if (f.field_number == 1 && f.wire_type == FIELD_VARINT) {
-      dim_value = stream.next_uint64();
-    } else if (f.field_number == 2 && f.wire_type == FIELD_FIXED_SIZE) {
-      dim_param = stream.next_string();
-    } else if (f.field_number == 3 && f.wire_type == FIELD_FIXED_SIZE) {
-      denotation = stream.next_string();
-    } else {
-      EXT_THROW("[TensorShapeProto::Dimension::ParseFromStream] unknown field ", f.string());
-    }
-  }
+void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_FIELD(stream, key)
+  READ_FIELD(stream, value)
+  READ_END(stream, StringStringEntryProto)
 }
 
 void TensorShapeProto::Dimension::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  stream.write_field_header(1, FIELD_VARINT);
-  stream.write_variant_uint64(dim_value);
-
-  if (!dim_param.empty()) {
-    stream.write_field_header(2, FIELD_FIXED_SIZE);
-    stream.write_string(dim_param);
-  }
-  if (!denotation.empty()) {
-    stream.write_field_header(3, FIELD_FIXED_SIZE);
-    stream.write_string(denotation);
-  }
+  WRITE_FIELD(stream, dim_value)
+  WRITE_FIELD(stream, dim_param)
+  WRITE_FIELD(stream, denotation)
 }
 
-void TensorShapeProto::ParseFromStream(utils::BinaryStream &stream) {
-  while (stream.not_end()) {
-    auto f = stream.next_field();
-    if (f.field_number == 1 && f.wire_type == FIELD_FIXED_SIZE) { // repeated dim
-      utils::StringStream dim_buf;
-      stream.read_string_stream(dim_buf);
-      Dimension d;
-      d.ParseFromStream(dim_buf);
-      dim.emplace_back(d);
-    } else {
-      EXT_THROW("[TensorShapeProto::ParseFromStream] unknown field n", f.string());
-    }
-  }
+void TensorShapeProto::Dimension::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_FIELD(stream, dim_value)
+  READ_FIELD(stream, dim_param)
+  READ_FIELD(stream, denotation)
+  READ_END(stream, StringStringEntryProto)
 }
 
 void TensorShapeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  for (auto d : dim) {
-    utils::StringWriteStream local;
-    d.SerializeToStream(local);
-    stream.write_field_header(1, FIELD_FIXED_SIZE);
-    stream.write_string_stream(local);
-  }
+  WRITE_REPEATED_FIELD(stream, dim)
+}
+
+void TensorShapeProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_REPEATED_FIELD(stream, dim)
+  READ_END(stream, StringStringEntryProto)
 }
 
 void TensorProto::ParseFromStream(utils::BinaryStream &stream) {

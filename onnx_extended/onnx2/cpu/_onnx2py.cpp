@@ -8,7 +8,7 @@ namespace py = pybind11;
 using namespace validation;
 
 #define ADD_PROTO_SERIALIZATION(cls)                                                           \
-  .def(                                                                                        \
+  def(                                                                                         \
       "ParseFromString",                                                                       \
       [](onnx2::cls &self, py::bytes data) {                                                   \
         std::string raw = data;                                                                \
@@ -23,6 +23,10 @@ using namespace validation;
             return py::bytes(out);                                                             \
           },                                                                                   \
           "Serialize into a sequence of bytes.")
+
+#define FIELD(cls, name)                                                                       \
+  def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
 
 PYBIND11_MODULE(_onnx2py, m) {
   m.doc() =
@@ -52,23 +56,24 @@ PYBIND11_MODULE(_onnx2py, m) {
   py::class_<onnx2::StringStringEntryProto>(m, "StringStringEntryProto",
                                             "StringStringEntryProto, a key, a value")
       .def(py::init<>())
-      .def_readwrite("key", &onnx2::StringStringEntryProto::key_, "key")
-      .def_readwrite("value", &onnx2::StringStringEntryProto::value_, "value")
-          ADD_PROTO_SERIALIZATION(StringStringEntryProto);
+      .FIELD(StringStringEntryProto, key)
+      .FIELD(StringStringEntryProto, value)
+      .ADD_PROTO_SERIALIZATION(StringStringEntryProto);
 
   py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",
                                                  "Dimension, an integer value or a string")
       .def(py::init<>())
-      .def_readwrite("dim_value", &onnx2::TensorShapeProto::Dimension::dim_value, "dim_value")
-      .def_readwrite("dim_param", &onnx2::TensorShapeProto::Dimension::dim_param, "dim_param")
-      .def_readwrite("denotation", &onnx2::TensorShapeProto::Dimension::denotation,
-                     "denotation") ADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
+      .FIELD(TensorShapeProto::Dimension, dim_value)
+      .FIELD(TensorShapeProto::Dimension, dim_param)
+      .FIELD(TensorShapeProto::Dimension, dim_value)
+      .FIELD(TensorShapeProto::Dimension, denotation)
+      .ADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
 
   py::class_<onnx2::TensorShapeProto>(m, "TensorShapeProto",
                                       "TensorShapeProto, multiple DimProto")
       .def(py::init<>())
-      .def_readwrite("dim", &onnx2::TensorShapeProto::dim, "dim")
-          ADD_PROTO_SERIALIZATION(TensorShapeProto);
+      .FIELD(TensorShapeProto, dim)
+      .ADD_PROTO_SERIALIZATION(TensorShapeProto);
 
   py::enum_<onnx2::TensorProto::DataType>(m, "DataType", py::arithmetic())
       .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
@@ -117,5 +122,6 @@ PYBIND11_MODULE(_onnx2py, m) {
             self.raw_data.resize(raw.size());
             memcpy(self.raw_data.data(), ptr, raw.size());
           },
-          "raw_data") ADD_PROTO_SERIALIZATION(TensorProto);
+          "raw_data")
+      .ADD_PROTO_SERIALIZATION(TensorProto);
 }

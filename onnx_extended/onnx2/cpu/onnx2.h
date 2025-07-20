@@ -59,6 +59,17 @@ public:                                                                         
   inline int order_##name() const { return order; }                                            \
   type name##_;
 
+#define FIELD_OPTIONAL(type, name, order)                                                      \
+public:                                                                                        \
+  inline type &name() {                                                                        \
+    if (name##_.has_value())                                                                   \
+      return *name##_;                                                                         \
+    EXT_THROW("Optional field '", #name, "' has no value.");                                   \
+  }                                                                                            \
+  inline bool has_##name() const { return _has_field_(name##_); }                              \
+  inline int order_##name() const { return order; }                                            \
+  std::optional<type> name##_;
+
 namespace validation {
 namespace onnx2 {
 
@@ -85,17 +96,16 @@ class TensorShapeProto {
 public:
   class Dimension {
   public:
-    inline Dimension() : dim_value(0), dim_param(), denotation() {}
-    int64_t dim_value;      // 1
-    std::string dim_param;  // 2
-    std::string denotation; // 3
+    inline Dimension() {}
+    FIELD_OPTIONAL(uint64_t, dim_value, 1)
+    FIELD(std::string, dim_param, 2)
+    FIELD(std::string, denotation, 3)
     SERIALIZATION_METHOD()
   };
 
-  inline TensorShapeProto() : dim() {}
+  inline TensorShapeProto() {}
+  FIELD(std::vector<Dimension>, dim, 1)
   SERIALIZATION_METHOD()
-
-  std::vector<Dimension> dim; // 1
 };
 
 class TensorProto {

@@ -95,7 +95,7 @@ class TestOnnx2(ExtTestCase):
         ts2.ParseFromString(bin)
         self.assertEqual(len(ts.dim), len(ts2.dim))
         for d1, d2 in zip(ts.dim, ts2.dim):
-            self.assertEqual(d1.dim_value, d2.dim_value)
+            self.assertEqual(d1.dim_value, d2.dim_value or 0)
             self.assertEqual(d1.dim_param, d2.dim_param)
             self.assertEqual(d1.denotation, d2.denotation)
         # way back
@@ -105,7 +105,7 @@ class TestOnnx2(ExtTestCase):
         ts.ParseFromString(s2)
         self.assertEqual(len(ts.dim), len(ts2.dim))
         for d1, d2 in zip(ts.dim, ts2.dim):
-            self.assertEqual(d1.dim_value, d2.dim_value)
+            self.assertEqual(d1.dim_value, d2.dim_value or 0)
             self.assertEqual(d1.dim_param, d2.dim_param)
             self.assertEqual(d1.denotation, d2.denotation)
 
