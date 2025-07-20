@@ -7,8 +7,46 @@
 #define FIELD_FIXED_SIZE 2
 
 #define SERIALIZATION_METHOD()                                                                 \
-  void ParseFromString(utils::BinaryStream &stream);                                           \
-  void SerializeToString(utils::BinaryWriteStream &stream) const;
+  inline void ParseFromString(const std::string &raw) {                                        \
+    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                        \
+    onnx2::utils::StringStream st(ptr, raw.size());                                            \
+    ParseFromStream(st);                                                                       \
+  }                                                                                            \
+  inline void SerializeToString(std::string &out) const {                                      \
+    onnx2::utils::StringWriteStream buf;                                                       \
+    SerializeToStream(buf);                                                                    \
+    out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                 \
+  }                                                                                            \
+  void ParseFromStream(utils::BinaryStream &stream);                                           \
+  void SerializeToStream(utils::BinaryWriteStream &stream) const;
+
+/**
+ * List of Protos
+ * - AttributeProto
+ * - DeviceConfigurationProto
+ * - GraphProto
+ * - FunctionProto
+ * - IntIntListEntryProto
+ * - ModelProto
+ * - NodeDeviceConfigurationProto
+ * - NodeProto
+ * - OperatorSetIdProto
+ * - OperatorStatus
+ * - ShardedDimProto
+ * - ShardingSpecProto
+ * - SimpleShardedDimProto
+ * - StringStringEntryProto
+ * - TensorAnnotation
+ * - TensorProto
+ *     - TensorProto::DataLocation
+ *     - TensorProto::DataType
+ *     - TensorProto::Segment
+ * - TensorShapeProto
+ *     - TensorShapeProto::Dimension
+ * - TrainingInfoProto
+ * - TypeProto
+ * - ValueInfoProto
+ */
 
 namespace validation {
 namespace onnx2 {

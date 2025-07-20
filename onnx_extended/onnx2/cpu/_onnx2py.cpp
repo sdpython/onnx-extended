@@ -12,17 +12,15 @@ using namespace validation;
       "ParseFromString",                                                                       \
       [](onnx2::cls &self, py::bytes data) {                                                   \
         std::string raw = data;                                                                \
-        const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                    \
-        onnx2::utils::StringStream st(ptr, raw.size());                                        \
-        self.ParseFromString(st);                                                              \
+        self.ParseFromString(raw);                                                             \
       },                                                                                       \
       "Parses a sequence of bytes to fill this instance")                                      \
       .def(                                                                                    \
           "SerializeToString",                                                                 \
           [](onnx2::cls &self) {                                                               \
-            onnx2::utils::StringWriteStream buf;                                               \
-            self.SerializeToString(buf);                                                       \
-            return py::bytes(reinterpret_cast<const char *>(buf.data()), buf.size());          \
+            std::string out;                                                                   \
+            self.SerializeToString(out);                                                       \
+            return py::bytes(out);                                                             \
           },                                                                                   \
           "Serialize into a sequence of bytes.")
 
