@@ -5,40 +5,63 @@
 #include <stdint.h>
 #include <vector>
 
+#define WRITE_FIELD(stream, name)                                                              \
+  if (has_##name()) {                                                                          \
+    write_field(stream, order_##name(), name##_);                                              \
+  }
+
+#define READ_BEGIN(stream, cls)                                                                \
+  while (stream.not_end()) {                                                                   \
+    utils::FieldNumber field_number = stream.next_field();                                     \
+    if (field_number.field_number == 0) {                                                      \
+      EXT_THROW("unexpected field_number=", field_number.string(), " in class ", #cls);        \
+    }
+
+#define READ_END(stream, cls)                                                                  \
+  else {                                                                                       \
+    EXT_THROW("unable to parse field_number=", field_number.string(), " in class ", #cls);     \
+  }                                                                                            \
+  }
+
+#define READ_FIELD(stream, name)                                                               \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
+    read_field(stream, field_number.wire_type, name##_, #name);                                \
+  }
+
 namespace validation {
 namespace onnx2 {
 
+template <typename T>
+void write_field(utils::BinaryWriteStream &stream, int order, const T &field);
+
+template <>
+void write_field<std::string>(utils::BinaryWriteStream &stream, int order,
+                              const std::string &field) {
+  stream.write_field_header(order, FIELD_FIXED_SIZE);
+  stream.write_string(field);
+}
+
+template <typename T>
+void read_field(utils::BinaryStream &stream, int wire_type, T &field, const char *name);
+
+template <>
+void read_field<std::string>(utils::BinaryStream &stream, int wire_type, std::string &field,
+                             const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = stream.next_string();
+}
+
 void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
-  key_.clear();
-  value_.clear();
-  int n_read = 0;
-  while (stream.not_end() && n_read < 2) {
-    auto f = stream.next_field();
-    EXT_ENFORCE(
-        f.wire_type == FIELD_FIXED_SIZE,
-        "[StringStringEntryProto::ParseFromStream] expected length-delimited wire type, field=",
-        f.string());
-    if (f.field_number == 1) {
-      key_ = stream.next_string();
-      ++n_read;
-    } else if (f.field_number == 2) {
-      value_ = stream.next_string();
-      ++n_read;
-    } else {
-      EXT_THROW("[StringStringEntryProto::ParseFromStream] unknown field ", f.string());
-    }
-  }
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_FIELD(stream, key)
+  READ_FIELD(stream, value)
+  READ_END(stream, StringStringEntryProto)
 }
 
 void StringStringEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  if (!key_.empty()) {
-    stream.write_field_header(1, FIELD_FIXED_SIZE);
-    stream.write_string(key_);
-  }
-  if (!value_.empty()) {
-    stream.write_field_header(2, FIELD_FIXED_SIZE);
-    stream.write_string(value_);
-  }
+  WRITE_FIELD(stream, key)
+  WRITE_FIELD(stream, value)
 }
 
 void TensorShapeProto::Dimension::ParseFromStream(utils::BinaryStream &stream) {
@@ -140,10 +163,10 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream) {
       EXT_ENFORCE(f.wire_type == FIELD_FIXED_SIZE,
                   "[TensorProto::ParseFromStream] metadata_props: wrong wire type, field",
                   f.string());
-      len = stream.next_uint64();
-      stream.can_read(len, "[TensorProto::ParseFromStream] metadata_props");
+      utils::StringStream dim_buf;
+      stream.read_string_stream(dim_buf);
       StringStringEntryProto entry;
-      entry.ParseFromStream(stream);
+      entry.ParseFromStream(dim_buf);
       metadata_props.emplace_back(entry);
       break;
     }

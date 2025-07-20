@@ -56,6 +56,7 @@
 public:                                                                                        \
   inline type &name() { return name##_; }                                                      \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
+  inline int order_##name() const { return order; }                                            \
   type name##_;
 
 namespace validation {
