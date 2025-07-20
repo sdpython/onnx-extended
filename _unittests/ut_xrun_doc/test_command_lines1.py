@@ -24,6 +24,7 @@ from onnx_extended._command_lines_parser import (
     get_parser_display,
     get_parser_external,
     get_parser_print,
+    get_parser_protoc,
     get_parser_quantize,
     get_parser_select,
     main,
@@ -53,6 +54,13 @@ class TestCommandLines1(ExtTestCase):
         text = st.getvalue()
         self.assertIn("select", text)
         self.assertIn("verbose", text)
+
+    def test_parser_protoc(self):
+        st = StringIO()
+        with redirect_stdout(st):
+            get_parser_protoc().print_help()
+        text = st.getvalue()
+        self.assertIn("input", text)
 
     def test_parser_display(self):
         st = StringIO()

@@ -5,153 +5,217 @@
 #include <stdint.h>
 #include <vector>
 
+#define WRITE_FIELD(stream, name)                                                              \
+  if (has_##name()) {                                                                          \
+    write_field(stream, order_##name(), name##_);                                              \
+  }
+
+#define WRITE_ENUM_FIELD(stream, name)                                                         \
+  if (has_##name()) {                                                                          \
+    write_enum_field(stream, order_##name(), name##_);                                         \
+  }
+
+#define WRITE_REPEATED_FIELD(stream, name)                                                     \
+  if (has_##name()) {                                                                          \
+    write_repeated_field(stream, order_##name(), name##_);                                     \
+  }
+
+#define READ_BEGIN(stream, cls)                                                                \
+  while (stream.not_end()) {                                                                   \
+    utils::FieldNumber field_number = stream.next_field();                                     \
+    if (field_number.field_number == 0) {                                                      \
+      EXT_THROW("unexpected field_number=", field_number.string(), " in class ", #cls);        \
+    }
+
+#define READ_END(stream, cls)                                                                  \
+  else {                                                                                       \
+    EXT_THROW("unable to parse field_number=", field_number.string(), " in class ", #cls);     \
+  }                                                                                            \
+  }
+
+#define READ_FIELD(stream, name)                                                               \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
+    read_field(stream, field_number.wire_type, name##_, #name);                                \
+  }
+
+#define READ_ENUM_FIELD(stream, name)                                                          \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
+    read_enum_field(stream, field_number.wire_type, name##_, #name);                           \
+  }
+
+#define READ_REPEATED_FIELD(stream, name)                                                      \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
+    read_repeated_field(stream, field_number.wire_type, name##_, #name);                       \
+  }
+
 namespace validation {
 namespace onnx2 {
 
-void StringStringEntryProto::ParseFromString(utils::BinaryStream &stream) {
-  key.clear();
-  value.clear();
-  int n_read = 0;
-  while (stream.not_end() && n_read < 2) {
-    auto f = stream.next_field();
-    EXT_ENFORCE(
-        f.wire_type == FIELD_FIXED_SIZE,
-        "[StringStringEntryProto::ParseFromString] expected length-delimited wire type, field=",
-        f.string());
-    if (f.field_number == 1) {
-      key = stream.next_string();
-      ++n_read;
-    } else if (f.field_number == 2) {
-      value = stream.next_string();
-      ++n_read;
-    } else {
-      EXT_THROW("[StringStringEntryProto::ParseFromString] unknown field ", f.string());
-    }
+template <typename T>
+void write_field(utils::BinaryWriteStream &stream, int order, const T &field);
+
+template <>
+void write_field<std::string>(utils::BinaryWriteStream &stream, int order,
+                              const std::string &field) {
+  stream.write_field_header(order, FIELD_FIXED_SIZE);
+  stream.write_string(field);
+}
+
+template <>
+void write_field<std::optional<uint64_t>>(utils::BinaryWriteStream &stream, int order,
+                                          const std::optional<uint64_t> &field) {
+  if (field.has_value()) {
+    stream.write_field_header(order, FIELD_VARINT);
+    stream.write_variant_uint64(*field);
   }
 }
 
-void StringStringEntryProto::SerializeToString(utils::BinaryWriteStream &stream) const {
-  if (!key.empty()) {
-    stream.write_field_header(1, FIELD_FIXED_SIZE);
-    stream.write_string(key);
-  }
-  if (!value.empty()) {
-    stream.write_field_header(2, FIELD_FIXED_SIZE);
-    stream.write_string(value);
-  }
+template <>
+void write_field<std::vector<uint8_t>>(utils::BinaryWriteStream &stream, int order,
+                                       const std::vector<uint8_t> &field) {
+  stream.write_field_header(order, FIELD_FIXED_SIZE);
+  utils::BorrowedWriteStream local(field.data(), field.size());
+  stream.write_string_stream(local);
 }
 
-void TensorShapeProto::Dimension::ParseFromString(utils::BinaryStream &stream) {
-  while (stream.not_end()) {
-    auto f = stream.next_field();
-    if (f.field_number == 1 && f.wire_type == FIELD_VARINT) {
-      dim_value = stream.next_uint64();
-    } else if (f.field_number == 2 && f.wire_type == FIELD_FIXED_SIZE) {
-      dim_param = stream.next_string();
-    } else if (f.field_number == 3 && f.wire_type == FIELD_FIXED_SIZE) {
-      denotation = stream.next_string();
-    } else {
-      EXT_THROW("[TensorShapeProto::Dimension::ParseFromString] unknown field ", f.string());
-    }
-  }
-}
-
-void TensorShapeProto::Dimension::SerializeToString(utils::BinaryWriteStream &stream) const {
-  stream.write_field_header(1, FIELD_VARINT);
-  stream.write_variant_uint64(dim_value);
-
-  if (!dim_param.empty()) {
-    stream.write_field_header(2, FIELD_FIXED_SIZE);
-    stream.write_string(dim_param);
-  }
-  if (!denotation.empty()) {
-    stream.write_field_header(3, FIELD_FIXED_SIZE);
-    stream.write_string(denotation);
-  }
-}
-
-void TensorShapeProto::ParseFromString(utils::BinaryStream &stream) {
-  while (stream.not_end()) {
-    auto f = stream.next_field();
-    if (f.field_number == 1 && f.wire_type == FIELD_FIXED_SIZE) { // repeated dim
-      utils::StringStream dim_buf;
-      stream.read_string_stream(dim_buf);
-      Dimension d;
-      d.ParseFromString(dim_buf);
-      dim.emplace_back(d);
-    } else {
-      EXT_THROW("[TensorShapeProto::ParseFromString] unknown field n", f.string());
-    }
-  }
-}
-
-void TensorShapeProto::SerializeToString(utils::BinaryWriteStream &stream) const {
-  for (auto d : dim) {
+template <typename T>
+void write_repeated_field(utils::BinaryWriteStream &stream, int order,
+                          const std::vector<T> &field) {
+  for (auto d : field) {
     utils::StringWriteStream local;
-    d.SerializeToString(local);
-    stream.write_field_header(1, FIELD_FIXED_SIZE);
+    d.SerializeToStream(local);
+    stream.write_field_header(order, FIELD_FIXED_SIZE);
     stream.write_string_stream(local);
   }
 }
 
-void TensorProto::ParseFromString(utils::BinaryStream &stream) {
-  uint64_t len;
-  while (stream.not_end()) {
-    auto f = stream.next_field();
-    switch (f.field_number) {
-    case 1: // dims (repeated int64, varint)
-      EXT_ENFORCE(f.wire_type == FIELD_VARINT,
-                  "[TensorProto::ParseFromString] dims: wrong wire type (dims), field ",
-                  f.string());
-      dims.push_back(static_cast<int64_t>(stream.next_uint64()));
-      break;
+template <typename T>
+void write_enum_field(utils::BinaryWriteStream &stream, int order, const T &field) {
+  stream.write_field_header(2, FIELD_VARINT);
+  stream.write_variant_uint64(static_cast<uint64_t>(field));
+}
 
-    case 2: // data_type (int32, varint)
-      EXT_ENFORCE(f.wire_type == FIELD_VARINT,
-                  "[TensorProto::ParseFromString] data_type: wrong wire type, field ",
-                  f.string());
-      data_type = static_cast<TensorProto::DataType>(stream.next_uint64());
-      break;
-
-    case 8: // name
-      EXT_ENFORCE(f.wire_type == FIELD_FIXED_SIZE,
-                  "[TensorProto::ParseFromString] name: wrong wire type, field ", f.string());
-      name = stream.next_string();
-      break;
-
-    case 9: // raw_data (bytes)
-      // Maybe we should avoid a copy here.
-      EXT_ENFORCE(f.wire_type == FIELD_FIXED_SIZE,
-                  "[TensorProto::ParseFromString] raw_data: wrong wire type, field ",
-                  f.string());
-      len = stream.next_uint64();
-      raw_data.resize(len);
-      memcpy(raw_data.data(), stream.read_bytes(len), len);
-      break;
-
-    case 12: // doc_string
-      EXT_ENFORCE(f.wire_type == FIELD_FIXED_SIZE,
-                  "[TensorProto::ParseFromString] doc_string: wrong wire type, field ",
-                  f.string());
-      doc_string = stream.next_string();
-      break;
-
-    case 16: { // metadata_props
-      EXT_ENFORCE(f.wire_type == FIELD_FIXED_SIZE,
-                  "[TensorProto::ParseFromString] metadata_props: wrong wire type, field",
-                  f.string());
-      len = stream.next_uint64();
-      stream.can_read(len, "[TensorProto::ParseFromString] metadata_props");
-      StringStringEntryProto entry;
-      entry.ParseFromString(stream);
-      metadata_props.emplace_back(entry);
-      break;
-    }
-
-    default:
-      EXT_THROW("[TensorProto::ParseFromString] unexpected field ", f.string());
-    }
+template <>
+void write_repeated_field<uint64_t>(utils::BinaryWriteStream &stream, int order,
+                                    const std::vector<uint64_t> &field) {
+  for (auto d : field) {
+    stream.write_field_header(order, FIELD_VARINT);
+    stream.write_variant_uint64(d);
   }
+}
+
+template <typename T>
+void read_field(utils::BinaryStream &stream, int wire_type, T &field, const char *name);
+
+template <>
+void read_field<std::string>(utils::BinaryStream &stream, int wire_type, std::string &field,
+                             const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = stream.next_string();
+}
+
+template <>
+void read_field<std::optional<uint64_t>>(utils::BinaryStream &stream, int wire_type,
+                                         std::optional<uint64_t> &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = stream.next_uint64();
+}
+
+template <>
+void read_field<std::vector<uint8_t>>(utils::BinaryStream &stream, int wire_type,
+                                      std::vector<uint8_t> &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  uint64_t len = stream.next_uint64();
+  field.resize(len);
+  memcpy(field.data(), stream.read_bytes(len), len);
+}
+
+template <typename T>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<T> &field,
+                         const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  utils::StringStream dim_buf;
+  stream.read_string_stream(dim_buf);
+  T elem;
+  elem.ParseFromStream(dim_buf);
+  field.emplace_back(elem);
+}
+
+template <>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type,
+                         std::vector<uint64_t> &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field.push_back(static_cast<int64_t>(stream.next_uint64()));
+}
+
+void StringStringEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, key)
+  WRITE_FIELD(stream, value)
+}
+
+template <typename T>
+void read_enum_field(utils::BinaryStream &stream, int wire_type, T &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = static_cast<TensorProto::DataType>(stream.next_uint64());
+}
+
+void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_FIELD(stream, key)
+  READ_FIELD(stream, value)
+  READ_END(stream, StringStringEntryProto)
+}
+
+void TensorShapeProto::Dimension::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, dim_value)
+  WRITE_FIELD(stream, dim_param)
+  WRITE_FIELD(stream, denotation)
+}
+
+void TensorShapeProto::Dimension::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_FIELD(stream, dim_value)
+  READ_FIELD(stream, dim_param)
+  READ_FIELD(stream, denotation)
+  READ_END(stream, StringStringEntryProto)
+}
+
+void TensorShapeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_REPEATED_FIELD(stream, dim)
+}
+
+void TensorShapeProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_REPEATED_FIELD(stream, dim)
+  READ_END(stream, StringStringEntryProto)
+}
+
+void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_REPEATED_FIELD(stream, dims)
+  WRITE_ENUM_FIELD(stream, data_type)
+  WRITE_FIELD(stream, name)
+  WRITE_FIELD(stream, raw_data)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_REPEATED_FIELD(stream, external_data)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+}
+
+void TensorProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, StringStringEntryProto)
+  READ_REPEATED_FIELD(stream, dims)
+  READ_ENUM_FIELD(stream, data_type)
+  READ_FIELD(stream, name)
+  READ_FIELD(stream, doc_string)
+  READ_FIELD(stream, raw_data)
+  READ_REPEATED_FIELD(stream, external_data)
+  READ_REPEATED_FIELD(stream, metadata_props)
+  READ_END(stream, StringStringEntryProto)
 }
 
 } // namespace onnx2
