@@ -26,8 +26,28 @@ namespace py = pybind11;
   def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
 
+#define FIELD_OPTIONAL_INT(cls, name)                                                          \
+  def_property(                                                                                \
+      #name,                                                                                   \
+      [](const onnx2::cls &self) -> py::object {                                               \
+        if (self.name##_.has_value())                                                          \
+          return py::cast(*self.name##_);                                                      \
+        return py::none();                                                                     \
+      },                                                                                       \
+      [](onnx2::cls &self, py::object obj) {                                                   \
+        if (obj.is_none()) {                                                                   \
+          self.name##_.reset();                                                                \
+        } else if (py::isinstance<py::int_>(obj)) {                                            \
+          self.name##_ = obj.cast<int>();                                                      \
+        } else {                                                                               \
+          EXT_ENFORCE("unable to set " #name " for class " #cls)                               \
+        }                                                                                      \
+      },                                                                                       \
+      #name)                                                                                   \
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
+
 template <typename T> void bind_repeated_field(py::module_ &m, const std::string &name) {
-  py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "Repeated Field")
+  py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "repeated field")
       .def(py::init<>())
       .def_readwrite("values", &onnx2::utils::RepeatedField<T>::values)
       .def("add", &onnx2::utils::RepeatedField<T>::add, "adds an empty element")
@@ -61,7 +81,7 @@ template <typename T> void bind_repeated_field(py::module_ &m, const std::string
 }
 
 template <typename T> void bind_optional_field(py::module_ &m, const std::string &name) {
-  py::class_<onnx2::utils::OptionalField<T>>(m, name.c_str(), "Optional Field")
+  py::class_<onnx2::utils::OptionalField<T>>(m, name.c_str(), "optional field")
       .def(py::init<>())
       .def_readwrite("value", &onnx2::utils::OptionalField<T>::value)
       .def("__bool__",
@@ -132,12 +152,40 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   bind_repeated_field<onnx2::OperatorSetIdProto>(m, "RepeatedFieldOperatorSetIdProto");
 
+  py::class_<onnx2::TensorAnnotation>(m, "TensorAnnotation",
+                                      "TensorAnnotation, tensor annotation")
+      .def(py::init<>())
+      .FIELD(TensorAnnotation, tensor_name)
+      .FIELD(TensorAnnotation, quant_parameter_tensor_names)
+      .ADD_PROTO_SERIALIZATION(TensorAnnotation);
+
+  py::class_<onnx2::IntIntListEntryProto>(m, "IntIntListEntryProto",
+                                          "IntIntListEntryProto, tensor annotation")
+      .def(py::init<>())
+      .FIELD(IntIntListEntryProto, key)
+      .FIELD(IntIntListEntryProto, value)
+      .ADD_PROTO_SERIALIZATION(IntIntListEntryProto);
+
+  py::class_<onnx2::DeviceConfigurationProto>(m, "DeviceConfigurationProto",
+                                              "DeviceConfigurationProto")
+      .def(py::init<>())
+      .FIELD(DeviceConfigurationProto, name)
+      .FIELD(DeviceConfigurationProto, num_devices)
+      .FIELD(DeviceConfigurationProto, device)
+      .ADD_PROTO_SERIALIZATION(DeviceConfigurationProto);
+
+  py::class_<onnx2::SimpleShardedDimProto>(m, "SimpleShardedDimProto", "SimpleShardedDimProto")
+      .def(py::init<>())
+      .FIELD_OPTIONAL_INT(SimpleShardedDimProto, dim_value)
+      .FIELD(SimpleShardedDimProto, dim_param)
+      .FIELD(SimpleShardedDimProto, num_shards)
+      .ADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
+
   py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",
                                                  "Dimension, an integer value or a string")
       .def(py::init<>())
-      .FIELD(TensorShapeProto::Dimension, dim_value)
+      .FIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
       .FIELD(TensorShapeProto::Dimension, dim_param)
-      .FIELD(TensorShapeProto::Dimension, dim_value)
       .FIELD(TensorShapeProto::Dimension, denotation)
       .ADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
 
@@ -213,14 +261,13 @@ PYBIND11_MODULE(_onnx2py, m) {
             return result;
           },
           [](onnx2::TensorProto &self, py::list data) {
-            std::vector<std::string> result;
-            result.reserve(py::len(data));
+            self.string_data_.reserve(py::len(data));
 
             for (const auto &item : data) {
               if (py::isinstance<py::bytes>(item)) {
-                result.emplace_back(item.cast<std::string>());
+                self.string_data_.emplace_back(item.cast<std::string>());
               } else if (py::isinstance<py::str>(item)) {
-                result.emplace_back(item.cast<std::string>());
+                self.string_data_.emplace_back(item.cast<std::string>());
               } else {
                 EXT_THROW("unable to convert one item from the list into a string")
               }
@@ -249,18 +296,4 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(SparseTensorProto, indices)
       .FIELD(SparseTensorProto, dims)
       .ADD_PROTO_SERIALIZATION(SparseTensorProto);
-
-  py::class_<onnx2::TensorAnnotation>(m, "TensorAnnotation",
-                                      "TensorAnnotation, tensor annotation")
-      .def(py::init<>())
-      .FIELD(TensorAnnotation, tensor_name)
-      .FIELD(TensorAnnotation, quant_parameter_tensor_names)
-      .ADD_PROTO_SERIALIZATION(TensorAnnotation);
-
-  py::class_<onnx2::IntIntListEntryProto>(m, "IntIntListEntryProto",
-                                          "IntIntListEntryProto, tensor annotation")
-      .def(py::init<>())
-      .FIELD(IntIntListEntryProto, key)
-      .FIELD(IntIntListEntryProto, value)
-      .ADD_PROTO_SERIALIZATION(IntIntListEntryProto);
 }

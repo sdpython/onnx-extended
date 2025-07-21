@@ -98,7 +98,10 @@ void BinaryWriteStream::write_variant_uint64(uint64_t value) {
 }
 
 void BinaryWriteStream::write_int64(int64_t value) {
-  // write_variant_uint64(encodeZigZag64(value));
+  write_variant_uint64(static_cast<uint64_t>(value));
+}
+
+void BinaryWriteStream::write_int32(int32_t value) {
   write_variant_uint64(static_cast<uint64_t>(value));
 }
 

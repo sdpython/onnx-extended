@@ -136,6 +136,12 @@ void write_field(utils::BinaryWriteStream &stream, int order, const uint64_t &fi
   stream.write_variant_uint64(field);
 }
 
+template <>
+void write_field(utils::BinaryWriteStream &stream, int order, const int32_t &field) {
+  stream.write_field_header(order, FIELD_VARINT);
+  stream.write_int32(field);
+}
+
 template <> void write_field(utils::BinaryWriteStream &stream, int order, const double &field) {
   stream.write_field_header(order, FIELD_FIXED_SIZE); // FIELD_FIXED64);
   stream.write_double(field);
@@ -296,6 +302,13 @@ void read_field(utils::BinaryStream &stream, int wire_type, int64_t &field, cons
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
               name, "'");
   field = stream.next_int64();
+}
+
+template <>
+void read_field(utils::BinaryStream &stream, int wire_type, int32_t &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = stream.next_int32();
 }
 
 template <>

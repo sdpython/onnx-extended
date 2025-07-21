@@ -125,4 +125,32 @@ void IntIntListEntryProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_END(stream, IntIntListEntryProto)
 }
 
+void DeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, name)
+  WRITE_FIELD(stream, num_devices)
+  WRITE_REPEATED_FIELD(stream, device)
+}
+
+void DeviceConfigurationProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, DeviceConfigurationProto)
+  READ_FIELD(stream, name)
+  READ_FIELD(stream, num_devices)
+  READ_REPEATED_FIELD(stream, device)
+  READ_END(stream, DeviceConfigurationProto)
+}
+
+void SimpleShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, dim_value)
+  WRITE_FIELD(stream, dim_param)
+  WRITE_FIELD(stream, num_shards)
+}
+
+void SimpleShardedDimProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, SimpleShardedDimProto)
+  READ_FIELD(stream, dim_value)
+  READ_FIELD(stream, dim_param)
+  READ_FIELD(stream, num_shards)
+  READ_END(stream, SimpleShardedDimProto)
+}
+
 } // namespace onnx2

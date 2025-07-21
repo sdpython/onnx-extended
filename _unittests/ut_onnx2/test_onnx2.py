@@ -413,6 +413,60 @@ class TestOnnx2(ExtTestCase):
         self.assertEqual(p0.key, p2.key)
         self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
+    def test_device_configuration_proto(self):
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.DeviceConfigurationProto()
+                p.name = "R"
+                p.num_devices = 3
+                p.device.extend(["T3", "G4"])
+
+                s = p.SerializeToString()
+                p2 = x2.DeviceConfigurationProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.DeviceConfigurationProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_simple_shared_dim_proto(self):
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.SimpleShardedDimProto()
+                p.dim_value = 3
+                # p.dim_param = "rt"
+                p.num_shards = 4
+                self.assertEqual(p.dim_value, 3)
+                self.assertEqual(p.dim_param, "")
+
+                s = p.SerializeToString()
+                p2 = x2.SimpleShardedDimProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.SimpleShardedDimProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.SimpleShardedDimProto()
+                # p.dim_value = 3
+                p.dim_param = "rt"
+                p.num_shards = 4
+                self.assertIn(p.dim_value, (0, None))
+                self.assertEqual(p.dim_param, "rt")
+
+                s = p.SerializeToString()
+                p2 = x2.SimpleShardedDimProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.SimpleShardedDimProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -150,6 +150,24 @@ public:
   FIELD_REPEATED(int64_t, value, 2)
 };
 
+class DeviceConfigurationProto {
+public:
+  inline DeviceConfigurationProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(std::string, name, 1)
+  FIELD(int32_t, num_devices, 2)
+  FIELD_REPEATED(std::string, device, 3)
+};
+
+class SimpleShardedDimProto {
+public:
+  inline SimpleShardedDimProto() {}
+  SERIALIZATION_METHOD()
+  FIELD_OPTIONAL(int64_t, dim_value, 1)
+  FIELD(std::string, dim_param, 2)
+  FIELD(int64_t, num_shards, 3)
+};
+
 } // namespace onnx2
 
 #if defined(FIELD)
