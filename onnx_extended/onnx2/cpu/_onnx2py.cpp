@@ -26,6 +26,53 @@ namespace py = pybind11;
   def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
 
+template <typename T> void bind_repeated_field(py::module_ &m, const std::string &name) {
+  py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "Repeated Field")
+      .def(py::init<>())
+      .def_readwrite("values", &onnx2::utils::RepeatedField<T>::values)
+      .def("add", &onnx2::utils::RepeatedField<T>::add, "adds an empty element")
+      .def("clear", &onnx2::utils::RepeatedField<T>::clear, "removes every element")
+      .def("__len__", &onnx2::utils::RepeatedField<T>::size, "returns the length")
+      .def(
+          "__delitem__",
+          [](onnx2::utils::RepeatedField<T> &self, py::slice slice) {
+            size_t start, stop, step, slicelength;
+            if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
+              self.remove_range(start, stop, step);
+            }
+          },
+          "removes elements")
+      .def(
+          "extend",
+          [](onnx2::utils::RepeatedField<T> &self, py::iterable iterable) {
+            if (py::isinstance<onnx2::utils::RepeatedField<T>>(iterable)) {
+              self.extend(iterable.cast<onnx2::utils::RepeatedField<T>>());
+            } else {
+              self.extend(iterable.cast<std::vector<T>>());
+            }
+          },
+          "extends the list of values")
+      .def(
+          "__iter__",
+          [](onnx2::utils::RepeatedField<T> &self) {
+            return py::make_iterator(self.begin(), self.end());
+          },
+          py::keep_alive<0, 1>());
+}
+
+template <typename T> void bind_optional_field(py::module_ &m, const std::string &name) {
+  py::class_<onnx2::utils::OptionalField<T>>(m, name.c_str(), "Optional Field")
+      .def(py::init<>())
+      .def_readwrite("value", &onnx2::utils::OptionalField<T>::value)
+      .def("__bool__",
+           [](const onnx2::utils::OptionalField<T> &self) { return self.has_value(); })
+      .def("__eq__", [](const onnx2::utils::OptionalField<T> &self, py::object obj) {
+        if (py::isinstance<onnx2::utils::OptionalField<T>>(obj))
+          return self == obj.cast<onnx2::utils::OptionalField<T>>();
+        return self == obj.cast<T>();
+      });
+}
+
 PYBIND11_MODULE(_onnx2py, m) {
   m.doc() =
 #if defined(__APPLE__)
@@ -51,6 +98,17 @@ PYBIND11_MODULE(_onnx2py, m) {
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
 
+  bind_repeated_field<int64_t>(m, "RepeatedFieldInt64");
+  bind_repeated_field<int32_t>(m, "RepeatedFieldInt32");
+  bind_repeated_field<uint64_t>(m, "RepeatedFieldUInt64");
+  bind_repeated_field<float>(m, "RepeatedFieldFloat");
+  bind_repeated_field<double>(m, "RepeatedFieldDouble");
+  bind_repeated_field<std::string>(m, "RepeatedFieldString");
+
+  bind_optional_field<int32_t>(m, "OptionalInt32");
+  bind_optional_field<int64_t>(m, "OptionalInt64");
+  bind_optional_field<uint64_t>(m, "OptionalUInt64");
+
   py::enum_<onnx2::OperatorStatus>(m, "OperatorStatus", py::arithmetic())
       .value("EXPERIMENTAL", onnx2::OperatorStatus::EXPERIMENTAL)
       .value("STABLE", onnx2::OperatorStatus::STABLE)
@@ -63,12 +121,16 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(StringStringEntryProto, value)
       .ADD_PROTO_SERIALIZATION(StringStringEntryProto);
 
+  bind_repeated_field<onnx2::StringStringEntryProto>(m, "RepeatedFieldStringStringEntryProto");
+
   py::class_<onnx2::OperatorSetIdProto>(m, "OperatorSetIdProto",
                                         "OperatorSetIdProto, opset definition")
       .def(py::init<>())
       .FIELD(OperatorSetIdProto, domain)
       .FIELD(OperatorSetIdProto, version)
       .ADD_PROTO_SERIALIZATION(OperatorSetIdProto);
+
+  bind_repeated_field<onnx2::OperatorSetIdProto>(m, "RepeatedFieldOperatorSetIdProto");
 
   py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",
                                                  "Dimension, an integer value or a string")
@@ -78,6 +140,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(TensorShapeProto::Dimension, dim_value)
       .FIELD(TensorShapeProto::Dimension, denotation)
       .ADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
+
+  bind_repeated_field<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
 
   py::class_<onnx2::TensorShapeProto>(m, "TensorShapeProto",
                                       "TensorShapeProto, multiple DimProto")
@@ -162,4 +226,18 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(SparseTensorProto, indices)
       .FIELD(SparseTensorProto, dims)
       .ADD_PROTO_SERIALIZATION(SparseTensorProto);
+
+  py::class_<onnx2::TensorAnnotation>(m, "TensorAnnotation",
+                                      "TensorAnnotation, tensor annotation")
+      .def(py::init<>())
+      .FIELD(TensorAnnotation, tensor_name)
+      .FIELD(TensorAnnotation, quant_parameter_tensor_names)
+      .ADD_PROTO_SERIALIZATION(TensorAnnotation);
+
+  py::class_<onnx2::IntIntListEntryProto>(m, "IntIntListEntryProto",
+                                          "IntIntListEntryProto, tensor annotation")
+      .def(py::init<>())
+      .FIELD(IntIntListEntryProto, key)
+      .FIELD(IntIntListEntryProto, value)
+      .ADD_PROTO_SERIALIZATION(IntIntListEntryProto);
 }

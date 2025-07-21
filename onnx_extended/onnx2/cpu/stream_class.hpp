@@ -99,7 +99,25 @@ void write_field(utils::BinaryWriteStream &stream, int order,
 
 template <>
 void write_field(utils::BinaryWriteStream &stream, int order,
+                 const utils::OptionalField<uint64_t> &field) {
+  if (field.has_value()) {
+    stream.write_field_header(order, FIELD_VARINT);
+    stream.write_variant_uint64(*field);
+  }
+}
+
+template <>
+void write_field(utils::BinaryWriteStream &stream, int order,
                  const std::optional<int64_t> &field) {
+  if (field.has_value()) {
+    stream.write_field_header(order, FIELD_VARINT);
+    stream.write_variant_uint64(static_cast<uint64_t>(*field));
+  }
+}
+
+template <>
+void write_field(utils::BinaryWriteStream &stream, int order,
+                 const utils::OptionalField<int64_t> &field) {
   if (field.has_value()) {
     stream.write_field_header(order, FIELD_VARINT);
     stream.write_variant_uint64(static_cast<uint64_t>(*field));
@@ -207,6 +225,12 @@ WRITE_REPEATED_FIELD_IMPL_INT(uint64_t)
 WRITE_REPEATED_FIELD_IMPL_INT(int64_t)
 WRITE_REPEATED_FIELD_IMPL_INT(int32_t)
 
+template <typename T>
+void write_repeated_field(utils::BinaryWriteStream &stream, int order,
+                          const utils::RepeatedField<T> &field, bool is_packed) {
+  write_repeated_field(stream, order, field.values, is_packed);
+}
+
 ///////
 // read
 ///////
@@ -237,8 +261,24 @@ void read_field(utils::BinaryStream &stream, int wire_type, std::optional<uint64
 }
 
 template <>
+void read_field(utils::BinaryStream &stream, int wire_type,
+                utils::OptionalField<uint64_t> &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = stream.next_uint64();
+}
+
+template <>
 void read_field(utils::BinaryStream &stream, int wire_type, std::optional<int64_t> &field,
                 const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field = stream.next_int64();
+}
+
+template <>
+void read_field(utils::BinaryStream &stream, int wire_type,
+                utils::OptionalField<int64_t> &field, const char *name) {
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
               name, "'");
   field = stream.next_int64();
@@ -362,5 +402,11 @@ READ_REPEATED_FIELD_IMPL(float, next_float, FIELD_FIXED_SIZE)
 READ_REPEATED_FIELD_IMPL_INT(int64_t, next_int64)
 READ_REPEATED_FIELD_IMPL_INT(int32_t, next_int32)
 READ_REPEATED_FIELD_IMPL_INT(uint64_t, next_uint64)
+
+template <typename T>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type,
+                         utils::RepeatedField<T> &field, const char *name, bool is_packed) {
+  read_repeated_field(stream, wire_type, field.values, name, is_packed);
+}
 
 } // namespace onnx2

@@ -34,19 +34,19 @@ public:                                                                         
 
 #define FIELD_REPEATED(type, name, order)                                                      \
 public:                                                                                        \
-  inline std::vector<type> &name() { return name##_; }                                         \
+  inline utils::RepeatedField<type> &name() { return name##_; }                                \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   inline bool packed_##name() const { return false; }                                          \
-  std::vector<type> name##_;
+  utils::RepeatedField<type> name##_;
 
 #define FIELD_REPEATED_PACKED(type, name, order)                                               \
 public:                                                                                        \
-  inline std::vector<type> &name() { return name##_; }                                         \
+  inline utils::RepeatedField<type> &name() { return name##_; }                                \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   inline bool packed_##name() const { return true; }                                           \
-  std::vector<type> name##_;
+  utils::RepeatedField<type> name##_;
 
 #define FIELD_OPTIONAL(type, name, order)                                                      \
 public:                                                                                        \
@@ -56,7 +56,7 @@ public:                                                                         
   }                                                                                            \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline int order_##name() const { return order; }                                            \
-  std::optional<type> name##_;
+  utils::OptionalField<type> name##_;
 
 namespace onnx2 {
 

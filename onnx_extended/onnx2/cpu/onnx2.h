@@ -134,6 +134,22 @@ public:
   FIELD_REPEATED(int64_t, dims, 3)
 };
 
+class TensorAnnotation {
+public:
+  inline TensorAnnotation() {}
+  SERIALIZATION_METHOD()
+  FIELD(std::string, tensor_name, 1)
+  FIELD_REPEATED(StringStringEntryProto, quant_parameter_tensor_names, 2)
+};
+
+class IntIntListEntryProto {
+public:
+  inline IntIntListEntryProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(int64_t, key, 1)
+  FIELD_REPEATED(int64_t, value, 2)
+};
+
 } // namespace onnx2
 
 #if defined(FIELD)

@@ -101,4 +101,28 @@ void SparseTensorProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_END(stream, SparseTensorProto)
 }
 
+void TensorAnnotation::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, tensor_name)
+  WRITE_REPEATED_FIELD(stream, quant_parameter_tensor_names)
+}
+
+void TensorAnnotation::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, TensorAnnotation)
+  READ_FIELD(stream, tensor_name)
+  READ_REPEATED_FIELD(stream, quant_parameter_tensor_names)
+  READ_END(stream, TensorAnnotation)
+}
+
+void IntIntListEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, key)
+  WRITE_REPEATED_FIELD(stream, value)
+}
+
+void IntIntListEntryProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, IntIntListEntryProto)
+  READ_FIELD(stream, key)
+  READ_REPEATED_FIELD(stream, value)
+  READ_END(stream, IntIntListEntryProto)
+}
+
 } // namespace onnx2
