@@ -2,89 +2,11 @@
 
 #include "onnx_extended_helpers.h"
 #include "stream.h"
-#include <optional>
+#include "stream_class.h"
 
-#define FIELD_VARINT 0
-#define FIELD_FIXED_SIZE 2
-
-/**
- * List of Protos
- * - AttributeProto
- * - DeviceConfigurationProto
- * - GraphProto
- * - FunctionProto
- * - IntIntListEntryProto
- * - ModelProto
- * - NodeDeviceConfigurationProto
- * - NodeProto
- * - OperatorSetIdProto
- * - OperatorStatus
- * - ShardedDimProto
- * - ShardingSpecProto
- * - SimpleShardedDimProto
- * - StringStringEntryProto
- * - TensorAnnotation
- * - TensorProto
- *     - TensorProto::DataLocation
- *     - TensorProto::DataType
- *     - TensorProto::Segment
- * - TensorShapeProto
- *     - TensorShapeProto::Dimension
- * - TrainingInfoProto
- * - TypeProto
- * - ValueInfoProto
- */
-
-#define SERIALIZATION_METHOD()                                                                 \
-  inline void ParseFromString(const std::string &raw) {                                        \
-    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                        \
-    onnx2::utils::StringStream st(ptr, raw.size());                                            \
-    ParseFromStream(st);                                                                       \
-  }                                                                                            \
-  inline void SerializeToString(std::string &out) const {                                      \
-    onnx2::utils::StringWriteStream buf;                                                       \
-    SerializeToStream(buf);                                                                    \
-    out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                 \
-  }                                                                                            \
-  void ParseFromStream(utils::BinaryStream &stream);                                           \
-  void SerializeToStream(utils::BinaryWriteStream &stream) const;
-
-#if defined(FIELD)
-#pragma error("macro FIELD is already defined.")
-#endif
-#define FIELD(type, name, order)                                                               \
-public:                                                                                        \
-  inline type &name() { return name##_; }                                                      \
-  inline bool has_##name() const { return _has_field_(name##_); }                              \
-  inline int order_##name() const { return order; }                                            \
-  type name##_;
-
-#define FIELD_REPEATED(type, name, order) FIELD(std::vector<type>, name, order)
-
-#define FIELD_OPTIONAL(type, name, order)                                                      \
-public:                                                                                        \
-  inline type &name() {                                                                        \
-    if (name##_.has_value())                                                                   \
-      return *name##_;                                                                         \
-    EXT_THROW("Optional field '", #name, "' has no value.");                                   \
-  }                                                                                            \
-  inline bool has_##name() const { return _has_field_(name##_); }                              \
-  inline int order_##name() const { return order; }                                            \
-  std::optional<type> name##_;
-
-namespace validation {
 namespace onnx2 {
 
-using utils::offset_t;
-
-template <typename T> inline bool _has_field_(const T &) { return true; }
-template <> inline bool _has_field_<std::string>(const std::string &field) {
-  return !field.empty();
-}
-template <>
-inline bool _has_field_<std::optional<uint64_t>>(const std::optional<uint64_t> &field) {
-  return field.has_value();
-}
+enum OperatorStatus { EXPERIMENTAL = 0, STABLE = 1 };
 
 class StringStringEntryProto {
 public:
@@ -94,12 +16,20 @@ public:
   SERIALIZATION_METHOD()
 };
 
+class OperatorSetIdProto {
+public:
+  inline OperatorSetIdProto() {}
+  FIELD(std::string, domain, 1)
+  FIELD(int64_t, version, 2)
+  SERIALIZATION_METHOD()
+};
+
 class TensorShapeProto {
 public:
   class Dimension {
   public:
     inline Dimension() {}
-    FIELD_OPTIONAL(uint64_t, dim_value, 1)
+    FIELD_OPTIONAL(int64_t, dim_value, 1)
     FIELD(std::string, dim_param, 2)
     FIELD(std::string, denotation, 3)
     SERIALIZATION_METHOD()
@@ -181,22 +111,30 @@ public:
   FIELD_REPEATED(uint64_t, dims, 1)
   FIELD(DataType, data_type, 2)
   FIELD(Segment, segment, 3)
-  FIELD_REPEATED(float, float_data, 4)
-  FIELD_REPEATED(int32_t, int32_data, 5)
+  FIELD_REPEATED_PACKED(float, float_data, 4)
+  FIELD_REPEATED_PACKED(int32_t, int32_data, 5)
   FIELD_REPEATED(std::string, string_data, 6)
-  FIELD_REPEATED(int64_t, int64_data, 7)
+  FIELD_REPEATED_PACKED(int64_t, int64_data, 7)
   FIELD(std::string, name, 8)
   FIELD(std::vector<uint8_t>, raw_data, 9)
-  FIELD_REPEATED(double, double_data, 10)
-  FIELD_REPEATED(uint64_t, uint64_data, 11)
+  FIELD_REPEATED_PACKED(double, double_data, 10)
+  FIELD_REPEATED_PACKED(uint64_t, uint64_data, 11)
   FIELD(std::string, doc_string, 12)
   FIELD_REPEATED(StringStringEntryProto, external_data, 13)
   FIELD(DataLocation, data_location, 14)
   FIELD_REPEATED(StringStringEntryProto, metadata_props, 16)
 };
 
+class SparseTensorProto {
+public:
+  inline SparseTensorProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(TensorProto, values, 1)
+  FIELD(TensorProto, indices, 2)
+  FIELD_REPEATED(int64_t, dims, 3)
+};
+
 } // namespace onnx2
-} // namespace validation
 
 #if defined(FIELD)
 #undef FIELD

@@ -7,13 +7,15 @@
 #include <string>
 #include <vector>
 
-namespace validation {
 namespace onnx2 {
 namespace utils {
 
 typedef int64_t offset_t;
 
 inline int64_t decodeZigZag64(uint64_t n) { return (n >> 1) ^ -(n & 1); }
+inline uint64_t encodeZigZag64(int64_t n) {
+  return (static_cast<uint64_t>(n) << 1) ^ static_cast<uint64_t>(n >> 63);
+}
 
 class StringStream;
 
@@ -29,7 +31,6 @@ public:
 
   // to overwrite
   virtual uint64_t next_uint64() = 0;
-  virtual float next_float32() = 0;
   virtual void can_read(uint64_t len, const char *msg) = 0;
   virtual bool not_end() const = 0;
   virtual offset_t tell() const = 0;
@@ -39,23 +40,13 @@ public:
   // defines from the previous ones
   virtual std::string next_string();
   virtual int64_t next_int64();
+  virtual int32_t next_int32();
+  virtual float next_float();
+  virtual double next_double();
   virtual FieldNumber next_field();
-  virtual void next_packed_element(int64_t &);
-  virtual void next_packed_element(uint64_t &);
 
-  template <typename T> inline void next_packed_array(std::vector<T> &values) {
-    values.clear();
-
-    // read size
-    int64_t length = next_uint64();
-    can_read(length, "[BinaryStream::next_packed_array]");
-
-    // read the array
-    T raw;
-    for (; length > 0; --length) {
-      next_packed_ekement(raw);
-      values.push_back(raw);
-    }
+  template <typename T> void next_packed_element(T &value) {
+    value = *reinterpret_cast<const T *>(read_bytes(sizeof(T)));
   }
 };
 
@@ -66,7 +57,6 @@ public:
       : BinaryStream(), pos_(0), size_(size), data_(data) {}
   virtual void can_read(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
-  virtual float next_float32() override;
   virtual const uint8_t *read_bytes(offset_t n_bytes) override;
   virtual void read_string_stream(StringStream &stream) override;
   virtual bool not_end() const override { return pos_ < size_; }
@@ -85,10 +75,16 @@ class BinaryWriteStream {
 public:
   inline BinaryWriteStream() {}
   virtual void write_variant_uint64(uint64_t value);
+  virtual void write_int64(int64_t value);
+  virtual void write_float(float value);
+  virtual void write_double(double value);
   virtual void write_string(const std::string &value);
   virtual void write_string_stream(const StringWriteStream &stream);
   virtual void write_string_stream(const BorrowedWriteStream &stream);
   virtual void write_field_header(uint32_t field_number, uint8_t wire_type);
+  template <typename T> void write_packed_element(const T &value) {
+    write_raw_bytes(reinterpret_cast<const uint8_t *>(&value), sizeof(T));
+  }
 
   virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) = 0;
   virtual int64_t size() const = 0;
@@ -121,4 +117,3 @@ private:
 
 } // namespace utils
 } // namespace onnx2
-} // namespace validation

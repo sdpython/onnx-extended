@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <vector>
 
-namespace validation {
 namespace onnx2 {
 namespace utils {
 
@@ -13,9 +12,6 @@ std::string FieldNumber::string() const {
   return onnx_extended_helpers::MakeString("[field_number=", field_number,
                                            ", wire_type=", wire_type, "]");
 }
-
-void BinaryStream::next_packed_element(int64_t &value) { value = next_int64(); }
-void BinaryStream::next_packed_element(uint64_t &value) { value = next_uint64(); }
 
 std::string BinaryStream::next_string() {
   uint64_t length = next_uint64();
@@ -26,7 +22,22 @@ std::string BinaryStream::next_string() {
 
 int64_t BinaryStream::next_int64() {
   uint64_t value = next_uint64();
-  return decodeZigZag64(value);
+  // return decodeZigZag64(value);
+  return static_cast<int64_t>(value);
+}
+
+int32_t BinaryStream::next_int32() {
+  uint64_t value = next_uint64();
+  // return decodeZigZag64(value);
+  return static_cast<int32_t>(value);
+}
+
+float BinaryStream::next_float() {
+  return *reinterpret_cast<const float *>(read_bytes(sizeof(float)));
+}
+
+double BinaryStream::next_double() {
+  return *reinterpret_cast<const double *>(read_bytes(sizeof(double)));
 }
 
 FieldNumber BinaryStream::next_field() {
@@ -75,13 +86,6 @@ uint64_t StringStream::next_uint64() {
             ", size=", size_);
 }
 
-float StringStream::next_float32() {
-  this->can_read(sizeof(float), "[StringStream::next_float]");
-  const float *value = reinterpret_cast<const float *>(data_ + pos_);
-  pos_ += sizeof(float);
-  return *value;
-}
-
 void BinaryWriteStream::write_variant_uint64(uint64_t value) {
   uint8_t v;
   while (value > 127) {
@@ -91,6 +95,19 @@ void BinaryWriteStream::write_variant_uint64(uint64_t value) {
   }
   v = static_cast<uint8_t>(value);
   write_raw_bytes(reinterpret_cast<uint8_t *>(&v), 1);
+}
+
+void BinaryWriteStream::write_int64(int64_t value) {
+  // write_variant_uint64(encodeZigZag64(value));
+  write_variant_uint64(static_cast<uint64_t>(value));
+}
+
+void BinaryWriteStream::write_float(float value) {
+  write_raw_bytes(reinterpret_cast<uint8_t *>(&value), sizeof(float));
+}
+
+void BinaryWriteStream::write_double(double value) {
+  write_raw_bytes(reinterpret_cast<uint8_t *>(&value), sizeof(double));
 }
 
 void BinaryWriteStream::write_field_header(uint32_t field_number, uint8_t wire_type) {
@@ -125,4 +142,3 @@ void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t) {
 
 } // namespace utils
 } // namespace onnx2
-} // namespace validation
