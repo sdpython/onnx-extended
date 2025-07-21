@@ -360,6 +360,38 @@ class TestOnnx2(ExtTestCase):
         self.assertEqual(p0.tensor_name, p2.tensor_name)
         self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
+    def test_int_int_list_entry_proto(self):
+        p = onnx.IntIntListEntryProto()
+        p.key = 1
+        p.value.extend([3, 4])
+
+        s = p.SerializeToString()
+        p2 = onnx2.IntIntListEntryProto()
+        p2.ParseFromString(s)
+        self.assertEqual(p.key, p2.key)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.IntIntListEntryProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p0.key, p2.key)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_int_int_list_entry_proto_reverse(self):
+        p = onnx2.IntIntListEntryProto()
+        p.key = 1
+        p.value.extend([3, 4])
+
+        s = p.SerializeToString()
+        p2 = onnx.IntIntListEntryProto()
+        p2.ParseFromString(s)
+        self.assertEqual(p.key, p2.key)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.IntIntListEntryProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p0.key, p2.key)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
