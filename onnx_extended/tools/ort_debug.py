@@ -1,7 +1,11 @@
 from typing import Any, Dict, Iterator, List, Optional, Union, Tuple
 import numpy as np
 from onnx import AttributeProto, ModelProto, NodeProto, load
-from onnx.reference.op_run import to_array_extended
+
+try:
+    from onnx.reference.op_run import to_array_extended
+except ImportError:
+    from onnx.numpy_helper import to_array as to_array_extended
 from .onnx_nodes import select_model_inputs_outputs
 
 

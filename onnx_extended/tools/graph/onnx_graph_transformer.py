@@ -10,8 +10,19 @@ from onnx.helper import (
     tensor_dtype_to_np_dtype,
 )
 from onnx.numpy_helper import float8e4m3_to_float32, float8e5m2_to_float32
-from onnx.reference.custom_element_types import float8e4m3fn
-from onnx.reference.op_run import to_array_extended
+
+try:
+    from onnx.reference.custom_element_types import float8e4m3fn
+except ImportError:
+    import ml_dtypes
+
+    float8e4m3fn = ml_dtypes.float8_e4m3fn
+
+try:
+    from onnx.reference.op_run import to_array_extended
+except ImportError:
+    from onnx.numpy_helper import to_array as to_array_extended
+
 from onnx.onnx_cpp2py_export.defs import SchemaError
 
 try:

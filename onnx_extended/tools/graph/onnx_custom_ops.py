@@ -3,12 +3,17 @@ import numpy as np
 from onnx import TensorProto
 from onnx.defs import OpSchema
 from onnx.helper import make_attribute
-from onnx.reference.custom_element_types import (
-    float8e4m3fn,
-    float8e4m3fnuz,
-    float8e5m2,
-    float8e5m2fnuz,
-)
+
+try:
+    from onnx.reference.custom_element_types import (
+        float8e4m3fn,
+        float8e4m3fnuz,
+        float8e5m2,
+        float8e5m2fnuz,
+    )
+except ImportError:
+    float8e4m3fn = None
+
 from onnx.reference.op_run import OpRun
 
 try:
@@ -95,6 +100,16 @@ def is_float8_dtype(dtype) -> bool:
     """
     Returns true if dtype is a float 8 type.
     """
+    if float8e4m3fn is None:
+        import ml_dtypes
+
+        f8 = {
+            ml_dtypes.float8_e4m3fn,
+            ml_dtypes.float8_e4m3fnuz,
+            ml_dtypes.float8_e5m2,
+            ml_dtypes.float8_e5m2fnuz,
+        }
+        return dtype in f8
     f8 = {
         (float8e4m3fn, "e4m3fn"),
         (float8e4m3fnuz, "e4m3fnuz"),
