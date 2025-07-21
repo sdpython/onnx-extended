@@ -154,6 +154,16 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order,
   }
 }
 
+template <>
+void write_repeated_field(utils::BinaryWriteStream &stream, int order,
+                          const std::vector<std::string> &field, bool is_packed) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
+  for (auto d : field) {
+    stream.write_field_header(order, FIELD_FIXED_SIZE);
+    stream.write_string(d);
+  }
+}
+
 #define WRITE_REPEATED_FIELD_IMPL(type, unpack_method)                                         \
   template <>                                                                                  \
   void write_repeated_field(utils::BinaryWriteStream &stream, int order,                       \
@@ -290,6 +300,15 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector
   T elem;
   elem.ParseFromStream(dim_buf);
   field.emplace_back(elem);
+}
+
+template <>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type,
+                         std::vector<std::string> &field, const char *name, bool is_packed) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field name '", name, "'");
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  field.push_back(stream.next_string());
 }
 
 #define READ_REPEATED_FIELD_IMPL(type, unpack_method, unpacked_wire_type)                      \

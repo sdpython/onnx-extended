@@ -65,6 +65,7 @@ void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_REPEATED_FIELD(stream, int32_data)
   WRITE_REPEATED_FIELD(stream, int64_data)
   WRITE_REPEATED_FIELD(stream, uint64_data)
+  WRITE_REPEATED_FIELD(stream, string_data)
 }
 
 void TensorProto::ParseFromStream(utils::BinaryStream &stream) {
@@ -82,6 +83,7 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_REPEATED_FIELD(stream, int32_data)
   READ_REPEATED_FIELD(stream, int64_data)
   READ_REPEATED_FIELD(stream, uint64_data)
+  READ_REPEATED_FIELD(stream, string_data)
   READ_END(stream, TensorProto)
 }
 

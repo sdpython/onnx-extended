@@ -116,7 +116,19 @@ PYBIND11_MODULE(_onnx2py, m) {
   py::class_<onnx2::TensorProto>(m, "TensorProto", "TensorProto")
       .def(py::init<>())
       .FIELD(TensorProto, dims)
-      .FIELD(TensorProto, data_type)
+      .def_property(
+          "data_type",
+          [](const onnx2::TensorProto &self) -> onnx2::TensorProto::DataType {
+            return self.data_type_;
+          },
+          [](onnx2::TensorProto &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.data_type_ = static_cast<onnx2::TensorProto::DataType>(obj.cast<int>());
+            } else {
+              self.data_type_ = obj.cast<onnx2::TensorProto::DataType>();
+            }
+          },
+          "data_type")
       .FIELD(TensorProto, name)
       .FIELD(TensorProto, doc_string)
       .FIELD(TensorProto, external_data)
@@ -127,6 +139,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(TensorProto, int64_data)
       .FIELD(TensorProto, int32_data)
       .FIELD(TensorProto, uint64_data)
+      .FIELD(TensorProto, string_data)
       .def_property(
           "raw_data",
           [](const onnx2::TensorProto &self) -> py::bytes {

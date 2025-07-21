@@ -241,7 +241,49 @@ class TestOnnx2(ExtTestCase):
         self.assertEqual(tuple(p0.uint64_data), tuple(p2.uint64_data))
         self.assertEqual(s, s0)
 
-    def _test_sparse_tensor_proto(self):
+    def test_tensor_proto_uint64_data_reverse(self):
+        p = onnx2.TensorProto()
+        p.name = "test"
+        p.dims.extend([2])
+        p.uint64_data.extend((4, 5))
+        p.data_type = onnx.TensorProto.UINT64
+        s = p.SerializeToString()
+
+        p2 = onnx.TensorProto()
+        p2.ParseFromString(s)
+        self.assertEqual(tuple(p.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p.uint64_data), tuple(p2.uint64_data))
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TensorProto()
+        p0.ParseFromString(s2)
+        s0 = p0.SerializeToString()
+        self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p0.uint64_data), tuple(p2.uint64_data))
+        self.assertEqual(s, s0)
+
+    def test_tensor_proto_string_data(self):
+        p = onnx.TensorProto()
+        p.name = "test"
+        p.dims.extend([2])
+        p.string_data.extend((b"s4", b"s5"))
+        p.data_type = onnx.TensorProto.STRING
+        s = p.SerializeToString()
+
+        p2 = onnx2.TensorProto()
+        p2.ParseFromString(s)
+        self.assertEqual(tuple(p.dims), tuple(p2.dims))
+        # self.assertEqual(tuple(p.string_data), tuple(p2.string_data))
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.TensorProto()
+        p0.ParseFromString(s2)
+        s0 = p0.SerializeToString()
+        self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p0.string_data), tuple(p.string_data))
+        self.assertEqual(s, s0)
+
+    def test_sparse_tensor_proto(self):
         dense_shape = [3, 3]
         sparse_values = [1.764052391052246, 0.40015721321105957, 0.978738009929657]
         values_tensor = oh.make_tensor(
