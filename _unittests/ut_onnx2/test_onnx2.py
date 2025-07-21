@@ -274,10 +274,31 @@ class TestOnnx2(ExtTestCase):
         p2 = onnx2.TensorProto()
         p2.ParseFromString(s)
         self.assertEqual(tuple(p.dims), tuple(p2.dims))
-        # self.assertEqual(tuple(p.string_data), tuple(p2.string_data))
+        self.assertEqual(tuple(p.string_data), tuple(p2.string_data))
 
         s2 = p2.SerializeToString()
         p0 = onnx.TensorProto()
+        p0.ParseFromString(s2)
+        s0 = p0.SerializeToString()
+        self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p0.string_data), tuple(p.string_data))
+        self.assertEqual(s, s0)
+
+    def test_tensor_proto_string_data_reverse(self):
+        p = onnx2.TensorProto()
+        p.name = "test"
+        p.dims.extend([2])
+        p.string_data.extend((b"s4", b"s5"))
+        p.data_type = onnx.TensorProto.STRING
+        s = p.SerializeToString()
+
+        p2 = onnx.TensorProto()
+        p2.ParseFromString(s)
+        self.assertEqual(tuple(p.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p.string_data), tuple(p2.string_data))
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TensorProto()
         p0.ParseFromString(s2)
         s0 = p0.SerializeToString()
         self.assertEqual(tuple(p0.dims), tuple(p2.dims))

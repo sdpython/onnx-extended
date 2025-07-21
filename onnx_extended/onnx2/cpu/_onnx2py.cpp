@@ -203,7 +203,30 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(TensorProto, int64_data)
       .FIELD(TensorProto, int32_data)
       .FIELD(TensorProto, uint64_data)
-      .FIELD(TensorProto, string_data)
+      .def_property(
+          "string_data",
+          [](const onnx2::TensorProto &self) -> py::list {
+            py::list result;
+            for (const auto &s : self.string_data_) {
+              result.append(py::bytes(s));
+            }
+            return result;
+          },
+          [](onnx2::TensorProto &self, py::list data) {
+            std::vector<std::string> result;
+            result.reserve(py::len(data));
+
+            for (const auto &item : data) {
+              if (py::isinstance<py::bytes>(item)) {
+                result.emplace_back(item.cast<std::string>());
+              } else if (py::isinstance<py::str>(item)) {
+                result.emplace_back(item.cast<std::string>());
+              } else {
+                EXT_THROW("unable to convert one item from the list into a string")
+              }
+            }
+          },
+          "string_data")
       .def_property(
           "raw_data",
           [](const onnx2::TensorProto &self) -> py::bytes {
