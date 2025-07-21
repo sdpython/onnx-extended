@@ -19,7 +19,10 @@ try:
     )
 except ImportError:
     from onnx.reference.ops.op_dequantize_linear import DequantizeLinear
-from onnx.reference.op_run import to_array_extended
+try:
+    from onnx.reference.op_run import to_array_extended
+except ImportError:
+    from onnx.numpy_helper import to_array as to_array_extended
 
 try:
     from onnxruntime import InferenceSession, SessionOptions

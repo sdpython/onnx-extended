@@ -11,7 +11,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.request import urlretrieve
 import numpy as np
 from onnx import ModelProto, TensorProto, load
-from onnx.reference.op_run import to_array_extended
+
+try:
+    from onnx.reference.op_run import to_array_extended
+except ImportError:
+    from onnx.numpy_helper import to_array as to_array_extended
 from ..reference import CReferenceEvaluator, from_array_extended
 
 
