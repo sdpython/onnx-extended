@@ -467,6 +467,82 @@ class TestOnnx2(ExtTestCase):
                 p0.ParseFromString(s2)
                 self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
+    def test_sharded_dim_proto(self):
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.ShardedDimProto()
+                p.axis = 3
+                a = p.simple_sharding.add()
+                a.dim_value = 4
+                a.num_shards = 5
+
+                s = p.SerializeToString()
+                p2 = x2.ShardedDimProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.ShardedDimProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_sharding_spec_proto(self):
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.ShardingSpecProto()
+                p.tensor_name = "erty"
+                p.device.extend([4, 5])
+                a = p.index_to_device_group_map.add()
+                a.key = 10
+                a.value.extend([6, 7])
+                a = p.index_to_device_group_map.add()
+                a.key = 11
+                a.value.extend([61, 71])
+                b = p.sharded_dim.add()
+                b.axis = 3
+                c = b.simple_sharding.add()
+                c.dim_value = 4
+                c.num_shards = 5
+
+                s = p.SerializeToString()
+                p2 = x2.ShardingSpecProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.ShardingSpecProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_node_device_configuration_proto(self):
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.NodeDeviceConfigurationProto()
+                p.configuration_id = "cid"
+                p.pipeline_stage = 5
+
+                ps = p.sharding_spec.add()
+                ps.tensor_name = "erty"
+                ps.device.extend([4, 5])
+                a = ps.index_to_device_group_map.add()
+                a.key = 10
+                a.value.extend([6, 7])
+                a = ps.index_to_device_group_map.add()
+                a.key = 11
+                a.value.extend([61, 71])
+                b = ps.sharded_dim.add()
+                b.axis = 3
+                c = b.simple_sharding.add()
+                c.dim_value = 4
+                c.num_shards = 5
+
+                s = p.SerializeToString()
+                p2 = x2.NodeDeviceConfigurationProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.NodeDeviceConfigurationProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

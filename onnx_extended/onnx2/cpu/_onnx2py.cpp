@@ -166,6 +166,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(IntIntListEntryProto, value)
       .ADD_PROTO_SERIALIZATION(IntIntListEntryProto);
 
+  bind_repeated_field<onnx2::IntIntListEntryProto>(m, "RepeatedFieldIntIntListEntryProto");
+
   py::class_<onnx2::DeviceConfigurationProto>(m, "DeviceConfigurationProto",
                                               "DeviceConfigurationProto")
       .def(py::init<>())
@@ -180,6 +182,34 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(SimpleShardedDimProto, dim_param)
       .FIELD(SimpleShardedDimProto, num_shards)
       .ADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
+
+  bind_repeated_field<onnx2::SimpleShardedDimProto>(m, "RepeatedFieldSimpleShardedDimProto");
+
+  py::class_<onnx2::ShardedDimProto>(m, "ShardedDimProto", "ShardedDimProto")
+      .def(py::init<>())
+      .FIELD(ShardedDimProto, axis)
+      .FIELD(ShardedDimProto, simple_sharding)
+      .ADD_PROTO_SERIALIZATION(ShardedDimProto);
+
+  bind_repeated_field<onnx2::ShardedDimProto>(m, "RepeatedFieldShardedDimProto");
+
+  py::class_<onnx2::ShardingSpecProto>(m, "ShardingSpecProto", "ShardingSpecProto")
+      .def(py::init<>())
+      .FIELD(ShardingSpecProto, tensor_name)
+      .FIELD(ShardingSpecProto, device)
+      .FIELD(ShardingSpecProto, index_to_device_group_map)
+      .FIELD(ShardingSpecProto, sharded_dim)
+      .ADD_PROTO_SERIALIZATION(ShardingSpecProto);
+
+  bind_repeated_field<onnx2::ShardingSpecProto>(m, "RepeatedFieldShardingSpecProto");
+
+  py::class_<onnx2::NodeDeviceConfigurationProto>(
+      m, "NodeDeviceConfigurationProto", "ShardingSpecNodeDeviceConfigurationProtoProto")
+      .def(py::init<>())
+      .FIELD(NodeDeviceConfigurationProto, configuration_id)
+      .FIELD(NodeDeviceConfigurationProto, sharding_spec)
+      .FIELD_OPTIONAL_INT(NodeDeviceConfigurationProto, pipeline_stage)
+      .ADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
 
   py::class_<onnx2::TensorShapeProto::Dimension>(m, "Dimension",
                                                  "Dimension, an integer value or a string")

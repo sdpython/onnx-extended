@@ -108,7 +108,7 @@ void write_field(utils::BinaryWriteStream &stream, int order,
 
 template <>
 void write_field(utils::BinaryWriteStream &stream, int order,
-                 const std::optional<int64_t> &field) {
+                 const utils::OptionalField<int64_t> &field) {
   if (field.has_value()) {
     stream.write_field_header(order, FIELD_VARINT);
     stream.write_variant_uint64(static_cast<uint64_t>(*field));
@@ -117,7 +117,7 @@ void write_field(utils::BinaryWriteStream &stream, int order,
 
 template <>
 void write_field(utils::BinaryWriteStream &stream, int order,
-                 const utils::OptionalField<int64_t> &field) {
+                 const utils::OptionalField<int32_t> &field) {
   if (field.has_value()) {
     stream.write_field_header(order, FIELD_VARINT);
     stream.write_variant_uint64(static_cast<uint64_t>(*field));
@@ -275,8 +275,8 @@ void read_field(utils::BinaryStream &stream, int wire_type,
 }
 
 template <>
-void read_field(utils::BinaryStream &stream, int wire_type, std::optional<int64_t> &field,
-                const char *name) {
+void read_field(utils::BinaryStream &stream, int wire_type,
+                utils::OptionalField<int64_t> &field, const char *name) {
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
               name, "'");
   field = stream.next_int64();
@@ -284,10 +284,10 @@ void read_field(utils::BinaryStream &stream, int wire_type, std::optional<int64_
 
 template <>
 void read_field(utils::BinaryStream &stream, int wire_type,
-                utils::OptionalField<int64_t> &field, const char *name) {
+                utils::OptionalField<int32_t> &field, const char *name) {
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
               name, "'");
-  field = stream.next_int64();
+  field = stream.next_int32();
 }
 
 template <>

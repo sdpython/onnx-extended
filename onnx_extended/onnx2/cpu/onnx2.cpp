@@ -15,6 +15,100 @@ void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_END(stream, StringStringEntryProto)
 }
 
+void TensorAnnotation::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, tensor_name)
+  WRITE_REPEATED_FIELD(stream, quant_parameter_tensor_names)
+}
+
+void TensorAnnotation::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, TensorAnnotation)
+  READ_FIELD(stream, tensor_name)
+  READ_REPEATED_FIELD(stream, quant_parameter_tensor_names)
+  READ_END(stream, TensorAnnotation)
+}
+
+void IntIntListEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, key)
+  WRITE_REPEATED_FIELD(stream, value)
+}
+
+void IntIntListEntryProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, IntIntListEntryProto)
+  READ_FIELD(stream, key)
+  READ_REPEATED_FIELD(stream, value)
+  READ_END(stream, IntIntListEntryProto)
+}
+
+void DeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, name)
+  WRITE_FIELD(stream, num_devices)
+  WRITE_REPEATED_FIELD(stream, device)
+}
+
+void DeviceConfigurationProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, DeviceConfigurationProto)
+  READ_FIELD(stream, name)
+  READ_FIELD(stream, num_devices)
+  READ_REPEATED_FIELD(stream, device)
+  READ_END(stream, DeviceConfigurationProto)
+}
+
+void SimpleShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, dim_value)
+  WRITE_FIELD(stream, dim_param)
+  WRITE_FIELD(stream, num_shards)
+}
+
+void SimpleShardedDimProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, SimpleShardedDimProto)
+  READ_FIELD(stream, dim_value)
+  READ_FIELD(stream, dim_param)
+  READ_FIELD(stream, num_shards)
+  READ_END(stream, SimpleShardedDimProto)
+}
+
+void ShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, axis)
+  WRITE_REPEATED_FIELD(stream, simple_sharding)
+}
+
+void ShardedDimProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, ShardedDimProto)
+  READ_FIELD(stream, axis)
+  READ_REPEATED_FIELD(stream, simple_sharding)
+  READ_END(stream, ShardedDimProto)
+}
+
+void ShardingSpecProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, tensor_name)
+  WRITE_REPEATED_FIELD(stream, device)
+  WRITE_REPEATED_FIELD(stream, index_to_device_group_map)
+  WRITE_REPEATED_FIELD(stream, sharded_dim)
+}
+
+void ShardingSpecProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, ShardingSpecProto)
+  READ_FIELD(stream, tensor_name)
+  READ_REPEATED_FIELD(stream, device)
+  READ_REPEATED_FIELD(stream, index_to_device_group_map)
+  READ_REPEATED_FIELD(stream, sharded_dim)
+  READ_END(stream, ShardingSpecProto)
+}
+
+void NodeDeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, configuration_id)
+  WRITE_REPEATED_FIELD(stream, sharding_spec)
+  WRITE_FIELD(stream, pipeline_stage)
+}
+
+void NodeDeviceConfigurationProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, NodeDeviceConfigurationProto)
+  READ_FIELD(stream, configuration_id)
+  READ_REPEATED_FIELD(stream, sharding_spec)
+  READ_FIELD(stream, pipeline_stage)
+  READ_END(stream, NodeDeviceConfigurationProto)
+}
+
 void OperatorSetIdProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, domain)
   WRITE_FIELD(stream, version)
@@ -99,58 +193,6 @@ void SparseTensorProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_FIELD(stream, indices)
   READ_REPEATED_FIELD(stream, dims)
   READ_END(stream, SparseTensorProto)
-}
-
-void TensorAnnotation::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  WRITE_FIELD(stream, tensor_name)
-  WRITE_REPEATED_FIELD(stream, quant_parameter_tensor_names)
-}
-
-void TensorAnnotation::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, TensorAnnotation)
-  READ_FIELD(stream, tensor_name)
-  READ_REPEATED_FIELD(stream, quant_parameter_tensor_names)
-  READ_END(stream, TensorAnnotation)
-}
-
-void IntIntListEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  WRITE_FIELD(stream, key)
-  WRITE_REPEATED_FIELD(stream, value)
-}
-
-void IntIntListEntryProto::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, IntIntListEntryProto)
-  READ_FIELD(stream, key)
-  READ_REPEATED_FIELD(stream, value)
-  READ_END(stream, IntIntListEntryProto)
-}
-
-void DeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  WRITE_FIELD(stream, name)
-  WRITE_FIELD(stream, num_devices)
-  WRITE_REPEATED_FIELD(stream, device)
-}
-
-void DeviceConfigurationProto::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, DeviceConfigurationProto)
-  READ_FIELD(stream, name)
-  READ_FIELD(stream, num_devices)
-  READ_REPEATED_FIELD(stream, device)
-  READ_END(stream, DeviceConfigurationProto)
-}
-
-void SimpleShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
-  WRITE_FIELD(stream, dim_value)
-  WRITE_FIELD(stream, dim_param)
-  WRITE_FIELD(stream, num_shards)
-}
-
-void SimpleShardedDimProto::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, SimpleShardedDimProto)
-  READ_FIELD(stream, dim_value)
-  READ_FIELD(stream, dim_param)
-  READ_FIELD(stream, num_shards)
-  READ_END(stream, SimpleShardedDimProto)
 }
 
 } // namespace onnx2

@@ -16,6 +16,67 @@ public:
   SERIALIZATION_METHOD()
 };
 
+class IntIntListEntryProto {
+public:
+  inline IntIntListEntryProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(int64_t, key, 1)
+  FIELD_REPEATED(int64_t, value, 2)
+};
+
+class TensorAnnotation {
+public:
+  inline TensorAnnotation() {}
+  SERIALIZATION_METHOD()
+  FIELD(std::string, tensor_name, 1)
+  FIELD_REPEATED(StringStringEntryProto, quant_parameter_tensor_names, 2)
+};
+
+class DeviceConfigurationProto {
+public:
+  inline DeviceConfigurationProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(std::string, name, 1)
+  FIELD(int32_t, num_devices, 2)
+  FIELD_REPEATED(std::string, device, 3)
+};
+
+class SimpleShardedDimProto {
+public:
+  inline SimpleShardedDimProto() {}
+  SERIALIZATION_METHOD()
+  FIELD_OPTIONAL(int64_t, dim_value, 1)
+  FIELD(std::string, dim_param, 2)
+  FIELD(int64_t, num_shards, 3)
+};
+
+class ShardedDimProto {
+public:
+  inline ShardedDimProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(int64_t, axis, 1)
+  FIELD_REPEATED(SimpleShardedDimProto, simple_sharding, 2)
+};
+
+class ShardingSpecProto {
+public:
+  inline ShardingSpecProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(std::string, tensor_name, 1)
+  FIELD_REPEATED(int64_t, device, 2)
+  FIELD_REPEATED(IntIntListEntryProto, index_to_device_group_map, 3)
+  FIELD_REPEATED(ShardedDimProto, sharded_dim, 4)
+};
+
+class NodeDeviceConfigurationProto {
+public:
+  inline NodeDeviceConfigurationProto() {}
+  SERIALIZATION_METHOD()
+  FIELD(std::string, configuration_id, 1)
+  FIELD_REPEATED(ShardingSpecProto, sharding_spec, 2)
+  FIELD_OPTIONAL(int32_t, pipeline_stage, 3)
+};
+
 class OperatorSetIdProto {
 public:
   inline OperatorSetIdProto() {}
@@ -132,40 +193,6 @@ public:
   FIELD(TensorProto, values, 1)
   FIELD(TensorProto, indices, 2)
   FIELD_REPEATED(int64_t, dims, 3)
-};
-
-class TensorAnnotation {
-public:
-  inline TensorAnnotation() {}
-  SERIALIZATION_METHOD()
-  FIELD(std::string, tensor_name, 1)
-  FIELD_REPEATED(StringStringEntryProto, quant_parameter_tensor_names, 2)
-};
-
-class IntIntListEntryProto {
-public:
-  inline IntIntListEntryProto() {}
-  SERIALIZATION_METHOD()
-  FIELD(int64_t, key, 1)
-  FIELD_REPEATED(int64_t, value, 2)
-};
-
-class DeviceConfigurationProto {
-public:
-  inline DeviceConfigurationProto() {}
-  SERIALIZATION_METHOD()
-  FIELD(std::string, name, 1)
-  FIELD(int32_t, num_devices, 2)
-  FIELD_REPEATED(std::string, device, 3)
-};
-
-class SimpleShardedDimProto {
-public:
-  inline SimpleShardedDimProto() {}
-  SERIALIZATION_METHOD()
-  FIELD_OPTIONAL(int64_t, dim_value, 1)
-  FIELD(std::string, dim_param, 2)
-  FIELD(int64_t, num_shards, 3)
 };
 
 } // namespace onnx2
