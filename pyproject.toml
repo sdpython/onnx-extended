@@ -87,6 +87,7 @@ report_level = "INFO"
 ignore_directives = [
     "autoclass",
     "autofunction",
+    "automodule",
     "gdot",
     "ifconfig",
     "image-sg",
