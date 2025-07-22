@@ -543,6 +543,43 @@ class TestOnnx2(ExtTestCase):
                 p0.ParseFromString(s2)
                 self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
+    def test_tensor_proto_data_type(self):
+        self.assertEqual(onnx2.TensorProto.UNDEFINED, onnx.TensorProto.UNDEFINED)
+        self.assertEqual(onnx2.TensorProto.FLOAT, onnx.TensorProto.FLOAT)
+        self.assertEqual(onnx2.TensorProto.UINT8, onnx.TensorProto.UINT8)
+        self.assertEqual(onnx2.TensorProto.INT8, onnx.TensorProto.INT8)
+        self.assertEqual(onnx2.TensorProto.UINT16, onnx.TensorProto.UINT16)
+        self.assertEqual(onnx2.TensorProto.INT16, onnx.TensorProto.INT16)
+        self.assertEqual(onnx2.TensorProto.INT32, onnx.TensorProto.INT32)
+        self.assertEqual(onnx2.TensorProto.INT64, onnx.TensorProto.INT64)
+        self.assertEqual(onnx2.TensorProto.STRING, onnx.TensorProto.STRING)
+        self.assertEqual(onnx2.TensorProto.BOOL, onnx.TensorProto.BOOL)
+        self.assertEqual(onnx2.TensorProto.FLOAT16, onnx.TensorProto.FLOAT16)
+        self.assertEqual(onnx2.TensorProto.DOUBLE, onnx.TensorProto.DOUBLE)
+        self.assertEqual(onnx2.TensorProto.UINT32, onnx.TensorProto.UINT32)
+        self.assertEqual(onnx2.TensorProto.UINT64, onnx.TensorProto.UINT64)
+        self.assertEqual(onnx2.TensorProto.COMPLEX64, onnx.TensorProto.COMPLEX64)
+        self.assertEqual(onnx2.TensorProto.COMPLEX128, onnx.TensorProto.COMPLEX128)
+        self.assertEqual(onnx2.TensorProto.BFLOAT16, onnx.TensorProto.BFLOAT16)
+        self.assertEqual(onnx2.TensorProto.FLOAT8E4M3FN, onnx.TensorProto.FLOAT8E4M3FN)
+        self.assertEqual(
+            onnx2.TensorProto.FLOAT8E4M3FNUZ, onnx.TensorProto.FLOAT8E4M3FNUZ
+        )
+        self.assertEqual(onnx2.TensorProto.FLOAT8E5M2, onnx.TensorProto.FLOAT8E5M2)
+        self.assertEqual(
+            onnx2.TensorProto.FLOAT8E5M2FNUZ, onnx.TensorProto.FLOAT8E5M2FNUZ
+        )
+        self.assertEqual(onnx2.TensorProto.UINT4, onnx.TensorProto.UINT4)
+        self.assertEqual(onnx2.TensorProto.INT4, onnx.TensorProto.INT4)
+        self.assertEqual(onnx2.TensorProto.FLOAT4E2M1, onnx.TensorProto.FLOAT4E2M1)
+        self.assertEqual(onnx2.TensorProto.FLOAT8E8M0, onnx.TensorProto.FLOAT8E8M0)
+
+        for k in dir(onnx.TensorProto):
+            v = getattr(onnx.TensorProto, k)
+            if isinstance(v, int):
+                with self.subTest(attr=k):
+                    self.assertEqual(v, getattr(onnx2.TensorProto, k))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

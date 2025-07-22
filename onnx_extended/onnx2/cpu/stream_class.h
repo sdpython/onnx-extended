@@ -71,4 +71,9 @@ template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
   return !field.empty();
 }
 
+class Message {
+public:
+  inline Message() {}
+};
+
 } // namespace onnx2
