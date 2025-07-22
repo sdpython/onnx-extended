@@ -2,15 +2,71 @@
 
 #include "onnx_extended_helpers.h"
 #include <cstddef>
+#include <optional>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace onnx2 {
 namespace utils {
 
 typedef int64_t offset_t;
+
+template <typename T> class RepeatedField {
+public:
+  inline RepeatedField() {}
+  inline void reserve(size_t n) { values.reserve(n); }
+  inline void clear() { values.clear(); }
+  inline bool empty() const { return values.empty(); }
+  inline size_t size() const { return values.size(); }
+  inline T &operator[](size_t index) { return values[index]; }
+  inline const T &operator[](size_t index) const { return values[index]; }
+  inline void remove_range(size_t start, size_t stop, size_t step) {
+    EXT_ENFORCE(step == 1, "remove_range not implemented for step=", static_cast<int>(step));
+    EXT_ENFORCE(start == 0, "remove_range not implemented for start=", static_cast<int>(start));
+    EXT_ENFORCE(stop == size(),
+                "remove_range not implemented for stop=", static_cast<int>(stop),
+                " and size=", static_cast<int>(size()));
+    clear();
+  }
+  inline void extend(const std::vector<T> &v) {
+    values.insert(values.end(), v.begin(), v.end());
+  }
+  inline void extend(const RepeatedField<T> &v) {
+    values.insert(values.end(), v.begin(), v.end());
+  }
+  inline T &add() {
+    values.emplace_back(T());
+    return values.back();
+  }
+  inline std::vector<T>::iterator begin() { return values.begin(); }
+  inline std::vector<T>::iterator end() { return values.end(); }
+  inline std::vector<T>::const_iterator begin() const { return values.begin(); }
+  inline std::vector<T>::const_iterator end() const { return values.end(); }
+  template <class... Args> inline void emplace_back(Args &&...args) {
+    values.emplace_back(std::forward<Args>(args)...);
+  }
+  std::vector<T> values;
+};
+
+template <typename T> class OptionalField {
+public:
+  inline OptionalField() {}
+  inline bool has_value() const { return value.has_value(); }
+  inline void reset() { value.reset(); }
+  inline const T &operator*() const { return *value; }
+  inline T &operator*() { return *value; }
+  inline bool operator==(const OptionalField<T> &v) const { return value == v; }
+  inline bool operator==(const T &v) const { return value == v; }
+  inline OptionalField<T> &operator=(const T &other) {
+    value = other;
+    return *this;
+  }
+  std::optional<T> value;
+};
 
 inline int64_t decodeZigZag64(uint64_t n) { return (n >> 1) ^ -(n & 1); }
 inline uint64_t encodeZigZag64(int64_t n) {
@@ -76,6 +132,7 @@ public:
   inline BinaryWriteStream() {}
   virtual void write_variant_uint64(uint64_t value);
   virtual void write_int64(int64_t value);
+  virtual void write_int32(int32_t value);
   virtual void write_float(float value);
   virtual void write_double(double value);
   virtual void write_string(const std::string &value);

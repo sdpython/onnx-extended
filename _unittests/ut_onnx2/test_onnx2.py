@@ -66,6 +66,7 @@ class TestOnnx2(ExtTestCase):
         self.assertEqual(
             [kv[0].key, kv[0].value, kv[1].key, kv[1].value], ["k1", "vv1", "k2", "vv2"]
         )
+        del t2.metadata_props[:]
 
     def test_string_string_entry_proto(self):
         p = onnx.StringStringEntryProto()
@@ -337,6 +338,134 @@ class TestOnnx2(ExtTestCase):
         s0 = p0.SerializeToString()
         self.assertEqual(tuple(p0.dims), tuple(p2.dims))
         self.assertEqual(s, s0)
+
+    def test_tensor_annotation(self):
+        p = onnx.TensorAnnotation()
+        p.tensor_name = "T"
+        e = p.quant_parameter_tensor_names.add()
+        e.key = "K"
+        e.value = "V"
+        e = p.quant_parameter_tensor_names.add()
+        e.key = "K2"
+        e.value = "V2"
+
+        s = p.SerializeToString()
+        p2 = onnx2.TensorAnnotation()
+        p2.ParseFromString(s)
+        self.assertEqual(p.tensor_name, p2.tensor_name)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.TensorAnnotation()
+        p0.ParseFromString(s2)
+        self.assertEqual(p0.tensor_name, p2.tensor_name)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_tensor_annotation_reverse(self):
+        p = onnx2.TensorAnnotation()
+        p.tensor_name = "T"
+        e = p.quant_parameter_tensor_names.add()
+        e.key = "K"
+        e.value = "V"
+        e = p.quant_parameter_tensor_names.add()
+        e.key = "K2"
+        e.value = "V2"
+
+        s = p.SerializeToString()
+        p2 = onnx.TensorAnnotation()
+        p2.ParseFromString(s)
+        self.assertEqual(p.tensor_name, p2.tensor_name)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TensorAnnotation()
+        p0.ParseFromString(s2)
+        self.assertEqual(p0.tensor_name, p2.tensor_name)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_int_int_list_entry_proto(self):
+        p = onnx.IntIntListEntryProto()
+        p.key = 1
+        p.value.extend([3, 4])
+
+        s = p.SerializeToString()
+        p2 = onnx2.IntIntListEntryProto()
+        p2.ParseFromString(s)
+        self.assertEqual(p.key, p2.key)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.IntIntListEntryProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p0.key, p2.key)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_int_int_list_entry_proto_reverse(self):
+        p = onnx2.IntIntListEntryProto()
+        p.key = 1
+        p.value.extend([3, 4])
+
+        s = p.SerializeToString()
+        p2 = onnx.IntIntListEntryProto()
+        p2.ParseFromString(s)
+        self.assertEqual(p.key, p2.key)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.IntIntListEntryProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p0.key, p2.key)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_device_configuration_proto(self):
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.DeviceConfigurationProto()
+                p.name = "R"
+                p.num_devices = 3
+                p.device.extend(["T3", "G4"])
+
+                s = p.SerializeToString()
+                p2 = x2.DeviceConfigurationProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.DeviceConfigurationProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_simple_shared_dim_proto(self):
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.SimpleShardedDimProto()
+                p.dim_value = 3
+                # p.dim_param = "rt"
+                p.num_shards = 4
+                self.assertEqual(p.dim_value, 3)
+                self.assertEqual(p.dim_param, "")
+
+                s = p.SerializeToString()
+                p2 = x2.SimpleShardedDimProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.SimpleShardedDimProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+        for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
+            with self.subTest(start=x.__name__):
+                p = x.SimpleShardedDimProto()
+                # p.dim_value = 3
+                p.dim_param = "rt"
+                p.num_shards = 4
+                self.assertIn(p.dim_value, (0, None))
+                self.assertEqual(p.dim_param, "rt")
+
+                s = p.SerializeToString()
+                p2 = x2.SimpleShardedDimProto()
+                p2.ParseFromString(s)
+
+                s2 = p2.SerializeToString()
+                p0 = x.SimpleShardedDimProto()
+                p0.ParseFromString(s2)
+                self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
 
 if __name__ == "__main__":
