@@ -195,4 +195,26 @@ void SparseTensorProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_END(stream, SparseTensorProto)
 }
 
+void TypeProto::Tensor::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, elem_type)
+  WRITE_FIELD(stream, shape)
+}
+
+void TypeProto::Tensor::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, TypeProto::Tensor)
+  READ_FIELD(stream, elem_type)
+  READ_FIELD(stream, shape)
+  READ_END(stream, TypeProto::Tensor)
+}
+
+void TypeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_OPTIONAL_PROTO_FIELD(stream, tensor_type)
+}
+
+void TypeProto::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, TypeProto)
+  READ_OPTIONAL_PROTO_FIELD(stream, tensor_type)
+  READ_END(stream, TypeProto)
+}
+
 } // namespace onnx2

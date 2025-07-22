@@ -56,7 +56,8 @@ public:                                                                         
   }                                                                                            \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline int order_##name() const { return order; }                                            \
-  utils::OptionalField<type> name##_;
+  utils::OptionalField<type> name##_;                                                          \
+  using name##_t = type;
 
 namespace onnx2 {
 
@@ -74,6 +75,9 @@ template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
 class Message {
 public:
   inline Message() {}
+  inline bool operator==(const Message &) const {
+    EXT_THROW("operator == not implemented for a Message");
+  }
 };
 
 } // namespace onnx2

@@ -40,11 +40,31 @@ namespace py = pybind11;
         } else if (py::isinstance<py::int_>(obj)) {                                            \
           self.name##_ = obj.cast<int>();                                                      \
         } else {                                                                               \
-          EXT_ENFORCE("unable to set " #name " for class " #cls)                               \
+          EXT_ENFORCE("unable to set '" #name "' for class '" #cls "'");                       \
         }                                                                                      \
       },                                                                                       \
       #name)                                                                                   \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
+
+#define FIELD_OPTIONAL_PROTO(cls, name)                                                        \
+  def_property(                                                                                \
+      #name,                                                                                   \
+      [](const onnx2::cls &self) -> py::object {                                               \
+        if (self.name##_.has_value())                                                          \
+          return py::cast(*self.name##_);                                                      \
+        return py::none();                                                                     \
+      },                                                                                       \
+      [](onnx2::cls &self, py::object obj) {                                                   \
+        if (obj.is_none()) {                                                                   \
+          self.name##_.reset();                                                                \
+        } else if (py::isinstance<onnx2::cls::name##_t>(obj)) {                                \
+          self.name##_ = obj.cast<onnx2::cls::name##_t>();                                     \
+        } else {                                                                               \
+          EXT_ENFORCE("unable to set '" #name "' for class '" #cls "'");                       \
+        }                                                                                      \
+      },                                                                                       \
+      #name)                                                                                   \
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
 
 #define SHORTEN_CODE(dtype)                                                                    \
   def_property_readonly_static(#dtype, [](py::object) -> int {                                 \
@@ -220,8 +240,11 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD_OPTIONAL_INT(NodeDeviceConfigurationProto, pipeline_stage)
       .ADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
 
+  py::class_<onnx2::TensorShapeProto, onnx2::Message> cls_tensor_shape_proto(
+      m, "TensorShapeProto", "TensorShapeProto");
+
   py::class_<onnx2::TensorShapeProto::Dimension, onnx2::Message>(
-      m, "Dimension", "Dimension, an integer value or a string")
+      cls_tensor_shape_proto, "Dimension", "Dimension, an integer value or a string")
       .def(py::init<>())
       .FIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
       .FIELD(TensorShapeProto::Dimension, dim_param)
@@ -230,9 +253,7 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   bind_repeated_field<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
 
-  py::class_<onnx2::TensorShapeProto, onnx2::Message>(m, "TensorShapeProto",
-                                                      "TensorShapeProto, multiple DimProto")
-      .def(py::init<>())
+  cls_tensor_shape_proto.def(py::init<>())
       .FIELD(TensorShapeProto, dim)
       .ADD_PROTO_SERIALIZATION(TensorShapeProto);
 
@@ -360,4 +381,21 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD(SparseTensorProto, indices)
       .FIELD(SparseTensorProto, dims)
       .ADD_PROTO_SERIALIZATION(SparseTensorProto);
+
+  py::class_<onnx2::TypeProto, onnx2::Message> cls_type_proto(m, "TypeProto", "TypeProto");
+
+  py::class_<onnx2::TypeProto::Tensor, onnx2::Message>(cls_type_proto, "Tensor",
+                                                       "Tensor, nested class of TypeProto")
+      .def(py::init<>())
+      .FIELD_OPTIONAL_INT(TypeProto::Tensor, elem_type)
+      .FIELD(TypeProto::Tensor, shape)
+      .ADD_PROTO_SERIALIZATION(TypeProto::Tensor);
+
+  bind_optional_field<onnx2::TypeProto::Tensor>(m, "OptionalTypeProtoTensor");
+
+  cls_type_proto.def(py::init<>())
+      .FIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
+      .def("has_tensor_type", &onnx2::TypeProto::has_tensor_type,
+           "Tells if 'tenssor_type' has a value")
+      .ADD_PROTO_SERIALIZATION(TypeProto);
 }

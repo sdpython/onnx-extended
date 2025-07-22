@@ -60,11 +60,12 @@ public:
   inline const T &operator*() const { return *value; }
   inline T &operator*() { return *value; }
   inline bool operator==(const OptionalField<T> &v) const { return value == v; }
-  inline bool operator==(const T &v) const { return value == v; }
+  inline bool operator==(const T &v) const { return has_value() && *value == v; }
   inline OptionalField<T> &operator=(const T &other) {
     value = other;
     return *this;
   }
+  inline void set_empty_value() { value = T(); }
   std::optional<T> value;
 };
 

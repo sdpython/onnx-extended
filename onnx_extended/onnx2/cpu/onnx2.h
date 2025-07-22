@@ -195,6 +195,22 @@ public:
   FIELD_REPEATED(int64_t, dims, 3)
 };
 
+class TypeProto : public Message {
+public:
+  class Tensor : public Message {
+  public:
+    Tensor() : Message() {}
+    SERIALIZATION_METHOD()
+    FIELD_OPTIONAL(int32_t, elem_type, 1)
+    FIELD(TensorShapeProto, shape, 2)
+  };
+
+public:
+  inline TypeProto() : Message() {}
+  SERIALIZATION_METHOD()
+  FIELD_OPTIONAL(Tensor, tensor_type, 1)
+};
+
 } // namespace onnx2
 
 #if defined(FIELD)

@@ -580,6 +580,35 @@ class TestOnnx2(ExtTestCase):
                 with self.subTest(attr=k):
                     self.assertEqual(v, getattr(onnx2.TensorProto, k))
 
+    def test_type_proto_tensor_type(self):
+        t = oh.make_tensor_value_info("X", onnx.TensorProto.FLOAT, ["a", "b", "c"])
+        p = t.type
+
+        s = p.SerializeToString()
+        p2 = onnx2.TypeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_type_proto_tensor_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.tensor_type=onnx2.TypeProto.Tensor()
+        p.tensor_type.elem_type= onnx2.TensorProto.FLOAT
+        p.tensor_type.shape.dim.add().dim_param="a"
+        p.tensor_type.shape.dim.add().dim_param="b"
+        p.tensor_type.shape.dim.add().dim_param="c"
+        
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
