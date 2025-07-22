@@ -8,7 +8,7 @@ namespace onnx2 {
 
 enum OperatorStatus { EXPERIMENTAL = 0, STABLE = 1 };
 
-class StringStringEntryProto {
+class StringStringEntryProto : public Message {
 public:
   inline StringStringEntryProto() {}
   FIELD(std::string, key, 1)
@@ -16,7 +16,7 @@ public:
   SERIALIZATION_METHOD()
 };
 
-class IntIntListEntryProto {
+class IntIntListEntryProto : public Message {
 public:
   inline IntIntListEntryProto() {}
   SERIALIZATION_METHOD()
@@ -24,7 +24,7 @@ public:
   FIELD_REPEATED(int64_t, value, 2)
 };
 
-class TensorAnnotation {
+class TensorAnnotation : public Message {
 public:
   inline TensorAnnotation() {}
   SERIALIZATION_METHOD()
@@ -32,7 +32,7 @@ public:
   FIELD_REPEATED(StringStringEntryProto, quant_parameter_tensor_names, 2)
 };
 
-class DeviceConfigurationProto {
+class DeviceConfigurationProto : public Message {
 public:
   inline DeviceConfigurationProto() {}
   SERIALIZATION_METHOD()
@@ -41,7 +41,7 @@ public:
   FIELD_REPEATED(std::string, device, 3)
 };
 
-class SimpleShardedDimProto {
+class SimpleShardedDimProto : public Message {
 public:
   inline SimpleShardedDimProto() {}
   SERIALIZATION_METHOD()
@@ -50,15 +50,15 @@ public:
   FIELD(int64_t, num_shards, 3)
 };
 
-class ShardedDimProto {
+class ShardedDimProto : public Message {
 public:
-  inline ShardedDimProto() {}
+  inline ShardedDimProto() : Message(), axis_(0) {}
   SERIALIZATION_METHOD()
   FIELD(int64_t, axis, 1)
   FIELD_REPEATED(SimpleShardedDimProto, simple_sharding, 2)
 };
 
-class ShardingSpecProto {
+class ShardingSpecProto : public Message {
 public:
   inline ShardingSpecProto() {}
   SERIALIZATION_METHOD()
@@ -68,7 +68,7 @@ public:
   FIELD_REPEATED(ShardedDimProto, sharded_dim, 4)
 };
 
-class NodeDeviceConfigurationProto {
+class NodeDeviceConfigurationProto : public Message {
 public:
   inline NodeDeviceConfigurationProto() {}
   SERIALIZATION_METHOD()
@@ -77,7 +77,7 @@ public:
   FIELD_OPTIONAL(int32_t, pipeline_stage, 3)
 };
 
-class OperatorSetIdProto {
+class OperatorSetIdProto : public Message {
 public:
   inline OperatorSetIdProto() {}
   FIELD(std::string, domain, 1)
@@ -85,11 +85,11 @@ public:
   SERIALIZATION_METHOD()
 };
 
-class TensorShapeProto {
+class TensorShapeProto : public Message {
 public:
-  class Dimension {
+  class Dimension : public Message {
   public:
-    inline Dimension() {}
+    inline Dimension() : Message() {}
     FIELD_OPTIONAL(int64_t, dim_value, 1)
     FIELD(std::string, dim_param, 2)
     FIELD(std::string, denotation, 3)
@@ -101,7 +101,7 @@ public:
   SERIALIZATION_METHOD()
 };
 
-class TensorProto {
+class TensorProto : public Message {
 public:
   enum class DataType : int32_t {
     UNDEFINED = 0,
@@ -186,7 +186,7 @@ public:
   FIELD_REPEATED(StringStringEntryProto, metadata_props, 16)
 };
 
-class SparseTensorProto {
+class SparseTensorProto : public Message {
 public:
   inline SparseTensorProto() {}
   SERIALIZATION_METHOD()
