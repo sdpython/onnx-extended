@@ -3,12 +3,8 @@
 onnx2
 =====
 
-.. autoclass:: onnx_extended.onnx2.DataType
+This implements parsing and serialization of onnx classes
+without :epkg:`protobuf`.
 
-.. autoclass:: onnx_extended.onnx2.Dimension
-
-.. autoclass:: onnx_extended.onnx2.StringStringEntryProto
-
-.. autoclass:: onnx_extended.onnx2.TensorShapeProto
-
-.. autoclass:: onnx_extended.onnx2.TensorProto
+.. automodule:: onnx_extended.onnx2
+    :members: 
