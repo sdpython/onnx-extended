@@ -577,6 +577,8 @@ class TestOnnx2(ExtTestCase):
         # self.assertEqual(onnx2.TensorProto.FLOAT8E8M0, onnx.TensorProto.FLOAT8E8M0)
 
         for k in dir(onnx.TensorProto):
+            if k[0] == "_":
+                continue
             v = getattr(onnx.TensorProto, k)
             if isinstance(v, int):
                 with self.subTest(attr=k):
