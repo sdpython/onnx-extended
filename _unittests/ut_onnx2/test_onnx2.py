@@ -701,6 +701,28 @@ class TestOnnx2(ExtTestCase):
         p0.ParseFromString(s2)
         self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
+    def test_type_proto_optional_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.denotation = "denot"
+        p.add_optional_type().add_elem_type().add_tensor_type().elem_type = (
+            onnx2.TensorProto.FLOAT
+        )
+        p.optional_type.elem_type.tensor_type.add_shape().dim.add().dim_param = "a"
+        p.optional_type.elem_type.tensor_type.shape.dim.add().dim_param = "b"
+        p.optional_type.elem_type.tensor_type.shape.dim.add().dim_param = "c"
+        p.optional_type.elem_type.denotation = "denott"
+        self.assertEqual(len(p.optional_type.elem_type.tensor_type.shape.dim), 3)
+
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(len(p2.optional_type.elem_type.tensor_type.shape.dim), 3)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

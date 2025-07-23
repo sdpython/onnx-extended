@@ -35,10 +35,12 @@ public:
   inline void extend(const RepeatedField<T> &v) {
     values.insert(values.end(), v.begin(), v.end());
   }
+
   inline T &add() {
     values.emplace_back(T());
     return values.back();
   }
+
   inline std::vector<T>::iterator begin() { return values.begin(); }
   inline std::vector<T>::iterator end() { return values.end(); }
   inline std::vector<T>::const_iterator begin() const { return values.begin(); }

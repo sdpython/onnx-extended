@@ -21,6 +21,22 @@
   void ParseFromStream(utils::BinaryStream &stream);                                           \
   void SerializeToStream(utils::BinaryWriteStream &stream) const;
 
+#define BEGIN_PROTO(cls)                                                                       \
+  class cls : public Message {                                                                 \
+  public:                                                                                      \
+    static const char *DOC;                                                                    \
+    inline cls() {}
+
+#define BEGIN_PROTO_NOINIT(cls)                                                                \
+  class cls : public Message {                                                                 \
+  public:                                                                                      \
+    static const char *DOC;
+
+#define END_PROTO()                                                                            \
+  SERIALIZATION_METHOD()                                                                       \
+  }                                                                                            \
+  ;
+
 #if defined(FIELD)
 #pragma error("macro FIELD is already defined.")
 #endif
