@@ -20,37 +20,23 @@ template <typename T> void OptionalField<T>::reset() {
   }
 }
 
-template <typename T> const T &OptionalField<T>::operator*() const {
-  EXT_ENFORCE(value != nullptr, "Optional value is not set.");
-  return *value;
-}
-
-template <typename T> T &OptionalField<T>::operator*() {
-  EXT_ENFORCE(value != nullptr, "Optional value is not set.");
-  return *value;
-}
-
-template <typename T> bool OptionalField<T>::operator==(const OptionalField<T> &v) const {
-  if (v.has_value())
-    return v.has_value();
-  if (v.has_value())
-    return false;
-  return *value == *v;
-}
-
-template <typename T> bool OptionalField<T>::operator==(const T &v) const {
-  return has_value() && *value == v;
-}
-
-template <typename T> OptionalField<T> &OptionalField<T>::operator=(const T &other) {
-  set_empty_value();
-  *value = other;
-  return *this;
-}
-
 template <typename T> void OptionalField<T>::set_empty_value() {
   reset();
   value = new T;
+}
+
+template <typename T> T &OptionalField<T>::operator*() {
+  EXT_ENFORCE(has_value(), "Optional field has no value.");
+  return *value;
+}
+
+template <typename T> const T &OptionalField<T>::operator*() const {
+  EXT_ENFORCE(has_value(), "Optional field has no value.");
+  return *value;
+}
+
+template <typename T> OptionalField<T> &OptionalField<T>::operator=(const T &) {
+  EXT_THROW("Assignment is now allowed yet for an option field.");
 }
 
 } // namespace utils

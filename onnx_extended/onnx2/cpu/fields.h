@@ -55,10 +55,8 @@ public:
   inline bool has_value() const { return value != nullptr; }
   ~OptionalField();
   void reset();
-  const T &operator*() const;
   T &operator*();
-  bool operator==(const OptionalField<T> &v) const;
-  bool operator==(const T &v) const;
+  const T &operator*() const;
   OptionalField<T> &operator=(const T &other);
   void set_empty_value();
   T *value;
@@ -77,7 +75,7 @@ public:
     value = other;
     return *this;
   }
-  inline void set_empty_value() { return value = static_cast<T>(0); }
+  inline void set_empty_value() { value = static_cast<T>(0); }
   std::optional<T> value;
 };
 

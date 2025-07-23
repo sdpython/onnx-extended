@@ -29,10 +29,10 @@ namespace py = pybind11;
 #define FIELD_OPTIONAL_INT(cls, name)                                                          \
   def_property(                                                                                \
       #name,                                                                                   \
-      [](const onnx2::cls &self) -> py::object {                                               \
-        if (self.name##_.has_value())                                                          \
-          return py::cast(*self.name##_);                                                      \
-        return py::none();                                                                     \
+      [](onnx2::cls &self) -> py::object {                                                     \
+        if (!self.name##_.has_value())                                                         \
+          return py::none();                                                                   \
+        return py::cast(*self.name##_, py::return_value_policy::reference);                    \
       },                                                                                       \
       [](onnx2::cls &self, py::object obj) {                                                   \
         if (obj.is_none()) {                                                                   \
@@ -49,10 +49,10 @@ namespace py = pybind11;
 #define FIELD_OPTIONAL_PROTO(cls, name)                                                        \
   def_property(                                                                                \
       #name,                                                                                   \
-      [](const onnx2::cls &self) -> py::object {                                               \
-        if (self.name##_.has_value())                                                          \
-          return py::cast(*self.name##_);                                                      \
-        return py::none();                                                                     \
+      [](onnx2::cls &self) -> py::object {                                                     \
+        if (!self.name##_.has_value())                                                         \
+          return py::none();                                                                   \
+        return py::cast(self.name##_.value, py::return_value_policy::reference);               \
       },                                                                                       \
       [](onnx2::cls &self, py::object obj) {                                                   \
         if (obj.is_none()) {                                                                   \
@@ -64,7 +64,13 @@ namespace py = pybind11;
         }                                                                                      \
       },                                                                                       \
       #name)                                                                                   \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")          \
+      .def(                                                                                    \
+          "add_" #name, [](onnx2::cls & self) -> onnx2::cls::name##_t & {                      \
+            self.name##_.set_empty_value();                                                    \
+            return *self.name##_;                                                              \
+          },                                                                                   \
+          py::return_value_policy::reference, "sets an empty value")
 
 #define SHORTEN_CODE(dtype)                                                                    \
   def_property_readonly_static(#dtype, [](py::object) -> int {                                 \
@@ -75,19 +81,21 @@ template <typename T> void bind_repeated_field(py::module_ &m, const std::string
   py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "repeated field")
       .def(py::init<>())
       .def_readwrite("values", &onnx2::utils::RepeatedField<T>::values)
-      .def("add", &onnx2::utils::RepeatedField<T>::add, "adds an empty element")
+      .def("add", &onnx2::utils::RepeatedField<T>::add, py::return_value_policy::reference,
+           "adds an empty element")
       .def("clear", &onnx2::utils::RepeatedField<T>::clear, "removes every element")
       .def("__len__", &onnx2::utils::RepeatedField<T>::size, "returns the length")
       .def(
           "__getitem__",
-          [](const onnx2::utils::RepeatedField<T> &self, int index) -> const T & {
+          [](onnx2::utils::RepeatedField<T> &self, int index) -> T & {
             if (index < 0)
               index += static_cast<int>(self.size());
             EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
                         " out of boundary");
             return self.values[index];
           },
-          py::arg("index"), "returns the element at position index")
+          py::return_value_policy::reference, py::arg("index"),
+          "returns the element at position index")
       .def(
           "__delitem__",
           [](onnx2::utils::RepeatedField<T> &self, py::slice slice) {
@@ -113,22 +121,6 @@ template <typename T> void bind_repeated_field(py::module_ &m, const std::string
             return py::make_iterator(self.begin(), self.end());
           },
           py::keep_alive<0, 1>());
-}
-
-template <typename T> void bind_optional_field(py::module_ &m, const std::string &name) {
-  py::class_<onnx2::utils::OptionalField<T>>(m, name.c_str(), "optional field")
-      .def(py::init<>())
-      .def_readwrite("value", &onnx2::utils::OptionalField<T>::value)
-      .def("__bool__",
-           [](const onnx2::utils::OptionalField<T> &self) { return self.has_value(); })
-      .def(
-          "__eq__",
-          [](const onnx2::utils::OptionalField<T> &self, py::object obj) {
-            if (py::isinstance<onnx2::utils::OptionalField<T>>(obj))
-              return self == obj.cast<onnx2::utils::OptionalField<T>>();
-            return self == obj.cast<T>();
-          },
-          py::arg("other"));
 }
 
 PYBIND11_MODULE(_onnx2py, m) {
@@ -162,10 +154,6 @@ PYBIND11_MODULE(_onnx2py, m) {
   bind_repeated_field<float>(m, "RepeatedFieldFloat");
   bind_repeated_field<double>(m, "RepeatedFieldDouble");
   bind_repeated_field<std::string>(m, "RepeatedFieldString");
-
-  bind_optional_field<int32_t>(m, "OptionalInt32");
-  bind_optional_field<int64_t>(m, "OptionalInt64");
-  bind_optional_field<uint64_t>(m, "OptionalUInt64");
 
   py::class_<onnx2::Message>(m, "Message", "Message, base class for all onnx2 classes")
       .def(py::init<>());
@@ -401,10 +389,8 @@ PYBIND11_MODULE(_onnx2py, m) {
                                                        "Tensor, nested class of TypeProto")
       .def(py::init<>())
       .FIELD_OPTIONAL_INT(TypeProto::Tensor, elem_type)
-      .FIELD(TypeProto::Tensor, shape)
+      .FIELD_OPTIONAL_PROTO(TypeProto::Tensor, shape)
       .ADD_PROTO_SERIALIZATION(TypeProto::Tensor);
-
-  bind_optional_field<onnx2::TypeProto::Tensor>(m, "OptionalTypeProtoTensor");
 
   py::class_<onnx2::TypeProto::SparseTensor, onnx2::Message>(
       cls_type_proto, "SparseTensor", "SparseTensor, nested class of TypeProto")
@@ -413,15 +399,11 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD_OPTIONAL_PROTO(TypeProto::SparseTensor, shape)
       .ADD_PROTO_SERIALIZATION(TypeProto::SparseTensor);
 
-  bind_optional_field<onnx2::TypeProto::SparseTensor>(m, "OptionalTypeProtoSparseTensor");
-
   py::class_<onnx2::TypeProto::Sequence, onnx2::Message>(cls_type_proto, "Sequence",
                                                          "Sequence, nested class of TypeProto")
       .def(py::init<>())
       .FIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type)
       .ADD_PROTO_SERIALIZATION(TypeProto::Sequence);
-
-  bind_optional_field<onnx2::TypeProto::Sequence>(m, "OptionalTypeProtoSequence");
 
   py::class_<onnx2::TypeProto::Optional, onnx2::Message>(cls_type_proto, "Optional",
                                                          "Optional, nested class of TypeProto")
@@ -429,16 +411,12 @@ PYBIND11_MODULE(_onnx2py, m) {
       .FIELD_OPTIONAL_PROTO(TypeProto::Optional, elem_type)
       .ADD_PROTO_SERIALIZATION(TypeProto::Optional);
 
-  bind_optional_field<onnx2::TypeProto::Optional>(m, "OptionalTypeProtoOptional");
-
   py::class_<onnx2::TypeProto::Map, onnx2::Message>(cls_type_proto, "Map",
                                                     "Map, nested class of TypeProto")
       .def(py::init<>())
       .FIELD(TypeProto::Map, key_type)
       .FIELD_OPTIONAL_PROTO(TypeProto::Map, value_type)
       .ADD_PROTO_SERIALIZATION(TypeProto::Map);
-
-  bind_optional_field<onnx2::TypeProto::Map>(m, "OptionalTypeProtoMap");
 
   cls_type_proto.def(py::init<>())
       .FIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
