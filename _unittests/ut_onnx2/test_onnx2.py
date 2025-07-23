@@ -583,6 +583,7 @@ class TestOnnx2(ExtTestCase):
     def test_type_proto_tensor_type(self):
         t = oh.make_tensor_value_info("X", onnx.TensorProto.FLOAT, ["a", "b", "c"])
         p = t.type
+        p.denotation = "denot"
 
         s = p.SerializeToString()
         p2 = onnx2.TypeProto()
@@ -595,12 +596,13 @@ class TestOnnx2(ExtTestCase):
 
     def test_type_proto_tensor_type_reverse(self):
         p = onnx2.TypeProto()
-        p.tensor_type=onnx2.TypeProto.Tensor()
-        p.tensor_type.elem_type= onnx2.TensorProto.FLOAT
-        p.tensor_type.shape.dim.add().dim_param="a"
-        p.tensor_type.shape.dim.add().dim_param="b"
-        p.tensor_type.shape.dim.add().dim_param="c"
-        
+        p.tensor_type = onnx2.TypeProto.Tensor()
+        p.tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        p.tensor_type.shape.dim.add().dim_param = "a"
+        p.tensor_type.shape.dim.add().dim_param = "b"
+        p.tensor_type.shape.dim.add().dim_param = "c"
+        p.denotation = "denot"
+
         s = p.SerializeToString()
         p2 = onnx.TypeProto()
         p2.ParseFromString(s)
@@ -609,6 +611,46 @@ class TestOnnx2(ExtTestCase):
         p0 = onnx2.TypeProto()
         p0.ParseFromString(s2)
         self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_type_proto_sparse_tensor_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.sparse_tensor_type = onnx2.TypeProto.SparseTensor()
+        p.sparse_tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        p.sparse_tensor_type.shape.dim.add().dim_param = "a"
+        p.sparse_tensor_type.shape.dim.add().dim_param = "b"
+        p.sparse_tensor_type.shape.dim.add().dim_param = "c"
+        p.denotation = "denot"
+
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_type_proto_sequence_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.denotation = "denot"
+        p.sequence_type = onnx2.TypeProto.Sequence()
+        et = p.sequence_type.elem_type = onnx2.TypeProto()
+        et.tensor_type = onnx2.TypeProto.Tensor()
+        et.tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        et.tensor_type.shape.dim.add().dim_param = "a"
+        et.tensor_type.shape.dim.add().dim_param = "b"
+        et.tensor_type.shape.dim.add().dim_param = "c"
+        et.denotation = "denott"
+
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

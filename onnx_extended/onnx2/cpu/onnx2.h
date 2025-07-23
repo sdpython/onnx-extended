@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fields.h"
 #include "onnx_extended_helpers.h"
 #include "stream.h"
 #include "stream_class.h"
@@ -199,19 +200,37 @@ class TypeProto : public Message {
 public:
   class Tensor : public Message {
   public:
-    Tensor() : Message() {}
+    inline Tensor() : Message() {}
     SERIALIZATION_METHOD()
     FIELD_OPTIONAL(int32_t, elem_type, 1)
     FIELD(TensorShapeProto, shape, 2)
+  };
+  class SparseTensor : public Message {
+  public:
+    inline SparseTensor() : Message() {}
+    SERIALIZATION_METHOD()
+    FIELD_OPTIONAL(int32_t, elem_type, 1)
+    FIELD(TensorShapeProto, shape, 2)
+  };
+  class Sequence : public Message {
+  public:
+    inline Sequence() : Message() {}
+    SERIALIZATION_METHOD()
+    FIELD_OPTIONAL(TypeProto, elem_type, 1)
   };
 
 public:
   inline TypeProto() : Message() {}
   SERIALIZATION_METHOD()
   FIELD_OPTIONAL(Tensor, tensor_type, 1)
+  FIELD_OPTIONAL(Sequence, sequence_type, 4)
+  FIELD(std::string, denotation, 6)
+  FIELD_OPTIONAL(SparseTensor, sparse_tensor_type, 8)
 };
 
 } // namespace onnx2
+
+#include "fields.hpp"
 
 #if defined(FIELD)
 #undef FIELD

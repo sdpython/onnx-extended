@@ -1,7 +1,6 @@
 #pragma once
 
 #include "stream.h"
-#include <optional>
 
 #define FIELD_VARINT 0
 // #define FIELD_FIXED64 1
@@ -65,7 +64,7 @@ using utils::offset_t;
 
 template <typename T> inline bool _has_field_(const T &) { return true; }
 template <> inline bool _has_field_(const std::string &field) { return !field.empty(); }
-template <> inline bool _has_field_(const std::optional<uint64_t> &field) {
+template <> inline bool _has_field_(const utils::OptionalField<uint64_t> &field) {
   return field.has_value();
 }
 template <> inline bool _has_field_(const std::vector<uint8_t> &field) {

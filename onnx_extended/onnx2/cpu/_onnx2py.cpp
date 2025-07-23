@@ -40,7 +40,7 @@ namespace py = pybind11;
         } else if (py::isinstance<py::int_>(obj)) {                                            \
           self.name##_ = obj.cast<int>();                                                      \
         } else {                                                                               \
-          EXT_ENFORCE("unable to set '" #name "' for class '" #cls "'");                       \
+          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
         }                                                                                      \
       },                                                                                       \
       #name)                                                                                   \
@@ -60,7 +60,7 @@ namespace py = pybind11;
         } else if (py::isinstance<onnx2::cls::name##_t>(obj)) {                                \
           self.name##_ = obj.cast<onnx2::cls::name##_t>();                                     \
         } else {                                                                               \
-          EXT_ENFORCE("unable to set '" #name "' for class '" #cls "'");                       \
+          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
         }                                                                                      \
       },                                                                                       \
       #name)                                                                                   \
@@ -393,9 +393,27 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   bind_optional_field<onnx2::TypeProto::Tensor>(m, "OptionalTypeProtoTensor");
 
+  py::class_<onnx2::TypeProto::SparseTensor, onnx2::Message>(
+      cls_type_proto, "SparseTensor", "SparseTensor, nested class of TypeProto")
+      .def(py::init<>())
+      .FIELD_OPTIONAL_INT(TypeProto::SparseTensor, elem_type)
+      .FIELD(TypeProto::SparseTensor, shape)
+      .ADD_PROTO_SERIALIZATION(TypeProto::SparseTensor);
+
+  bind_optional_field<onnx2::TypeProto::SparseTensor>(m, "OptionalTypeProtoSparseTensor");
+
+  py::class_<onnx2::TypeProto::Sequence, onnx2::Message>(cls_type_proto, "Sequence",
+                                                         "Sequence, nested class of TypeProto")
+      .def(py::init<>())
+      .FIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type)
+      .ADD_PROTO_SERIALIZATION(TypeProto::Sequence);
+
+  bind_optional_field<onnx2::TypeProto::Sequence>(m, "OptionalTypeProtoSequence");
+
   cls_type_proto.def(py::init<>())
       .FIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
-      .def("has_tensor_type", &onnx2::TypeProto::has_tensor_type,
-           "Tells if 'tenssor_type' has a value")
+      .FIELD_OPTIONAL_PROTO(TypeProto, sequence_type)
+      .FIELD(TypeProto, denotation)
+      .FIELD_OPTIONAL_PROTO(TypeProto, sparse_tensor_type)
       .ADD_PROTO_SERIALIZATION(TypeProto);
 }
