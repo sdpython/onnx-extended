@@ -1,9 +1,11 @@
 #pragma once
 
+#include "stream_class.h"
 #include <cstddef>
 #include <cstring>
 #include <stdexcept>
 #include <stdint.h>
+#include <type_traits>
 #include <vector>
 
 // #define DEBUG_READ
@@ -15,6 +17,10 @@
 #define DEBUG_PRINT(s)
 #define DEBUG_PRINT2(s1, s2)
 #endif
+
+//////////////
+// macro write
+//////////////
 
 #define WRITE_FIELD(stream, name)                                                              \
   if (has_##name()) {                                                                          \
@@ -30,6 +36,15 @@
   if (has_##name()) {                                                                          \
     write_repeated_field(stream, order_##name(), name##_, packed_##name());                    \
   }
+
+#define WRITE_OPTIONAL_PROTO_FIELD(stream, name)                                               \
+  if (has_##name()) {                                                                          \
+    write_optional_proto_field(stream, order_##name(), name##_);                               \
+  }
+
+/////////////
+// macro read
+/////////////
 
 #define READ_BEGIN(stream, cls)                                                                \
   DEBUG_PRINT("+ read begin " #cls)                                                            \
@@ -52,6 +67,13 @@
     DEBUG_PRINT("  + field " #name)                                                            \
     read_field(stream, field_number.wire_type, name##_, #name);                                \
     DEBUG_PRINT("  - field " #name)                                                            \
+  }
+
+#define READ_OPTIONAL_PROTO_FIELD(stream, name)                                                \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
+    DEBUG_PRINT("  + optional field " #name)                                                   \
+    read_optional_proto_field(stream, field_number.wire_type, name##_, #name);                 \
+    DEBUG_PRINT("  - optional field " #name)                                                   \
   }
 
 #define READ_ENUM_FIELD(stream, name)                                                          \
@@ -82,19 +104,21 @@ void write_field(utils::BinaryWriteStream &stream, int order, const T &field) {
   stream.write_string_stream(local);
 }
 
+template <typename T>
+void write_optional_proto_field(utils::BinaryWriteStream &stream, int order,
+                                const utils::OptionalField<T> &field) {
+  if (field.has_value()) {
+    utils::StringWriteStream local;
+    (*field).SerializeToStream(local);
+    stream.write_field_header(order, FIELD_FIXED_SIZE);
+    stream.write_string_stream(local);
+  }
+}
+
 template <>
 void write_field(utils::BinaryWriteStream &stream, int order, const std::string &field) {
   stream.write_field_header(order, FIELD_FIXED_SIZE);
   stream.write_string(field);
-}
-
-template <>
-void write_field(utils::BinaryWriteStream &stream, int order,
-                 const std::optional<uint64_t> &field) {
-  if (field.has_value()) {
-    stream.write_field_header(order, FIELD_VARINT);
-    stream.write_variant_uint64(*field);
-  }
 }
 
 template <>
@@ -250,20 +274,23 @@ void read_field(utils::BinaryStream &stream, int wire_type, T &field, const char
   field.ParseFromStream(dim_buf);
 }
 
+template <typename T>
+void read_optional_proto_field(utils::BinaryStream &stream, int wire_type,
+                               utils::OptionalField<T> &field, const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  utils::StringStream dim_buf;
+  stream.read_string_stream(dim_buf);
+  field.set_empty_value();
+  (*field).ParseFromStream(dim_buf);
+}
+
 template <>
 void read_field<std::string>(utils::BinaryStream &stream, int wire_type, std::string &field,
                              const char *name) {
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
               name, "'");
   field = stream.next_string();
-}
-
-template <>
-void read_field(utils::BinaryStream &stream, int wire_type, std::optional<uint64_t> &field,
-                const char *name) {
-  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
-              name, "'");
-  field = stream.next_uint64();
 }
 
 template <>

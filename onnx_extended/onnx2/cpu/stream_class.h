@@ -1,7 +1,6 @@
 #pragma once
 
 #include "stream.h"
-#include <optional>
 
 #define FIELD_VARINT 0
 // #define FIELD_FIXED64 1
@@ -21,6 +20,22 @@
   }                                                                                            \
   void ParseFromStream(utils::BinaryStream &stream);                                           \
   void SerializeToStream(utils::BinaryWriteStream &stream) const;
+
+#define BEGIN_PROTO(cls)                                                                       \
+  class cls : public Message {                                                                 \
+  public:                                                                                      \
+    static const char *DOC;                                                                    \
+    inline cls() {}
+
+#define BEGIN_PROTO_NOINIT(cls)                                                                \
+  class cls : public Message {                                                                 \
+  public:                                                                                      \
+    static const char *DOC;
+
+#define END_PROTO()                                                                            \
+  SERIALIZATION_METHOD()                                                                       \
+  }                                                                                            \
+  ;
 
 #if defined(FIELD)
 #pragma error("macro FIELD is already defined.")
@@ -56,7 +71,8 @@ public:                                                                         
   }                                                                                            \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline int order_##name() const { return order; }                                            \
-  utils::OptionalField<type> name##_;
+  utils::OptionalField<type> name##_;                                                          \
+  using name##_t = type;
 
 namespace onnx2 {
 
@@ -64,7 +80,7 @@ using utils::offset_t;
 
 template <typename T> inline bool _has_field_(const T &) { return true; }
 template <> inline bool _has_field_(const std::string &field) { return !field.empty(); }
-template <> inline bool _has_field_(const std::optional<uint64_t> &field) {
+template <> inline bool _has_field_(const utils::OptionalField<uint64_t> &field) {
   return field.has_value();
 }
 template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
@@ -74,6 +90,9 @@ template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
 class Message {
 public:
   inline Message() {}
+  inline bool operator==(const Message &) const {
+    EXT_THROW("operator == not implemented for a Message");
+  }
 };
 
 } // namespace onnx2

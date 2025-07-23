@@ -533,6 +533,8 @@ class TestOnnx2(ExtTestCase):
                 c = b.simple_sharding.add()
                 c.dim_value = 4
                 c.num_shards = 5
+                self.assertNotEmpty(p.sharding_spec)
+                self.assertEqual(len(p.sharding_spec), 1)
 
                 s = p.SerializeToString()
                 p2 = x2.NodeDeviceConfigurationProto()
@@ -572,13 +574,154 @@ class TestOnnx2(ExtTestCase):
         self.assertEqual(onnx2.TensorProto.UINT4, onnx.TensorProto.UINT4)
         self.assertEqual(onnx2.TensorProto.INT4, onnx.TensorProto.INT4)
         self.assertEqual(onnx2.TensorProto.FLOAT4E2M1, onnx.TensorProto.FLOAT4E2M1)
-        self.assertEqual(onnx2.TensorProto.FLOAT8E8M0, onnx.TensorProto.FLOAT8E8M0)
+        # self.assertEqual(onnx2.TensorProto.FLOAT8E8M0, onnx.TensorProto.FLOAT8E8M0)
 
         for k in dir(onnx.TensorProto):
+            if k[0] == "_":
+                continue
             v = getattr(onnx.TensorProto, k)
             if isinstance(v, int):
                 with self.subTest(attr=k):
                     self.assertEqual(v, getattr(onnx2.TensorProto, k))
+
+    def test_type_proto_tensor_type(self):
+        t = oh.make_tensor_value_info("X", onnx.TensorProto.FLOAT, ["a", "b", "c"])
+        p = t.type
+        p.denotation = "denot"
+
+        s = p.SerializeToString()
+        p2 = onnx2.TypeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_type_proto_tensor_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.add_tensor_type()
+        p.tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        p.tensor_type.add_shape().dim.add().dim_param = "a"
+        p.tensor_type.shape.dim.add().dim_param = "b"
+        p.tensor_type.shape.dim.add().dim_param = "c"
+        p.denotation = "denot"
+        self.assertNotEmpty(p.tensor_type)
+        self.assertNotEmpty(p.tensor_type.shape)
+        self.assertNotEmpty(p.tensor_type.shape.dim)
+        self.assertEqual(len(p.tensor_type.shape.dim), 3)
+
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_type_proto_sparse_tensor_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.add_sparse_tensor_type()
+        p.sparse_tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        p.sparse_tensor_type.add_shape().dim.add().dim_param = "a"
+        p.sparse_tensor_type.shape.dim.add().dim_param = "b"
+        p.sparse_tensor_type.shape.dim.add().dim_param = "c"
+        self.assertNotEmpty(p.sparse_tensor_type)
+        self.assertNotEmpty(p.sparse_tensor_type.shape)
+        self.assertNotEmpty(p.sparse_tensor_type.shape.dim)
+        self.assertEqual(len(p.sparse_tensor_type.shape.dim), 3)
+        p.denotation = "denot"
+
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_tensor_shape_proto_reverse(self):
+        p = onnx2.TensorShapeProto()
+        d = p.dim.add()
+        d.dim_param = "aaa"
+        p.dim.add().dim_value = 1
+        p.dim.add().dim_param = "ccc"
+        self.assertEqual(len(p.dim), 3)
+        self.assertEqual(p.dim[0].dim_param, "aaa")
+        self.assertEqual(p.dim[1].dim_value, 1)
+        self.assertEqual(p.dim[2].dim_param, "ccc")
+        self.assertEqual([d.dim_value for d in p.dim], [None, 1, None])
+        self.assertEqual([d.dim_param for d in p.dim], ["aaa", "", "ccc"])
+
+        s = p.SerializeToString()
+        p2 = onnx.TensorShapeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TensorShapeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_type_proto_sequence_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.denotation = "denot"
+        # not working yet
+        """
+        et = onnx2.TypeProto()
+        p.sequence_type.elem_type = et
+        self.assertNotEmpty(et)
+        self.assertNotEmpty(p.sequence_type.elem_type)
+        self.assertTrue(p.sequence_type.has_elem_type())
+        et.tensor_type = onnx2.TypeProto.Tensor()
+        et.tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        et.tensor_type.add_shape().dim.add().dim_param = "a"
+        et.tensor_type.shape.dim.add().dim_param = "b"
+        et.tensor_type.shape.dim.add().dim_param = "c"
+        self.assertEqual(len(et.tensor_type.shape.dim), 3)
+        et.denotation = "denott"
+        """
+        p.add_sequence_type().add_elem_type().add_tensor_type().elem_type = (
+            onnx2.TensorProto.FLOAT
+        )
+        p.sequence_type.elem_type.tensor_type.add_shape().dim.add().dim_param = "a"
+        p.sequence_type.elem_type.tensor_type.shape.dim.add().dim_param = "b"
+        p.sequence_type.elem_type.tensor_type.shape.dim.add().dim_param = "c"
+        p.sequence_type.elem_type.denotation = "denott"
+        self.assertEqual(len(p.sequence_type.elem_type.tensor_type.shape.dim), 3)
+
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(len(p2.sequence_type.elem_type.tensor_type.shape.dim), 3)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_type_proto_optional_type_reverse(self):
+        p = onnx2.TypeProto()
+        p.denotation = "denot"
+        p.add_optional_type().add_elem_type().add_tensor_type().elem_type = (
+            onnx2.TensorProto.FLOAT
+        )
+        p.optional_type.elem_type.tensor_type.add_shape().dim.add().dim_param = "a"
+        p.optional_type.elem_type.tensor_type.shape.dim.add().dim_param = "b"
+        p.optional_type.elem_type.tensor_type.shape.dim.add().dim_param = "c"
+        p.optional_type.elem_type.denotation = "denott"
+        self.assertEqual(len(p.optional_type.elem_type.tensor_type.shape.dim), 3)
+
+        s = p.SerializeToString()
+        p2 = onnx.TypeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(len(p2.optional_type.elem_type.tensor_type.shape.dim), 3)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.TypeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
 
 if __name__ == "__main__":
