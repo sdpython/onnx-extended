@@ -79,6 +79,16 @@ template <typename T> void bind_repeated_field(py::module_ &m, const std::string
       .def("clear", &onnx2::utils::RepeatedField<T>::clear, "removes every element")
       .def("__len__", &onnx2::utils::RepeatedField<T>::size, "returns the length")
       .def(
+          "__getitem__",
+          [](const onnx2::utils::RepeatedField<T> &self, int index) -> const T & {
+            if (index < 0)
+              index += static_cast<int>(self.size());
+            EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
+                        " out of boundary");
+            return self.values[index];
+          },
+          py::arg("index"), "returns the element at position index")
+      .def(
           "__delitem__",
           [](onnx2::utils::RepeatedField<T> &self, py::slice slice) {
             size_t start, stop, step, slicelength;
@@ -96,7 +106,7 @@ template <typename T> void bind_repeated_field(py::module_ &m, const std::string
               self.extend(iterable.cast<std::vector<T>>());
             }
           },
-          "extends the list of values")
+          py::arg("sequence"), "extends the list of values")
       .def(
           "__iter__",
           [](onnx2::utils::RepeatedField<T> &self) {
@@ -111,11 +121,14 @@ template <typename T> void bind_optional_field(py::module_ &m, const std::string
       .def_readwrite("value", &onnx2::utils::OptionalField<T>::value)
       .def("__bool__",
            [](const onnx2::utils::OptionalField<T> &self) { return self.has_value(); })
-      .def("__eq__", [](const onnx2::utils::OptionalField<T> &self, py::object obj) {
-        if (py::isinstance<onnx2::utils::OptionalField<T>>(obj))
-          return self == obj.cast<onnx2::utils::OptionalField<T>>();
-        return self == obj.cast<T>();
-      });
+      .def(
+          "__eq__",
+          [](const onnx2::utils::OptionalField<T> &self, py::object obj) {
+            if (py::isinstance<onnx2::utils::OptionalField<T>>(obj))
+              return self == obj.cast<onnx2::utils::OptionalField<T>>();
+            return self == obj.cast<T>();
+          },
+          py::arg("other"));
 }
 
 PYBIND11_MODULE(_onnx2py, m) {
@@ -397,7 +410,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       cls_type_proto, "SparseTensor", "SparseTensor, nested class of TypeProto")
       .def(py::init<>())
       .FIELD_OPTIONAL_INT(TypeProto::SparseTensor, elem_type)
-      .FIELD(TypeProto::SparseTensor, shape)
+      .FIELD_OPTIONAL_PROTO(TypeProto::SparseTensor, shape)
       .ADD_PROTO_SERIALIZATION(TypeProto::SparseTensor);
 
   bind_optional_field<onnx2::TypeProto::SparseTensor>(m, "OptionalTypeProtoSparseTensor");
@@ -410,10 +423,29 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   bind_optional_field<onnx2::TypeProto::Sequence>(m, "OptionalTypeProtoSequence");
 
+  py::class_<onnx2::TypeProto::Optional, onnx2::Message>(cls_type_proto, "Optional",
+                                                         "Optional, nested class of TypeProto")
+      .def(py::init<>())
+      .FIELD_OPTIONAL_PROTO(TypeProto::Optional, elem_type)
+      .ADD_PROTO_SERIALIZATION(TypeProto::Optional);
+
+  bind_optional_field<onnx2::TypeProto::Optional>(m, "OptionalTypeProtoOptional");
+
+  py::class_<onnx2::TypeProto::Map, onnx2::Message>(cls_type_proto, "Map",
+                                                    "Map, nested class of TypeProto")
+      .def(py::init<>())
+      .FIELD(TypeProto::Map, key_type)
+      .FIELD_OPTIONAL_PROTO(TypeProto::Map, value_type)
+      .ADD_PROTO_SERIALIZATION(TypeProto::Map);
+
+  bind_optional_field<onnx2::TypeProto::Map>(m, "OptionalTypeProtoMap");
+
   cls_type_proto.def(py::init<>())
       .FIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
       .FIELD_OPTIONAL_PROTO(TypeProto, sequence_type)
+      .FIELD_OPTIONAL_PROTO(TypeProto, map_type)
       .FIELD(TypeProto, denotation)
       .FIELD_OPTIONAL_PROTO(TypeProto, sparse_tensor_type)
+      .FIELD_OPTIONAL_PROTO(TypeProto, optional_type)
       .ADD_PROTO_SERIALIZATION(TypeProto);
 }

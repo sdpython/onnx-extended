@@ -203,14 +203,14 @@ public:
     inline Tensor() : Message() {}
     SERIALIZATION_METHOD()
     FIELD_OPTIONAL(int32_t, elem_type, 1)
-    FIELD(TensorShapeProto, shape, 2)
+    FIELD_OPTIONAL(TensorShapeProto, shape, 2)
   };
   class SparseTensor : public Message {
   public:
     inline SparseTensor() : Message() {}
     SERIALIZATION_METHOD()
     FIELD_OPTIONAL(int32_t, elem_type, 1)
-    FIELD(TensorShapeProto, shape, 2)
+    FIELD_OPTIONAL(TensorShapeProto, shape, 2)
   };
   class Sequence : public Message {
   public:
@@ -218,14 +218,29 @@ public:
     SERIALIZATION_METHOD()
     FIELD_OPTIONAL(TypeProto, elem_type, 1)
   };
+  class Optional : public Message {
+  public:
+    inline Optional() : Message() {}
+    SERIALIZATION_METHOD()
+    FIELD_OPTIONAL(TypeProto, elem_type, 1)
+  };
+  class Map : public Message {
+  public:
+    inline Map() : Message() {}
+    SERIALIZATION_METHOD()
+    FIELD(int32_t, key_type, 1)
+    FIELD_OPTIONAL(TypeProto, value_type, 2)
+  };
 
 public:
   inline TypeProto() : Message() {}
   SERIALIZATION_METHOD()
   FIELD_OPTIONAL(Tensor, tensor_type, 1)
   FIELD_OPTIONAL(Sequence, sequence_type, 4)
+  FIELD_OPTIONAL(Map, map_type, 5)
   FIELD(std::string, denotation, 6)
   FIELD_OPTIONAL(SparseTensor, sparse_tensor_type, 8)
+  FIELD_OPTIONAL(Optional, optional_type, 9)
 };
 
 } // namespace onnx2

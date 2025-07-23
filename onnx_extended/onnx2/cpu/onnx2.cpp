@@ -197,25 +197,25 @@ void SparseTensorProto::ParseFromStream(utils::BinaryStream &stream) {
 
 void TypeProto::Tensor::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, elem_type)
-  WRITE_FIELD(stream, shape)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, shape)
 }
 
 void TypeProto::Tensor::ParseFromStream(utils::BinaryStream &stream) {
   READ_BEGIN(stream, TypeProto::Tensor)
   READ_FIELD(stream, elem_type)
-  READ_FIELD(stream, shape)
+  READ_OPTIONAL_PROTO_FIELD(stream, shape)
   READ_END(stream, TypeProto::Tensor)
 }
 
 void TypeProto::SparseTensor::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, elem_type)
-  WRITE_FIELD(stream, shape)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, shape)
 }
 
 void TypeProto::SparseTensor::ParseFromStream(utils::BinaryStream &stream) {
   READ_BEGIN(stream, TypeProto::SparseTensor)
   READ_FIELD(stream, elem_type)
-  READ_FIELD(stream, shape)
+  READ_OPTIONAL_PROTO_FIELD(stream, shape)
   READ_END(stream, TypeProto::SparseTensor)
 }
 
@@ -229,17 +229,44 @@ void TypeProto::Sequence::ParseFromStream(utils::BinaryStream &stream) {
   READ_END(stream, TypeProto::Sequence)
 }
 
+void TypeProto::Map::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, key_type)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, value_type)
+}
+
+void TypeProto::Map::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, TypeProto::Map)
+  READ_FIELD(stream, key_type)
+  READ_OPTIONAL_PROTO_FIELD(stream, value_type)
+  READ_END(stream, TypeProto::Map)
+}
+
+void TypeProto::Optional::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_OPTIONAL_PROTO_FIELD(stream, elem_type)
+}
+
+void TypeProto::Optional::ParseFromStream(utils::BinaryStream &stream) {
+  READ_BEGIN(stream, TypeProto::Optional)
+  READ_OPTIONAL_PROTO_FIELD(stream, elem_type)
+  READ_END(stream, TypeProto::Optional)
+}
+
 void TypeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_OPTIONAL_PROTO_FIELD(stream, tensor_type)
-  WRITE_OPTIONAL_PROTO_FIELD(stream, sparse_tensor_type)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, sequence_type)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, map_type)
   WRITE_FIELD(stream, denotation)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, sparse_tensor_type)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, optional_type)
 }
 
 void TypeProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_BEGIN(stream, TypeProto)
   READ_OPTIONAL_PROTO_FIELD(stream, tensor_type)
+  READ_OPTIONAL_PROTO_FIELD(stream, sequence_type)
   READ_FIELD(stream, denotation)
   READ_OPTIONAL_PROTO_FIELD(stream, sparse_tensor_type)
+  READ_OPTIONAL_PROTO_FIELD(stream, optional_type)
   READ_END(stream, TypeProto)
 }
 
