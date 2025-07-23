@@ -8,6 +8,10 @@ namespace py = pybind11;
 #define PYDEFINE_PROTO(m, cls)                                                                 \
   py::class_<onnx2::cls, onnx2::Message>(m, #cls, onnx2::cls::DOC).def(py::init<>())
 
+#define PYDEFINE_PROTO_WITH_SUBTYPES(m, cls, name)                                             \
+  py::class_<onnx2::cls, onnx2::Message> name(m, #cls, onnx2::cls::DOC);                       \
+  name.def(py::init<>());
+
 #define PYADD_PROTO_SERIALIZATION(cls)                                                         \
   def(                                                                                         \
       "ParseFromString",                                                                       \
@@ -158,106 +162,10 @@ PYBIND11_MODULE(_onnx2py, m) {
   bind_repeated_field<double>(m, "RepeatedFieldDouble");
   bind_repeated_field<std::string>(m, "RepeatedFieldString");
 
-  py::class_<onnx2::Message>(m, "Message", "Message, base class for all onnx2 classes")
-      .def(py::init<>());
-
   py::enum_<onnx2::OperatorStatus>(m, "OperatorStatus", py::arithmetic())
       .value("EXPERIMENTAL", onnx2::OperatorStatus::EXPERIMENTAL)
       .value("STABLE", onnx2::OperatorStatus::STABLE)
       .export_values();
-
-  PYDEFINE_PROTO(m, StringStringEntryProto)
-      .PYFIELD(StringStringEntryProto, key)
-      .PYFIELD(StringStringEntryProto, value)
-      .PYADD_PROTO_SERIALIZATION(StringStringEntryProto);
-
-  bind_repeated_field<onnx2::StringStringEntryProto>(m, "RepeatedFieldStringStringEntryProto");
-
-  py::class_<onnx2::OperatorSetIdProto, onnx2::Message>(m, "OperatorSetIdProto",
-                                                        "OperatorSetIdProto, opset definition")
-      .def(py::init<>())
-      .PYFIELD(OperatorSetIdProto, domain)
-      .PYFIELD(OperatorSetIdProto, version)
-      .PYADD_PROTO_SERIALIZATION(OperatorSetIdProto);
-
-  bind_repeated_field<onnx2::OperatorSetIdProto>(m, "RepeatedFieldOperatorSetIdProto");
-
-  py::class_<onnx2::TensorAnnotation, onnx2::Message>(m, "TensorAnnotation",
-                                                      "TensorAnnotation, tensor annotation")
-      .def(py::init<>())
-      .PYFIELD(TensorAnnotation, tensor_name)
-      .PYFIELD(TensorAnnotation, quant_parameter_tensor_names)
-      .PYADD_PROTO_SERIALIZATION(TensorAnnotation);
-
-  py::class_<onnx2::IntIntListEntryProto, onnx2::Message>(
-      m, "IntIntListEntryProto", "IntIntListEntryProto, tensor annotation")
-      .def(py::init<>())
-      .PYFIELD(IntIntListEntryProto, key)
-      .PYFIELD(IntIntListEntryProto, value)
-      .PYADD_PROTO_SERIALIZATION(IntIntListEntryProto);
-
-  bind_repeated_field<onnx2::IntIntListEntryProto>(m, "RepeatedFieldIntIntListEntryProto");
-
-  py::class_<onnx2::DeviceConfigurationProto, onnx2::Message>(m, "DeviceConfigurationProto",
-                                                              "DeviceConfigurationProto")
-      .def(py::init<>())
-      .PYFIELD(DeviceConfigurationProto, name)
-      .PYFIELD(DeviceConfigurationProto, num_devices)
-      .PYFIELD(DeviceConfigurationProto, device)
-      .PYADD_PROTO_SERIALIZATION(DeviceConfigurationProto);
-
-  py::class_<onnx2::SimpleShardedDimProto, onnx2::Message>(m, "SimpleShardedDimProto",
-                                                           "SimpleShardedDimProto")
-      .def(py::init<>())
-      .PYFIELD_OPTIONAL_INT(SimpleShardedDimProto, dim_value)
-      .PYFIELD(SimpleShardedDimProto, dim_param)
-      .PYFIELD(SimpleShardedDimProto, num_shards)
-      .PYADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
-
-  bind_repeated_field<onnx2::SimpleShardedDimProto>(m, "RepeatedFieldSimpleShardedDimProto");
-
-  py::class_<onnx2::ShardedDimProto>(m, "ShardedDimProto", "ShardedDimProto")
-      .def(py::init<>())
-      .PYFIELD(ShardedDimProto, axis)
-      .PYFIELD(ShardedDimProto, simple_sharding)
-      .PYADD_PROTO_SERIALIZATION(ShardedDimProto);
-
-  bind_repeated_field<onnx2::ShardedDimProto>(m, "RepeatedFieldShardedDimProto");
-
-  py::class_<onnx2::ShardingSpecProto>(m, "ShardingSpecProto", "ShardingSpecProto")
-      .def(py::init<>())
-      .PYFIELD(ShardingSpecProto, tensor_name)
-      .PYFIELD(ShardingSpecProto, device)
-      .PYFIELD(ShardingSpecProto, index_to_device_group_map)
-      .PYFIELD(ShardingSpecProto, sharded_dim)
-      .PYADD_PROTO_SERIALIZATION(ShardingSpecProto);
-
-  bind_repeated_field<onnx2::ShardingSpecProto>(m, "RepeatedFieldShardingSpecProto");
-
-  py::class_<onnx2::NodeDeviceConfigurationProto, onnx2::Message>(
-      m, "NodeDeviceConfigurationProto", "ShardingSpecNodeDeviceConfigurationProtoProto")
-      .def(py::init<>())
-      .PYFIELD(NodeDeviceConfigurationProto, configuration_id)
-      .PYFIELD(NodeDeviceConfigurationProto, sharding_spec)
-      .PYFIELD_OPTIONAL_INT(NodeDeviceConfigurationProto, pipeline_stage)
-      .PYADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
-
-  py::class_<onnx2::TensorShapeProto, onnx2::Message> cls_tensor_shape_proto(
-      m, "TensorShapeProto", "TensorShapeProto");
-
-  py::class_<onnx2::TensorShapeProto::Dimension, onnx2::Message>(
-      cls_tensor_shape_proto, "Dimension", "Dimension, an integer value or a string")
-      .def(py::init<>())
-      .PYFIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
-      .PYFIELD(TensorShapeProto::Dimension, dim_param)
-      .PYFIELD(TensorShapeProto::Dimension, denotation)
-      .PYADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
-
-  bind_repeated_field<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
-
-  cls_tensor_shape_proto.def(py::init<>())
-      .PYFIELD(TensorShapeProto, dim)
-      .PYADD_PROTO_SERIALIZATION(TensorShapeProto);
 
   py::enum_<onnx2::TensorProto::DataType>(m, "DataType", py::arithmetic())
       .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
@@ -287,8 +195,76 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("FLOAT8E8M0", onnx2::TensorProto::DataType::FLOAT8E8M0)
       .export_values();
 
-  py::class_<onnx2::TensorProto, onnx2::Message>(m, "TensorProto", "TensorProto")
-      .def(py::init<>())
+  py::class_<onnx2::Message>(m, "Message", "Message, base class for all onnx2 classes")
+      .def(py::init<>());
+
+  PYDEFINE_PROTO(m, StringStringEntryProto)
+      .PYFIELD(StringStringEntryProto, key)
+      .PYFIELD(StringStringEntryProto, value)
+      .PYADD_PROTO_SERIALIZATION(StringStringEntryProto);
+  bind_repeated_field<onnx2::StringStringEntryProto>(m, "RepeatedFieldStringStringEntryProto");
+
+  PYDEFINE_PROTO(m, OperatorSetIdProto)
+      .PYFIELD(OperatorSetIdProto, domain)
+      .PYFIELD(OperatorSetIdProto, version)
+      .PYADD_PROTO_SERIALIZATION(OperatorSetIdProto);
+  bind_repeated_field<onnx2::OperatorSetIdProto>(m, "RepeatedFieldOperatorSetIdProto");
+
+  PYDEFINE_PROTO(m, TensorAnnotation)
+      .PYFIELD(TensorAnnotation, tensor_name)
+      .PYFIELD(TensorAnnotation, quant_parameter_tensor_names)
+      .PYADD_PROTO_SERIALIZATION(TensorAnnotation);
+
+  PYDEFINE_PROTO(m, IntIntListEntryProto)
+      .PYFIELD(IntIntListEntryProto, key)
+      .PYFIELD(IntIntListEntryProto, value)
+      .PYADD_PROTO_SERIALIZATION(IntIntListEntryProto);
+  bind_repeated_field<onnx2::IntIntListEntryProto>(m, "RepeatedFieldIntIntListEntryProto");
+
+  PYDEFINE_PROTO(m, DeviceConfigurationProto)
+      .PYFIELD(DeviceConfigurationProto, name)
+      .PYFIELD(DeviceConfigurationProto, num_devices)
+      .PYFIELD(DeviceConfigurationProto, device)
+      .PYADD_PROTO_SERIALIZATION(DeviceConfigurationProto);
+
+  PYDEFINE_PROTO(m, SimpleShardedDimProto)
+      .PYFIELD_OPTIONAL_INT(SimpleShardedDimProto, dim_value)
+      .PYFIELD(SimpleShardedDimProto, dim_param)
+      .PYFIELD(SimpleShardedDimProto, num_shards)
+      .PYADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
+  bind_repeated_field<onnx2::SimpleShardedDimProto>(m, "RepeatedFieldSimpleShardedDimProto");
+
+  PYDEFINE_PROTO(m, ShardedDimProto)
+      .PYFIELD(ShardedDimProto, axis)
+      .PYFIELD(ShardedDimProto, simple_sharding)
+      .PYADD_PROTO_SERIALIZATION(ShardedDimProto);
+  bind_repeated_field<onnx2::ShardedDimProto>(m, "RepeatedFieldShardedDimProto");
+
+  PYDEFINE_PROTO(m, ShardingSpecProto)
+      .PYFIELD(ShardingSpecProto, tensor_name)
+      .PYFIELD(ShardingSpecProto, device)
+      .PYFIELD(ShardingSpecProto, index_to_device_group_map)
+      .PYFIELD(ShardingSpecProto, sharded_dim)
+      .PYADD_PROTO_SERIALIZATION(ShardingSpecProto);
+  bind_repeated_field<onnx2::ShardingSpecProto>(m, "RepeatedFieldShardingSpecProto");
+
+  PYDEFINE_PROTO(m, NodeDeviceConfigurationProto)
+      .PYFIELD(NodeDeviceConfigurationProto, configuration_id)
+      .PYFIELD(NodeDeviceConfigurationProto, sharding_spec)
+      .PYFIELD_OPTIONAL_INT(NodeDeviceConfigurationProto, pipeline_stage)
+      .PYADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
+
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorShapeProto, cls_tensor_shape_proto);
+  PYDEFINE_PROTO(cls_tensor_shape_proto, TensorShapeProto::Dimension)
+      .PYFIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
+      .PYFIELD(TensorShapeProto::Dimension, dim_param)
+      .PYFIELD(TensorShapeProto::Dimension, denotation)
+      .PYADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
+  bind_repeated_field<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
+  cls_tensor_shape_proto.PYFIELD(TensorShapeProto, dim)
+      .PYADD_PROTO_SERIALIZATION(TensorShapeProto);
+
+  PYDEFINE_PROTO(m, TensorProto)
       .SHORTEN_CODE(UNDEFINED)
       .SHORTEN_CODE(FLOAT)
       .SHORTEN_CODE(UINT8)
@@ -376,51 +352,32 @@ PYBIND11_MODULE(_onnx2py, m) {
           "raw_data")
       .PYADD_PROTO_SERIALIZATION(TensorProto);
 
-  py::class_<onnx2::SparseTensorProto, onnx2::Message>(m, "SparseTensorProto",
-                                                       "SparseTensorProto, sparse tensor")
-      .def(py::init<>())
+  PYDEFINE_PROTO(m, SparseTensorProto)
       .PYFIELD(SparseTensorProto, values)
       .PYFIELD(SparseTensorProto, indices)
       .PYFIELD(SparseTensorProto, dims)
       .PYADD_PROTO_SERIALIZATION(SparseTensorProto);
 
-  py::class_<onnx2::TypeProto, onnx2::Message> cls_type_proto(m, "TypeProto", "TypeProto");
-
-  py::class_<onnx2::TypeProto::Tensor, onnx2::Message>(cls_type_proto, "Tensor",
-                                                       "Tensor, nested class of TypeProto")
-      .def(py::init<>())
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto, cls_type_proto);
+  PYDEFINE_PROTO(cls_type_proto, TypeProto::Tensor)
       .PYFIELD_OPTIONAL_INT(TypeProto::Tensor, elem_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Tensor, shape)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Tensor);
-
-  py::class_<onnx2::TypeProto::SparseTensor, onnx2::Message>(
-      cls_type_proto, "SparseTensor", "SparseTensor, nested class of TypeProto")
-      .def(py::init<>())
+  PYDEFINE_PROTO(cls_type_proto, TypeProto::SparseTensor)
       .PYFIELD_OPTIONAL_INT(TypeProto::SparseTensor, elem_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::SparseTensor, shape)
       .PYADD_PROTO_SERIALIZATION(TypeProto::SparseTensor);
-
-  py::class_<onnx2::TypeProto::Sequence, onnx2::Message>(cls_type_proto, "Sequence",
-                                                         "Sequence, nested class of TypeProto")
-      .def(py::init<>())
+  PYDEFINE_PROTO(cls_type_proto, TypeProto::Sequence)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Sequence);
-
-  py::class_<onnx2::TypeProto::Optional, onnx2::Message>(cls_type_proto, "Optional",
-                                                         "Optional, nested class of TypeProto")
-      .def(py::init<>())
+  PYDEFINE_PROTO(cls_type_proto, TypeProto::Optional)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Optional, elem_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Optional);
-
-  py::class_<onnx2::TypeProto::Map, onnx2::Message>(cls_type_proto, "Map",
-                                                    "Map, nested class of TypeProto")
-      .def(py::init<>())
+  PYDEFINE_PROTO(cls_type_proto, TypeProto::Map)
       .PYFIELD(TypeProto::Map, key_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Map, value_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Map);
-
-  cls_type_proto.def(py::init<>())
-      .PYFIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
+  cls_type_proto.PYFIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, sequence_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, map_type)
       .PYFIELD(TypeProto, denotation)
