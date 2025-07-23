@@ -639,6 +639,7 @@ class TestOnnx2(ExtTestCase):
         p0 = onnx2.TypeProto()
         p0.ParseFromString(s2)
         self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
     def test_tensor_shape_proto_reverse(self):
         p = onnx2.TensorShapeProto()
         p.dim.add().dim_param = "a"
