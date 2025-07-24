@@ -110,8 +110,12 @@ file(WRITE "${SETUP_BUILD_LIB}/onnx_extended/_config.py" "${config_content}")
 # test
 #
 
-include(CTest)
-enable_testing()
+# include(CTest)
+# enable_testing()
+
+# Register tests
+#include(GoogleTest)
+#gtest_discover_tests(test_onnx2_cpp)
 
 #
 # Final
