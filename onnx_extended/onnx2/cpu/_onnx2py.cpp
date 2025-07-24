@@ -37,15 +37,15 @@ namespace py = pybind11;
   def_property(                                                                                \
       #name,                                                                                   \
       [](onnx2::cls &self) -> py::object {                                                     \
-        if (!self.name##_.has_value())                                                         \
+        if (!self.has_##name())                                                                \
           return py::none();                                                                   \
-        return py::cast(*self.name##_, py::return_value_policy::reference);                    \
+        return py::cast(self.name(), py::return_value_policy::reference);                      \
       },                                                                                       \
       [](onnx2::cls &self, py::object obj) {                                                   \
         if (obj.is_none()) {                                                                   \
-          self.name##_.reset();                                                                \
+          self.reset_##name();                                                                 \
         } else if (py::isinstance<py::int_>(obj)) {                                            \
-          self.name##_ = obj.cast<int>();                                                      \
+          self.set_##name(obj.cast<int>());                                                    \
         } else {                                                                               \
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
         }                                                                                      \
@@ -228,7 +228,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYADD_PROTO_SERIALIZATION(DeviceConfigurationProto);
 
   PYDEFINE_PROTO(m, SimpleShardedDimProto)
-      .PYFIELD_OPTIONAL_INT(SimpleShardedDimProto, dim_value)
+      .PYFIELD(SimpleShardedDimProto, dim_value)
       .PYFIELD(SimpleShardedDimProto, dim_param)
       .PYFIELD(SimpleShardedDimProto, num_shards)
       .PYADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
@@ -256,7 +256,7 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorShapeProto, cls_tensor_shape_proto);
   PYDEFINE_PROTO(cls_tensor_shape_proto, TensorShapeProto::Dimension)
-      .PYFIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
+      .PYFIELD(TensorShapeProto::Dimension, dim_value)
       .PYFIELD(TensorShapeProto::Dimension, dim_param)
       .PYFIELD(TensorShapeProto::Dimension, denotation)
       .PYADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
