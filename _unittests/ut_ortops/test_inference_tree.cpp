@@ -7,7 +7,7 @@
 TEST(ortops, inference_tree_ensemble) {
 #if !defined(_WIN32) && (ORT_API_VERSION >= 17)
   const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
-  ASSERT_THROW(api != nullptr);
+  EXPECT_NE(api, nullptr);
   Ort::Env env;
   auto ort_env = &env;
   Ort::SessionOptions session_options;

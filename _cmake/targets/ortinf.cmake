@@ -52,6 +52,6 @@ target_link_libraries(
   PRIVATE
   lib_ortapi
   onnxruntime
-  common_kernels)
+  common_kernels
+  gtest_main)
 ort_add_dependency(test_ortcy_inference_cpp "")
-add_test(NAME test_ortcy_inference_cpp COMMAND test_ortcy_inference_cpp)

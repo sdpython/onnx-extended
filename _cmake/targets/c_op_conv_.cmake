@@ -13,13 +13,12 @@ target_include_directories(c_op_conv_ PRIVATE ${ROOT_INCLUDE_PATH})
 
 add_executable(test_c_op_conv_cpp ../_unittests/ut_reference/test_c_op_conv.cpp)
 target_compile_definitions(test_c_op_conv_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
-target_link_libraries(test_c_op_conv_cpp PRIVATE common_kernels common)
+target_link_libraries(test_c_op_conv_cpp PRIVATE common_kernels common gtest_main)
 target_include_directories(
   test_c_op_conv_cpp
   PRIVATE
   ${ROOT_INCLUDE_PATH}
-  ${ROOT_UNITTEST_PATH}
-  gtest_main)
+  ${ROOT_UNITTEST_PATH})
 eigen_add_dependency(test_c_op_conv_cpp)
 
 gtest_discover_tests(test_c_op_conv_cpp)
