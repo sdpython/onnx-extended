@@ -8,16 +8,6 @@
 #include <type_traits>
 #include <vector>
 
-// #define DEBUG_READ
-
-#if defined(DEBUG_READ)
-#define DEBUG_PRINT(s) printf("%s\n", s);
-#define DEBUG_PRINT2(s1, s2) printf("%s%s\n", s1, s2);
-#else
-#define DEBUG_PRINT(s)
-#define DEBUG_PRINT2(s1, s2)
-#endif
-
 //////////////
 // macro write
 //////////////
@@ -66,6 +56,14 @@
   else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
     DEBUG_PRINT("  + field " #name)                                                            \
     read_field(stream, field_number.wire_type, name##_, #name);                                \
+    DEBUG_PRINT("  - field " #name)                                                            \
+  }
+
+#define READ_ONEOF_FIELD(stream, varname, name)                                                \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                    \
+    DEBUG_PRINT("  + field " #name)                                                            \
+    read_field(stream, field_number.wire_type, name##_, #name);                                \
+    varname##_filled_order = order_##name();                                                   \
     DEBUG_PRINT("  - field " #name)                                                            \
   }
 
@@ -286,11 +284,20 @@ void read_optional_proto_field(utils::BinaryStream &stream, int wire_type,
 }
 
 template <>
-void read_field<std::string>(utils::BinaryStream &stream, int wire_type, std::string &field,
-                             const char *name) {
+void read_field(utils::BinaryStream &stream, int wire_type, std::string &field,
+                const char *name) {
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
               name, "'");
   field = stream.next_string();
+}
+
+template <>
+void read_field(utils::BinaryStream &stream, int wire_type, std::string *&field,
+                const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",
+              name, "'");
+  DEBUG_PRINT("new std::string")
+  field = new std::string(stream.next_string());
 }
 
 template <>

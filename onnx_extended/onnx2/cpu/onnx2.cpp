@@ -76,8 +76,8 @@ void SimpleShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) 
 
 void SimpleShardedDimProto::ParseFromStream(utils::BinaryStream &stream) {
   READ_BEGIN(stream, SimpleShardedDimProto)
-  READ_FIELD(stream, dim_value)
-  READ_FIELD(stream, dim_param)
+  READ_ONEOF_FIELD(stream, dim, dim_value)
+  READ_ONEOF_FIELD(stream, dim, dim_param)
   READ_FIELD(stream, num_shards)
   READ_END(stream, SimpleShardedDimProto)
 }
@@ -160,8 +160,8 @@ void TensorShapeProto::Dimension::SerializeToStream(utils::BinaryWriteStream &st
 
 void TensorShapeProto::Dimension::ParseFromStream(utils::BinaryStream &stream) {
   READ_BEGIN(stream, TensorShapeProto::Dimension)
-  READ_FIELD(stream, dim_value)
-  READ_FIELD(stream, dim_param)
+  READ_ONEOF_FIELD(stream, dim, dim_value)
+  READ_ONEOF_FIELD(stream, dim, dim_param)
   READ_FIELD(stream, denotation)
   READ_END(stream, TensorShapeProto::Dimension)
 }

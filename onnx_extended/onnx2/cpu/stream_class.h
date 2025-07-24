@@ -2,6 +2,16 @@
 
 #include "stream.h"
 
+#define DEBUG_READ
+
+#if defined(DEBUG_READ)
+#define DEBUG_PRINT(s) printf("%s\n", s);
+#define DEBUG_PRINT2(s1, s2) printf("%s%s\n", s1, s2);
+#else
+#define DEBUG_PRINT(s)
+#define DEBUG_PRINT2(s1, s2)
+#endif
+
 #define FIELD_VARINT 0
 // #define FIELD_FIXED64 1
 #define FIELD_FIXED_SIZE 2
@@ -69,7 +79,7 @@ public:                                                                         
   }                                                                                            \
   ;                                                                                            \
   int32_t varname##_filled_order;                                                              \
-  inline void clear_##varname##_0() {}
+  inline void clear_##varname##_0() { DEBUG_PRINT("clear " #varname "_0") }
 
 #define FIELD_ONEOF_1(varname, type, name, order)                                              \
   using name##_t = type;                                                                       \
@@ -81,6 +91,7 @@ public:                                                                         
   }                                                                                            \
   inline bool has_##name() const { return varname##_filled_order == order; }                   \
   inline void clear_##name() {                                                                 \
+    DEBUG_PRINT("clear " #name)                                                                \
     if (has_##name()) {                                                                        \
       clear_one_of(name##_);                                                                   \
       varname##_filled_order = 0;                                                              \
@@ -94,19 +105,39 @@ public:                                                                         
 
 #define FIELD_ONEOF_1_STRING(varname, name, order)                                             \
   using name##_t = std::string;                                                                \
-  inline type &name() { return has_##name() ? *name##_ : std::string(); }                      \
-  inline const type &name() const { return has_##name() ? *name##_ : std::string(); }          \
-  inline void set_##name(const type &v) {                                                      \
+  inline std::string &name() {                                                                 \
+    if (has_##name() && name##_ != nullptr) {                                                  \
+      DEBUG_PRINT("access " #name "_")                                                         \
+      return *name##_;                                                                         \
+    } else {                                                                                   \
+      static std::string _;                                                                    \
+      return _;                                                                                \
+    }                                                                                          \
+  }                                                                                            \
+  inline const std::string &name() const {                                                     \
+    if (has_##name() && name##_ != nullptr) {                                                  \
+      DEBUG_PRINT("access " #name "_")                                                         \
+      return *name##_;                                                                         \
+    } else {                                                                                   \
+      static std::string _;                                                                    \
+      return _;                                                                                \
+    }                                                                                          \
+  }                                                                                            \
+  inline void set_##name(const std::string &v) {                                               \
     if (has_##name())                                                                          \
       *name##_ = v;                                                                            \
-    else                                                                                       \
+    else {                                                                                     \
+      DEBUG_PRINT("new " #name "_")                                                            \
       name##_ = new std::string(v);                                                            \
+    }                                                                                          \
     varname##_filled_order = order;                                                            \
   }                                                                                            \
   inline bool has_##name() const { return varname##_filled_order == order; }                   \
   inline void clear_##name() {                                                                 \
+    DEBUG_PRINT("clear " #name)                                                                \
     if (has_##name()) {                                                                        \
-      if (&&name##_ != nullptr) {                                                              \
+      if (name##_ != nullptr) {                                                                \
+        DEBUG_PRINT("delete " #name "_")                                                       \
         delete name##_;                                                                        \
         name##_ = nullptr;                                                                     \
       }                                                                                        \
@@ -120,7 +151,10 @@ public:                                                                         
   inline int order_##name() const { return order; }
 
 #define FIELD_ONEOF_END(varname, n)                                                            \
-  inline void clear_##varname() { clear_##varname##_##n(); };
+  inline void clear_##varname() {                                                              \
+    DEBUG_PRINT("clear " #varname "_" #n);                                                     \
+    clear_##varname##_##n();                                                                   \
+  };
 
 #define FIELD_REPEATED(type, name, order)                                                      \
 public:                                                                                        \

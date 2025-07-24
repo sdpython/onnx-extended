@@ -30,8 +30,7 @@ FIELD(int32_t, num_devices, 2)
 FIELD_REPEATED(std::string, device, 3)
 END_PROTO()
 
-BEGIN_PROTO_NO_INIT(SimpleShardedDimProto)
-inline SimpleShardedDimProto() : dim_filled_order(0) {}
+BEGIN_PROTO_NOINIT(SimpleShardedDimProto)
 FIELD_ONEOF_BEGIN(dim)
 FIELD_ONEOF_0(int64_t, dim_value)
 FIELD_ONEOF_0_STRING(dim_param)
@@ -40,6 +39,7 @@ FIELD_ONEOF_1(dim, int64_t, dim_value, 1)
 FIELD_ONEOF_1_STRING(dim, dim_param, 2)
 FIELD_ONEOF_END(dim, 2)
 FIELD(int64_t, num_shards, 3)
+inline SimpleShardedDimProto() : dim_param_(nullptr), dim_filled_order(0) {}
 inline ~SimpleShardedDimProto() { clear_dim(); }
 END_PROTO()
 
@@ -69,7 +69,6 @@ END_PROTO()
 
 BEGIN_PROTO_NOINIT(TensorShapeProto)
 BEGIN_PROTO_NOINIT(Dimension)
-inline Dimension() : dim_filled_order(0) {}
 FIELD_ONEOF_BEGIN(dim)
 FIELD_ONEOF_0(int64_t, dim_value)
 FIELD_ONEOF_0_STRING(dim_param)
@@ -78,6 +77,7 @@ FIELD_ONEOF_1(dim, int64_t, dim_value, 1)
 FIELD_ONEOF_1_STRING(dim, dim_param, 2)
 FIELD_ONEOF_END(dim, 2)
 FIELD(std::string, denotation, 3)
+inline Dimension() : dim_param_(nullptr), dim_filled_order(0) {}
 inline ~Dimension() { clear_dim(); }
 END_PROTO()
 inline TensorShapeProto() {}
