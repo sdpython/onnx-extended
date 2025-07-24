@@ -24,12 +24,12 @@
 
 #define WRITE_FIELD(stream, name)                                                              \
   if (has_##name()) {                                                                          \
-    write_field(stream, order_##name(), name##_);                                              \
+    write_field(stream, order_##name(), name());                                               \
   }
 
 #define WRITE_ENUM_FIELD(stream, name)                                                         \
   if (has_##name()) {                                                                          \
-    write_enum_field(stream, order_##name(), name##_);                                         \
+    write_enum_field(stream, order_##name(), name());                                          \
   }
 
 #define WRITE_REPEATED_FIELD(stream, name)                                                     \
@@ -39,7 +39,7 @@
 
 #define WRITE_OPTIONAL_PROTO_FIELD(stream, name)                                               \
   if (has_##name()) {                                                                          \
-    write_optional_proto_field(stream, order_##name(), name##_);                               \
+    write_optional_proto_field(stream, order_##name(), name##_optional());                     \
   }
 
 /////////////

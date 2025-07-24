@@ -43,25 +43,32 @@
 #define FIELD(type, name, order)                                                               \
 public:                                                                                        \
   inline type &name() { return name##_; }                                                      \
+  inline const type &name() const { return name##_; }                                          \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
+  inline void set_##name(const type &v) { name##_ = v; }                                       \
   inline int order_##name() const { return order; }                                            \
-  type name##_;
+  type name##_;                                                                                \
+  using name##_t = type;
 
 #define FIELD_REPEATED(type, name, order)                                                      \
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
+  inline void add_##name(type &&v) { name##_.emplace_back(v); }                                \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   inline bool packed_##name() const { return false; }                                          \
-  utils::RepeatedField<type> name##_;
+  utils::RepeatedField<type> name##_;                                                          \
+  using name##_t = type;
 
 #define FIELD_REPEATED_PACKED(type, name, order)                                               \
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
+  inline void add_##name(type &&v) { name##_.emplace_back(v); }                                \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   inline bool packed_##name() const { return true; }                                           \
-  utils::RepeatedField<type> name##_;
+  utils::RepeatedField<type> name##_;                                                          \
+  using name##_t = type;
 
 #define FIELD_OPTIONAL(type, name, order)                                                      \
 public:                                                                                        \
@@ -69,7 +76,21 @@ public:                                                                         
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
     return *name##_;                                                                           \
   }                                                                                            \
-  inline bool has_##name() const { return _has_field_(name##_); }                              \
+  inline const type &name() const {                                                            \
+    EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
+    return *name##_;                                                                           \
+  }                                                                                            \
+  inline utils::OptionalField<type> &name##_optional() {                                       \
+    EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
+    return name##_;                                                                            \
+  }                                                                                            \
+  inline const utils::OptionalField<type> &name##_optional() const {                           \
+    EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
+    return name##_;                                                                            \
+  }                                                                                            \
+  inline void set_##name(const type &v) { name##_ = v; }                                       \
+  inline void reset_##name() { name##_.reset(); }                                              \
+  inline bool has_##name() const { return name##_.has_value(); }                               \
   inline int order_##name() const { return order; }                                            \
   utils::OptionalField<type> name##_;                                                          \
   using name##_t = type;
@@ -80,9 +101,6 @@ using utils::offset_t;
 
 template <typename T> inline bool _has_field_(const T &) { return true; }
 template <> inline bool _has_field_(const std::string &field) { return !field.empty(); }
-template <> inline bool _has_field_(const utils::OptionalField<uint64_t> &field) {
-  return field.has_value();
-}
 template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
   return !field.empty();
 }
