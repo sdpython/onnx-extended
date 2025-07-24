@@ -16,3 +16,21 @@ local_pybind11_add_module(
 message(STATUS "    LINK _onnx2py <- lib_onnx2_cpp")
 target_include_directories(_onnx2py PRIVATE "${ROOT_INCLUDE_PATH}")
 target_link_libraries(_onnx2py PRIVATE lib_onnx2_cpp common)
+
+add_executable(
+  test_onnx2_cpp
+  ../_unittests/ut_onnx2/test_onnx2_cpu.cpp)
+target_compile_definitions(test_onnx2_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
+target_include_directories(
+  test_onnx2_cpp
+  PRIVATE
+  "${ROOT_PROJECT_PATH}"
+  "${ROOT_INCLUDE_PATH}"
+  "${ROOT_UNITTEST_PATH}")
+message(STATUS "    LINK test_onnx2_cpp <- lib_onnx2_cpp")
+target_link_libraries(
+  test_onnx2_cpp
+  PRIVATE
+  lib_onnx2_cpp
+  common)
+add_test(NAME test_onnx2_cpp COMMAND test_onnx2_cpp)
