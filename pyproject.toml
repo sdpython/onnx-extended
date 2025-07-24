@@ -111,7 +111,7 @@ test-command = "python -m pip install onnxruntime&&python -c \"import onnx_exten
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 build = "cp*"
-skip = "pypy* *musllinux* cp36-* cp37-* cp38-* cp39-* cp314-* cp315-*"
+skip = "pypy* *musllinux* cp36-* cp37-* cp38-* cp39-* cp314* cp315*"
 manylinux-x86_64-image = "manylinux_2_28"
 before-build = "pip install auditwheel-symbols abi3audit;python -c 'import sysconfig;print(sysconfig.get_platform())'"
 build-verbosity = 1
@@ -130,13 +130,13 @@ environment = """
 """
 build = "cp*"
 before-build = "brew install llvm libomp"
-skip = "pypy* pp* cp36-* cp37-* cp38-* cp39-* cp314-* cp315-*"
+skip = "pypy* pp* cp36-* cp37-* cp38-* cp39-* cp314* cp315*"
 # environment="LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'"
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
 build = "cp*"
-skip = "pypy* cp36-* cp37-* cp38-* cp39-* cp314-* cp315-*"
+skip = "pypy* cp36-* cp37-* cp38-* cp39-* cp314* cp315*"
 
 [tool.cython-lint]
 max-line-length = 88
