@@ -24,29 +24,35 @@ typedef std::wstring std_string_type;
 typedef std::string std_string_type;
 #endif
 
-#define ASSERT_THROW(condition)                                                                \
+#if !defined(EXPECT_TRUE)
+#define EXPECT_TRUE(condition)                                                                 \
   {                                                                                            \
     if (!(condition)) {                                                                        \
       throw std::runtime_error(                                                                \
           onnx_extended_helpers::MakeString(__FILE__, ":", __LINE__, " in ", __FUNCTION__));   \
     }                                                                                          \
   }
+#endif
 
-#define ASSERT_EQUAL(a, b)                                                                     \
+#if !defined(EXPECT_EQ)
+#define EXPECT_EQ(a, b)                                                                        \
   {                                                                                            \
     if (a != b) {                                                                              \
       throw std::runtime_error(onnx_extended_helpers::MakeString(                              \
           __FILE__, ":", __LINE__, " in ", __FUNCTION__, "\n", "a != b"));                     \
     }                                                                                          \
   }
+#endif
 
-#define ASSERT_NOTEQUAL(a, b)                                                                  \
+#if !defined(EXPECT_NE)
+#define EXPECT_NE(a, b)                                                                        \
   {                                                                                            \
     if (a == b) {                                                                              \
       throw std::runtime_error(onnx_extended_helpers::MakeString(                              \
           __FILE__, ":", __LINE__, " in ", __FUNCTION__, "\n", "a == b"));                     \
     }                                                                                          \
   }
+#endif
 
 template <typename T> bool check_equal(int n, T *pa, T *pb) {
   for (int i = 0; i < n; ++i) {
@@ -56,7 +62,9 @@ template <typename T> bool check_equal(int n, T *pa, T *pb) {
   return true;
 }
 
-#define ASSERT_EQUAL_VECTOR(n, pa, pb) ASSERT_THROW(check_equal(n, pa, pb))
+#if !defined(EXPECT_EQ_VECTOR)
+#define EXPECT_EQ_VECTOR(n, pa, pb) EXPECT_TRUE(check_equal(n, pa, pb))
+#endif
 
 template <typename T> bool check_almost_equal(int n, T *pa, T *pb, T precision = 1e-5) {
   for (int i = 0; i < n; ++i) {
@@ -70,7 +78,9 @@ template <typename T> bool check_almost_equal(int n, T *pa, T *pb, T precision =
   return true;
 }
 
-#define ASSERT_ALMOST_VECTOR(n, pa, pb, prec) ASSERT_THROW(check_almost_equal(n, pa, pb, prec))
+#if !defined(EXPECT_ALMOST_VECTOR)
+#define EXPECT_ALMOST_VECTOR(n, pa, pb, prec) EXPECT_TRUE(check_almost_equal(n, pa, pb, prec))
+#endif
 
 inline std_string_type to_std_string_path(const char *path) {
 #if ((!defined(PYTHON_MANYLINUX) || !PYTHON_MANYLINUX) && __cplusplus >= 201703L)

@@ -1,12 +1,13 @@
+#include <gtest/gtest.h>
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
 // #include "onnx_extended/ortcy/wrap/ortapi.h"
 #include "onnxruntime_cxx_api.h"
 
-void test_inference_tree_ensemble() {
+TEST(ortops, inference_tree_ensemble) {
 #if !defined(_WIN32) && (ORT_API_VERSION >= 17)
   const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
-  ASSERT_THROW(api != nullptr);
+  EXPECT_NE(api, nullptr);
   Ort::Env env;
   auto ort_env = &env;
   Ort::SessionOptions session_options;
@@ -42,17 +43,15 @@ void test_inference_tree_ensemble() {
     if (i > 0 && i % 10000 == 0)
       printf("i=%d\n", i);
     auto out = session.Run(run_options, input_names, input_tensors, 1, output_names, 1);
-    ASSERT_EQUAL(out.size(), 1);
+    EXPECT_EQ(out.size(), 1);
   }
   auto output_tensors =
       session.Run(run_options, input_names, input_tensors, 1, output_names, 1);
   const auto &vector_filterred = output_tensors.at(0);
   auto type_shape_info = vector_filterred.GetTensorTypeAndShapeInfo();
-  ASSERT_EQUAL(type_shape_info.GetDimensionsCount(), 2);
+  EXPECT_EQ(type_shape_info.GetDimensionsCount(), 2);
   const float *floats_output = static_cast<const float *>(vector_filterred.GetTensorRawData());
-  // ASSERT_EQUAL(floats_output[0], 0);
-  ASSERT_NOTEQUAL(floats_output, nullptr);
+  // EXPECT_EQ(floats_output[0], 0);
+  EXPECT_NE(floats_output, nullptr);
 #endif
 }
-
-int main(int, char **) { test_inference_tree_ensemble(); }

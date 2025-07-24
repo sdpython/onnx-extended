@@ -46,6 +46,14 @@ jobs:
       - name: Build
         run: python setup.py build_ext --inplace --use-cuda=0
 
+      - name: Unit Test C++
+        run: |
+          find . -type f -name "test_onnx*_cpp" -executable -exec {} \;
+          find . -type f -name "test_validation*_cpp" -executable -exec {} \;
+          find . -type f -name "test_c*_cpp" -executable -exec {} \;
+          find . -type f -name "test_ort*_cpp" -executable -exec {} \;
+          find . -type f -name "test_optops*_cpp" -executable -exec {} \;
+
       - name: cat _config.py
         run: cat onnx_extended/_config.py
 

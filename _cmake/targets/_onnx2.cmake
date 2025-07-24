@@ -32,5 +32,8 @@ target_link_libraries(
   test_onnx2_cpp
   PRIVATE
   lib_onnx2_cpp
-  common)
-add_test(NAME test_onnx2_cpp COMMAND test_onnx2_cpp)
+  common
+  gtest_main)
+
+
+gtest_discover_tests(test_onnx2_cpp)
