@@ -723,6 +723,49 @@ class TestOnnx2(ExtTestCase):
         p0.ParseFromString(s2)
         self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
+    def test_type_proto_sequence_type_assign1(self):
+        p = onnx2.TypeProto()
+        p.denotation = "denot"
+        et = onnx2.TypeProto()
+        et.tensor_type = onnx2.TypeProto.Tensor()
+        et.tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        et.tensor_type.add_shape().dim.add().dim_param = "a"
+        et.tensor_type.shape.dim.add().dim_param = "b"
+        et.tensor_type.shape.dim.add().dim_param = "c"
+        et.denotation = "denott"
+        p.add_sequence_type().elem_type = et
+        self.assertNotEmpty(et)
+        self.assertNotEmpty(p.sequence_type.elem_type)
+        self.assertTrue(p.sequence_type.has_elem_type())
+        self.assertEqual(
+            p.sequence_type.elem_type.tensor_type.shape.dim[0].dim_param, "a"
+        )
+        self.assertEqual(
+            p.sequence_type.elem_type.tensor_type.shape.dim[1].dim_param, "b"
+        )
+
+    def test_type_proto_sequence_type_assign2(self):
+        p = onnx2.TypeProto()
+        p.denotation = "denot"
+        et = onnx2.TypeProto()
+        et.add_tensor_type()
+        et.tensor_type.elem_type = onnx2.TensorProto.FLOAT
+        et.tensor_type.add_shape().dim.add().dim_param = "a"
+        et.tensor_type.shape.dim.add().dim_param = "b"
+        et.tensor_type.shape.dim.add().dim_param = "c"
+        et.denotation = "denott"
+        p.add_sequence_type()
+        p.sequence_type.elem_type = et
+        self.assertNotEmpty(et)
+        self.assertNotEmpty(p.sequence_type.elem_type)
+        self.assertTrue(p.sequence_type.has_elem_type())
+        self.assertEqual(
+            p.sequence_type.elem_type.tensor_type.shape.dim[0].dim_param, "a"
+        )
+        self.assertEqual(
+            p.sequence_type.elem_type.tensor_type.shape.dim[1].dim_param, "b"
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

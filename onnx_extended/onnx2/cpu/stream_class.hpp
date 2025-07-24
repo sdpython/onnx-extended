@@ -295,14 +295,6 @@ void read_field<std::string>(utils::BinaryStream &stream, int wire_type, std::st
 
 template <>
 void read_field(utils::BinaryStream &stream, int wire_type,
-                utils::OptionalField<uint64_t> &field, const char *name) {
-  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
-              name, "'");
-  field = stream.next_uint64();
-}
-
-template <>
-void read_field(utils::BinaryStream &stream, int wire_type,
                 utils::OptionalField<int64_t> &field, const char *name) {
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '",
               name, "'");

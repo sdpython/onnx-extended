@@ -8,6 +8,10 @@ namespace py = pybind11;
 #define PYDEFINE_PROTO(m, cls)                                                                 \
   py::class_<onnx2::cls, onnx2::Message>(m, #cls, onnx2::cls::DOC).def(py::init<>())
 
+#define PYDEFINE_SUBPROTO(m, cls, subname)                                                     \
+  py::class_<onnx2::cls::subname, onnx2::Message>(m, #subname, onnx2::cls::subname::DOC)       \
+      .def(py::init<>())
+
 #define PYDEFINE_PROTO_WITH_SUBTYPES(m, cls, name)                                             \
   py::class_<onnx2::cls, onnx2::Message> name(m, #cls, onnx2::cls::DOC);                       \
   name.def(py::init<>());
@@ -65,7 +69,7 @@ namespace py = pybind11;
         if (obj.is_none()) {                                                                   \
           self.name##_.reset();                                                                \
         } else if (py::isinstance<onnx2::cls::name##_t>(obj)) {                                \
-          self.name##_ = obj.cast<onnx2::cls::name##_t>();                                     \
+          self.name##_ = obj.cast<onnx2::cls::name##_t &>();                                   \
         } else {                                                                               \
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
         }                                                                                      \
@@ -255,7 +259,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorShapeProto, cls_tensor_shape_proto);
-  PYDEFINE_PROTO(cls_tensor_shape_proto, TensorShapeProto::Dimension)
+  PYDEFINE_SUBPROTO(cls_tensor_shape_proto, TensorShapeProto, Dimension)
       .PYFIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
       .PYFIELD(TensorShapeProto::Dimension, dim_param)
       .PYFIELD(TensorShapeProto::Dimension, denotation)
@@ -359,21 +363,21 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYADD_PROTO_SERIALIZATION(SparseTensorProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto, cls_type_proto);
-  PYDEFINE_PROTO(cls_type_proto, TypeProto::Tensor)
+  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Tensor)
       .PYFIELD_OPTIONAL_INT(TypeProto::Tensor, elem_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Tensor, shape)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Tensor);
-  PYDEFINE_PROTO(cls_type_proto, TypeProto::SparseTensor)
+  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, SparseTensor)
       .PYFIELD_OPTIONAL_INT(TypeProto::SparseTensor, elem_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::SparseTensor, shape)
       .PYADD_PROTO_SERIALIZATION(TypeProto::SparseTensor);
-  PYDEFINE_PROTO(cls_type_proto, TypeProto::Sequence)
+  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Sequence)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Sequence);
-  PYDEFINE_PROTO(cls_type_proto, TypeProto::Optional)
+  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Optional)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Optional, elem_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Optional);
-  PYDEFINE_PROTO(cls_type_proto, TypeProto::Map)
+  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Map)
       .PYFIELD(TypeProto::Map, key_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Map, value_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto::Map);
