@@ -432,7 +432,7 @@ class TestOnnx2(ExtTestCase):
 
     def test_simple_shared_dim_proto(self):
         for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
-            with self.subTest(start=x.__name__):
+            with self.subTest(start=x.__name__, case="dim_value"):
                 p = x.SimpleShardedDimProto()
                 p.dim_value = 3
                 # p.dim_param = "rt"
@@ -450,7 +450,7 @@ class TestOnnx2(ExtTestCase):
                 self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
         for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
-            with self.subTest(start=x.__name__):
+            with self.subTest(start=x.__name__, case="dim_param"):
                 p = x.SimpleShardedDimProto()
                 # p.dim_value = 3
                 p.dim_param = "rt"
@@ -531,7 +531,7 @@ class TestOnnx2(ExtTestCase):
                 b = ps.sharded_dim.add()
                 b.axis = 3
                 c = b.simple_sharding.add()
-                c.dim_value = 4
+                c.dim_value = 444
                 c.num_shards = 5
                 self.assertNotEmpty(p.sharding_spec)
                 self.assertEqual(len(p.sharding_spec), 1)
@@ -539,11 +539,132 @@ class TestOnnx2(ExtTestCase):
                 s = p.SerializeToString()
                 p2 = x2.NodeDeviceConfigurationProto()
                 p2.ParseFromString(s)
+                self.assertEqual(len(p2.sharding_spec), 1)
+                self.assertEqual(p.configuration_id, p2.configuration_id)
+                self.assertEqual(p.pipeline_stage, p2.pipeline_stage)
+                self.assertEqual(
+                    p.sharding_spec[0].tensor_name, p2.sharding_spec[0].tensor_name
+                )
 
                 s2 = p2.SerializeToString()
                 p0 = x.NodeDeviceConfigurationProto()
                 p0.ParseFromString(s2)
+                self.assertEqual(
+                    p.sharding_spec[0].index_to_device_group_map[0].SerializeToString(),
+                    p2.sharding_spec[0]
+                    .index_to_device_group_map[0]
+                    .SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].index_to_device_group_map[0].SerializeToString(),
+                    p0.sharding_spec[0]
+                    .index_to_device_group_map[0]
+                    .SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].index_to_device_group_map[1].SerializeToString(),
+                    p2.sharding_spec[0]
+                    .index_to_device_group_map[1]
+                    .SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].axis,
+                    p0.sharding_spec[0].sharded_dim[0].axis,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].axis,
+                    p2.sharding_spec[0].sharded_dim[0].axis,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].num_shards,
+                    p0.sharding_spec[0].sharded_dim[0].simple_sharding[0].num_shards,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].num_shards,
+                    p2.sharding_spec[0].sharded_dim[0].simple_sharding[0].num_shards,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value,
+                    p2.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_param,
+                    p2.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_param,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value,
+                    p2.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value, 444
+                )
+                self.assertEqual(
+                    p2.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value, 444
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].SerializeToString(),
+                    p2.sharding_spec[0].sharded_dim[0].simple_sharding[0].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_param,
+                    p0.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_param,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value,
+                    p0.sharding_spec[0].sharded_dim[0].simple_sharding[0].dim_value,
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].SerializeToString(),
+                    p0.sharding_spec[0].sharded_dim[0].simple_sharding[0].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].simple_sharding[0].SerializeToString(),
+                    p2.sharding_spec[0].sharded_dim[0].simple_sharding[0].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].SerializeToString(),
+                    p0.sharding_spec[0].sharded_dim[0].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[0].SerializeToString(),
+                    p2.sharding_spec[0].sharded_dim[0].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[1].SerializeToString(),
+                    p0.sharding_spec[0].sharded_dim[1].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].sharded_dim[1].SerializeToString(),
+                    p2.sharding_spec[0].sharded_dim[1].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].tensor_name, p2.sharding_spec[0].tensor_name
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].tensor_name, p0.sharding_spec[0].tensor_name
+                )
+                self.assertEqual(
+                    list(p.sharding_spec[0].device), list(p2.sharding_spec[0].device)
+                )
+                self.assertEqual(
+                    list(p.sharding_spec[0].device), list(p0.sharding_spec[0].device)
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].index_to_device_group_map[1].SerializeToString(),
+                    p0.sharding_spec[0]
+                    .index_to_device_group_map[1]
+                    .SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].SerializeToString(),
+                    p0.sharding_spec[0].SerializeToString(),
+                )
+                self.assertEqual(
+                    p.sharding_spec[0].SerializeToString(),
+                    p2.sharding_spec[0].SerializeToString(),
+                )
                 self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+                self.assertEqual(p.SerializeToString(), p2.SerializeToString())
 
     def test_tensor_proto_data_type(self):
         self.assertEqual(onnx2.TensorProto.UNDEFINED, onnx.TensorProto.UNDEFINED)
