@@ -35,8 +35,14 @@ template <typename T> const T &OptionalField<T>::operator*() const {
   return *value;
 }
 
-template <typename T> OptionalField<T> &OptionalField<T>::operator=(const T &) {
-  EXT_THROW("Assignment is now allowed yet for an option field.");
+template <typename T> OptionalField<T> &OptionalField<T>::operator=(const T &v) {
+  // We make a copy.
+  set_empty_value();
+  StringWriteStream stream;
+  v.SerializeToStream(stream);
+  StringStream rstream(stream.data(), stream.size());
+  value->ParseFromStream(rstream);
+  return *this;
 }
 
 } // namespace utils
