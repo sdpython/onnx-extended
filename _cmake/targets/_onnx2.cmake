@@ -36,4 +36,4 @@ target_link_libraries(
   gtest_main)
 
 
-# gtest_discover_tests(test_onnx2_cpp)
+gtest_discover_tests(test_onnx2_cpp)

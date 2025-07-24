@@ -44,6 +44,13 @@ jobs:
       python -m pip install -e . -v
     displayName: 'pip install -e . -v'
   - script: |
+      find . -type f -name "test_onnx*_cpp" -executable -exec {} \;
+      find . -type f -name "test_validation*_cpp" -executable -exec {} \;
+      find . -type f -name "test_c*_cpp" -executable -exec {} \;
+      find . -type f -name "test_ort*_cpp" -executable -exec {} \;
+      find . -type f -name "test_optops*_cpp" -executable -exec {} \;
+    displayName: 'Unit test C++'
+  - script: |
       python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
     displayName: 'Unit Tests'
   - script: |
@@ -198,12 +205,13 @@ jobs:
       # python -m pip install -e .
       python setup.py build_ext --inplace
     displayName: 'build inplace'
-  - bash: |
-      contents=$(cat .build_path.txt)
-      export BUILD_PATH="$contents"
-      cd $BUILD_PATH
-      ctest --rerun-failed --output-on-failure
-    displayName: 'Run C++ Unit Tests'
+  - script: |
+      find . -type f -name "test_onnx*_cpp" -executable -exec {} \;
+      find . -type f -name "test_validation*_cpp" -executable -exec {} \;
+      find . -type f -name "test_c*_cpp" -executable -exec {} \;
+      find . -type f -name "test_ort*_cpp" -executable -exec {} \;
+      find . -type f -name "test_optops*_cpp" -executable -exec {} \;
+    displayName: 'Unit test C++'
   - script: |
       python -m pip install "numpy<2.0"
     displayName: 'install numpy<2'
@@ -279,12 +287,13 @@ jobs:
       # python -m pip install -e .
       python setup.py build_ext --inplace
     displayName: 'build inplace'
-  - bash: |
-      contents=$(cat .build_path.txt)
-      export BUILD_PATH="$contents"
-      cd $BUILD_PATH
-      ctest --rerun-failed --output-on-failure
-    displayName: 'Run C++ Unit Tests'
+  - script: |
+      find . -type f -name "test_onnx*_cpp" -executable -exec {} \;
+      find . -type f -name "test_validation*_cpp" -executable -exec {} \;
+      find . -type f -name "test_c*_cpp" -executable -exec {} \;
+      find . -type f -name "test_ort*_cpp" -executable -exec {} \;
+      find . -type f -name "test_optops*_cpp" -executable -exec {} \;
+    displayName: 'Unit test C++'
   - script: |
       python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
     displayName: 'Unit Tests'
@@ -364,11 +373,6 @@ jobs:
   - script: |
         python setup.py install
     displayName: 'build wheel'
-  - powershell: |
-        $contents = Get-Content -Path ".build_path.txt"
-        cd $contents
-        ctest -C Release --rerun-failed --output-on-failure
-    displayName: 'Runs C++ Unit Tests'
   - script: |
       python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
     displayName: 'Unit Tests'

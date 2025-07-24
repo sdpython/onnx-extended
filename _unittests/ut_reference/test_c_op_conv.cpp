@@ -1,14 +1,11 @@
+#include <gtest/gtest.h>
 #include "onnx_extended_test_common.h"
 #include "cpu/c_op_conv_common.h"
 #include "cpu/c_op_conv.h"
 
 using namespace onnx_c_ops;
 
-void testAssertTrue() {
-    ASSERT_THROW(true);
-}
-
-void test_gemm() {
+TEST(reference, gemm) {
     float pa[4] = { 1, 2, 3, 4 };
     float pb[4] = { 10, 20, 30, 40 };
     float pc[4] = { -0.1, -0.2, -0.3, -0.4 };
@@ -61,9 +58,5 @@ void test_gemm() {
     float expected5[4] = { 49.9, 109.8, 109.7, 249.6 };
     gemm(false, true, 2, 2, 2, 1.0f, pa, pb, 1.0f, pc5);
     ASSERT_EQUAL_VECTOR(4, expected5, pc5);
-}
-
-int main(int, char**) {
-    testAssertTrue();
-    test_gemm();
+    EXPECT_EQ(expected5[0], pc5[0])
 }
