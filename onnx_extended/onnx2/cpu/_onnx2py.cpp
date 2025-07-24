@@ -159,6 +159,28 @@ PYBIND11_MODULE(_onnx2py, m) {
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
 
+  py::class_<onnx2::utils::String>(m, "String", "custom string")
+      .def(py::init<std::string>())
+      .def(
+          "__str__",
+          [](const onnx2::utils::String &self) -> std::string { return self.as_string(); },
+          "converts into string")
+      .def(
+          "__repr__",
+          [](const onnx2::utils::String &self) -> std::string {
+            return std::string("'") + self.as_string() + std::string("'");
+          },
+          "usual representation")
+      .def(
+          "__len__", [](const onnx2::utils::String &self) -> int { return self.size(); },
+          "returns the length")
+      .def(
+          "__eq__",
+          [](const onnx2::utils::String &self, const std::string &s) -> int {
+            return self == s;
+          },
+          "comparison");
+
   bind_repeated_field<int64_t>(m, "RepeatedFieldInt64");
   bind_repeated_field<int32_t>(m, "RepeatedFieldInt32");
   bind_repeated_field<uint64_t>(m, "RepeatedFieldUInt64");
@@ -323,7 +345,7 @@ PYBIND11_MODULE(_onnx2py, m) {
           [](const onnx2::TensorProto &self) -> py::list {
             py::list result;
             for (const auto &s : self.string_data_) {
-              result.append(py::bytes(s));
+              result.append(py::bytes(std::string(s.data(), s.size())));
             }
             return result;
           },

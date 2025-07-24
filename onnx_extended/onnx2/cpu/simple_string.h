@@ -21,6 +21,8 @@ public:
   inline const char *data() const { return ptr_; }
   inline bool empty() const { return size_ == 0; }
   inline char operator[](size_t i) const { return ptr_[i]; }
+  bool operator==(RefString other) const;
+  bool operator==(const char *other) const;
 };
 
 class String {
@@ -50,6 +52,7 @@ public:
   bool operator!=(const String &other) const;
   bool operator!=(RefString other) const;
   bool operator!=(const char *other) const;
+  std::string as_string() const;
 };
 
 } // namespace utils
