@@ -107,13 +107,6 @@ message(STATUS "WRITE _CONFIG: '${SETUP_BUILD_LIB}/onnx_extended/_config.py'")
 file(WRITE "${SETUP_BUILD_LIB}/onnx_extended/_config.py" "${config_content}")
 
 #
-# test
-#
-
-include(CTest)
-enable_testing()
-
-#
 # Final
 #
 

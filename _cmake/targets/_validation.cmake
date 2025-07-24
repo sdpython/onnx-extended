@@ -33,5 +33,7 @@ target_link_libraries(
   test_validation_cpp
   PRIVATE
   lib_validation_cpp
-  common)
-add_test(NAME test_validation_cpp COMMAND test_validation_cpp)
+  common
+  gtest_main)
+  
+gtest_discover_tests(test_validation_cpp)

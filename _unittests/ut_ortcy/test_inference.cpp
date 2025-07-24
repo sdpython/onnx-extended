@@ -1,3 +1,4 @@
+#include <gtest/gtest.h>
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
 // #include "onnx_extended/ortcy/wrap/ortapi.h"
@@ -10,11 +11,9 @@
 #include <locale>
 #endif
 
-void testAssertTrue() { ASSERT_THROW(true); }
-
-void test_inference() {
+TEST(ortcy, inference) {
   const OrtApi *api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
-  ASSERT_THROW(api != nullptr);
+  EXPECT_NE(api, nullptr);
   Ort::Env env;
   auto ort_env = &env; // std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "Default");
   Ort::SessionOptions session_options;
@@ -48,15 +47,10 @@ void test_inference() {
   const auto &vector_filterred = output_tensors.at(0);
   auto type_shape_info = vector_filterred.GetTensorTypeAndShapeInfo();
   const float *floats_output = static_cast<const float *>(vector_filterred.GetTensorRawData());
-  ASSERT_EQUAL(floats_output[0], 0);
-  ASSERT_EQUAL(floats_output[1], 2);
-  ASSERT_EQUAL(floats_output[2], 4);
-  ASSERT_EQUAL(floats_output[3], 6);
-  ASSERT_EQUAL(floats_output[4], 8);
-  ASSERT_EQUAL(floats_output[5], 55);
-}
-
-int main(int, char **) {
-  testAssertTrue();
-  test_inference();
+  EXPECT_EQ(floats_output[0], 0);
+  EXPECT_EQ(floats_output[1], 2);
+  EXPECT_EQ(floats_output[2], 4);
+  EXPECT_EQ(floats_output[3], 6);
+  EXPECT_EQ(floats_output[4], 8);
+  EXPECT_EQ(floats_output[5], 55);
 }
