@@ -1,6 +1,7 @@
 #pragma once
 
 #include "onnx_extended_helpers.h"
+#include "simple_string.h"
 #include <cstddef>
 #include <optional>
 #include <stdexcept>

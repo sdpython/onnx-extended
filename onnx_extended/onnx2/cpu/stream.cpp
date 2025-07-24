@@ -13,11 +13,11 @@ std::string FieldNumber::string() const {
                                            ", wire_type=", wire_type, "]");
 }
 
-std::string BinaryStream::next_string() {
+RefString BinaryStream::next_string() {
   uint64_t length = next_uint64();
   this->can_read(length, "[StringStream::next_string]");
-  std::string result(reinterpret_cast<const char *>(read_bytes(length)), length);
-  return result;
+  return RefString(reinterpret_cast<const char *>(read_bytes(length)),
+                   static_cast<size_t>(length));
 }
 
 int64_t BinaryStream::next_int64() {
@@ -118,6 +118,16 @@ void BinaryWriteStream::write_field_header(uint32_t field_number, uint8_t wire_t
 }
 
 void BinaryWriteStream::write_string(const std::string &value) {
+  write_variant_uint64(value.size());
+  write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
+}
+
+void BinaryWriteStream::write_string(const String &value) {
+  write_variant_uint64(value.size());
+  write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
+}
+
+void BinaryWriteStream::write_string(RefString value) {
   write_variant_uint64(value.size());
   write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 }

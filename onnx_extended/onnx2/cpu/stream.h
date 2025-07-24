@@ -1,6 +1,7 @@
 #pragma once
 
 #include "onnx_extended_helpers.h"
+#include "simple_string.h"
 #include <cstddef>
 #include <stdexcept>
 #include <stdint.h>
@@ -39,7 +40,7 @@ public:
   virtual void read_string_stream(StringStream &stream) = 0;
 
   // defines from the previous ones
-  virtual std::string next_string();
+  virtual RefString next_string();
   virtual int64_t next_int64();
   virtual int32_t next_int32();
   virtual float next_float();
@@ -81,6 +82,8 @@ public:
   virtual void write_float(float value);
   virtual void write_double(double value);
   virtual void write_string(const std::string &value);
+  virtual void write_string(const String &value);
+  virtual void write_string(RefString value);
   virtual void write_string_stream(const StringWriteStream &stream);
   virtual void write_string_stream(const BorrowedWriteStream &stream);
   virtual void write_field_header(uint32_t field_number, uint8_t wire_type);

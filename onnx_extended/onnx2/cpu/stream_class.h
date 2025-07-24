@@ -100,7 +100,7 @@ namespace onnx2 {
 using utils::offset_t;
 
 template <typename T> inline bool _has_field_(const T &) { return true; }
-template <> inline bool _has_field_(const std::string &field) { return !field.empty(); }
+template <> inline bool _has_field_(const utils::String &field) { return !field.empty(); }
 template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
   return !field.empty();
 }
