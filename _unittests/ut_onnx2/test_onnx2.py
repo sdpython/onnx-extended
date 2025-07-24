@@ -450,7 +450,7 @@ class TestOnnx2(ExtTestCase):
                 self.assertEqual(p.SerializeToString(), p0.SerializeToString())
 
         for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
-            with self.subTest(start=x.__name__):
+            with self.subTest(start=x.__name__, case="dim_param"):
                 p = x.SimpleShardedDimProto()
                 # p.dim_value = 3
                 p.dim_param = "rt"
@@ -469,7 +469,7 @@ class TestOnnx2(ExtTestCase):
 
     def test_sharded_dim_proto(self):
         for x, x2 in [(onnx, onnx2), (onnx2, onnx)]:
-            with self.subTest(start=x.__name__):
+            with self.subTest(start=x.__name__, case="dim_value"):
                 p = x.ShardedDimProto()
                 p.axis = 3
                 a = p.simple_sharding.add()
