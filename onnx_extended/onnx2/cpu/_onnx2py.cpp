@@ -37,6 +37,24 @@ namespace py = pybind11;
   def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
 
+#define PYFIELD_STR(cls, name)                                                                 \
+  def_property(                                                                                \
+      #name,                                                                                   \
+      [](const onnx2::cls &self) -> std::string {                                              \
+        std::string s = self.name().as_string();                                               \
+        return s;                                                                              \
+      },                                                                                       \
+      [](onnx2::cls &self, py::object obj) {                                                   \
+        if (py::isinstance<py::str>(obj)) {                                                    \
+          std::string st = obj.cast<std::string>();                                            \
+          self.set_##name(st);                                                                 \
+        } else {                                                                               \
+          self.set_##name(obj.cast<onnx2::cls::name##_t &>());                                 \
+        }                                                                                      \
+      },                                                                                       \
+      #name " (string)")                                                                       \
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
+
 #define PYFIELD_OPTIONAL_INT(cls, name)                                                        \
   def_property(                                                                                \
       #name,                                                                                   \
@@ -54,7 +72,7 @@ namespace py = pybind11;
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
         }                                                                                      \
       },                                                                                       \
-      #name)                                                                                   \
+      #name " (optional int)")                                                                 \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
 
 #define PYFIELD_OPTIONAL_PROTO(cls, name)                                                      \
@@ -74,7 +92,7 @@ namespace py = pybind11;
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
         }                                                                                      \
       },                                                                                       \
-      #name)                                                                                   \
+      #name " (optional proto)")                                                               \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")          \
       .def(                                                                                    \
           "add_" #name, [](onnx2::cls & self) -> onnx2::cls::name##_t & {                      \
@@ -88,7 +106,7 @@ namespace py = pybind11;
     return static_cast<int>(onnx2::TensorProto::DataType::dtype);                              \
   })
 
-template <typename T> void bind_repeated_field(py::module_ &m, const std::string &name) {
+template <typename T> void define_repeated_field_type(py::module_ &m, const std::string &name) {
   py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "repeated field")
       .def(py::init<>())
       .def_readwrite("values", &onnx2::utils::RepeatedField<T>::values)
@@ -181,12 +199,12 @@ PYBIND11_MODULE(_onnx2py, m) {
           },
           "comparison");
 
-  bind_repeated_field<int64_t>(m, "RepeatedFieldInt64");
-  bind_repeated_field<int32_t>(m, "RepeatedFieldInt32");
-  bind_repeated_field<uint64_t>(m, "RepeatedFieldUInt64");
-  bind_repeated_field<float>(m, "RepeatedFieldFloat");
-  bind_repeated_field<double>(m, "RepeatedFieldDouble");
-  bind_repeated_field<std::string>(m, "RepeatedFieldString");
+  define_repeated_field_type<int64_t>(m, "RepeatedFieldInt64");
+  define_repeated_field_type<int32_t>(m, "RepeatedFieldInt32");
+  define_repeated_field_type<uint64_t>(m, "RepeatedFieldUInt64");
+  define_repeated_field_type<float>(m, "RepeatedFieldFloat");
+  define_repeated_field_type<double>(m, "RepeatedFieldDouble");
+  define_repeated_field_type<std::string>(m, "RepeatedFieldString");
 
   py::enum_<onnx2::OperatorStatus>(m, "OperatorStatus", py::arithmetic())
       .value("EXPERIMENTAL", onnx2::OperatorStatus::EXPERIMENTAL)
@@ -225,19 +243,20 @@ PYBIND11_MODULE(_onnx2py, m) {
       .def(py::init<>());
 
   PYDEFINE_PROTO(m, StringStringEntryProto)
-      .PYFIELD(StringStringEntryProto, key)
-      .PYFIELD(StringStringEntryProto, value)
+      .PYFIELD_STR(StringStringEntryProto, key)
+      .PYFIELD_STR(StringStringEntryProto, value)
       .PYADD_PROTO_SERIALIZATION(StringStringEntryProto);
-  bind_repeated_field<onnx2::StringStringEntryProto>(m, "RepeatedFieldStringStringEntryProto");
+  define_repeated_field_type<onnx2::StringStringEntryProto>(
+      m, "RepeatedFieldStringStringEntryProto");
 
   PYDEFINE_PROTO(m, OperatorSetIdProto)
-      .PYFIELD(OperatorSetIdProto, domain)
+      .PYFIELD_STR(OperatorSetIdProto, domain)
       .PYFIELD(OperatorSetIdProto, version)
       .PYADD_PROTO_SERIALIZATION(OperatorSetIdProto);
-  bind_repeated_field<onnx2::OperatorSetIdProto>(m, "RepeatedFieldOperatorSetIdProto");
+  define_repeated_field_type<onnx2::OperatorSetIdProto>(m, "RepeatedFieldOperatorSetIdProto");
 
   PYDEFINE_PROTO(m, TensorAnnotation)
-      .PYFIELD(TensorAnnotation, tensor_name)
+      .PYFIELD_STR(TensorAnnotation, tensor_name)
       .PYFIELD(TensorAnnotation, quant_parameter_tensor_names)
       .PYADD_PROTO_SERIALIZATION(TensorAnnotation);
 
@@ -245,37 +264,39 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(IntIntListEntryProto, key)
       .PYFIELD(IntIntListEntryProto, value)
       .PYADD_PROTO_SERIALIZATION(IntIntListEntryProto);
-  bind_repeated_field<onnx2::IntIntListEntryProto>(m, "RepeatedFieldIntIntListEntryProto");
+  define_repeated_field_type<onnx2::IntIntListEntryProto>(m,
+                                                          "RepeatedFieldIntIntListEntryProto");
 
   PYDEFINE_PROTO(m, DeviceConfigurationProto)
-      .PYFIELD(DeviceConfigurationProto, name)
+      .PYFIELD_STR(DeviceConfigurationProto, name)
       .PYFIELD(DeviceConfigurationProto, num_devices)
       .PYFIELD(DeviceConfigurationProto, device)
       .PYADD_PROTO_SERIALIZATION(DeviceConfigurationProto);
 
   PYDEFINE_PROTO(m, SimpleShardedDimProto)
       .PYFIELD_OPTIONAL_INT(SimpleShardedDimProto, dim_value)
-      .PYFIELD(SimpleShardedDimProto, dim_param)
+      .PYFIELD_STR(SimpleShardedDimProto, dim_param)
       .PYFIELD(SimpleShardedDimProto, num_shards)
       .PYADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
-  bind_repeated_field<onnx2::SimpleShardedDimProto>(m, "RepeatedFieldSimpleShardedDimProto");
+  define_repeated_field_type<onnx2::SimpleShardedDimProto>(
+      m, "RepeatedFieldSimpleShardedDimProto");
 
   PYDEFINE_PROTO(m, ShardedDimProto)
       .PYFIELD(ShardedDimProto, axis)
       .PYFIELD(ShardedDimProto, simple_sharding)
       .PYADD_PROTO_SERIALIZATION(ShardedDimProto);
-  bind_repeated_field<onnx2::ShardedDimProto>(m, "RepeatedFieldShardedDimProto");
+  define_repeated_field_type<onnx2::ShardedDimProto>(m, "RepeatedFieldShardedDimProto");
 
   PYDEFINE_PROTO(m, ShardingSpecProto)
-      .PYFIELD(ShardingSpecProto, tensor_name)
+      .PYFIELD_STR(ShardingSpecProto, tensor_name)
       .PYFIELD(ShardingSpecProto, device)
       .PYFIELD(ShardingSpecProto, index_to_device_group_map)
       .PYFIELD(ShardingSpecProto, sharded_dim)
       .PYADD_PROTO_SERIALIZATION(ShardingSpecProto);
-  bind_repeated_field<onnx2::ShardingSpecProto>(m, "RepeatedFieldShardingSpecProto");
+  define_repeated_field_type<onnx2::ShardingSpecProto>(m, "RepeatedFieldShardingSpecProto");
 
   PYDEFINE_PROTO(m, NodeDeviceConfigurationProto)
-      .PYFIELD(NodeDeviceConfigurationProto, configuration_id)
+      .PYFIELD_STR(NodeDeviceConfigurationProto, configuration_id)
       .PYFIELD(NodeDeviceConfigurationProto, sharding_spec)
       .PYFIELD_OPTIONAL_INT(NodeDeviceConfigurationProto, pipeline_stage)
       .PYADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
@@ -283,10 +304,10 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorShapeProto, cls_tensor_shape_proto);
   PYDEFINE_SUBPROTO(cls_tensor_shape_proto, TensorShapeProto, Dimension)
       .PYFIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
-      .PYFIELD(TensorShapeProto::Dimension, dim_param)
-      .PYFIELD(TensorShapeProto::Dimension, denotation)
+      .PYFIELD_STR(TensorShapeProto::Dimension, dim_param)
+      .PYFIELD_STR(TensorShapeProto::Dimension, denotation)
       .PYADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
-  bind_repeated_field<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
+  define_repeated_field_type<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
   cls_tensor_shape_proto.PYFIELD(TensorShapeProto, dim)
       .PYADD_PROTO_SERIALIZATION(TensorShapeProto);
 
@@ -330,8 +351,8 @@ PYBIND11_MODULE(_onnx2py, m) {
             }
           },
           "data_type")
-      .PYFIELD(TensorProto, name)
-      .PYFIELD(TensorProto, doc_string)
+      .PYFIELD_STR(TensorProto, name)
+      .PYFIELD_STR(TensorProto, doc_string)
       .PYFIELD(TensorProto, external_data)
       .PYFIELD(TensorProto, metadata_props)
       .PYFIELD(TensorProto, dims)
@@ -406,7 +427,7 @@ PYBIND11_MODULE(_onnx2py, m) {
   cls_type_proto.PYFIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, sequence_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, map_type)
-      .PYFIELD(TypeProto, denotation)
+      .PYFIELD_STR(TypeProto, denotation)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, sparse_tensor_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, optional_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto);

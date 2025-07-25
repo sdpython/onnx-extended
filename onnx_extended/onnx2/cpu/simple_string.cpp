@@ -12,7 +12,7 @@ bool RefString::operator==(const char *other) const {
   return i == size_ && other[i] == 0;
 }
 
-bool RefString::operator==(RefString other) const {
+bool RefString::operator==(const RefString &other) const {
   if (size() != other.size())
     return false;
   if (size() == 0)
@@ -23,6 +23,25 @@ bool RefString::operator==(RefString other) const {
   for (i = 0; i < size_ && ptr_[i] == other[i]; ++i)
     ;
   return i == size_;
+}
+
+bool RefString::operator==(const std::string &other) const {
+  return *this == RefString(other.data(), other.size());
+}
+
+bool RefString::operator==(const String &other) const {
+  return *this == RefString(other.data(), other.size());
+}
+
+bool RefString::operator!=(const std::string &other) const { return !(*this == other); }
+bool RefString::operator!=(const String &other) const { return !(*this == other); }
+bool RefString::operator!=(const RefString &other) const { return !(*this == other); }
+bool RefString::operator!=(const char *other) const { return !(*this == other); }
+
+std::string RefString::as_string() const {
+  if (empty())
+    return std::string();
+  return std::string(data(), size());
 }
 
 String::String(RefString s) : size_(s.size()) {
@@ -56,6 +75,7 @@ String::String(const std::string &s) : size_(s.size()) {
 }
 
 String &String::operator=(const char *s) {
+  clear();
   if (s == nullptr || s[0] == 0) {
     size_ = 0;
     ptr_ = nullptr;
@@ -70,6 +90,19 @@ String &String::operator=(const char *s) {
 }
 
 String &String::operator=(const RefString &s) {
+  clear();
+  size_ = s.size();
+  if (size_ > 0) {
+    ptr_ = new char[size_];
+    memcpy(ptr_, s.data(), size_);
+  } else {
+    ptr_ = nullptr;
+  }
+  return *this;
+}
+
+String &String::operator=(const std::string &s) {
+  clear();
   size_ = s.size();
   if (size_ > 0) {
     ptr_ = new char[size_];
@@ -88,7 +121,8 @@ bool String::operator==(const char *other) const {
     ;
   return i == size_ && other[i] == 0;
 }
-bool String::operator==(RefString other) const {
+
+bool String::operator==(const RefString &other) const {
   if (size() != other.size())
     return false;
   if (size() == 0)
@@ -100,18 +134,16 @@ bool String::operator==(RefString other) const {
 }
 
 bool String::operator==(const String &other) const {
-  if (size_ != other.size_)
-    return false;
-  if (size_ == 0)
-    return true;
-  size_t i;
-  for (i = 0; i < size_ && ptr_[i] == other[i]; ++i)
-    ;
-  return i == size_;
+  return *this == RefString(other.data(), other.size());
 }
 
+bool String::operator==(const std::string &other) const {
+  return *this == RefString(other.data(), other.size());
+}
+
+bool String::operator!=(const std::string &other) const { return !(*this == other); }
 bool String::operator!=(const String &other) const { return !(*this == other); }
-bool String::operator!=(RefString other) const { return !(*this == other); }
+bool String::operator!=(const RefString &other) const { return !(*this == other); }
 bool String::operator!=(const char *other) const { return !(*this == other); }
 
 std::string String::as_string() const {

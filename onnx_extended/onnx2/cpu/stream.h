@@ -29,7 +29,7 @@ struct FieldNumber {
 
 class BinaryStream {
 public:
-  inline BinaryStream() {}
+  explicit inline BinaryStream() {}
 
   // to overwrite
   virtual uint64_t next_uint64() = 0;
@@ -54,8 +54,8 @@ public:
 
 class StringStream : public BinaryStream {
 public:
-  inline StringStream() : BinaryStream(), pos_(0), size_(0), data_(nullptr) {}
-  inline StringStream(const uint8_t *data, int64_t size)
+  explicit inline StringStream() : BinaryStream(), pos_(0), size_(0), data_(nullptr) {}
+  explicit inline StringStream(const uint8_t *data, int64_t size)
       : BinaryStream(), pos_(0), size_(size), data_(data) {}
   virtual void can_read(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
@@ -75,7 +75,7 @@ class BorrowedWriteStream;
 
 class BinaryWriteStream {
 public:
-  inline BinaryWriteStream() {}
+  explicit inline BinaryWriteStream() {}
   virtual void write_variant_uint64(uint64_t value);
   virtual void write_int64(int64_t value);
   virtual void write_int32(int32_t value);
@@ -98,7 +98,7 @@ public:
 
 class StringWriteStream : public BinaryWriteStream {
 public:
-  inline StringWriteStream() : BinaryWriteStream(), buffer_() {}
+  explicit inline StringWriteStream() : BinaryWriteStream(), buffer_() {}
   virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) override;
   virtual int64_t size() const override;
   virtual const uint8_t *data() const override;
@@ -109,7 +109,7 @@ private:
 
 class BorrowedWriteStream : public BinaryWriteStream {
 public:
-  inline BorrowedWriteStream(const uint8_t *data, int64_t size)
+  explicit inline BorrowedWriteStream(const uint8_t *data, int64_t size)
       : BinaryWriteStream(), data_(data), size_(size) {}
   virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) override;
   virtual int64_t size() const override { return size_; }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "simple_string.h"
 #include "stream.h"
 
 #define FIELD_VARINT 0
@@ -25,7 +26,7 @@
   class cls : public Message {                                                                 \
   public:                                                                                      \
     static const char *DOC;                                                                    \
-    inline cls() {}
+    explicit inline cls() {}
 
 #define BEGIN_PROTO_NOINIT(cls)                                                                \
   class cls : public Message {                                                                 \
@@ -40,6 +41,7 @@
 #if defined(FIELD)
 #pragma error("macro FIELD is already defined.")
 #endif
+
 #define FIELD(type, name, order)                                                               \
 public:                                                                                        \
   inline type &name() { return name##_; }                                                      \
@@ -50,10 +52,19 @@ public:                                                                         
   type name##_;                                                                                \
   using name##_t = type;
 
+#define FIELD_STR(name, order)                                                                 \
+  FIELD(utils::String, name, order)                                                            \
+  inline void set_##name(const std::string &v) { name##_ = v; }                                \
+  inline void set_##name(const utils::RefString &v) { name##_ = v; }
+
 #define FIELD_REPEATED(type, name, order)                                                      \
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
-  inline void add_##name(type &&v) { name##_.emplace_back(v); }                                \
+  inline type &add_##name() { return name##_.add(); }                                          \
+  inline type &add_##name(type &&v) {                                                          \
+    name##_.emplace_back(v);                                                                   \
+    return name##_.back();                                                                     \
+  }                                                                                            \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   inline bool packed_##name() const { return false; }                                          \
@@ -63,7 +74,11 @@ public:                                                                         
 #define FIELD_REPEATED_PACKED(type, name, order)                                               \
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
-  inline void add_##name(type &&v) { name##_.emplace_back(v); }                                \
+  inline type &add_##name() { return name##_.add(); }                                          \
+  inline type &add_##name(type &&v) {                                                          \
+    name##_.emplace_back(v);                                                                   \
+    return name##_.back();                                                                     \
+  }                                                                                            \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   inline bool packed_##name() const { return true; }                                           \
@@ -107,7 +122,7 @@ template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
 
 class Message {
 public:
-  inline Message() {}
+  explicit inline Message() {}
   inline bool operator==(const Message &) const {
     EXT_THROW("operator == not implemented for a Message");
   }

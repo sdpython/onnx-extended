@@ -15,7 +15,7 @@ namespace utils {
 
 template <typename T> class RepeatedField {
 public:
-  inline RepeatedField() {}
+  explicit inline RepeatedField() {}
   inline void reserve(size_t n) { values.reserve(n); }
   inline void clear() { values.clear(); }
   inline bool empty() const { return values.empty(); }
@@ -42,6 +42,8 @@ public:
     return values.back();
   }
 
+  inline T &back() { return values.back(); }
+
   inline std::vector<T>::iterator begin() { return values.begin(); }
   inline std::vector<T>::iterator end() { return values.end(); }
   inline std::vector<T>::const_iterator begin() const { return values.begin(); }
@@ -54,7 +56,7 @@ public:
 
 template <typename T> class OptionalField {
 public:
-  inline OptionalField() : value(nullptr) {}
+  explicit inline OptionalField() : value(nullptr) {}
   inline bool has_value() const { return value != nullptr; }
   ~OptionalField();
   void reset();
@@ -67,7 +69,7 @@ public:
 
 template <typename T> class _OptionalField {
 public:
-  inline _OptionalField() {}
+  explicit inline _OptionalField() {}
   inline bool has_value() const { return value.has_value(); }
   inline void reset() { value.reset(); }
   inline const T &operator*() const { return *value; }
@@ -84,7 +86,7 @@ public:
 
 template <> class OptionalField<int64_t> : public _OptionalField<int64_t> {
 public:
-  inline OptionalField() : _OptionalField<int64_t>() {}
+  explicit inline OptionalField() : _OptionalField<int64_t>() {}
   inline OptionalField<int64_t> &operator=(const int64_t &other) {
     value = other;
     return *this;
@@ -93,7 +95,7 @@ public:
 
 template <> class OptionalField<int32_t> : public _OptionalField<int32_t> {
 public:
-  inline OptionalField() : _OptionalField<int32_t>() {}
+  explicit inline OptionalField() : _OptionalField<int32_t>() {}
   inline OptionalField<int32_t> &operator=(const int32_t &other) {
     value = other;
     return *this;
