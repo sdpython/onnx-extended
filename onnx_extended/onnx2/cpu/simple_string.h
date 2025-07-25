@@ -53,10 +53,15 @@ public:
     }
     size_ = 0;
   }
-  inline String() : ptr_(nullptr), size_(0) {}
+  explicit inline String() : ptr_(nullptr), size_(0) {}
   explicit String(const RefString &s);
   explicit String(const char *ptr, size_t size);
   explicit String(const std::string &s);
+  explicit String(const String &s);
+  explicit String(String &&other) noexcept : ptr_(other.ptr_), size_(other.size_) {
+    other.ptr_ = nullptr;
+    other.size_ = 0;
+  }
   inline size_t size() const { return size_; }
   inline const char *data() const { return ptr_; }
   inline bool empty() const { return size_ == 0; }

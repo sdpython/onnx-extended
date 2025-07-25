@@ -52,6 +52,16 @@ public:                                                                         
   type name##_;                                                                                \
   using name##_t = type;
 
+#define FIELD_DEFAULT(type, name, order, default_value)                                        \
+public:                                                                                        \
+  inline type &name() { return name##_; }                                                      \
+  inline const type &name() const { return name##_; }                                          \
+  inline bool has_##name() const { return _has_field_(name##_); }                              \
+  inline void set_##name(const type &v) { name##_ = v; }                                       \
+  inline int order_##name() const { return order; }                                            \
+  type name##_ = default_value;                                                                \
+  using name##_t = type;
+
 #define FIELD_STR(name, order)                                                                 \
   FIELD(utils::String, name, order)                                                            \
   inline void set_##name(const std::string &v) { name##_ = v; }                                \
@@ -95,13 +105,14 @@ public:                                                                         
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
     return *name##_;                                                                           \
   }                                                                                            \
-  inline utils::OptionalField<type> &name##_optional() {                                       \
-    EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
-    return name##_;                                                                            \
-  }                                                                                            \
+  inline utils::OptionalField<type> &name##_optional() { return name##_; }                     \
   inline const utils::OptionalField<type> &name##_optional() const {                           \
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
     return name##_;                                                                            \
+  }                                                                                            \
+  inline type &add_##name() {                                                                  \
+    name##_.set_empty_value();                                                                 \
+    return *name##_;                                                                           \
   }                                                                                            \
   inline void set_##name(const type &v) { name##_ = v; }                                       \
   inline void reset_##name() { name##_.reset(); }                                              \

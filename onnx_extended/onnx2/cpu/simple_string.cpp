@@ -53,6 +53,15 @@ String::String(const RefString &s) : size_(s.size()) {
   }
 }
 
+String::String(const String &s) : size_(s.size()) {
+  if (size_ > 0) {
+    ptr_ = new char[size_];
+    memcpy(ptr_, s.data(), size_);
+  } else {
+    ptr_ = nullptr;
+  }
+}
+
 String::String(const char *ptr, size_t size) {
   if (ptr == nullptr || size == 0 || (size == 1 && ptr[0] == 0)) {
     ptr_ = nullptr;

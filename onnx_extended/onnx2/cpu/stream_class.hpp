@@ -194,7 +194,7 @@ template <typename T>
 void write_repeated_field(utils::BinaryWriteStream &stream, int order,
                           const std::vector<T> &field, bool is_packed) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
-  for (auto d : field) {
+  for (const auto& d : field) {
     utils::StringWriteStream local;
     d.SerializeToStream(local);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
@@ -206,7 +206,7 @@ template <>
 void write_repeated_field(utils::BinaryWriteStream &stream, int order,
                           const std::vector<utils::String> &field, bool is_packed) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
-  for (auto d : field) {
+  for (const auto& d : field) {
     stream.write_field_header(order, FIELD_FIXED_SIZE);
     stream.write_string(d);
   }
@@ -219,11 +219,11 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order,
     if (is_packed) {                                                                           \
       stream.write_field_header(order, FIELD_FIXED_SIZE);                                      \
       stream.write_variant_uint64(field.size() * sizeof(type));                                \
-      for (auto d : field) {                                                                   \
+      for (const auto& d : field) {                                                                   \
         stream.write_packed_element(d);                                                        \
       }                                                                                        \
     } else {                                                                                   \
-      for (auto d : field) {                                                                   \
+      for (const auto& d : field) {                                                                   \
         stream.write_field_header(order, FIELD_FIXED_SIZE);                                    \
         stream.unpack_method(d);                                                               \
       }                                                                                        \
@@ -240,11 +240,11 @@ WRITE_REPEATED_FIELD_IMPL(float, write_float)
     if (is_packed) {                                                                           \
       stream.write_field_header(order, FIELD_FIXED_SIZE);                                      \
       stream.write_variant_uint64(field.size());                                               \
-      for (auto d : field) {                                                                   \
+      for (const auto& d : field) {                                                                   \
         stream.write_variant_uint64(static_cast<uint64_t>(d));                                 \
       }                                                                                        \
     } else {                                                                                   \
-      for (auto d : field) {                                                                   \
+      for (const auto &d : field) {                                                                   \
         stream.write_field_header(order, FIELD_VARINT);                                        \
         stream.write_variant_uint64(static_cast<uint64_t>(d));                                 \
       }                                                                                        \

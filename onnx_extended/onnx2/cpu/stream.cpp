@@ -127,7 +127,7 @@ void BinaryWriteStream::write_string(const String &value) {
   write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 }
 
-void BinaryWriteStream::write_string(RefString value) {
+void BinaryWriteStream::write_string(const RefString &value) {
   write_variant_uint64(value.size());
   write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 }

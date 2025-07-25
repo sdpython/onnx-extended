@@ -15,7 +15,7 @@ FIELD_STR(value, 2)
 END_PROTO()
 
 BEGIN_PROTO(IntIntListEntryProto)
-FIELD(int64_t, key, 1)
+FIELD_DEFAULT(int64_t, key, 1, 0)
 FIELD_REPEATED(int64_t, value, 2)
 END_PROTO()
 
@@ -26,14 +26,14 @@ END_PROTO()
 
 BEGIN_PROTO(DeviceConfigurationProto)
 FIELD_STR(name, 1)
-FIELD(int32_t, num_devices, 2)
+FIELD_DEFAULT(int32_t, num_devices, 2, 0)
 FIELD_REPEATED(utils::String, device, 3)
 END_PROTO()
 
 BEGIN_PROTO(SimpleShardedDimProto)
 FIELD_OPTIONAL(int64_t, dim_value, 1)
 FIELD_STR(dim_param, 2)
-FIELD(int64_t, num_shards, 3)
+FIELD_DEFAULT(int64_t, num_shards, 3, 0)
 END_PROTO()
 
 BEGIN_PROTO_NOINIT(ShardedDimProto)
@@ -57,7 +57,7 @@ END_PROTO()
 
 BEGIN_PROTO(OperatorSetIdProto)
 FIELD_STR(domain, 1)
-FIELD(int64_t, version, 2)
+FIELD_DEFAULT(int64_t, version, 2, 0)
 END_PROTO()
 
 BEGIN_PROTO_NOINIT(TensorShapeProto)
@@ -130,8 +130,8 @@ enum class DataType : int32_t {
 enum DataLocation { DEFAULT = 0, EXTERNAL = 1 };
 
 BEGIN_PROTO(Segment)
-FIELD(int64_t, begin, 1)
-FIELD(int64_t, end, 1)
+FIELD_DEFAULT(int64_t, begin, 1, 0)
+FIELD_DEFAULT(int64_t, end, 1, 0)
 END_PROTO()
 
 inline TensorProto() { data_type_ = DataType::UNDEFINED; }

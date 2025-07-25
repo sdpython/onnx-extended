@@ -83,7 +83,7 @@ public:
   virtual void write_double(double value);
   virtual void write_string(const std::string &value);
   virtual void write_string(const String &value);
-  virtual void write_string(RefString value);
+  virtual void write_string(const RefString &value);
   virtual void write_string_stream(const StringWriteStream &stream);
   virtual void write_string_stream(const BorrowedWriteStream &stream);
   virtual void write_field_header(uint32_t field_number, uint8_t wire_type);
