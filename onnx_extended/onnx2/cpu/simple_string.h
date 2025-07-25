@@ -22,6 +22,7 @@ public:
     size_ = v.size_;
     return *this;
   }
+  RefString &operator=(const String &v);
   inline size_t size() const { return size_; }
   inline const char *c_str() const { return ptr_; }
   inline const char *data() const { return ptr_; }
@@ -46,12 +47,14 @@ private:
 public:
   inline ~String() { clear(); }
   inline void clear() {
-    if (ptr_ != nullptr)
+    if (ptr_ != nullptr) {
       delete[] ptr_;
+      ptr_ = nullptr;
+    }
     size_ = 0;
   }
   inline String() : ptr_(nullptr), size_(0) {}
-  explicit String(RefString s);
+  explicit String(const RefString &s);
   explicit String(const char *ptr, size_t size);
   explicit String(const std::string &s);
   inline size_t size() const { return size_; }
@@ -60,6 +63,7 @@ public:
   inline char operator[](size_t i) const { return ptr_[i]; }
   String &operator=(const char *s);
   String &operator=(const RefString &s);
+  String &operator=(const String &s);
   String &operator=(const std::string &s);
   bool operator==(const std::string &other) const;
   bool operator==(const String &other) const;
@@ -71,6 +75,12 @@ public:
   bool operator!=(const char *other) const;
   std::string as_string() const;
 };
+
+inline RefString &RefString::operator=(const String &v) {
+  size_ = v.size();
+  ptr_ = v.data();
+  return *this;
+}
 
 } // namespace utils
 } // namespace onnx2

@@ -62,26 +62,63 @@ TEST(onnx2, TensorProtoName2) {
   EXPECT_EQ(name, check2);
 }
 
-TEST(onnx2, TensorProtoName3) {
-  TensorProto tp;
-  tp.name_ = "test";
-  TensorProto tp2;
-  tp2.set_name(tp.name());
-  EXPECT_EQ(tp.name_.size(), 4);
-  EXPECT_NE(tp.name_.data(), nullptr);
-  EXPECT_EQ(tp.name_.data()[0], 't');
-  EXPECT_EQ(tp.order_name(), 8);
-  EXPECT_EQ(tp.name_, "test");
-  EXPECT_EQ(tp2.name_.size(), 4);
-  EXPECT_NE(tp2.name_.data(), nullptr);
-  EXPECT_EQ(tp2.name_.data()[0], 't');
-  EXPECT_EQ(tp2.order_name(), 8);
-  EXPECT_EQ(tp2.name_, "test");
+TEST(onnx2, TensorProtoNameStringToString1) {
+  {
+    TensorProto tp;
+    tp.name_ = "test";
+    if (tp.name().size() == 4) {
+      TensorProto tp2;
+      tp2.set_name(tp.name());
+      EXPECT_EQ(tp.name_.size(), 4);
+      EXPECT_NE(tp.name_.data(), nullptr);
+      EXPECT_EQ(tp.name_.data()[0], 't');
+      EXPECT_EQ(tp.order_name(), 8);
+      EXPECT_EQ(tp.name_, "test");
+      EXPECT_EQ(tp2.name_.size(), 4);
+      EXPECT_NE(tp2.name_.data(), nullptr);
+      EXPECT_EQ(tp2.name_.data()[0], 't');
+      EXPECT_EQ(tp2.order_name(), 8);
+      EXPECT_EQ(tp2.name_, "test");
+    } else {
+      tp.name_.clear();
+    }
+    EXPECT_EQ(tp.name_.size(), 4);
+    EXPECT_NE(tp.name_.data(), nullptr);
+    EXPECT_EQ(tp.name_.data()[0], 't');
+    EXPECT_EQ(tp.order_name(), 8);
+    EXPECT_EQ(tp.name_, "test");
+  }
 }
 
-TEST(onnx2, TensorProtoName00) {
-  TensorProto tp;
+TEST(onnx2, TensorProtoNameStringToString2) {
+  {
+    TensorProto tp2;
+    if (tp2.name().size() == 0) {
+      TensorProto tp;
+      tp.name_ = "test";
+      tp2.set_name(tp.name());
+      EXPECT_EQ(tp.name_.size(), 4);
+      EXPECT_NE(tp.name_.data(), nullptr);
+      EXPECT_EQ(tp.name_.data()[0], 't');
+      EXPECT_EQ(tp.order_name(), 8);
+      EXPECT_EQ(tp.name_, "test");
+      EXPECT_EQ(tp2.name_.size(), 4);
+      EXPECT_NE(tp2.name_.data(), nullptr);
+      EXPECT_EQ(tp2.name_.data()[0], 't');
+      EXPECT_EQ(tp2.order_name(), 8);
+      EXPECT_EQ(tp2.name_, "test");
+    } else {
+      tp2.name_.clear();
+    }
+    EXPECT_EQ(tp2.name_.size(), 4);
+    EXPECT_NE(tp2.name_.data(), nullptr);
+    EXPECT_EQ(tp2.name_.data()[0], 't');
+    EXPECT_EQ(tp2.order_name(), 8);
+    EXPECT_EQ(tp2.name_, "test");
+  }
 }
+
+TEST(onnx2, TensorProtoName00) { TensorProto tp; }
 TEST(onnx2, TensorProtoName01) {
   TensorProto tp;
   tp.set_name("rt");

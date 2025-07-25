@@ -44,7 +44,7 @@ std::string RefString::as_string() const {
   return std::string(data(), size());
 }
 
-String::String(RefString s) : size_(s.size()) {
+String::String(const RefString &s) : size_(s.size()) {
   if (size_ > 0) {
     ptr_ = new char[size_];
     memcpy(ptr_, s.data(), size_);
@@ -69,9 +69,8 @@ String::String(const char *ptr, size_t size) {
 }
 
 String::String(const std::string &s) : size_(s.size()) {
-  ptr_ = new char[s.size() + 1];
+  ptr_ = new char[s.size()];
   memcpy(ptr_, s.c_str(), size_);
-  ptr_[s.size()] = 0;
 }
 
 String &String::operator=(const char *s) {
@@ -90,6 +89,18 @@ String &String::operator=(const char *s) {
 }
 
 String &String::operator=(const RefString &s) {
+  clear();
+  size_ = s.size();
+  if (size_ > 0) {
+    ptr_ = new char[size_];
+    memcpy(ptr_, s.data(), size_);
+  } else {
+    ptr_ = nullptr;
+  }
+  return *this;
+}
+
+String &String::operator=(const String &s) {
   clear();
   size_ = s.size();
   if (size_ > 0) {
