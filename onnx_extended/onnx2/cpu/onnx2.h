@@ -5,35 +5,61 @@
 #include "stream.h"
 #include "stream_class.h"
 
+#define TensorProto_DataType_UNDEFINED UNDEFINED
+#define TensorProto_DataType_FLOAT FLOAT
+#define TensorProto_DataType_UINT8 UINT8
+#define TensorProto_DataType_INT8 INT8
+#define TensorProto_DataType_UINT16 UINT16
+#define TensorProto_DataType_INT16 INT16
+#define TensorProto_DataType_INT32 INT32
+#define TensorProto_DataType_INT64 INT64
+#define TensorProto_DataType_STRING STRING
+#define TensorProto_DataType_BOOL BOOL
+#define TensorProto_DataType_FLOAT16 FLOAT16
+#define TensorProto_DataType_DOUBLE DOUBLE
+#define TensorProto_DataType_UINT32 UINT32
+#define TensorProto_DataType_UINT64 UINT64
+#define TensorProto_DataType_COMPLEX64 COMPLEX64
+#define TensorProto_DataType_COMPLEX128 COMPLEX128
+#define TensorProto_DataType_BFLOAT16 BFLOAT16
+#define TensorProto_DataType_FLOAT8E4M3FN FLOAT8E4M3FN
+#define TensorProto_DataType_FLOAT8E4M3FNUZ FLOAT8E4M3FNUZ
+#define TensorProto_DataType_FLOAT8E5M2 FLOAT8E5M2
+#define TensorProto_DataType_FLOAT8E5M2FNUZ FLOAT8E5M2FNUZ
+#define TensorProto_DataType_UINT4 UINT4
+#define TensorProto_DataType_INT4 INT4
+#define TensorProto_DataType_FLOAT4E2M1 FLOAT4E2M1
+#define TensorProto_DataType_FLOAT8E8M0 FLOAT8E8M0
+
 namespace onnx2 {
 
 enum OperatorStatus { EXPERIMENTAL = 0, STABLE = 1 };
 
 BEGIN_PROTO(StringStringEntryProto)
-FIELD(std::string, key, 1)
-FIELD(std::string, value, 2)
+FIELD_STR(key, 1)
+FIELD_STR(value, 2)
 END_PROTO()
 
 BEGIN_PROTO(IntIntListEntryProto)
-FIELD(int64_t, key, 1)
+FIELD_DEFAULT(int64_t, key, 1, 0)
 FIELD_REPEATED(int64_t, value, 2)
 END_PROTO()
 
 BEGIN_PROTO(TensorAnnotation)
-FIELD(std::string, tensor_name, 1)
+FIELD_STR(tensor_name, 1)
 FIELD_REPEATED(StringStringEntryProto, quant_parameter_tensor_names, 2)
 END_PROTO()
 
 BEGIN_PROTO(DeviceConfigurationProto)
-FIELD(std::string, name, 1)
-FIELD(int32_t, num_devices, 2)
-FIELD_REPEATED(std::string, device, 3)
+FIELD_STR(name, 1)
+FIELD_DEFAULT(int32_t, num_devices, 2, 0)
+FIELD_REPEATED(utils::String, device, 3)
 END_PROTO()
 
 BEGIN_PROTO(SimpleShardedDimProto)
 FIELD_OPTIONAL(int64_t, dim_value, 1)
-FIELD(std::string, dim_param, 2)
-FIELD(int64_t, num_shards, 3)
+FIELD_STR(dim_param, 2)
+FIELD_DEFAULT(int64_t, num_shards, 3, 0)
 END_PROTO()
 
 BEGIN_PROTO_NOINIT(ShardedDimProto)
@@ -43,28 +69,28 @@ FIELD_REPEATED(SimpleShardedDimProto, simple_sharding, 2)
 END_PROTO()
 
 BEGIN_PROTO(ShardingSpecProto)
-FIELD(std::string, tensor_name, 1)
+FIELD_STR(tensor_name, 1)
 FIELD_REPEATED(int64_t, device, 2)
 FIELD_REPEATED(IntIntListEntryProto, index_to_device_group_map, 3)
 FIELD_REPEATED(ShardedDimProto, sharded_dim, 4)
 END_PROTO()
 
 BEGIN_PROTO(NodeDeviceConfigurationProto)
-FIELD(std::string, configuration_id, 1)
+FIELD_STR(configuration_id, 1)
 FIELD_REPEATED(ShardingSpecProto, sharding_spec, 2)
 FIELD_OPTIONAL(int32_t, pipeline_stage, 3)
 END_PROTO()
 
 BEGIN_PROTO(OperatorSetIdProto)
-FIELD(std::string, domain, 1)
-FIELD(int64_t, version, 2)
+FIELD_STR(domain, 1)
+FIELD_DEFAULT(int64_t, version, 2, 0)
 END_PROTO()
 
 BEGIN_PROTO_NOINIT(TensorShapeProto)
 BEGIN_PROTO(Dimension)
 FIELD_OPTIONAL(int64_t, dim_value, 1)
-FIELD(std::string, dim_param, 2)
-FIELD(std::string, denotation, 3)
+FIELD_STR(dim_param, 2)
+FIELD_STR(denotation, 3)
 END_PROTO()
 inline TensorShapeProto() {}
 FIELD_REPEATED(Dimension, dim, 1)
@@ -130,8 +156,8 @@ enum class DataType : int32_t {
 enum DataLocation { DEFAULT = 0, EXTERNAL = 1 };
 
 BEGIN_PROTO(Segment)
-FIELD(int64_t, begin, 1)
-FIELD(int64_t, end, 1)
+FIELD_DEFAULT(int64_t, begin, 1, 0)
+FIELD_DEFAULT(int64_t, end, 1, 0)
 END_PROTO()
 
 inline TensorProto() { data_type_ = DataType::UNDEFINED; }
@@ -141,13 +167,13 @@ FIELD(DataType, data_type, 2)
 FIELD(Segment, segment, 3)
 FIELD_REPEATED_PACKED(float, float_data, 4)
 FIELD_REPEATED_PACKED(int32_t, int32_data, 5)
-FIELD_REPEATED(std::string, string_data, 6)
+FIELD_REPEATED(utils::String, string_data, 6)
 FIELD_REPEATED_PACKED(int64_t, int64_data, 7)
-FIELD(std::string, name, 8)
+FIELD_STR(name, 8)
 FIELD(std::vector<uint8_t>, raw_data, 9)
 FIELD_REPEATED_PACKED(double, double_data, 10)
 FIELD_REPEATED_PACKED(uint64_t, uint64_data, 11)
-FIELD(std::string, doc_string, 12)
+FIELD_STR(doc_string, 12)
 FIELD_REPEATED(StringStringEntryProto, external_data, 13)
 FIELD(DataLocation, data_location, 14)
 FIELD_REPEATED(StringStringEntryProto, metadata_props, 16)
@@ -191,10 +217,12 @@ inline TypeProto() {}
 FIELD_OPTIONAL(Tensor, tensor_type, 1)
 FIELD_OPTIONAL(Sequence, sequence_type, 4)
 FIELD_OPTIONAL(Map, map_type, 5)
-FIELD(std::string, denotation, 6)
+FIELD_STR(denotation, 6)
 FIELD_OPTIONAL(SparseTensor, sparse_tensor_type, 8)
 FIELD_OPTIONAL(Optional, optional_type, 9)
 END_PROTO()
+
+using TensorProto_DataType = TensorProto::DataType;
 
 } // namespace onnx2
 

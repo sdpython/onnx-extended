@@ -245,6 +245,18 @@ class TestOnnx2(ExtTestCase):
     def test_tensor_proto_uint64_data_reverse(self):
         p = onnx2.TensorProto()
         p.name = "test"
+        s = p.name
+        self.assertEqual(s, "test")
+        p.dims.extend([2])
+        p.uint64_data.extend((4, 5))
+        p.data_type = onnx.TensorProto.UINT64
+        s = p.SerializeToString()
+        del p
+        self.assertNotEmpty(s)
+
+    def test_tensor_proto_uint64_data_reverse_whole(self):
+        p = onnx2.TensorProto()
+        p.name = "test"
         p.dims.extend([2])
         p.uint64_data.extend((4, 5))
         p.data_type = onnx.TensorProto.UINT64
