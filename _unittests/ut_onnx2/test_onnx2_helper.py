@@ -12,6 +12,11 @@ class TestOnnx2Helper(ExtTestCase):
         self.assertEqual(op.domain, "ai.onnx.ml")
         self.assertEqual(op.version, 5)
 
+    def test_make_tensor_type_proto(self) -> None:
+        proto = oh.make_tensor_type_proto(elem_type=2, shape=None)
+        self.assertEqual(proto.elem_type, 2)
+        self.assertEqual(proto.shape, 2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
