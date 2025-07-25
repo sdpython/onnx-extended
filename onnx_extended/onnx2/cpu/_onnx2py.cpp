@@ -152,6 +152,65 @@ template <typename T> void define_repeated_field_type(py::module_ &m, const std:
           py::keep_alive<0, 1>());
 }
 
+template <>
+void define_repeated_field_type<onnx2::utils::String>(py::module_ &m, const std::string &name) {
+  py::class_<onnx2::utils::RepeatedField<onnx2::utils::String>>(m, name.c_str(),
+                                                                "repeated field")
+      .def(py::init<>())
+      .def_readwrite("values", &onnx2::utils::RepeatedField<onnx2::utils::String>::values)
+      .def("add", &onnx2::utils::RepeatedField<onnx2::utils::String>::add,
+           py::return_value_policy::reference, "adds an empty element")
+      .def("clear", &onnx2::utils::RepeatedField<onnx2::utils::String>::clear,
+           "removes every element")
+      .def("__len__", &onnx2::utils::RepeatedField<onnx2::utils::String>::size,
+           "returns the length")
+      .def(
+          "__getitem__",
+          [](onnx2::utils::RepeatedField<onnx2::utils::String> &self,
+             int index) -> onnx2::utils::String & {
+            if (index < 0)
+              index += static_cast<int>(self.size());
+            EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
+                        " out of boundary");
+            return self.values[index];
+          },
+          py::return_value_policy::reference, py::arg("index"),
+          "returns the element at position index")
+      .def(
+          "__delitem__",
+          [](onnx2::utils::RepeatedField<onnx2::utils::String> &self, py::slice slice) {
+            size_t start, stop, step, slicelength;
+            if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
+              self.remove_range(start, stop, step);
+            }
+          },
+          "removes elements")
+      .def(
+          "extend",
+          [](onnx2::utils::RepeatedField<onnx2::utils::String> &self, py::iterable iterable) {
+            if (py::isinstance<onnx2::utils::RepeatedField<onnx2::utils::String>>(iterable)) {
+              self.extend(iterable.cast<onnx2::utils::RepeatedField<onnx2::utils::String> &>());
+            } else {
+              std::vector<onnx2::utils::String> values;
+              for (auto it : iterable) {
+                if (py::isinstance<onnx2::utils::String>(it)) {
+                  values.push_back(it.cast<onnx2::utils::String &>());
+                } else {
+                  values.emplace_back(onnx2::utils::String(it.cast<std::string>()));
+                }
+              }
+              self.extend(values);
+            }
+          },
+          py::arg("sequence"), "extends the list of values")
+      .def(
+          "__iter__",
+          [](onnx2::utils::RepeatedField<onnx2::utils::String> &self) {
+            return py::make_iterator(self.begin(), self.end());
+          },
+          py::keep_alive<0, 1>());
+}
+
 PYBIND11_MODULE(_onnx2py, m) {
   m.doc() =
 #if defined(__APPLE__)
@@ -204,7 +263,7 @@ PYBIND11_MODULE(_onnx2py, m) {
   define_repeated_field_type<uint64_t>(m, "RepeatedFieldUInt64");
   define_repeated_field_type<float>(m, "RepeatedFieldFloat");
   define_repeated_field_type<double>(m, "RepeatedFieldDouble");
-  define_repeated_field_type<std::string>(m, "RepeatedFieldString");
+  define_repeated_field_type<onnx2::utils::String>(m, "RepeatedFieldString");
 
   py::enum_<onnx2::OperatorStatus>(m, "OperatorStatus", py::arithmetic())
       .value("EXPERIMENTAL", onnx2::OperatorStatus::EXPERIMENTAL)
