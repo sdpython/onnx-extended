@@ -85,8 +85,8 @@ public:                                                                         
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
   inline type &add_##name() { return name##_.add(); }                                          \
-  inline type &add_##name(type &&v) {                                                          \
-    name##_.emplace_back(v);                                                                   \
+  inline type &add_##name(const type &v) {                                                     \
+    name##_.push_back(v);                                                                      \
     return name##_.back();                                                                     \
   }                                                                                            \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \

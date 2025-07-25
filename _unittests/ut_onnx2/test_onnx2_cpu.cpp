@@ -177,7 +177,7 @@ TEST(onnx2_string, String_Assignment) {
   EXPECT_EQ(s, stdStr);
 }
 
-TEST(onnx2, String_Methods) {
+TEST(onnx2_string, String_Methods) {
   utils::String s("hello", 5);
 
   // Test size()
@@ -1269,4 +1269,332 @@ TEST(onnx2_proto, TypeProto_Tensor) {
   EXPECT_TRUE(type.tensor_type().has_shape());
   EXPECT_EQ(type.tensor_type().shape().dim().size(), 1);
   EXPECT_EQ(type.tensor_type().shape().dim()[0].dim_value(), 3);
+}
+
+TEST(onnx2_proto, CreateTensorProto) {
+  // Test de création d'un TensorProto
+  TensorProto tensor;
+  tensor.set_name("test_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.dims().values.push_back(2);
+  tensor.dims().values.push_back(3);
+
+  // Ajout de données
+  for (int i = 0; i < 6; ++i) {
+    tensor.float_data().values.push_back(static_cast<float>(i + 1));
+  }
+
+  // Vérification des propriétés
+  EXPECT_EQ(tensor.name(), "test_tensor");
+  EXPECT_EQ(tensor.data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(tensor.dims().size(), 2);
+  EXPECT_EQ(tensor.dims()[0], 2);
+  EXPECT_EQ(tensor.dims()[1], 3);
+  EXPECT_EQ(tensor.float_data().size(), 6);
+}
+
+// Test pour vérifier la sérialisation/désérialisation d'un TensorProto
+TEST(onnx2_proto, SerializeDeserializeTensorProto) {
+  // Création d'un TensorProto
+  TensorProto tensor1;
+  tensor1.set_name("serialized_tensor");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.dims().values.push_back(2);
+  tensor1.dims().values.push_back(2);
+  tensor1.float_data().values.push_back(1.0f);
+  tensor1.float_data().values.push_back(2.0f);
+  tensor1.float_data().values.push_back(3.0f);
+  tensor1.float_data().values.push_back(4.0f);
+
+  // Sérialisation
+  std::string serialized;
+  tensor1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  // Désérialisation
+  TensorProto tensor2;
+  tensor2.ParseFromString(serialized);
+
+  // Vérification que les deux tenseurs sont identiques
+  EXPECT_EQ(tensor2.name(), "serialized_tensor");
+  EXPECT_EQ(tensor2.data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(tensor2.dims().size(), 2);
+  EXPECT_EQ(tensor2.dims()[0], 2);
+  EXPECT_EQ(tensor2.dims()[1], 2);
+  EXPECT_EQ(tensor2.float_data().size(), 4);
+  EXPECT_EQ(tensor2.float_data()[0], 1.0f);
+  EXPECT_EQ(tensor2.float_data()[1], 2.0f);
+  EXPECT_EQ(tensor2.float_data()[2], 3.0f);
+  EXPECT_EQ(tensor2.float_data()[3], 4.0f);
+}
+
+// Test pour vérifier la création et la manipulation d'un TypeProto
+TEST(onnx2_proto, TypeProtoOperations) {
+  // Création d'un TypeProto
+  TypeProto type;
+
+  // Configuration du tensor_type
+  type.add_tensor_type().set_elem_type(1); // FLOAT
+  EXPECT_TRUE(type.has_tensor_type());
+
+  // Ajout d'une forme
+  TensorShapeProto &shape = type.tensor_type().add_shape();
+
+  // Ajout de dimensions
+  TensorShapeProto::Dimension &dim1 = shape.add_dim();
+  dim1.set_dim_value(3);
+
+  TensorShapeProto::Dimension &dim2 = shape.add_dim();
+  dim2.set_dim_param("batch_size");
+
+  // Vérification
+  EXPECT_TRUE(type.has_tensor_type());
+  EXPECT_EQ(type.tensor_type().elem_type(), 1);
+  EXPECT_TRUE(type.tensor_type().has_shape());
+  EXPECT_EQ(type.tensor_type().shape().dim().size(), 2);
+  EXPECT_EQ(type.tensor_type().shape().dim()[0].dim_value(), 3);
+  EXPECT_EQ(type.tensor_type().shape().dim()[1].dim_param(), "batch_size");
+}
+
+// Test pour vérifier la création et la sérialisation d'un StringStringEntryProto
+TEST(onnx2_proto, StringStringEntryProtoOperations) {
+  // Création d'un StringStringEntryProto
+  StringStringEntryProto entry;
+  entry.set_key("metadata_key");
+  entry.set_value("metadata_value");
+
+  // Vérification des propriétés
+  EXPECT_EQ(entry.key(), "metadata_key");
+  EXPECT_EQ(entry.value(), "metadata_value");
+
+  // Sérialisation
+  std::string serialized;
+  entry.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  // Désérialisation
+  StringStringEntryProto entry2;
+  entry2.ParseFromString(serialized);
+
+  // Vérification
+  EXPECT_EQ(entry2.key(), "metadata_key");
+  EXPECT_EQ(entry2.value(), "metadata_value");
+}
+
+// Test pour vérifier la création et la manipulation d'un TensorProto avec raw_data
+TEST(onnx2_proto, TensorProtoWithRawData) {
+  // Création d'un TensorProto
+  TensorProto tensor;
+  tensor.set_name("raw_data_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.dims().values.push_back(2);
+  tensor.dims().values.push_back(2);
+
+  // Préparation des données
+  std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
+
+  // Copie dans raw_data
+  tensor.raw_data().resize(data.size() * sizeof(float));
+  std::memcpy(tensor.raw_data().data(), data.data(), data.size() * sizeof(float));
+
+  // Vérification
+  EXPECT_EQ(tensor.name(), "raw_data_tensor");
+  EXPECT_EQ(tensor.data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(tensor.dims().size(), 2);
+  EXPECT_EQ(tensor.dims()[0], 2);
+  EXPECT_EQ(tensor.dims()[1], 2);
+  EXPECT_EQ(tensor.raw_data().size(), data.size() * sizeof(float));
+
+  // Vérification du contenu de raw_data
+  const float *raw_data_ptr = reinterpret_cast<const float *>(tensor.raw_data().data());
+  EXPECT_EQ(raw_data_ptr[0], 1.0f);
+  EXPECT_EQ(raw_data_ptr[1], 2.0f);
+  EXPECT_EQ(raw_data_ptr[2], 3.0f);
+  EXPECT_EQ(raw_data_ptr[3], 4.0f);
+}
+
+// Test pour vérifier la création et manipulation d'un SparseTensorProto
+TEST(onnx2_proto, SparseTensorProtoOperations) {
+  // Création d'un SparseTensorProto
+  SparseTensorProto sparse;
+
+  // Configuration des dimensions
+  sparse.dims().values.push_back(3);
+  sparse.dims().values.push_back(4);
+
+  // Configuration des valeurs
+  sparse.values().set_data_type(TensorProto::DataType::FLOAT);
+  sparse.values().float_data().values.push_back(5.0f);
+  sparse.values().float_data().values.push_back(6.0f);
+
+  // Configuration des indices
+  sparse.indices().set_data_type(TensorProto::DataType::INT64);
+  sparse.indices().dims().values.push_back(2); // Nombre d'éléments non nuls
+  sparse.indices().dims().values.push_back(2); // Nombre de dimensions
+  sparse.indices().int64_data().values.push_back(0);
+  sparse.indices().int64_data().values.push_back(2);
+  sparse.indices().int64_data().values.push_back(1);
+  sparse.indices().int64_data().values.push_back(3);
+
+  // Vérification
+  EXPECT_EQ(sparse.dims().size(), 2);
+  EXPECT_EQ(sparse.dims()[0], 3);
+  EXPECT_EQ(sparse.dims()[1], 4);
+
+  EXPECT_EQ(sparse.values().data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(sparse.values().float_data().size(), 2);
+  EXPECT_EQ(sparse.values().float_data()[0], 5.0f);
+  EXPECT_EQ(sparse.values().float_data()[1], 6.0f);
+
+  EXPECT_EQ(sparse.indices().data_type(), TensorProto::DataType::INT64);
+  EXPECT_EQ(sparse.indices().int64_data().size(), 4);
+  EXPECT_EQ(sparse.indices().int64_data()[0], 0);
+  EXPECT_EQ(sparse.indices().int64_data()[1], 2);
+  EXPECT_EQ(sparse.indices().int64_data()[2], 1);
+  EXPECT_EQ(sparse.indices().int64_data()[3], 3);
+
+  // Sérialisation
+  std::string serialized;
+  sparse.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  // Désérialisation
+  SparseTensorProto sparse2;
+  sparse2.ParseFromString(serialized);
+
+  // Vérification après désérialisation
+  EXPECT_EQ(sparse2.dims().size(), 2);
+  EXPECT_EQ(sparse2.values().float_data().size(), 2);
+  EXPECT_EQ(sparse2.indices().int64_data().size(), 4);
+}
+
+// Test pour vérifier les manipulations d'un TensorShapeProto
+TEST(onnx2_proto, TensorShapeProtoOperations) {
+  // Création d'un TensorShapeProto
+  TensorShapeProto shape;
+
+  // Ajout de dimensions
+  TensorShapeProto::Dimension &dim1 = shape.add_dim();
+  dim1.set_dim_value(5);
+
+  TensorShapeProto::Dimension &dim2 = shape.add_dim();
+  dim2.set_dim_param("N");
+  dim2.set_denotation("batch");
+
+  // Vérification
+  EXPECT_EQ(shape.dim().size(), 2);
+  EXPECT_TRUE(shape.dim()[0].has_dim_value());
+  EXPECT_EQ(shape.dim()[0].dim_value(), 5);
+  EXPECT_FALSE(shape.dim()[0].has_dim_param());
+
+  EXPECT_FALSE(shape.dim()[1].has_dim_value());
+  EXPECT_EQ(shape.dim()[1].dim_param(), "N");
+  EXPECT_EQ(shape.dim()[1].denotation(), "batch");
+
+  // Sérialisation
+  std::string serialized;
+  shape.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  // Désérialisation
+  TensorShapeProto shape2;
+  shape2.ParseFromString(serialized);
+
+  // Vérification après désérialisation
+  EXPECT_EQ(shape2.dim().size(), 2);
+  EXPECT_EQ(shape2.dim()[0].dim_value(), 5);
+  EXPECT_EQ(shape2.dim()[1].dim_param(), "N");
+  EXPECT_EQ(shape2.dim()[1].denotation(), "batch");
+}
+
+// Test pour vérifier le comportement avec différents types de données dans TensorProto
+TEST(onnx2_proto, TensorProtoDataTypes) {
+  // Test avec float_data
+  {
+    TensorProto tensor;
+    tensor.set_data_type(TensorProto::DataType::FLOAT);
+    tensor.float_data().values.push_back(1.0f);
+    tensor.float_data().values.push_back(2.0f);
+    EXPECT_EQ(tensor.float_data().size(), 2);
+    EXPECT_EQ(tensor.float_data()[0], 1.0f);
+    EXPECT_EQ(tensor.float_data()[1], 2.0f);
+  }
+
+  // Test avec int32_data
+  {
+    TensorProto tensor;
+    tensor.set_data_type(TensorProto::DataType::INT32);
+    tensor.int32_data().values.push_back(10);
+    tensor.int32_data().values.push_back(20);
+    EXPECT_EQ(tensor.int32_data().size(), 2);
+    EXPECT_EQ(tensor.int32_data()[0], 10);
+    EXPECT_EQ(tensor.int32_data()[1], 20);
+  }
+
+  // Test avec string_data
+  {
+    TensorProto tensor;
+    tensor.set_data_type(TensorProto::DataType::STRING);
+    tensor.add_string_data() = "hello";
+    tensor.add_string_data() = "world";
+    EXPECT_EQ(tensor.string_data().size(), 2);
+    EXPECT_EQ(tensor.string_data()[0], "hello");
+    EXPECT_EQ(tensor.string_data()[1], "world");
+  }
+
+  // Test avec int64_data
+  {
+    TensorProto tensor;
+    tensor.set_data_type(TensorProto::DataType::INT64);
+    tensor.int64_data().values.push_back(100);
+    tensor.int64_data().values.push_back(200);
+    EXPECT_EQ(tensor.int64_data().size(), 2);
+    EXPECT_EQ(tensor.int64_data()[0], 100);
+    EXPECT_EQ(tensor.int64_data()[1], 200);
+  }
+
+  // Test avec double_data
+  {
+    TensorProto tensor;
+    tensor.set_data_type(TensorProto::DataType::DOUBLE);
+    tensor.double_data().values.push_back(1.5);
+    tensor.double_data().values.push_back(2.5);
+    EXPECT_EQ(tensor.double_data().size(), 2);
+    EXPECT_EQ(tensor.double_data()[0], 1.5);
+    EXPECT_EQ(tensor.double_data()[1], 2.5);
+  }
+
+  // Test avec uint64_data
+  {
+    TensorProto tensor;
+    tensor.set_data_type(TensorProto::DataType::UINT64);
+    tensor.uint64_data().values.push_back(1000);
+    tensor.uint64_data().values.push_back(2000);
+    EXPECT_EQ(tensor.uint64_data().size(), 2);
+    EXPECT_EQ(tensor.uint64_data()[0], 1000);
+    EXPECT_EQ(tensor.uint64_data()[1], 2000);
+  }
+}
+
+static TensorProto ToTensor(double value, TensorProto_DataType elem_type) {
+  TensorProto t;
+  t.set_data_type(elem_type);
+  switch (elem_type) {
+  case TensorProto_DataType::TensorProto_DataType_FLOAT:
+    t.add_float_data((float)value);
+    break;
+  case TensorProto_DataType::TensorProto_DataType_DOUBLE:
+    t.add_double_data(value);
+    break;
+  default:
+    assert(false);
+  }
+  return t;
+}
+
+TEST(onnx2onnx, DataType) {
+  TensorProto proto = ToTensor(4.5, TensorProto_DataType::TensorProto_DataType_FLOAT);
+  EXPECT_EQ(proto.float_data().size(), 1);
+  EXPECT_EQ(proto.float_data()[0], 4.5);
+  EXPECT_EQ(proto.data_type(), TensorProto_DataType::TensorProto_DataType_FLOAT);
 }

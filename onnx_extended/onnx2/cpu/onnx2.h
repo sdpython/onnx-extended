@@ -5,6 +5,32 @@
 #include "stream.h"
 #include "stream_class.h"
 
+#define TensorProto_DataType_UNDEFINED UNDEFINED
+#define TensorProto_DataType_FLOAT FLOAT
+#define TensorProto_DataType_UINT8 UINT8
+#define TensorProto_DataType_INT8 INT8
+#define TensorProto_DataType_UINT16 UINT16
+#define TensorProto_DataType_INT16 INT16
+#define TensorProto_DataType_INT32 INT32
+#define TensorProto_DataType_INT64 INT64
+#define TensorProto_DataType_STRING STRING
+#define TensorProto_DataType_BOOL BOOL
+#define TensorProto_DataType_FLOAT16 FLOAT16
+#define TensorProto_DataType_DOUBLE DOUBLE
+#define TensorProto_DataType_UINT32 UINT32
+#define TensorProto_DataType_UINT64 UINT64
+#define TensorProto_DataType_COMPLEX64 COMPLEX64
+#define TensorProto_DataType_COMPLEX128 COMPLEX128
+#define TensorProto_DataType_BFLOAT16 BFLOAT16
+#define TensorProto_DataType_FLOAT8E4M3FN FLOAT8E4M3FN
+#define TensorProto_DataType_FLOAT8E4M3FNUZ FLOAT8E4M3FNUZ
+#define TensorProto_DataType_FLOAT8E5M2 FLOAT8E5M2
+#define TensorProto_DataType_FLOAT8E5M2FNUZ FLOAT8E5M2FNUZ
+#define TensorProto_DataType_UINT4 UINT4
+#define TensorProto_DataType_INT4 INT4
+#define TensorProto_DataType_FLOAT4E2M1 FLOAT4E2M1
+#define TensorProto_DataType_FLOAT8E8M0 FLOAT8E8M0
+
 namespace onnx2 {
 
 enum OperatorStatus { EXPERIMENTAL = 0, STABLE = 1 };
@@ -195,6 +221,8 @@ FIELD_STR(denotation, 6)
 FIELD_OPTIONAL(SparseTensor, sparse_tensor_type, 8)
 FIELD_OPTIONAL(Optional, optional_type, 9)
 END_PROTO()
+
+using TensorProto_DataType = TensorProto::DataType;
 
 } // namespace onnx2
 

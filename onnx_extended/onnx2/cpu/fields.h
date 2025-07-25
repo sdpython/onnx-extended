@@ -33,6 +33,7 @@ public:
   inline void extend(const std::vector<T> &v) {
     values.insert(values.end(), v.begin(), v.end());
   }
+  inline void push_back(const T &v) { values.push_back(v); }
   inline void extend(const RepeatedField<T> &v) {
     values.insert(values.end(), v.begin(), v.end());
   }
