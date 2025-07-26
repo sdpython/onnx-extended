@@ -1598,3 +1598,42 @@ TEST(onnx2onnx, DataType) {
   EXPECT_EQ(proto.float_data()[0], 4.5);
   EXPECT_EQ(proto.data_type(), TensorProto_DataType::TensorProto_DataType_FLOAT);
 }
+
+TEST(serialize_to_string, StringStringEntryProto) {
+  onnx2::StringStringEntryProto proto;
+  proto.set_key("test_key");
+  proto.set_value("test_value");
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_EQ(1, result.size());
+  std::string serialized = result[0];
+  EXPECT_TRUE(serialized.find("test_key") != std::string::npos);
+  EXPECT_TRUE(serialized.find("test_value") != std::string::npos);
+}
+
+TEST(serialize_to_string, IntIntListEntryProto) {
+  onnx2::IntIntListEntryProto proto;
+  proto.set_key(42);
+  proto.value().values.push_back(1);
+  proto.value().values.push_back(2);
+  proto.value().values.push_back(3);
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_EQ(1, result.size());
+  std::string serialized = result[0];
+  EXPECT_TRUE(serialized.find("42") != std::string::npos);
+  EXPECT_TRUE(serialized.find("1") != std::string::npos);
+  EXPECT_TRUE(serialized.find("2") != std::string::npos);
+  EXPECT_TRUE(serialized.find("3") != std::string::npos);
+}
+TEST(serialize_to_string, TensorAnnotation) {
+  onnx2::TensorAnnotation proto;
+  proto.set_tensor_name("my_tensor");
+  auto &entry = proto.add_quant_parameter_tensor_names();
+  entry.set_key("scale");
+  entry.set_value("scale_tensor");
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_EQ(1, result.size());
+  std::string serialized = result[0];
+  EXPECT_TRUE(serialized.find("my_tensor") != std::string::npos);
+  EXPECT_TRUE(serialized.find("scale") != std::string::npos);
+  EXPECT_TRUE(serialized.find("scale_tensor") != std::string::npos);
+}

@@ -13,11 +13,9 @@ void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream){
     READ_BEGIN(stream, StringStringEntryProto) READ_FIELD(stream, key) READ_FIELD(stream, value)
         READ_END(stream, StringStringEntryProto)}
 
-std::vector<std::string> StringStringEntryProto::SerializeToStringStream() const {
-  std::stringstream stream;
-  stream << "{ key: \"" << key().as_string() << "\", value: \"" << value().as_string()
-         << "\" }";
-  return std::vector<std::string>{stream.str()};
+std::vector<std::string> StringStringEntryProto::SerializeToVectorString() const {
+  return {
+      write_as_string(std::make_pair(_name_key, key()), std::make_pair(_name_value, value()))};
 }
 
 void TensorAnnotation::SerializeToStream(utils::BinaryWriteStream &stream) const {
@@ -30,24 +28,10 @@ void TensorAnnotation::ParseFromStream(utils::BinaryStream &stream){
         READ_REPEATED_FIELD(stream, quant_parameter_tensor_names)
             READ_END(stream, TensorAnnotation)}
 
-std::vector<std::string> TensorAnnotation::SerializeToStringStream() const {
-  std::vector<std::string> rows;
-  std::ostringstream stream;
-  std::string indent = "  ";
-  std::string indent2 = "    ";
-  stream << "{\n"
-         << indent << "tensor_name: \"" << tensor_name().as_string() << "\",\n"
-         << indent << "quant_parameter_tensor_names: [";
-  rows.push_back(stream.str());
-
-  for (auto &p : quant_parameter_tensor_names()) {
-    auto r = p.SerializeToStringStream(stream);
-    EXT_ENFORE(r.size() == 1, "Only one line is expected for StringStringEntryProto.");
-    rows.push_back(indent2 + r[0] + ",");
-  }
-  rows.push_back(indent + "]");
-  rows.push_back("}");
-  return rows;
+std::vector<std::string> TensorAnnotation::SerializeToVectorString() const {
+  return write_proto_into_vector_string(
+      std::make_pair(_name_tensor_name, tensor_name()),
+      std::make_pair(_name_quant_parameter_tensor_names, quant_parameter_tensor_names()));
 }
 
 void IntIntListEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
@@ -55,11 +39,13 @@ void IntIntListEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) c
   WRITE_REPEATED_FIELD(stream, value)
 }
 
-void IntIntListEntryProto::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, IntIntListEntryProto)
-  READ_FIELD(stream, key)
-  READ_REPEATED_FIELD(stream, value)
-  READ_END(stream, IntIntListEntryProto)
+void IntIntListEntryProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, IntIntListEntryProto) READ_FIELD(stream, key)
+        READ_REPEATED_FIELD(stream, value) READ_END(stream, IntIntListEntryProto)}
+
+std::vector<std::string> IntIntListEntryProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(std::make_pair(_name_key, key()),
+                                        std::make_pair(_name_value, value()));
 }
 
 void DeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
@@ -68,12 +54,15 @@ void DeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &strea
   WRITE_REPEATED_FIELD(stream, device)
 }
 
-void DeviceConfigurationProto::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, DeviceConfigurationProto)
-  READ_FIELD(stream, name)
-  READ_FIELD(stream, num_devices)
-  READ_REPEATED_FIELD(stream, device)
-  READ_END(stream, DeviceConfigurationProto)
+void DeviceConfigurationProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, DeviceConfigurationProto) READ_FIELD(stream, name)
+        READ_FIELD(stream, num_devices) READ_REPEATED_FIELD(stream, device)
+            READ_END(stream, DeviceConfigurationProto)}
+
+std::vector<std::string> DeviceConfigurationProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(std::make_pair(_name_name, name()),
+                                        std::make_pair(_name_num_devices, num_devices()),
+                                        std::make_pair(_name_device, device()));
 }
 
 void SimpleShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
