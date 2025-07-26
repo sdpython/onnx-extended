@@ -95,7 +95,7 @@ public:                                                                         
   utils::RepeatedField<type> name##_;                                                          \
   using name##_t = type;
 
-#define FIELD_OPTIONAL(type, name, order)                                                      \
+#define _FIELD_OPTIONAL(type, name, order)                                                     \
 public:                                                                                        \
   inline type &name() {                                                                        \
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
@@ -120,6 +120,14 @@ public:                                                                         
   inline int order_##name() const { return order; }                                            \
   utils::OptionalField<type> name##_;                                                          \
   using name##_t = type;
+
+#define FIELD_OPTIONAL(type, name, order)                                                      \
+  _FIELD_OPTIONAL(type, name, order)                                                           \
+  inline bool has_oneof_##name() const { return has_##name(); }
+
+#define FIELD_OPTIONAL_ONEOF(type, name, order, oneof)                                         \
+  _FIELD_OPTIONAL(type, name, order)                                                           \
+  inline bool has_oneof_##name() const { return has_##oneof(); }
 
 namespace onnx2 {
 

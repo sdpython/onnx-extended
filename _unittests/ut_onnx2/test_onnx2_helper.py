@@ -15,8 +15,9 @@ class TestOnnx2Helper(ExtTestCase):
 
     def test_make_tensor_type_proto(self) -> None:
         proto = oh.make_tensor_type_proto(elem_type=2, shape=None)
-        self.assertEqual(proto.elem_type, 2)
-        self.assertEqual(proto.shape, 2)
+        self.assertEqual(proto.tensor_type.elem_type, 2)
+        self.assertNotEmpty(proto.tensor_type.shape)
+        self.assertEmpty(proto.sequence_type)
 
 
 if __name__ == "__main__":
