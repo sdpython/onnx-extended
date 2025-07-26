@@ -239,7 +239,7 @@ PYBIND11_MODULE(_onnx2py, m) {
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
 
-  py::class_<onnx2::utils::String>(m, "String", "custom string")
+  py::class_<onnx2::utils::String>(m, "String", "Simplified string with no final null character.")
       .def(py::init<std::string>())
       .def(
           "__str__",
