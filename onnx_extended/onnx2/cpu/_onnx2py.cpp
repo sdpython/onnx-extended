@@ -52,7 +52,7 @@ namespace py = pybind11;
           self.set_##name(obj.cast<onnx2::cls::name##_t &>());                                 \
         }                                                                                      \
       },                                                                                       \
-      #name " (string)")                                                                       \
+      onnx2::cls::DOC_##name)                                                                  \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
 
 #define PYFIELD_OPTIONAL_INT(cls, name)                                                        \
@@ -72,7 +72,7 @@ namespace py = pybind11;
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'."); \
         }                                                                                      \
       },                                                                                       \
-      #name " (optional int)")                                                                 \
+      onnx2::cls::DOC_##name)                                                                  \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
 
 #define PYFIELD_OPTIONAL_PROTO(cls, name)                                                      \
@@ -95,7 +95,7 @@ namespace py = pybind11;
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'."); \
         }                                                                                      \
       },                                                                                       \
-      #name " (optional proto)")                                                               \
+      onnx2::cls::DOC_##name)                                                                  \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")         \
       .def(                                                                                    \
           "add_" #name, [](onnx2::cls & self) -> onnx2::cls::name##_t & {                      \
@@ -152,7 +152,7 @@ template <typename T> void define_repeated_field_type(py::module_ &m, const std:
           [](onnx2::utils::RepeatedField<T> &self) {
             return py::make_iterator(self.begin(), self.end());
           },
-          py::keep_alive<0, 1>());
+          py::keep_alive<0, 1>(), "Iterates over the elements.");
 }
 
 template <>
@@ -211,7 +211,7 @@ void define_repeated_field_type<onnx2::utils::String>(py::module_ &m, const std:
           [](onnx2::utils::RepeatedField<onnx2::utils::String> &self) {
             return py::make_iterator(self.begin(), self.end());
           },
-          py::keep_alive<0, 1>());
+          py::keep_alive<0, 1>(), "Iterates over the elements.");
 }
 
 PYBIND11_MODULE(_onnx2py, m) {
@@ -239,7 +239,8 @@ PYBIND11_MODULE(_onnx2py, m) {
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
 
-  py::class_<onnx2::utils::String>(m, "String", "Simplified string with no final null character.")
+  py::class_<onnx2::utils::String>(m, "String",
+                                   "Simplified string with no final null character.")
       .def(py::init<std::string>())
       .def(
           "__str__",
@@ -412,7 +413,7 @@ PYBIND11_MODULE(_onnx2py, m) {
               self.data_type_ = obj.cast<onnx2::TensorProto::DataType>();
             }
           },
-          "data_type")
+          onnx2::TensorProto::DOC_data_type)
       .PYFIELD_STR(TensorProto, name)
       .PYFIELD_STR(TensorProto, doc_string)
       .PYFIELD(TensorProto, external_data)
@@ -445,7 +446,7 @@ PYBIND11_MODULE(_onnx2py, m) {
               }
             }
           },
-          "string_data")
+          onnx2::TensorProto::DOC_string_data)
       .def_property(
           "raw_data",
           [](const onnx2::TensorProto &self) -> py::bytes {
@@ -458,7 +459,7 @@ PYBIND11_MODULE(_onnx2py, m) {
             self.raw_data_.resize(raw.size());
             memcpy(self.raw_data_.data(), ptr, raw.size());
           },
-          "raw_data")
+          onnx2::TensorProto::DOC_raw_data)
       .PYADD_PROTO_SERIALIZATION(TensorProto);
 
   PYDEFINE_PROTO(m, SparseTensorProto)
