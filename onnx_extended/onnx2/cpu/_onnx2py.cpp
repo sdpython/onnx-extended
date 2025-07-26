@@ -31,7 +31,14 @@ namespace py = pybind11;
             self.SerializeToString(out);                                                       \
             return py::bytes(out);                                                             \
           },                                                                                   \
-          "Serializes this instance into a sequence of bytes.")
+          "Serializes this instance into a sequence of bytes.")                                \
+      .def(                                                                                    \
+          "__str__",                                                                           \
+          [](onnx2::cls &self) -> std::string {                                                \
+            std::vector<std::string> rows = self.SerializeToStringStream();                    \
+            return onnx2::utils::join_string(rows);                                            \
+          },                                                                                   \
+          "Creates a printable string for this class.")
 
 #define PYFIELD(cls, name)                                                                     \
   def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \

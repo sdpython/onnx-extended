@@ -1,5 +1,6 @@
 #include "onnx2.h"
 #include "stream_class.hpp"
+#include <sstream>
 
 namespace onnx2 {
 
@@ -8,11 +9,15 @@ void StringStringEntryProto::SerializeToStream(utils::BinaryWriteStream &stream)
   WRITE_FIELD(stream, value)
 }
 
-void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, StringStringEntryProto)
-  READ_FIELD(stream, key)
-  READ_FIELD(stream, value)
-  READ_END(stream, StringStringEntryProto)
+void StringStringEntryProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, StringStringEntryProto) READ_FIELD(stream, key) READ_FIELD(stream, value)
+        READ_END(stream, StringStringEntryProto)}
+
+std::vector<std::string> StringStringEntryProto::SerializeToStringStream() const {
+  std::stringstream stream;
+  stream << "{ key: \"" << key().as_string() << "\", value: \"" << value().as_string()
+         << "\" }";
+  return std::vector<std::string>{stream.str()};
 }
 
 void TensorAnnotation::SerializeToStream(utils::BinaryWriteStream &stream) const {
@@ -20,11 +25,29 @@ void TensorAnnotation::SerializeToStream(utils::BinaryWriteStream &stream) const
   WRITE_REPEATED_FIELD(stream, quant_parameter_tensor_names)
 }
 
-void TensorAnnotation::ParseFromStream(utils::BinaryStream &stream) {
-  READ_BEGIN(stream, TensorAnnotation)
-  READ_FIELD(stream, tensor_name)
-  READ_REPEATED_FIELD(stream, quant_parameter_tensor_names)
-  READ_END(stream, TensorAnnotation)
+void TensorAnnotation::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, TensorAnnotation) READ_FIELD(stream, tensor_name)
+        READ_REPEATED_FIELD(stream, quant_parameter_tensor_names)
+            READ_END(stream, TensorAnnotation)}
+
+std::vector<std::string> TensorAnnotation::SerializeToStringStream() const {
+  std::vector<std::string> rows;
+  std::ostringstream stream;
+  std::string indent = "  ";
+  std::string indent2 = "    ";
+  stream << "{\n"
+         << indent << "tensor_name: \"" << tensor_name().as_string() << "\",\n"
+         << indent << "quant_parameter_tensor_names: [";
+  rows.push_back(stream.str());
+
+  for (auto &p : quant_parameter_tensor_names()) {
+    auto r = p.SerializeToStringStream(stream);
+    EXT_ENFORE(r.size() == 1, "Only one line is expected for StringStringEntryProto.");
+    rows.push_back(indent2 + r[0] + ",");
+  }
+  rows.push_back(indent + "]");
+  rows.push_back("}");
+  return rows;
 }
 
 void IntIntListEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {

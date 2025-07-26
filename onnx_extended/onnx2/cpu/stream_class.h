@@ -20,7 +20,8 @@
     out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                 \
   }                                                                                            \
   void ParseFromStream(utils::BinaryStream &stream);                                           \
-  void SerializeToStream(utils::BinaryWriteStream &stream) const;
+  void SerializeToStream(utils::BinaryWriteStream &stream) const;                              \
+  std::vector<std::string> SerializeToStringStream() const;
 
 #define BEGIN_PROTO(cls, doc)                                                                  \
   class cls : public Message {                                                                 \
