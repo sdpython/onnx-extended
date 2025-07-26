@@ -1637,3 +1637,41 @@ TEST(serialize_to_string, TensorAnnotation) {
   EXPECT_TRUE(serialized.find("scale") != std::string::npos);
   EXPECT_TRUE(serialized.find("scale_tensor") != std::string::npos);
 }
+
+TEST(serialize_to_string, DeviceConfigurationProto) {
+  DeviceConfigurationProto config;
+  config.set_name("test_device_config");
+  config.set_num_devices(3);
+  config.add_device() = "device1";
+  config.add_device() = "device2";
+  config.add_device() = "device3";
+
+  std::vector<std::string> result = config.SerializeToVectorString();
+
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundNumDevices = false;
+  bool foundDevices = false;
+
+  for (const auto &item : result) {
+    if (item.find("name:") != std::string::npos &&
+        item.find("test_device_config") != std::string::npos) {
+      foundName = true;
+    }
+    if (item.find("num_devices:") != std::string::npos && item.find("3") != std::string::npos) {
+      foundNumDevices = true;
+    }
+    if (item.find("device:") != std::string::npos &&
+        item.find("device1") != std::string::npos &&
+        item.find("device2") != std::string::npos &&
+        item.find("device3") != std::string::npos) {
+      foundDevices = true;
+    }
+  }
+
+  EXPECT_TRUE(foundName) << "Le nom du dispositif n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundNumDevices)
+      << "Le nombre de dispositifs n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundDevices) << "La liste des dispositifs n'a pas été trouvée dans le résultat";
+}
