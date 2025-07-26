@@ -214,12 +214,16 @@ FIELD_OPTIONAL(TypeProto, value_type, 2)
 END_PROTO()
 
 inline TypeProto() {}
-FIELD_OPTIONAL(Tensor, tensor_type, 1)
-FIELD_OPTIONAL(Sequence, sequence_type, 4)
-FIELD_OPTIONAL(Map, map_type, 5)
+FIELD_OPTIONAL_ONEOF(Tensor, tensor_type, 1, type)
+FIELD_OPTIONAL_ONEOF(Sequence, sequence_type, 4, type)
+FIELD_OPTIONAL_ONEOF(Map, map_type, 5, type)
 FIELD_STR(denotation, 6)
-FIELD_OPTIONAL(SparseTensor, sparse_tensor_type, 8)
-FIELD_OPTIONAL(Optional, optional_type, 9)
+FIELD_OPTIONAL_ONEOF(SparseTensor, sparse_tensor_type, 8, type)
+FIELD_OPTIONAL_ONEOF(Optional, optional_type, 9, type)
+inline bool has_type() const {
+  return has_tensor_type() || has_sequence_type() || has_map_type() ||
+         has_sparse_tensor_type() || has_optional_type();
+}
 END_PROTO()
 
 using TensorProto_DataType = TensorProto::DataType;

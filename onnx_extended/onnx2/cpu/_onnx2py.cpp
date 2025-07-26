@@ -23,7 +23,7 @@ namespace py = pybind11;
         std::string raw = data;                                                                \
         self.ParseFromString(raw);                                                             \
       },                                                                                       \
-      "Parses a sequence of bytes to fill this instance")                                      \
+      "Parses a sequence of bytes to fill this instance.")                                     \
       .def(                                                                                    \
           "SerializeToString",                                                                 \
           [](onnx2::cls &self) {                                                               \
@@ -31,11 +31,11 @@ namespace py = pybind11;
             self.SerializeToString(out);                                                       \
             return py::bytes(out);                                                             \
           },                                                                                   \
-          "Serialize into a sequence of bytes.")
+          "Serializes this instance into a sequence of bytes.")
 
 #define PYFIELD(cls, name)                                                                     \
   def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name " has a value")
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
 
 #define PYFIELD_STR(cls, name)                                                                 \
   def_property(                                                                                \
@@ -69,18 +69,21 @@ namespace py = pybind11;
         } else if (py::isinstance<py::int_>(obj)) {                                            \
           self.set_##name(obj.cast<int>());                                                    \
         } else {                                                                               \
-          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
+          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'."); \
         }                                                                                      \
       },                                                                                       \
       #name " (optional int)")                                                                 \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
 
 #define PYFIELD_OPTIONAL_PROTO(cls, name)                                                      \
   def_property(                                                                                \
       #name,                                                                                   \
       [](onnx2::cls &self) -> py::object {                                                     \
-        if (!self.name##_.has_value())                                                         \
-          return py::none();                                                                   \
+        if (!self.name##_.has_value()) {                                                       \
+          if (self.has_oneof_##name())                                                         \
+            return py::none();                                                                 \
+          self.name##_.set_empty_value();                                                      \
+        }                                                                                      \
         return py::cast(self.name##_.value, py::return_value_policy::reference);               \
       },                                                                                       \
       [](onnx2::cls &self, py::object obj) {                                                   \
@@ -89,17 +92,17 @@ namespace py = pybind11;
         } else if (py::isinstance<onnx2::cls::name##_t>(obj)) {                                \
           self.name##_ = obj.cast<onnx2::cls::name##_t &>();                                   \
         } else {                                                                               \
-          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'");  \
+          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'."); \
         }                                                                                      \
       },                                                                                       \
       #name " (optional proto)")                                                               \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")          \
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")         \
       .def(                                                                                    \
           "add_" #name, [](onnx2::cls & self) -> onnx2::cls::name##_t & {                      \
             self.name##_.set_empty_value();                                                    \
             return *self.name##_;                                                              \
           },                                                                                   \
-          py::return_value_policy::reference, "sets an empty value")
+          py::return_value_policy::reference, "Sets an empty value.")
 
 #define SHORTEN_CODE(dtype)                                                                    \
   def_property_readonly_static(#dtype, [](py::object) -> int {                                 \
@@ -111,9 +114,9 @@ template <typename T> void define_repeated_field_type(py::module_ &m, const std:
       .def(py::init<>())
       .def_readwrite("values", &onnx2::utils::RepeatedField<T>::values)
       .def("add", &onnx2::utils::RepeatedField<T>::add, py::return_value_policy::reference,
-           "adds an empty element")
-      .def("clear", &onnx2::utils::RepeatedField<T>::clear, "removes every element")
-      .def("__len__", &onnx2::utils::RepeatedField<T>::size, "returns the length")
+           "Adds an empty element.")
+      .def("clear", &onnx2::utils::RepeatedField<T>::clear, "Removes every element.")
+      .def("__len__", &onnx2::utils::RepeatedField<T>::size, "Returns the number of elements.")
       .def(
           "__getitem__",
           [](onnx2::utils::RepeatedField<T> &self, int index) -> T & {
@@ -124,7 +127,7 @@ template <typename T> void define_repeated_field_type(py::module_ &m, const std:
             return self.values[index];
           },
           py::return_value_policy::reference, py::arg("index"),
-          "returns the element at position index")
+          "Returns the element at position index.")
       .def(
           "__delitem__",
           [](onnx2::utils::RepeatedField<T> &self, py::slice slice) {
@@ -143,7 +146,7 @@ template <typename T> void define_repeated_field_type(py::module_ &m, const std:
               self.extend(iterable.cast<std::vector<T>>());
             }
           },
-          py::arg("sequence"), "extends the list of values")
+          py::arg("sequence"), "Extends the list of values.")
       .def(
           "__iter__",
           [](onnx2::utils::RepeatedField<T> &self) {
@@ -159,11 +162,11 @@ void define_repeated_field_type<onnx2::utils::String>(py::module_ &m, const std:
       .def(py::init<>())
       .def_readwrite("values", &onnx2::utils::RepeatedField<onnx2::utils::String>::values)
       .def("add", &onnx2::utils::RepeatedField<onnx2::utils::String>::add,
-           py::return_value_policy::reference, "adds an empty element")
+           py::return_value_policy::reference, "Adds an empty element.")
       .def("clear", &onnx2::utils::RepeatedField<onnx2::utils::String>::clear,
-           "removes every element")
+           "Removes every element.")
       .def("__len__", &onnx2::utils::RepeatedField<onnx2::utils::String>::size,
-           "returns the length")
+           "Returns the number of elements.")
       .def(
           "__getitem__",
           [](onnx2::utils::RepeatedField<onnx2::utils::String> &self,
@@ -175,7 +178,7 @@ void define_repeated_field_type<onnx2::utils::String>(py::module_ &m, const std:
             return self.values[index];
           },
           py::return_value_policy::reference, py::arg("index"),
-          "returns the element at position index")
+          "Returns the element at position index.")
       .def(
           "__delitem__",
           [](onnx2::utils::RepeatedField<onnx2::utils::String> &self, py::slice slice) {
@@ -184,7 +187,7 @@ void define_repeated_field_type<onnx2::utils::String>(py::module_ &m, const std:
               self.remove_range(start, stop, step);
             }
           },
-          "removes elements")
+          "Removes every element.")
       .def(
           "extend",
           [](onnx2::utils::RepeatedField<onnx2::utils::String> &self, py::iterable iterable) {
@@ -202,7 +205,7 @@ void define_repeated_field_type<onnx2::utils::String>(py::module_ &m, const std:
               self.extend(values);
             }
           },
-          py::arg("sequence"), "extends the list of values")
+          py::arg("sequence"), "Extends the list of values.")
       .def(
           "__iter__",
           [](onnx2::utils::RepeatedField<onnx2::utils::String> &self) {
@@ -241,22 +244,22 @@ PYBIND11_MODULE(_onnx2py, m) {
       .def(
           "__str__",
           [](const onnx2::utils::String &self) -> std::string { return self.as_string(); },
-          "converts into string")
+          "Converts this instance into a python string.")
       .def(
           "__repr__",
           [](const onnx2::utils::String &self) -> std::string {
             return std::string("'") + self.as_string() + std::string("'");
           },
-          "usual representation")
+          "Represention with surrounding quotes.")
       .def(
           "__len__", [](const onnx2::utils::String &self) -> int { return self.size(); },
-          "returns the length")
+          "Returns the length of the string.")
       .def(
           "__eq__",
           [](const onnx2::utils::String &self, const std::string &s) -> int {
             return self == s;
           },
-          "comparison");
+          "Compares two strings.");
 
   define_repeated_field_type<int64_t>(m, "RepeatedFieldInt64");
   define_repeated_field_type<int32_t>(m, "RepeatedFieldInt32");
