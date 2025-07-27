@@ -5,6 +5,7 @@
 namespace onnx2 {
 
 // StringStringEntryProto
+IMPLEMENT_PROTO(StringStringEntryProto)
 
 void StringStringEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, key)
@@ -23,6 +24,7 @@ std::vector<std::string> StringStringEntryProto::SerializeToVectorString() const
 }
 
 // TensorAnnotation
+IMPLEMENT_PROTO(TensorAnnotation)
 
 void TensorAnnotation::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, tensor_name)
@@ -42,6 +44,7 @@ std::vector<std::string> TensorAnnotation::SerializeToVectorString() const {
 }
 
 // IntIntListEntryProto
+IMPLEMENT_PROTO(IntIntListEntryProto)
 
 void IntIntListEntryProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, key)
@@ -60,6 +63,7 @@ std::vector<std::string> IntIntListEntryProto::SerializeToVectorString() const {
 }
 
 // DeviceConfigurationProto
+IMPLEMENT_PROTO(DeviceConfigurationProto)
 
 void DeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, name)
@@ -81,6 +85,7 @@ std::vector<std::string> DeviceConfigurationProto::SerializeToVectorString() con
 }
 
 // SimpleShardedDimProto
+IMPLEMENT_PROTO(SimpleShardedDimProto)
 
 void SimpleShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, dim_value)
@@ -102,6 +107,7 @@ std::vector<std::string> SimpleShardedDimProto::SerializeToVectorString() const 
 }
 
 // ShardedDimProto
+IMPLEMENT_PROTO(ShardedDimProto)
 
 void ShardedDimProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, axis)
@@ -121,6 +127,7 @@ std::vector<std::string> ShardedDimProto::SerializeToVectorString() const {
 }
 
 // ShardingSpecProto
+IMPLEMENT_PROTO(ShardingSpecProto)
 
 void ShardingSpecProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, tensor_name)
@@ -145,6 +152,7 @@ std::vector<std::string> ShardingSpecProto::SerializeToVectorString() const {
 }
 
 // NodeDeviceConfigurationProto
+IMPLEMENT_PROTO(NodeDeviceConfigurationProto)
 
 void NodeDeviceConfigurationProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, configuration_id)
@@ -167,6 +175,7 @@ std::vector<std::string> NodeDeviceConfigurationProto::SerializeToVectorString()
 }
 
 // OperatorSetIdProto
+IMPLEMENT_PROTO(OperatorSetIdProto)
 
 void OperatorSetIdProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, domain)
@@ -184,7 +193,8 @@ std::vector<std::string> OperatorSetIdProto::SerializeToVectorString() const {
   return write_proto_into_vector_string(NAME_EXIST_VALUE(domain), NAME_EXIST_VALUE(version));
 }
 
-// TensorShapeProto
+// TensorShapeProto::Dimension
+IMPLEMENT_PROTO(TensorShapeProto::Dimension)
 
 void TensorShapeProto::Dimension::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, dim_value)
@@ -206,6 +216,7 @@ std::vector<std::string> TensorShapeProto::Dimension::SerializeToVectorString() 
 }
 
 // TensorShapeProto
+IMPLEMENT_PROTO(TensorShapeProto)
 
 void TensorShapeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_REPEATED_FIELD(stream, dim)
@@ -222,6 +233,7 @@ std::vector<std::string> TensorShapeProto::SerializeToVectorString() const {
 }
 
 // TensorProto::Segment
+IMPLEMENT_PROTO(TensorProto::Segment)
 
 void TensorProto::Segment::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, begin)
@@ -240,6 +252,7 @@ std::vector<std::string> TensorProto::Segment::SerializeToVectorString() const {
 }
 
 // TensorProto
+IMPLEMENT_PROTO(TensorProto)
 
 void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_REPEATED_FIELD(stream, dims)
@@ -286,6 +299,7 @@ std::vector<std::string> TensorProto::SerializeToVectorString() const {
 }
 
 // SparseTensorProto
+IMPLEMENT_PROTO(SparseTensorProto)
 
 void SparseTensorProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, values)
@@ -307,6 +321,7 @@ std::vector<std::string> SparseTensorProto::SerializeToVectorString() const {
 }
 
 // TypeProto::Tensor
+IMPLEMENT_PROTO(TypeProto::Tensor)
 
 void TypeProto::Tensor::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, elem_type)
@@ -325,6 +340,7 @@ std::vector<std::string> TypeProto::Tensor::SerializeToVectorString() const {
 }
 
 // TypeProto::SparseTensor
+IMPLEMENT_PROTO(TypeProto::SparseTensor)
 
 void TypeProto::SparseTensor::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, elem_type)
@@ -343,6 +359,8 @@ std::vector<std::string> TypeProto::SparseTensor::SerializeToVectorString() cons
 }
 
 // TypeProto::Sequence
+IMPLEMENT_PROTO(TypeProto::Sequence)
+
 void TypeProto::Sequence::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_OPTIONAL_PROTO_FIELD(stream, elem_type)
 }
@@ -358,6 +376,7 @@ std::vector<std::string> TypeProto::Sequence::SerializeToVectorString() const {
 }
 
 //  TypeProto::Map
+IMPLEMENT_PROTO(TypeProto::Map)
 
 void TypeProto::Map::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, key_type)
@@ -377,6 +396,7 @@ std::vector<std::string> TypeProto::Map::SerializeToVectorString() const {
 }
 
 // TypeProto::Optional
+IMPLEMENT_PROTO(TypeProto::Optional)
 
 void TypeProto::Optional::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_OPTIONAL_PROTO_FIELD(stream, elem_type)
@@ -393,6 +413,7 @@ std::vector<std::string> TypeProto::Optional::SerializeToVectorString() const {
 }
 
 // TypeProto
+IMPLEMENT_PROTO(TypeProto)
 
 void TypeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_OPTIONAL_PROTO_FIELD(stream, tensor_type)
@@ -421,6 +442,7 @@ std::vector<std::string> TypeProto::SerializeToVectorString() const {
 }
 
 // ValueInfoProto
+IMPLEMENT_PROTO(ValueInfoProto)
 
 void ValueInfoProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, name)

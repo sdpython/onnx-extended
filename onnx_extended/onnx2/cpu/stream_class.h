@@ -28,13 +28,13 @@
   public:                                                                                      \
     static inline constexpr const char *DOC = doc;                                             \
     explicit inline cls() {}                                                                   \
-    inline void CopyFrom(const cls &proto) { CopyFrom(*this, proto); }
+    void CopyFrom(const cls &proto);
 
 #define BEGIN_PROTO_NOINIT(cls, doc)                                                           \
   class cls : public Message {                                                                 \
   public:                                                                                      \
     static inline constexpr const char *DOC = doc;                                             \
-    inline void CopyFrom(const cls &proto) { CopyFrom(*this, proto); }
+    void CopyFrom(const cls &proto);
 
 #define END_PROTO()                                                                            \
   SERIALIZATION_METHOD()                                                                       \
@@ -161,7 +161,7 @@ template <> inline bool _has_field_(const std::vector<uint8_t> &field) {
   return !field.empty();
 }
 
-template <typename T> void CopyFrom(T &dest, const T &src);
+template <typename T> void CopyProtoFrom(T &dest, const T &src);
 
 class Message {
 public:
