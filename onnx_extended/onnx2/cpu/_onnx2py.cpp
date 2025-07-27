@@ -35,7 +35,7 @@ namespace py = pybind11;
       .def(                                                                                    \
           "__str__",                                                                           \
           [](onnx2::cls &self) -> std::string {                                                \
-            std::vector<std::string> rows = self.SerializeToStringStream();                    \
+            std::vector<std::string> rows = self.SerializeToVectorString();                    \
             return onnx2::utils::join_string(rows);                                            \
           },                                                                                   \
           "Creates a printable string for this class.")
