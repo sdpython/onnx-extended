@@ -11,6 +11,23 @@
 namespace onnx2 {
 namespace utils {
 
+template <typename T>
+std::vector<std::string> RepeatedField<T>::SerializeToVectorString() const {
+  std::vector<std::string> rows{"["};
+  for (const auto &p : values) {
+    std::vector<std::string> r = p.SerializeToVectorString();
+    for (size_t i = 0; i < r.size(); ++i) {
+      if (i + 1 == r.size()) {
+        rows.push_back(onnx_extended_helpers::MakeString("  ", r[i], ","));
+      } else {
+        rows.push_back(onnx_extended_helpers::MakeString("  ", r[i]));
+      }
+    }
+  }
+  rows.push_back("],");
+  return rows;
+}
+
 template <typename T> OptionalField<T>::~OptionalField() { reset(); }
 
 template <typename T> void OptionalField<T>::reset() {

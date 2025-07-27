@@ -1598,3 +1598,523 @@ TEST(onnx2onnx, DataType) {
   EXPECT_EQ(proto.float_data()[0], 4.5);
   EXPECT_EQ(proto.data_type(), TensorProto_DataType::TensorProto_DataType_FLOAT);
 }
+
+TEST(serialize_to_string, StringStringEntryProto) {
+  onnx2::StringStringEntryProto proto;
+  proto.set_key("test_key");
+  proto.set_value("test_value");
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_EQ(1, result.size());
+  std::string serialized = result[0];
+  EXPECT_TRUE(serialized.find("test_key") != std::string::npos);
+  EXPECT_TRUE(serialized.find("test_value") != std::string::npos);
+}
+
+TEST(serialize_to_string, IntIntListEntryProto) {
+  onnx2::IntIntListEntryProto proto;
+  proto.set_key(42);
+  proto.value().values.push_back(1);
+  proto.value().values.push_back(2);
+  proto.value().values.push_back(3);
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_EQ(5, result.size());
+  std::string serialized = utils::join_string(result, "\n");
+  EXPECT_TRUE(serialized.find("42") != std::string::npos);
+  EXPECT_TRUE(serialized.find("1") != std::string::npos);
+  EXPECT_TRUE(serialized.find("2") != std::string::npos);
+  EXPECT_TRUE(serialized.find("3") != std::string::npos);
+}
+
+TEST(serialize_to_string, TensorAnnotation) {
+  onnx2::TensorAnnotation proto;
+  proto.set_tensor_name("my_tensor");
+  auto &entry = proto.add_quant_parameter_tensor_names();
+  entry.set_key("scale");
+  entry.set_value("scale_tensor");
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_EQ(6, result.size());
+  std::string serialized = utils::join_string(result, "\n");
+  EXPECT_TRUE(serialized.find("my_tensor") != std::string::npos);
+  EXPECT_TRUE(serialized.find("scale") != std::string::npos);
+  EXPECT_TRUE(serialized.find("scale_tensor") != std::string::npos);
+}
+
+TEST(serialize_to_string, DeviceConfigurationProto) {
+  DeviceConfigurationProto config;
+  config.set_name("test_device_config");
+  config.set_num_devices(3);
+  config.add_device() = "device1";
+  config.add_device() = "device2";
+  config.add_device() = "device3";
+
+  std::vector<std::string> result = config.SerializeToVectorString();
+
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundNumDevices = false;
+  bool foundDevices = false;
+
+  std::string item = utils::join_string(result, "\n");
+  if (item.find("name:") != std::string::npos &&
+      item.find("test_device_config") != std::string::npos) {
+    foundName = true;
+  }
+  if (item.find("num_devices:") != std::string::npos && item.find("3") != std::string::npos) {
+    foundNumDevices = true;
+  }
+  if (item.find("device:") != std::string::npos && item.find("device1") != std::string::npos &&
+      item.find("device2") != std::string::npos && item.find("device3") != std::string::npos) {
+    foundDevices = true;
+  }
+
+  EXPECT_TRUE(foundName) << "Le nom du dispositif n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundNumDevices)
+      << "Le nombre de dispositifs n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundDevices) << "La liste des dispositifs n'a pas été trouvée dans le résultat";
+}
+
+TEST(serialize_to_string, SimpleShardedDimProto) {
+  onnx2::SimpleShardedDimProto proto;
+  proto.set_dim_value(100);
+  proto.set_dim_param("batch_size");
+  proto.set_num_shards(4);
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundDimValue = false;
+  bool foundDimParam = false;
+  bool foundNumShards = false;
+
+  for (const auto &item : result) {
+    if (item.find("dim_value:") != std::string::npos && item.find("100") != std::string::npos) {
+      foundDimValue = true;
+    }
+    if (item.find("dim_param:") != std::string::npos &&
+        item.find("batch_size") != std::string::npos) {
+      foundDimParam = true;
+    }
+    if (item.find("num_shards:") != std::string::npos && item.find("4") != std::string::npos) {
+      foundNumShards = true;
+    }
+  }
+
+  EXPECT_TRUE(foundDimValue) << "La valeur de dimension n'a pas été trouvée dans le résultat";
+  EXPECT_TRUE(foundDimParam) << "Le paramètre de dimension n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundNumShards) << "Le nombre de shards n'a pas été trouvé dans le résultat";
+}
+
+TEST(serialize_to_string, ShardedDimProto) {
+  onnx2::ShardedDimProto proto;
+  proto.set_axis(2);
+
+  auto &simple_dim1 = proto.add_simple_sharding();
+  simple_dim1.set_dim_value(100);
+  simple_dim1.set_num_shards(4);
+
+  auto &simple_dim2 = proto.add_simple_sharding();
+  simple_dim2.set_dim_param("height");
+  simple_dim2.set_num_shards(2);
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundAxis = false;
+  bool foundSimpleSharding = false;
+
+  for (const auto &item : result) {
+    if (item.find("axis:") != std::string::npos && item.find("2") != std::string::npos) {
+      foundAxis = true;
+    }
+    if (item.find("simple_sharding") != std::string::npos) {
+      foundSimpleSharding = true;
+    }
+  }
+
+  EXPECT_TRUE(foundAxis) << "L'axe n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundSimpleSharding)
+      << "Les simple_sharding n'ont pas été trouvés dans le résultat";
+}
+
+TEST(serialize_to_string, ShardingSpecProto) {
+  onnx2::ShardingSpecProto proto;
+  proto.set_tensor_name("sharded_tensor");
+
+  // Ajouter des dispositifs
+  proto.device().values.push_back(0);
+  proto.device().values.push_back(1);
+  proto.device().values.push_back(2);
+
+  // Ajouter une entrée de mapping
+  auto &map_entry = proto.add_index_to_device_group_map();
+  map_entry.set_key(0);
+  map_entry.value().values.push_back(0);
+  map_entry.value().values.push_back(1);
+
+  // Ajouter une dimension shardée
+  auto &dim = proto.add_sharded_dim();
+  dim.set_axis(1);
+  auto &simple_dim = dim.add_simple_sharding();
+  simple_dim.set_dim_value(64);
+  simple_dim.set_num_shards(4);
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundTensorName = false;
+  bool foundDevice = false;
+  bool foundMapping = false;
+  bool foundShardedDim = false;
+
+  for (const auto &item : result) {
+    if (item.find("tensor_name:") != std::string::npos &&
+        item.find("sharded_tensor") != std::string::npos) {
+      foundTensorName = true;
+    }
+    if (item.find("device:") != std::string::npos) {
+      foundDevice = true;
+    }
+    if (item.find("index_to_device_group_map") != std::string::npos) {
+      foundMapping = true;
+    }
+    if (item.find("sharded_dim") != std::string::npos) {
+      foundShardedDim = true;
+    }
+  }
+
+  EXPECT_TRUE(foundTensorName) << "Le nom du tenseur n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundDevice) << "Les dispositifs n'ont pas été trouvés dans le résultat";
+  EXPECT_TRUE(foundMapping) << "Le mapping n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundShardedDim) << "La dimension shardée n'a pas été trouvée dans le résultat";
+}
+
+TEST(serialize_to_string, NodeDeviceConfigurationProto) {
+  onnx2::NodeDeviceConfigurationProto proto;
+  proto.set_configuration_id("node_config_1");
+  proto.set_pipeline_stage(3);
+
+  // Ajouter une spécification de sharding
+  auto &spec = proto.add_sharding_spec();
+  spec.set_tensor_name("input_tensor");
+  spec.device().values.push_back(0);
+  spec.device().values.push_back(1);
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundConfigId = false;
+  bool foundPipelineStage = false;
+  bool foundShardingSpec = false;
+
+  for (const auto &item : result) {
+    if (item.find("configuration_id:") != std::string::npos &&
+        item.find("node_config_1") != std::string::npos) {
+      foundConfigId = true;
+    }
+    if (item.find("pipeline_stage:") != std::string::npos &&
+        item.find("3") != std::string::npos) {
+      foundPipelineStage = true;
+    }
+    if (item.find("sharding_spec") != std::string::npos) {
+      foundShardingSpec = true;
+    }
+  }
+
+  EXPECT_TRUE(foundConfigId) << "L'ID de configuration n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundPipelineStage) << "L'étape de pipeline n'a pas été trouvée dans le résultat";
+  EXPECT_TRUE(foundShardingSpec)
+      << "La spécification de sharding n'a pas été trouvée dans le résultat";
+}
+
+TEST(serialize_to_string, OperatorSetIdProto) {
+  onnx2::OperatorSetIdProto proto;
+  proto.set_domain("ai.onnx");
+  proto.set_version(15);
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundDomain = false;
+  bool foundVersion = false;
+
+  for (const auto &item : result) {
+    if (item.find("domain:") != std::string::npos &&
+        item.find("ai.onnx") != std::string::npos) {
+      foundDomain = true;
+    }
+    if (item.find("version:") != std::string::npos && item.find("15") != std::string::npos) {
+      foundVersion = true;
+    }
+  }
+
+  EXPECT_TRUE(foundDomain) << "Le domaine n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundVersion) << "La version n'a pas été trouvée dans le résultat";
+}
+
+TEST(serialize_to_string, TensorShapeProto) {
+  onnx2::TensorShapeProto proto;
+
+  // Ajouter des dimensions
+  auto &dim1 = proto.add_dim();
+  dim1.set_dim_value(64);
+
+  auto &dim2 = proto.add_dim();
+  dim2.set_dim_param("batch");
+  dim2.set_denotation("N");
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundDim1 = false;
+  bool foundDim2 = false;
+  bool foundDenotation = false;
+
+  std::string item = utils::join_string(result, "\n");
+  if (item.find("dim") != std::string::npos &&
+      item.find("dim_value: 64") != std::string::npos) {
+    foundDim1 = true;
+  }
+  if (item.find("dim_param: \"batch\"") != std::string::npos) {
+    foundDim2 = true;
+  }
+  if (item.find("denotation: \"N\"") != std::string::npos) {
+    foundDenotation = true;
+  }
+
+  EXPECT_TRUE(foundDim1) << "La première dimension n'a pas été trouvée dans le résultat";
+  EXPECT_TRUE(foundDim2) << "La deuxième dimension n'a pas été trouvée dans le résultat";
+  EXPECT_TRUE(foundDenotation) << "La dénotation n'a pas été trouvée dans le résultat";
+}
+
+TEST(serialize_to_string, TensorProto) {
+  onnx2::TensorProto proto;
+  proto.set_name("test_tensor");
+  proto.set_data_type(TensorProto::DataType::FLOAT);
+  proto.dims().values.push_back(3);
+  proto.dims().values.push_back(4);
+
+  // Ajouter des données
+  for (int i = 0; i < 12; ++i) {
+    proto.float_data().values.push_back(static_cast<float>(i * 0.5f));
+  }
+
+  // Ajouter des métadonnées
+  proto.doc_string() = "Un tenseur de test";
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundDataType = false;
+  bool foundDims = false;
+  bool foundDocString = false;
+  bool foundData = false;
+
+  for (const auto &item : result) {
+    if (item.find("name:") != std::string::npos &&
+        item.find("test_tensor") != std::string::npos) {
+      foundName = true;
+    }
+    if (item.find("data_type:") != std::string::npos &&
+        item.find(std::to_string(static_cast<int>(TensorProto::DataType::FLOAT))) !=
+            std::string::npos) {
+      foundDataType = true;
+    }
+    if (item.find("dims:") != std::string::npos) {
+      foundDims = true;
+    }
+    if (item.find("doc_string:") != std::string::npos &&
+        item.find("Un tenseur de test") != std::string::npos) {
+      foundDocString = true;
+    }
+    if (item.find("float_data") != std::string::npos) {
+      foundData = true;
+    }
+  }
+
+  EXPECT_TRUE(foundName) << "Le nom du tenseur n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundDataType) << "Le type de données n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundDims) << "Les dimensions n'ont pas été trouvées dans le résultat";
+  EXPECT_TRUE(foundDocString)
+      << "La chaîne de documentation n'a pas été trouvée dans le résultat";
+  EXPECT_TRUE(foundData) << "Les données float n'ont pas été trouvées dans le résultat";
+}
+
+TEST(serialize_to_string, SparseTensorProto) {
+  onnx2::SparseTensorProto proto;
+
+  // Configuration des dimensions
+  proto.dims().values.push_back(5);
+  proto.dims().values.push_back(5);
+
+  // Configuration des valeurs
+  proto.values().set_name("values_tensor");
+  proto.values().set_data_type(TensorProto::DataType::FLOAT);
+  proto.values().float_data().values.push_back(1.5f);
+  proto.values().float_data().values.push_back(2.5f);
+  proto.values().float_data().values.push_back(3.5f);
+
+  // Configuration des indices
+  proto.indices().set_name("indices_tensor");
+  proto.indices().set_data_type(TensorProto::DataType::INT64);
+  proto.indices().dims().values.push_back(3); // 3 éléments non nuls
+  proto.indices().dims().values.push_back(2); // coordonnées 2D
+
+  // Indices pour les 3 éléments non nuls : (0,1), (2,3), (4,2)
+  proto.indices().int64_data().values.push_back(0);
+  proto.indices().int64_data().values.push_back(1);
+  proto.indices().int64_data().values.push_back(2);
+  proto.indices().int64_data().values.push_back(3);
+  proto.indices().int64_data().values.push_back(4);
+  proto.indices().int64_data().values.push_back(2);
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundDims = false;
+  bool foundValues = false;
+  bool foundIndices = false;
+
+  for (const auto &item : result) {
+    if (item.find("dims:") != std::string::npos && item.find("5") != std::string::npos) {
+      foundDims = true;
+    }
+    if (item.find("values") != std::string::npos &&
+        item.find("values_tensor") != std::string::npos) {
+      foundValues = true;
+    }
+    if (item.find("indices") != std::string::npos &&
+        item.find("indices_tensor") != std::string::npos) {
+      foundIndices = true;
+    }
+  }
+
+  EXPECT_TRUE(foundDims) << "Les dimensions n'ont pas été trouvées dans le résultat";
+  EXPECT_TRUE(foundValues) << "Les valeurs n'ont pas été trouvées dans le résultat";
+  EXPECT_TRUE(foundIndices) << "Les indices n'ont pas été trouvés dans le résultat";
+}
+
+TEST(serialize_to_string, TypeProto) {
+  onnx2::TypeProto proto;
+
+  // Configuration du type tenseur
+  proto.add_tensor_type().set_elem_type(1); // FLOAT
+
+  // Configuration de la forme
+  auto &shape = proto.tensor_type().add_shape();
+
+  // Ajouter deux dimensions
+  auto &dim1 = shape.add_dim();
+  dim1.set_dim_value(10);
+
+  auto &dim2 = shape.add_dim();
+  dim2.set_dim_param("batch");
+  dim2.set_denotation("N");
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundTensorType = false;
+  bool foundElemType = false;
+  bool foundShape = false;
+  bool foundDimValue = false;
+  bool foundDimParam = false;
+
+  std::string item = utils::join_string(result, "\n");
+  if (item.find("tensor_type") != std::string::npos) {
+    foundTensorType = true;
+  }
+  if (item.find("elem_type: 1") != std::string::npos) {
+    foundElemType = true;
+  }
+  if (item.find("shape") != std::string::npos) {
+    foundShape = true;
+  }
+  if (item.find("dim_value: 10") != std::string::npos) {
+    foundDimValue = true;
+  }
+  if (item.find("dim_param: \"batch\"") != std::string::npos) {
+    foundDimParam = true;
+  }
+
+  EXPECT_TRUE(foundTensorType) << "Le type tenseur n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundElemType) << "Le type d'élément n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundShape) << "La forme n'a pas été trouvée dans le résultat";
+  EXPECT_TRUE(foundDimValue) << "La valeur de dimension n'a pas été trouvée dans le résultat";
+  EXPECT_TRUE(foundDimParam) << "Le paramètre de dimension n'a pas été trouvé dans le résultat";
+}
+
+TEST(serialize_to_string, TensorProto_WithRawData) {
+  onnx2::TensorProto proto;
+  proto.set_name("raw_data_tensor");
+  proto.set_data_type(TensorProto::DataType::FLOAT);
+  proto.dims().values.push_back(2);
+  proto.dims().values.push_back(2);
+
+  // Préparation des données
+  std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
+
+  // Copie dans raw_data
+  proto.raw_data().resize(data.size() * sizeof(float));
+  std::memcpy(proto.raw_data().data(), data.data(), data.size() * sizeof(float));
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundDataType = false;
+  bool foundRawData = false;
+
+  for (const auto &item : result) {
+    if (item.find("name:") != std::string::npos &&
+        item.find("raw_data_tensor") != std::string::npos) {
+      foundName = true;
+    }
+    if (item.find("data_type:") != std::string::npos &&
+        item.find(std::to_string(static_cast<int>(TensorProto::DataType::FLOAT))) !=
+            std::string::npos) {
+      foundDataType = true;
+    }
+    if (item.find("raw_data:") != std::string::npos) {
+      foundRawData = true;
+    }
+  }
+
+  EXPECT_TRUE(foundName) << "Le nom du tenseur n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundDataType) << "Le type de données n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundRawData) << "Les données brutes n'ont pas été trouvées dans le résultat";
+}
+
+TEST(serialize_to_string, TensorProto_WithSegment) {
+  onnx2::TensorProto proto;
+  proto.set_name("segmented_tensor");
+  proto.set_data_type(TensorProto::DataType::FLOAT);
+
+  // Configuration du segment
+  proto.segment().set_begin(5);
+  proto.segment().set_end(10);
+
+  std::vector<std::string> result = proto.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundSegmentBegin = false;
+  bool foundSegmentEnd = false;
+
+  std::string item = utils::join_string(result, "\n");
+  if (item.find("name:") != std::string::npos &&
+      item.find("segmented_tensor") != std::string::npos) {
+    foundName = true;
+  }
+  if (item.find("segment") != std::string::npos && item.find("begin: 5") != std::string::npos) {
+    foundSegmentBegin = true;
+  }
+  if (item.find("segment") != std::string::npos && item.find("end: 10") != std::string::npos) {
+    foundSegmentEnd = true;
+  }
+
+  EXPECT_TRUE(foundName) << "Le nom du tenseur n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundSegmentBegin) << "Le début du segment n'a pas été trouvé dans le résultat";
+  EXPECT_TRUE(foundSegmentEnd) << "La fin du segment n'a pas été trouvée dans le résultat";
+}

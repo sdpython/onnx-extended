@@ -1,4 +1,5 @@
 #include "simple_string.h"
+#include <sstream>
 
 namespace onnx2 {
 namespace utils {
@@ -170,6 +171,20 @@ std::string String::as_string() const {
   if (empty())
     return std::string();
   return std::string(data(), size());
+}
+
+std::string join_string(const std::vector<std::string> &elements, const char *delimiter) {
+  std::stringstream oss;
+  auto it = elements.begin();
+  if (it != elements.end()) {
+    oss << *it;
+    ++it;
+  }
+  while (it != elements.end()) {
+    oss << delimiter << *it;
+    ++it;
+  }
+  return oss.str();
 }
 
 } // namespace utils

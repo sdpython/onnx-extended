@@ -20,7 +20,8 @@
     out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                 \
   }                                                                                            \
   void ParseFromStream(utils::BinaryStream &stream);                                           \
-  void SerializeToStream(utils::BinaryWriteStream &stream) const;
+  void SerializeToStream(utils::BinaryWriteStream &stream) const;                              \
+  std::vector<std::string> SerializeToVectorString() const;
 
 #define BEGIN_PROTO(cls, doc)                                                                  \
   class cls : public Message {                                                                 \
@@ -46,9 +47,11 @@
 public:                                                                                        \
   inline type &name() { return name##_; }                                                      \
   inline const type &name() const { return name##_; }                                          \
+  inline const type *ptr_##name() const { return &name##_; }                                   \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline void set_##name(const type &v) { name##_ = v; }                                       \
   inline int order_##name() const { return order; }                                            \
+  static inline constexpr const char *_name_##name = #name;                                    \
   static inline constexpr const char *DOC_##name = doc;                                        \
   type name##_;                                                                                \
   using name##_t = type;
@@ -57,9 +60,11 @@ public:                                                                         
 public:                                                                                        \
   inline type &name() { return name##_; }                                                      \
   inline const type &name() const { return name##_; }                                          \
+  inline const type *ptr_##name() const { return &name##_; }                                   \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline void set_##name(const type &v) { name##_ = v; }                                       \
   inline int order_##name() const { return order; }                                            \
+  static inline constexpr const char *_name_##name = #name;                                    \
   static inline constexpr const char *DOC_##name = doc;                                        \
   type name##_ = default_value;                                                                \
   using name##_t = type;
@@ -72,6 +77,8 @@ public:                                                                         
 #define FIELD_REPEATED(type, name, order, doc)                                                 \
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
+  inline const utils::RepeatedField<type> &name() const { return name##_; }                    \
+  inline const utils::RepeatedField<type> *ptr_##name() const { return &name##_; }             \
   inline type &add_##name() { return name##_.add(); }                                          \
   inline type &add_##name(type &&v) {                                                          \
     name##_.emplace_back(v);                                                                   \
@@ -80,6 +87,7 @@ public:                                                                         
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   static inline constexpr const char *DOC_##name = doc;                                        \
+  static inline constexpr const char *_name_##name = #name;                                    \
   inline bool packed_##name() const { return false; }                                          \
   utils::RepeatedField<type> name##_;                                                          \
   using name##_t = type;
@@ -87,6 +95,8 @@ public:                                                                         
 #define FIELD_REPEATED_PACKED(type, name, order, doc)                                          \
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
+  inline const utils::RepeatedField<type> &name() const { return name##_; }                    \
+  inline const utils::RepeatedField<type> *ptr_##name() const { return &name##_; }             \
   inline type &add_##name() { return name##_.add(); }                                          \
   inline type &add_##name(const type &v) {                                                     \
     name##_.push_back(v);                                                                      \
@@ -95,6 +105,7 @@ public:                                                                         
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }          \
   inline int order_##name() const { return order; }                                            \
   static inline constexpr const char *DOC_##name = doc;                                        \
+  static inline constexpr const char *_name_##name = #name;                                    \
   inline bool packed_##name() const { return true; }                                           \
   utils::RepeatedField<type> name##_;                                                          \
   using name##_t = type;
@@ -108,6 +119,9 @@ public:                                                                         
   inline const type &name() const {                                                            \
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
     return *name##_;                                                                           \
+  }                                                                                            \
+  inline const type *ptr_##name() const {                                                      \
+    return has_##name() ? &(*name##_) : static_cast<type *>(nullptr);                          \
   }                                                                                            \
   inline utils::OptionalField<type> &name##_optional() { return name##_; }                     \
   inline const utils::OptionalField<type> &name##_optional() const {                           \
@@ -123,6 +137,7 @@ public:                                                                         
   inline bool has_##name() const { return name##_.has_value(); }                               \
   inline int order_##name() const { return order; }                                            \
   static inline constexpr const char *DOC_##name = doc;                                        \
+  static inline constexpr const char *_name_##name = #name;                                    \
   utils::OptionalField<type> name##_;                                                          \
   using name##_t = type;
 

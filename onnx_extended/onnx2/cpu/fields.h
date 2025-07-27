@@ -52,6 +52,7 @@ public:
   template <class... Args> inline void emplace_back(Args &&...args) {
     values.emplace_back(std::forward<Args>(args)...);
   }
+  std::vector<std::string> SerializeToVectorString() const;
   std::vector<T> values;
 };
 
