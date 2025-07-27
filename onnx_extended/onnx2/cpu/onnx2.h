@@ -390,6 +390,20 @@ END_PROTO()
 
 using TensorProto_DataType = TensorProto::DataType;
 
+// ValueInfoProto
+
+BEGIN_PROTO(
+    ValueInfoProto,
+    "Defines information on value, including the name, the type, and the shape of the value.")
+FIELD_STR(name, 1, "This field MUST be present in this version of the IR.")
+FIELD_OPTIONAL(TypeProto, type, 2,
+               "This field MUST be present in this version of the IR for inputs and outputs of "
+               "the top-level graph.")
+FIELD_STR(doc_string, 3, "A human-readable documentation for this tensor. Markdown is allowed.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 4,
+               "Named metadata values; keys should be distinct.")
+END_PROTO()
+
 } // namespace onnx2
 
 #include "fields.hpp"

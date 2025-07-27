@@ -38,7 +38,20 @@ namespace py = pybind11;
             std::vector<std::string> rows = self.SerializeToVectorString();                    \
             return onnx2::utils::join_string(rows);                                            \
           },                                                                                   \
-          "Creates a printable string for this class.")
+          "Creates a printable string for this class.")                                        \
+      .def(                                                                                    \
+          "CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); },     \
+          "Copy one instance into this one.")                                                  \
+      .def(                                                                                    \
+          "__eq__",                                                                            \
+          [](const onnx2::cls &self, const onnx2::cls &src) -> bool {                          \
+            std::string s1;                                                                    \
+            self.SerializeToString(s1);                                                        \
+            std::string s2;                                                                    \
+            src.SerializeToString(s2);                                                         \
+            return s1 == s2;                                                                   \
+          },                                                                                   \
+          "Compares the serialized strings.")
 
 #define PYFIELD(cls, name)                                                                     \
   def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
@@ -501,4 +514,11 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_OPTIONAL_PROTO(TypeProto, sparse_tensor_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, optional_type)
       .PYADD_PROTO_SERIALIZATION(TypeProto);
+
+  PYDEFINE_PROTO(m, ValueInfoProto)
+      .PYFIELD_STR(ValueInfoProto, name)
+      .PYFIELD_OPTIONAL_PROTO(ValueInfoProto, type)
+      .PYFIELD_STR(ValueInfoProto, doc_string)
+      .PYFIELD(ValueInfoProto, metadata_props)
+      .PYADD_PROTO_SERIALIZATION(ValueInfoProto);
 }

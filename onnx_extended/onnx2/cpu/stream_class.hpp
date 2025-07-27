@@ -26,6 +26,14 @@
 
 #define NAME_EXIST_VALUE(name) name_exist_value(_name_##name, has_##name(), ptr_##name())
 
+#define IMPLEMENT_PROTO(cls)                                                                   \
+  void cls::CopyFrom(const cls &proto) {                                                       \
+    utils::StringWriteStream stream;                                                           \
+    proto.SerializeToStream(stream);                                                           \
+    utils::StringStream read_stream(stream.data(), stream.size());                             \
+    ParseFromStream(read_stream);                                                              \
+  }
+
 //////////////
 // macro write
 //////////////
