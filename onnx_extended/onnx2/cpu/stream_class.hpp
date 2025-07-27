@@ -102,6 +102,13 @@ using namespace onnx_extended_helpers;
 
 namespace onnx2 {
 
+template <typename T> void CopyFrom(T &dest, const T &src) {
+  utils::StringWriteStream stream;
+  src.SerializeIntoStream(stream);
+  utils::StringStream read_stream(stream.data(), stream.size());
+  dest.ParseFromString(read_stream);
+}
+
 ////////
 // write
 ////////

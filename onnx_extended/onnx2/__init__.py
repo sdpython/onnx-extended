@@ -15,4 +15,5 @@ from .cpu._onnx2py import (
     TensorProto,
     TensorShapeProto,
     TypeProto,
+    ValueInfoProto,
 )

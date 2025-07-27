@@ -420,4 +420,28 @@ std::vector<std::string> TypeProto::SerializeToVectorString() const {
       NAME_EXIST_VALUE(sparse_tensor_type), NAME_EXIST_VALUE(optional_type));
 }
 
+// ValueInfoProto
+
+void ValueInfoProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, name)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, type)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+}
+
+void ValueInfoProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, ValueInfoProto)          //
+    READ_FIELD(stream, name)                    //
+    READ_OPTIONAL_PROTO_FIELD(stream, type)     //
+    READ_FIELD(stream, doc_string)              //
+    READ_REPEATED_FIELD(stream, metadata_props) //
+    READ_END(stream, ValueInfoProto)            //
+}
+
+std::vector<std::string> ValueInfoProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(type),
+                                        NAME_EXIST_VALUE(doc_string),
+                                        NAME_EXIST_VALUE(metadata_props));
+}
+
 } // namespace onnx2
