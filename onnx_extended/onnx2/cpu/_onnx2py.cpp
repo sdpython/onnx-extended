@@ -39,7 +39,19 @@ namespace py = pybind11;
             return onnx2::utils::join_string(rows);                                            \
           },                                                                                   \
           "Creates a printable string for this class.")                                        \
-      .def("CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); })
+      .def(                                                                                    \
+          "CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); },     \
+          "Copy one instance into this one.")                                                  \
+      .def(                                                                                    \
+          "__eq__",                                                                            \
+          [](const onnx2::cls &self, const onnx2::cls &src) -> bool {                          \
+            std::string s1;                                                                    \
+            self.SerializeToString(s1);                                                        \
+            std::string s2;                                                                    \
+            src.SerializeToString(s2);                                                         \
+            return s1 == s2;                                                                   \
+          },                                                                                   \
+          "Compares the serialized strings.")
 
 #define PYFIELD(cls, name)                                                                     \
   def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \

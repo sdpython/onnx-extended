@@ -192,3 +192,23 @@ def make_value_info(
 
     value_info_proto.type.CopyFrom(type_proto)
     return value_info_proto
+
+
+def make_tensor_sequence_value_info(
+    name: str,
+    elem_type: int,
+    shape: Sequence[str | int | None] | None,
+    doc_string: str = "",
+    elem_shape_denotation: list[str] | None = None,
+) -> ValueInfoProto:
+    """Makes a Sequence[Tensors] ValueInfoProto based on the data type and shape."""
+    value_info_proto = ValueInfoProto()
+    value_info_proto.name = name
+    if doc_string:
+        value_info_proto.doc_string = doc_string
+
+    tensor_type_proto = make_tensor_type_proto(elem_type, shape, elem_shape_denotation)
+    sequence_type_proto = make_sequence_type_proto(tensor_type_proto)
+    value_info_proto.type.sequence_type.CopyFrom(sequence_type_proto.sequence_type)
+
+    return value_info_proto
