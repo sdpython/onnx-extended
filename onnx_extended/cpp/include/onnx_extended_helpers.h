@@ -47,6 +47,9 @@ void MakeStringInternalElement(StringStream &ss, const int16_t &t);
 void MakeStringInternalElement(StringStream &ss, const int32_t &t);
 void MakeStringInternalElement(StringStream &ss, const int64_t &t);
 
+void MakeStringInternalElement(StringStream &ss, const uint64_t *&t);
+void MakeStringInternalElement(StringStream &ss, const uint64_t *t);
+
 void MakeStringInternalElement(StringStream &ss, const float &t);
 
 void MakeStringInternalElement(StringStream &ss, const double &t);
@@ -64,6 +67,8 @@ void MakeStringInternalElement(StringStream &ss, const std::vector<int32_t> &t);
 void MakeStringInternalElement(StringStream &ss, const std::vector<int64_t> &t);
 
 void MakeStringInternalElement(StringStream &ss, const std::vector<float> &t);
+
+void MakeStringInternalElement(StringStream &ss, const std::vector<double> &t);
 
 void MakeStringInternal(StringStream &ss);
 

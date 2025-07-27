@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <stdint.h>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -18,6 +19,12 @@
 #define DEBUG_PRINT(s)
 #define DEBUG_PRINT2(s1, s2)
 #endif
+
+//////////////////
+// macro helpers
+////////////////
+
+#define NAME_EXIST_VALUE(name) name_exist_value(_name_##name, has_##name(), ptr_##name())
 
 //////////////
 // macro write
@@ -90,6 +97,8 @@
     read_repeated_field(stream, field_number.wire_type, name##_, #name, packed_##name());      \
     DEBUG_PRINT("  - repeat " #name)                                                           \
   }
+
+using namespace onnx_extended_helpers;
 
 namespace onnx2 {
 
@@ -454,30 +463,84 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type,
 // serialization into string
 ////////////////////////////
 
-template <typename T> std::string write_as_string(const T &field);
+template <typename T> struct name_exist_value {
+  const char *name;
+  bool exist;
+  const T *value;
+  inline name_exist_value(const char *n, bool e, const T *v) : name(n), exist(e), value(v) {}
+};
+
+template <typename T> std::string write_as_string(const T &field) { return MakeString(field); }
 
 template <> std::string write_as_string(const utils::String &field) {
-  return onnx_extended_helpers::MakeString("\"", field.as_string(), "\"");
+  return MakeString("\"", field.as_string(), "\"");
 }
 
-template <> std::string write_as_string(const int64_t &field) {
-  return onnx_extended_helpers::MakeString(field);
+template <> std::string write_as_string(const std::vector<uint8_t> &field) {
+  const char *hex_chars = "0123456789ABCDEF";
+  std::stringstream result;
+  for (const auto &b : field) {
+    result << hex_chars[b / 16] << hex_chars[b % 16];
+  }
+  return result.str();
 }
 
-template <> std::string write_as_string(const uint64_t &field) {
-  return onnx_extended_helpers::MakeString(field);
+template <typename T> std::string write_as_string_vector(const std::vector<T> &field) {
+  std::stringstream result;
+  result << "[";
+  for (size_t i = 0; i < field.size(); ++i) {
+    result << field[i];
+    if (i + 1 != field.size())
+      result << ", ";
+  }
+  result << "]";
+  return result.str();
 }
 
-template <> std::string write_as_string(const int32_t &field) {
-  return onnx_extended_helpers::MakeString(field);
+template <typename T> std::string write_as_string_optional(const std::optional<T> &field) {
+  if (!field)
+    return "null";
+  return write_as_string(*field);
 }
 
-template <> std::string write_as_string(const float &field) {
-  return onnx_extended_helpers::MakeString(field);
+template <> std::string write_as_string(const std::vector<float> &field) {
+  return write_as_string_vector(field);
 }
 
-template <> std::string write_as_string(const double &field) {
-  return onnx_extended_helpers::MakeString(field);
+template <> std::string write_as_string(const std::vector<int64_t> &field) {
+  return write_as_string_vector(field);
+}
+
+template <> std::string write_as_string(const std::vector<uint64_t> &field) {
+  return write_as_string_vector(field);
+}
+
+template <> std::string write_as_string(const std::vector<double> &field) {
+  return write_as_string_vector(field);
+}
+
+template <> std::string write_as_string(const std::vector<int32_t> &field) {
+  return write_as_string_vector(field);
+}
+
+template <> std::string write_as_string(const std::optional<float> &field) {
+  return write_as_string_optional(field);
+}
+
+template <> std::string write_as_string(const std::optional<int64_t> &field) {
+  return write_as_string_optional(field);
+}
+
+template <> std::string write_as_string(const std::optional<uint64_t> &field) {
+  return write_as_string_optional(field);
+}
+
+template <> std::string write_as_string(const std::optional<double> &field) {
+  return write_as_string_optional(field);
+}
+
+template <> std::string write_as_string(const std::optional<int32_t> &field) {
+  return write_as_string_optional(field);
 }
 
 template <typename... Args> std::string write_as_string(const Args &...args) {
@@ -485,13 +548,15 @@ template <typename... Args> std::string write_as_string(const Args &...args) {
   result << "{";
 
   auto append_arg = [&result, first = true](const auto &arg) mutable {
-    if (!first) {
-      result << ", ";
+    if (arg.exist) {
+      if (!first) {
+        result << ", ";
+      }
+      first = false;
+      result << arg.name;
+      result << ": ";
+      result << write_as_string(*arg.value);
     }
-    first = false;
-    result << arg.first;
-    result << ": ";
-    result << write_as_string(arg.second);
   };
 
   (append_arg(args), ...);
@@ -503,16 +568,16 @@ template <typename T>
 std::vector<std::string> write_into_vector_string(const char *field_name, const T &field) {
   std::vector<std::string> r = field.SerializeToVectorString();
   if (r.size() <= 1) {
-    return {onnx_extended_helpers::MakeString(field_name, ": ", r.back(), ",")};
+    return {MakeString(field_name, ": ", r.back(), ",")};
   } else {
-    std::vector<std::string> rows{onnx_extended_helpers::MakeString(field_name, ": ")};
+    std::vector<std::string> rows{MakeString(field_name, ": ")};
     for (size_t i = 0; i < r.size(); ++i) {
       if (i == 0) {
         rows[0] += r[0];
       } else if (i + 1 == r.size()) {
-        rows.push_back(onnx_extended_helpers::MakeString("  ", r[i], ","));
+        rows.push_back(MakeString("  ", r[i], ","));
       } else {
-        rows.push_back(onnx_extended_helpers::MakeString("  ", r[i]));
+        rows.push_back(MakeString("  ", r[i]));
       }
     }
     return rows;
@@ -522,29 +587,69 @@ std::vector<std::string> write_into_vector_string(const char *field_name, const 
 template <>
 std::vector<std::string> write_into_vector_string(const char *field_name,
                                                   const utils::String &field) {
-  return {onnx_extended_helpers::MakeString(field_name, ":", write_as_string(field), ",")};
+  return {MakeString(field_name, ": ", write_as_string(field), ",")};
 }
 
 template <>
 std::vector<std::string> write_into_vector_string(const char *field_name,
                                                   const int64_t &field) {
-  return {onnx_extended_helpers::MakeString(field_name, ":", write_as_string(field), ",")};
+  return {MakeString(field_name, ": ", write_as_string(field), ",")};
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const uint64_t &field) {
+  return {MakeString(field_name, ": ", write_as_string(field), ",")};
 }
 
 template <>
 std::vector<std::string> write_into_vector_string(const char *field_name,
                                                   const int32_t &field) {
-  return {onnx_extended_helpers::MakeString(field_name, ":", write_as_string(field), ",")};
+  return {MakeString(field_name, ": ", write_as_string(field), ",")};
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const TensorProto::DataType &field) {
+  return {MakeString(field_name, ": ", write_as_string(static_cast<int32_t>(field)), ",")};
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const std::vector<uint8_t> &field) {
+  return {MakeString(field_name, ": ", write_as_string(field), ",")};
 }
 
 template <>
 std::vector<std::string>
 write_into_vector_string(const char *field_name,
                          const utils::RepeatedField<utils::String> &field) {
-  std::vector<std::string> rows{onnx_extended_helpers::MakeString(field_name, ": [")};
+  std::vector<std::string> rows{MakeString(field_name, ": [")};
   for (const auto &p : field) {
     auto r = p.as_string();
-    rows.push_back(onnx_extended_helpers::MakeString("  ", r, ","));
+    rows.push_back(MakeString("  ", r, ","));
+  }
+  rows.push_back("],");
+  return rows;
+}
+
+template <typename T>
+std::vector<std::string>
+write_into_vector_string_repeated(const char *field_name,
+                                  const utils::RepeatedField<T> &field) {
+  std::vector<std::string> rows;
+  if (field.size() >= 10) {
+    rows.push_back(MakeString(field_name, ": ["));
+    for (const auto &p : field) {
+      rows.push_back(MakeString("  ", p, ","));
+    }
+    rows.push_back("],");
+  } else {
+    std::vector<std::string> r;
+    for (const auto &p : field) {
+      r.push_back(MakeString(p));
+    }
+    rows.push_back(MakeString(field_name, ": [", utils::join_string(r, ", "), "],"));
   }
   rows.push_back("],");
   return rows;
@@ -552,34 +657,72 @@ write_into_vector_string(const char *field_name,
 
 template <>
 std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const utils::RepeatedField<uint64_t> &field) {
+  return write_into_vector_string_repeated(field_name, field);
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
                                                   const utils::RepeatedField<int64_t> &field) {
-  std::vector<std::string> rows;
-  if (field.size() >= 10) {
-    rows.push_back(onnx_extended_helpers::MakeString(field_name, ": ["));
-    for (const auto &p : field) {
-      rows.push_back(onnx_extended_helpers::MakeString("  ", p, ","));
-    }
-    rows.push_back("],");
+  return write_into_vector_string_repeated(field_name, field);
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const utils::RepeatedField<int32_t> &field) {
+  return write_into_vector_string_repeated(field_name, field);
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const utils::RepeatedField<float> &field) {
+  return write_into_vector_string_repeated(field_name, field);
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const utils::RepeatedField<double> &field) {
+  return write_into_vector_string_repeated(field_name, field);
+}
+
+template <typename T>
+std::vector<std::string>
+write_into_vector_string_optional(const char *field_name,
+                                  const utils::OptionalField<T> &field) {
+  if (field.has_value()) {
+    return {MakeString(field_name, ": ", write_as_string(field.value), ",")};
   } else {
-    std::vector<std::string> r;
-    for (const auto &p : field) {
-      r.push_back(onnx_extended_helpers::MakeString(p));
-      r.push_back(", ");
-    }
-    rows.push_back(
-        onnx_extended_helpers::MakeString(field_name, ": [", utils::join_string(r), "],"));
+    return {MakeString(field_name, ": null,")};
   }
-  rows.push_back("],");
-  return rows;
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const utils::OptionalField<int64_t> &field) {
+  return write_into_vector_string_optional(field_name, field);
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const utils::OptionalField<uint64_t> &field) {
+  return write_into_vector_string_optional(field_name, field);
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const utils::OptionalField<int32_t> &field) {
+  return write_into_vector_string_optional(field_name, field);
 }
 
 template <typename... Args>
 std::vector<std::string> write_proto_into_vector_string(const Args &...args) {
   std::vector<std::string> rows{"{"};
   auto append_arg = [&rows, first = true](const auto &arg) mutable {
-    std::vector<std::string> r = write_into_vector_string(arg.first, arg.second);
-    for (const auto &s : r) {
-      rows.push_back("  " + s);
+    if (arg.exist) {
+      std::vector<std::string> r = write_into_vector_string(arg.name, *arg.value);
+      for (const auto &s : r) {
+        rows.push_back("  " + s);
+      }
     }
   };
   (append_arg(args), ...);

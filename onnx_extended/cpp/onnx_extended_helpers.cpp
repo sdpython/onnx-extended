@@ -131,6 +131,13 @@ void MakeStringInternalElement(StringStream &ss, const float &t) { ss.append_flo
 
 void MakeStringInternalElement(StringStream &ss, const double &t) { ss.append_double(t); }
 
+void MakeStringInternalElement(StringStream &ss, const uint64_t *&t) {
+  ss.append_string(t == nullptr ? "(ui64*)null" : "(ui64*)");
+}
+void MakeStringInternalElement(StringStream &ss, const uint64_t *t) {
+  ss.append_string(t == nullptr ? "(ui64*)null" : "(ui64*)");
+}
+
 void MakeStringInternalElement(StringStream &ss, const std::vector<uint16_t> &t) {
   for (auto it : t) {
     ss.append_charp("x");
@@ -177,6 +184,13 @@ void MakeStringInternalElement(StringStream &ss, const std::vector<float> &t) {
   for (auto it : t) {
     ss.append_charp("x");
     ss.append_float(it);
+  }
+}
+
+void MakeStringInternalElement(StringStream &ss, const std::vector<double> &t) {
+  for (auto it : t) {
+    ss.append_charp("x");
+    ss.append_double(it);
   }
 }
 

@@ -47,6 +47,7 @@
 public:                                                                                        \
   inline type &name() { return name##_; }                                                      \
   inline const type &name() const { return name##_; }                                          \
+  inline const type *ptr_##name() const { return &name##_; }                                   \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline void set_##name(const type &v) { name##_ = v; }                                       \
   inline int order_##name() const { return order; }                                            \
@@ -59,6 +60,7 @@ public:                                                                         
 public:                                                                                        \
   inline type &name() { return name##_; }                                                      \
   inline const type &name() const { return name##_; }                                          \
+  inline const type *ptr_##name() const { return &name##_; }                                   \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline void set_##name(const type &v) { name##_ = v; }                                       \
   inline int order_##name() const { return order; }                                            \
@@ -76,6 +78,7 @@ public:                                                                         
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
   inline const utils::RepeatedField<type> &name() const { return name##_; }                    \
+  inline const utils::RepeatedField<type> *ptr_##name() const { return &name##_; }             \
   inline type &add_##name() { return name##_.add(); }                                          \
   inline type &add_##name(type &&v) {                                                          \
     name##_.emplace_back(v);                                                                   \
@@ -93,6 +96,7 @@ public:                                                                         
 public:                                                                                        \
   inline utils::RepeatedField<type> &name() { return name##_; }                                \
   inline const utils::RepeatedField<type> &name() const { return name##_; }                    \
+  inline const utils::RepeatedField<type> *ptr_##name() const { return &name##_; }             \
   inline type &add_##name() { return name##_.add(); }                                          \
   inline type &add_##name(const type &v) {                                                     \
     name##_.push_back(v);                                                                      \
@@ -115,6 +119,9 @@ public:                                                                         
   inline const type &name() const {                                                            \
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
     return *name##_;                                                                           \
+  }                                                                                            \
+  inline const type *ptr_##name() const {                                                      \
+    return has_##name() ? &(*name##_) : static_cast<type *>(nullptr);                          \
   }                                                                                            \
   inline utils::OptionalField<type> &name##_optional() { return name##_; }                     \
   inline const utils::OptionalField<type> &name##_optional() const {                           \
