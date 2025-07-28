@@ -5,129 +5,128 @@
 
 namespace py = pybind11;
 
-#define PYDEFINE_PROTO(m, cls)                                                                 \
+#define PYDEFINE_PROTO(m, cls)                                                                         \
   py::class_<onnx2::cls, onnx2::Message>(m, #cls, onnx2::cls::DOC).def(py::init<>())
 
-#define PYDEFINE_SUBPROTO(m, cls, subname)                                                     \
-  py::class_<onnx2::cls::subname, onnx2::Message>(m, #subname, onnx2::cls::subname::DOC)       \
+#define PYDEFINE_SUBPROTO(m, cls, subname)                                                             \
+  py::class_<onnx2::cls::subname, onnx2::Message>(m, #subname, onnx2::cls::subname::DOC)               \
       .def(py::init<>())
 
-#define PYDEFINE_PROTO_WITH_SUBTYPES(m, cls, name)                                             \
-  py::class_<onnx2::cls, onnx2::Message> name(m, #cls, onnx2::cls::DOC);                       \
+#define PYDEFINE_PROTO_WITH_SUBTYPES(m, cls, name)                                                     \
+  py::class_<onnx2::cls, onnx2::Message> name(m, #cls, onnx2::cls::DOC);                               \
   name.def(py::init<>());
 
-#define PYADD_PROTO_SERIALIZATION(cls)                                                         \
-  def(                                                                                         \
-      "ParseFromString",                                                                       \
-      [](onnx2::cls &self, py::bytes data) {                                                   \
-        std::string raw = data;                                                                \
-        self.ParseFromString(raw);                                                             \
-      },                                                                                       \
-      "Parses a sequence of bytes to fill this instance.")                                     \
-      .def(                                                                                    \
-          "SerializeToString",                                                                 \
-          [](onnx2::cls &self) {                                                               \
-            std::string out;                                                                   \
-            self.SerializeToString(out);                                                       \
-            return py::bytes(out);                                                             \
-          },                                                                                   \
-          "Serializes this instance into a sequence of bytes.")                                \
-      .def(                                                                                    \
-          "__str__",                                                                           \
-          [](onnx2::cls &self) -> std::string {                                                \
-            std::vector<std::string> rows = self.SerializeToVectorString();                    \
-            return onnx2::utils::join_string(rows);                                            \
-          },                                                                                   \
-          "Creates a printable string for this class.")                                        \
-      .def(                                                                                    \
-          "CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); },     \
-          "Copy one instance into this one.")                                                  \
-      .def(                                                                                    \
-          "__eq__",                                                                            \
-          [](const onnx2::cls &self, const onnx2::cls &src) -> bool {                          \
-            std::string s1;                                                                    \
-            self.SerializeToString(s1);                                                        \
-            std::string s2;                                                                    \
-            src.SerializeToString(s2);                                                         \
-            return s1 == s2;                                                                   \
-          },                                                                                   \
+#define PYADD_PROTO_SERIALIZATION(cls)                                                                 \
+  def(                                                                                                 \
+      "ParseFromString",                                                                               \
+      [](onnx2::cls &self, py::bytes data) {                                                           \
+        std::string raw = data;                                                                        \
+        self.ParseFromString(raw);                                                                     \
+      },                                                                                               \
+      "Parses a sequence of bytes to fill this instance.")                                             \
+      .def(                                                                                            \
+          "SerializeToString",                                                                         \
+          [](onnx2::cls &self) {                                                                       \
+            std::string out;                                                                           \
+            self.SerializeToString(out);                                                               \
+            return py::bytes(out);                                                                     \
+          },                                                                                           \
+          "Serializes this instance into a sequence of bytes.")                                        \
+      .def(                                                                                            \
+          "__str__",                                                                                   \
+          [](onnx2::cls &self) -> std::string {                                                        \
+            std::vector<std::string> rows = self.SerializeToVectorString();                            \
+            return onnx2::utils::join_string(rows);                                                    \
+          },                                                                                           \
+          "Creates a printable string for this class.")                                                \
+      .def(                                                                                            \
+          "CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); },             \
+          "Copy one instance into this one.")                                                          \
+      .def(                                                                                            \
+          "__eq__",                                                                                    \
+          [](const onnx2::cls &self, const onnx2::cls &src) -> bool {                                  \
+            std::string s1;                                                                            \
+            self.SerializeToString(s1);                                                                \
+            std::string s2;                                                                            \
+            src.SerializeToString(s2);                                                                 \
+            return s1 == s2;                                                                           \
+          },                                                                                           \
           "Compares the serialized strings.")
 
-#define PYFIELD(cls, name)                                                                     \
-  def_readwrite(#name, &onnx2::cls::name##_, #name)                                            \
+#define PYFIELD(cls, name)                                                                             \
+  def_readwrite(#name, &onnx2::cls::name##_, #name)                                                    \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
 
-#define PYFIELD_STR(cls, name)                                                                 \
-  def_property(                                                                                \
-      #name,                                                                                   \
-      [](const onnx2::cls &self) -> std::string {                                              \
-        std::string s = self.ref_##name().as_string();                                         \
-        return s;                                                                              \
-      },                                                                                       \
-      [](onnx2::cls &self, py::object obj) {                                                   \
-        if (py::isinstance<py::str>(obj)) {                                                    \
-          std::string st = obj.cast<std::string>();                                            \
-          self.set_##name(st);                                                                 \
-        } else {                                                                               \
-          self.set_##name(obj.cast<onnx2::cls::name##_t &>());                                 \
-        }                                                                                      \
-      },                                                                                       \
-      onnx2::cls::DOC_##name)                                                                  \
+#define PYFIELD_STR(cls, name)                                                                         \
+  def_property(                                                                                        \
+      #name,                                                                                           \
+      [](const onnx2::cls &self) -> std::string {                                                      \
+        std::string s = self.ref_##name().as_string();                                                 \
+        return s;                                                                                      \
+      },                                                                                               \
+      [](onnx2::cls &self, py::object obj) {                                                           \
+        if (py::isinstance<py::str>(obj)) {                                                            \
+          std::string st = obj.cast<std::string>();                                                    \
+          self.set_##name(st);                                                                         \
+        } else {                                                                                       \
+          self.set_##name(obj.cast<onnx2::cls::name##_t &>());                                         \
+        }                                                                                              \
+      },                                                                                               \
+      onnx2::cls::DOC_##name)                                                                          \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
 
-#define PYFIELD_OPTIONAL_INT(cls, name)                                                        \
-  def_property(                                                                                \
-      #name,                                                                                   \
-      [](onnx2::cls &self) -> py::object {                                                     \
-        if (!self.has_##name())                                                                \
-          return py::none();                                                                   \
-        return py::cast(self.ref_##name(), py::return_value_policy::reference);                \
-      },                                                                                       \
-      [](onnx2::cls &self, py::object obj) {                                                   \
-        if (obj.is_none()) {                                                                   \
-          self.reset_##name();                                                                 \
-        } else if (py::isinstance<py::int_>(obj)) {                                            \
-          self.set_##name(obj.cast<int>());                                                    \
-        } else {                                                                               \
-          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'."); \
-        }                                                                                      \
-      },                                                                                       \
-      onnx2::cls::DOC_##name)                                                                  \
+#define PYFIELD_OPTIONAL_INT(cls, name)                                                                \
+  def_property(                                                                                        \
+      #name,                                                                                           \
+      [](onnx2::cls &self) -> py::object {                                                             \
+        if (!self.has_##name())                                                                        \
+          return py::none();                                                                           \
+        return py::cast(self.ref_##name(), py::return_value_policy::reference);                        \
+      },                                                                                               \
+      [](onnx2::cls &self, py::object obj) {                                                           \
+        if (obj.is_none()) {                                                                           \
+          self.reset_##name();                                                                         \
+        } else if (py::isinstance<py::int_>(obj)) {                                                    \
+          self.set_##name(obj.cast<int>());                                                            \
+        } else {                                                                                       \
+          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'.");         \
+        }                                                                                              \
+      },                                                                                               \
+      onnx2::cls::DOC_##name)                                                                          \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
 
-#define PYFIELD_OPTIONAL_PROTO(cls, name)                                                      \
-  def_property(                                                                                \
-      #name,                                                                                   \
-      [](onnx2::cls &self) -> py::object {                                                     \
-        if (!self.name##_.has_value()) {                                                       \
-          if (self.has_oneof_##name())                                                         \
-            return py::none();                                                                 \
-          self.name##_.set_empty_value();                                                      \
-        }                                                                                      \
-        return py::cast(self.name##_.value, py::return_value_policy::reference);               \
-      },                                                                                       \
-      [](onnx2::cls &self, py::object obj) {                                                   \
-        if (obj.is_none()) {                                                                   \
-          self.name##_.reset();                                                                \
-        } else if (py::isinstance<onnx2::cls::name##_t>(obj)) {                                \
-          self.name##_ = obj.cast<onnx2::cls::name##_t &>();                                   \
-        } else {                                                                               \
-          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'."); \
-        }                                                                                      \
-      },                                                                                       \
-      onnx2::cls::DOC_##name)                                                                  \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")         \
-      .def(                                                                                    \
-          "add_" #name, [](onnx2::cls & self) -> onnx2::cls::name##_t & {                      \
-            self.name##_.set_empty_value();                                                    \
-            return *self.name##_;                                                              \
-          },                                                                                   \
+#define PYFIELD_OPTIONAL_PROTO(cls, name)                                                              \
+  def_property(                                                                                        \
+      #name,                                                                                           \
+      [](onnx2::cls &self) -> py::object {                                                             \
+        if (!self.name##_.has_value()) {                                                               \
+          if (self.has_oneof_##name())                                                                 \
+            return py::none();                                                                         \
+          self.name##_.set_empty_value();                                                              \
+        }                                                                                              \
+        return py::cast(self.name##_.value, py::return_value_policy::reference);                       \
+      },                                                                                               \
+      [](onnx2::cls &self, py::object obj) {                                                           \
+        if (obj.is_none()) {                                                                           \
+          self.name##_.reset();                                                                        \
+        } else if (py::isinstance<onnx2::cls::name##_t>(obj)) {                                        \
+          self.name##_ = obj.cast<onnx2::cls::name##_t &>();                                           \
+        } else {                                                                                       \
+          EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'.");         \
+        }                                                                                              \
+      },                                                                                               \
+      onnx2::cls::DOC_##name)                                                                          \
+      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")                 \
+      .def(                                                                                            \
+          "add_" #name, [](onnx2::cls & self) -> onnx2::cls::name##_t & {                              \
+            self.name##_.set_empty_value();                                                            \
+            return *self.name##_;                                                                      \
+          },                                                                                           \
           py::return_value_policy::reference, "Sets an empty value.")
 
-#define SHORTEN_CODE(dtype)                                                                    \
-  def_property_readonly_static(#dtype, [](py::object) -> int {                                 \
-    return static_cast<int>(onnx2::TensorProto::DataType::dtype);                              \
-  })
+#define SHORTEN_CODE(dtype)                                                                            \
+  def_property_readonly_static(                                                                        \
+      #dtype, [](py::object) -> int { return static_cast<int>(onnx2::TensorProto::DataType::dtype); })
 
 template <typename T> void define_repeated_field_type(py::module_ &m, const std::string &name) {
   py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "repeated field")
@@ -177,14 +176,12 @@ template <typename T> void define_repeated_field_type(py::module_ &m, const std:
 
 template <>
 void define_repeated_field_type<onnx2::utils::String>(py::module_ &m, const std::string &name) {
-  py::class_<onnx2::utils::RepeatedField<onnx2::utils::String>>(m, name.c_str(),
-                                                                "repeated field")
+  py::class_<onnx2::utils::RepeatedField<onnx2::utils::String>>(m, name.c_str(), "repeated field")
       .def(py::init<>())
       .def_readwrite("values", &onnx2::utils::RepeatedField<onnx2::utils::String>::values)
       .def("add", &onnx2::utils::RepeatedField<onnx2::utils::String>::add,
            py::return_value_policy::reference, "Adds an empty element.")
-      .def("clear", &onnx2::utils::RepeatedField<onnx2::utils::String>::clear,
-           "Removes every element.")
+      .def("clear", &onnx2::utils::RepeatedField<onnx2::utils::String>::clear, "Removes every element.")
       .def("__len__", &onnx2::utils::RepeatedField<onnx2::utils::String>::size,
            "Returns the number of elements.")
       .def(
@@ -259,12 +256,10 @@ PYBIND11_MODULE(_onnx2py, m) {
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
 
-  py::class_<onnx2::utils::String>(m, "String",
-                                   "Simplified string with no final null character.")
+  py::class_<onnx2::utils::String>(m, "String", "Simplified string with no final null character.")
       .def(py::init<std::string>())
       .def(
-          "__str__",
-          [](const onnx2::utils::String &self) -> std::string { return self.as_string(); },
+          "__str__", [](const onnx2::utils::String &self) -> std::string { return self.as_string(); },
           "Converts this instance into a python string.")
       .def(
           "__repr__",
@@ -277,9 +272,7 @@ PYBIND11_MODULE(_onnx2py, m) {
           "Returns the length of the string.")
       .def(
           "__eq__",
-          [](const onnx2::utils::String &self, const std::string &s) -> int {
-            return self == s;
-          },
+          [](const onnx2::utils::String &self, const std::string &s) -> int { return self == s; },
           "Compares two strings.");
 
   define_repeated_field_type<int64_t>(m, "RepeatedFieldInt64");
@@ -329,8 +322,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(StringStringEntryProto, key)
       .PYFIELD_STR(StringStringEntryProto, value)
       .PYADD_PROTO_SERIALIZATION(StringStringEntryProto);
-  define_repeated_field_type<onnx2::StringStringEntryProto>(
-      m, "RepeatedFieldStringStringEntryProto");
+  define_repeated_field_type<onnx2::StringStringEntryProto>(m, "RepeatedFieldStringStringEntryProto");
 
   PYDEFINE_PROTO(m, OperatorSetIdProto)
       .PYFIELD_STR(OperatorSetIdProto, domain)
@@ -347,8 +339,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(IntIntListEntryProto, key)
       .PYFIELD(IntIntListEntryProto, value)
       .PYADD_PROTO_SERIALIZATION(IntIntListEntryProto);
-  define_repeated_field_type<onnx2::IntIntListEntryProto>(m,
-                                                          "RepeatedFieldIntIntListEntryProto");
+  define_repeated_field_type<onnx2::IntIntListEntryProto>(m, "RepeatedFieldIntIntListEntryProto");
 
   PYDEFINE_PROTO(m, DeviceConfigurationProto)
       .PYFIELD_STR(DeviceConfigurationProto, name)
@@ -361,8 +352,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(SimpleShardedDimProto, dim_param)
       .PYFIELD(SimpleShardedDimProto, num_shards)
       .PYADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
-  define_repeated_field_type<onnx2::SimpleShardedDimProto>(
-      m, "RepeatedFieldSimpleShardedDimProto");
+  define_repeated_field_type<onnx2::SimpleShardedDimProto>(m, "RepeatedFieldSimpleShardedDimProto");
 
   PYDEFINE_PROTO(m, ShardedDimProto)
       .PYFIELD(ShardedDimProto, axis)
@@ -391,8 +381,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(TensorShapeProto::Dimension, denotation)
       .PYADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
   define_repeated_field_type<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
-  cls_tensor_shape_proto.PYFIELD(TensorShapeProto, dim)
-      .PYADD_PROTO_SERIALIZATION(TensorShapeProto);
+  cls_tensor_shape_proto.PYFIELD(TensorShapeProto, dim).PYADD_PROTO_SERIALIZATION(TensorShapeProto);
 
   PYDEFINE_PROTO(m, TensorProto)
       .SHORTEN_CODE(UNDEFINED)

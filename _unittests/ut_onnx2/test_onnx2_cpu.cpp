@@ -1389,8 +1389,7 @@ TEST(serialize_to_string, DeviceConfigurationProto) {
   bool foundDevices = false;
 
   std::string item = utils::join_string(result, "\n");
-  if (item.find("name:") != std::string::npos &&
-      item.find("test_device_config") != std::string::npos) {
+  if (item.find("name:") != std::string::npos && item.find("test_device_config") != std::string::npos) {
     foundName = true;
   }
   if (item.find("num_devices:") != std::string::npos && item.find("3") != std::string::npos) {
@@ -1423,8 +1422,7 @@ TEST(serialize_to_string, SimpleShardedDimProto) {
     if (item.find("dim_value:") != std::string::npos && item.find("100") != std::string::npos) {
       foundDimValue = true;
     }
-    if (item.find("dim_param:") != std::string::npos &&
-        item.find("batch_size") != std::string::npos) {
+    if (item.find("dim_param:") != std::string::npos && item.find("batch_size") != std::string::npos) {
       foundDimParam = true;
     }
     if (item.find("num_shards:") != std::string::npos && item.find("4") != std::string::npos) {
@@ -1539,8 +1537,7 @@ TEST(serialize_to_string, NodeDeviceConfigurationProto) {
         item.find("node_config_1") != std::string::npos) {
       foundConfigId = true;
     }
-    if (item.find("pipeline_stage:") != std::string::npos &&
-        item.find("3") != std::string::npos) {
+    if (item.find("pipeline_stage:") != std::string::npos && item.find("3") != std::string::npos) {
       foundPipelineStage = true;
     }
     if (item.find("sharding_spec") != std::string::npos) {
@@ -1565,8 +1562,7 @@ TEST(serialize_to_string, OperatorSetIdProto) {
   bool foundVersion = false;
 
   for (const auto &item : result) {
-    if (item.find("domain:") != std::string::npos &&
-        item.find("ai.onnx") != std::string::npos) {
+    if (item.find("domain:") != std::string::npos && item.find("ai.onnx") != std::string::npos) {
       foundDomain = true;
     }
     if (item.find("version:") != std::string::npos && item.find("15") != std::string::npos) {
@@ -1596,8 +1592,7 @@ TEST(serialize_to_string, TensorShapeProto) {
   bool foundDenotation = false;
 
   std::string item = utils::join_string(result, "\n");
-  if (item.find("dim") != std::string::npos &&
-      item.find("dim_value: 64") != std::string::npos) {
+  if (item.find("dim") != std::string::npos && item.find("dim_value: 64") != std::string::npos) {
     foundDim1 = true;
   }
   if (item.find("dim_param: \"batch\"") != std::string::npos) {
@@ -1635,8 +1630,7 @@ TEST(serialize_to_string, TensorProto) {
   bool foundData = false;
 
   for (const auto &item : result) {
-    if (item.find("name:") != std::string::npos &&
-        item.find("test_tensor") != std::string::npos) {
+    if (item.find("name:") != std::string::npos && item.find("test_tensor") != std::string::npos) {
       foundName = true;
     }
     if (item.find("data_type:") != std::string::npos &&
@@ -1698,12 +1692,10 @@ TEST(serialize_to_string, SparseTensorProto) {
     if (item.find("dims:") != std::string::npos && item.find("5") != std::string::npos) {
       foundDims = true;
     }
-    if (item.find("values") != std::string::npos &&
-        item.find("values_tensor") != std::string::npos) {
+    if (item.find("values") != std::string::npos && item.find("values_tensor") != std::string::npos) {
       foundValues = true;
     }
-    if (item.find("indices") != std::string::npos &&
-        item.find("indices_tensor") != std::string::npos) {
+    if (item.find("indices") != std::string::npos && item.find("indices_tensor") != std::string::npos) {
       foundIndices = true;
     }
   }
@@ -1780,8 +1772,7 @@ TEST(serialize_to_string, TensorProto_WithRawData) {
   bool foundRawData = false;
 
   for (const auto &item : result) {
-    if (item.find("name:") != std::string::npos &&
-        item.find("raw_data_tensor") != std::string::npos) {
+    if (item.find("name:") != std::string::npos && item.find("raw_data_tensor") != std::string::npos) {
       foundName = true;
     }
     if (item.find("data_type:") != std::string::npos &&
@@ -1815,8 +1806,7 @@ TEST(serialize_to_string, TensorProto_WithSegment) {
   bool foundSegmentEnd = false;
 
   std::string item = utils::join_string(result, "\n");
-  if (item.find("name:") != std::string::npos &&
-      item.find("segmented_tensor") != std::string::npos) {
+  if (item.find("name:") != std::string::npos && item.find("segmented_tensor") != std::string::npos) {
     foundName = true;
   }
   if (item.find("segment") != std::string::npos && item.find("begin: 5") != std::string::npos) {
@@ -1854,8 +1844,7 @@ TEST(onnx2_proto, ValueInfoProto_Basic) {
   EXPECT_EQ(value_info.ref_type().ref_tensor_type().ref_elem_type(), 1);
   EXPECT_TRUE(value_info.ref_type().ref_tensor_type().has_shape());
   EXPECT_EQ(value_info.ref_type().ref_tensor_type().ref_shape().ref_dim().size(), 1);
-  EXPECT_EQ(value_info.ref_type().ref_tensor_type().ref_shape().ref_dim()[0].ref_dim_value(),
-            3);
+  EXPECT_EQ(value_info.ref_type().ref_tensor_type().ref_shape().ref_dim()[0].ref_dim_value(), 3);
 }
 
 TEST(onnx2_proto, ValueInfoProto_Serialization) {
@@ -1883,8 +1872,7 @@ TEST(onnx2_proto, ValueInfoProto_Serialization) {
   EXPECT_EQ(value_info2.ref_type().ref_tensor_type().ref_elem_type(), 7);
   EXPECT_TRUE(value_info2.ref_type().ref_tensor_type().has_shape());
   EXPECT_EQ(value_info2.ref_type().ref_tensor_type().ref_shape().ref_dim().size(), 2);
-  EXPECT_EQ(value_info2.ref_type().ref_tensor_type().ref_shape().ref_dim()[0].ref_dim_value(),
-            2);
+  EXPECT_EQ(value_info2.ref_type().ref_tensor_type().ref_shape().ref_dim()[0].ref_dim_value(), 2);
   EXPECT_EQ(value_info2.ref_type().ref_tensor_type().ref_shape().ref_dim()[1].ref_dim_param(),
             "dynamic_dim");
 }
