@@ -219,9 +219,9 @@ inline TensorProto() { data_type_ = DataType::UNDEFINED; }
 FIELD_REPEATED(uint64_t, dims, 1, "The shape of the tensor.")
 FIELD(DataType, data_type, 2,
       "The data type of the tensor. This field MUST have a valid TensorProto.DataType value")
-FIELD(Segment, segment, 3,
-      "For very large tensors, we may want to store them in chunks, in which case the "
-      "following fields will specify the segment that is stored in the current TensorProto.")
+FIELD_OPTIONAL(Segment, segment, 3,
+               "For very large tensors, we may want to store them in chunks, in which case the "
+               "following fields will specify the segment that is stored in the current TensorProto.")
 FIELD_REPEATED_PACKED(
     float, float_data, 4,
     "Tensor content must be organized in row-major order. Depending on the data_type field, "
@@ -442,7 +442,7 @@ FIELD_REPEATED(float, floats, 7, "Optional repeated float attribute.")
 FIELD_REPEATED(int64_t, ints, 8, "Optional repeated int64_t attribute.")
 FIELD_REPEATED(utils::String, strings, 9, "Optional repeated string attribute.")
 FIELD_REPEATED(TensorProto, tensors, 10, "Optional repeated tensor attribute.")
-FIELD_REPEATED(TensorProto, sparse_tensors, 23, "Optional repeated tensor attribute.")
+FIELD_REPEATED(SparseTensorProto, sparse_tensors, 23, "Optional repeated tensor attribute.")
 // FIELD_REPEATED(GraphProto, graphs, 11, "Optional repeated graph attribute.")
 END_PROTO()
 

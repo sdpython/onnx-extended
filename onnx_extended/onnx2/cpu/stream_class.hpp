@@ -657,7 +657,6 @@ std::vector<std::string> write_into_vector_string_repeated(const char *field_nam
     }
     rows.push_back(MakeString(field_name, ": [", utils::join_string(r, ", "), "],"));
   }
-  rows.push_back("],");
   return rows;
 }
 

@@ -444,37 +444,33 @@ def get_attribute_value(attr: AttributeProto) -> Any:
     """Returns the attribute value whatever the type is."""
     if attr.ref_attr_name:
         raise ValueError(f"Cannot get value of reference attribute: {attr}")
-    if attr.type == AttributeProto.FLOAT:
+    if int(attr.type) == AttributeProto.FLOAT:
         return attr.f
-    if attr.type == AttributeProto.INT:
+    if int(attr.type) == AttributeProto.INT:
         return attr.i
-    if attr.type == AttributeProto.STRING:
+    if int(attr.type) == AttributeProto.STRING:
         return attr.s
-    if attr.type == AttributeProto.TENSOR:
+    if int(attr.type) == AttributeProto.TENSOR:
         return attr.t
-    if attr.type == AttributeProto.SPARSE_TENSOR:
+    if int(attr.type) == AttributeProto.SPARSE_TENSOR:
         return attr.sparse_tensor
-    if attr.type == AttributeProto.GRAPH:
+    if int(attr.type) == AttributeProto.GRAPH:
         return attr.g
-    if attr.type == AttributeProto.TYPE_PROTO:
-        return attr.tp
-    if attr.type == AttributeProto.FLOATS:
+    if int(attr.type) == AttributeProto.FLOATS:
         return list(attr.floats)
-    if attr.type == AttributeProto.INTS:
+    if int(attr.type) == AttributeProto.INTS:
         return list(attr.ints)
-    if attr.type == AttributeProto.STRINGS:
+    if int(attr.type) == AttributeProto.STRINGS:
         return list(attr.strings)
-    if attr.type == AttributeProto.TENSORS:
+    if int(attr.type) == AttributeProto.TENSORS:
         return list(attr.tensors)
-    if attr.type == AttributeProto.SPARSE_TENSORS:
+    if int(attr.type) == AttributeProto.SPARSE_TENSORS:
         return list(attr.sparse_tensors)
-    if attr.type == AttributeProto.GRAPHS:
+    if int(attr.type) == AttributeProto.GRAPHS:
         return list(attr.graphs)
-    if attr.type == AttributeProto.TYPE_PROTOS:
-        return list(attr.type_protos)
-    if attr.type == AttributeProto.UNDEFINED:
+    if int(attr.type) == AttributeProto.UNDEFINED:
         return None
-    raise ValueError(f"Unsupported ONNX attribute: {attr}")
+    raise ValueError(f"Unsupported ONNX attribute {attr.type} in {attr}")
 
 
 @functools.lru_cache(None)

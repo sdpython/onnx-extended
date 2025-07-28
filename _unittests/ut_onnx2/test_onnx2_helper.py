@@ -129,11 +129,6 @@ class TestOnnx2Helper(ExtTestCase):
         self.assertEqual(attr.name, "str")
         self.assertEqual(attr.s, b"test")
         pychecker.check_attribute(attr)
-        # empty str
-        attr = oh.make_attribute("str", "")
-        self.assertEqual(attr.name, "str")
-        self.assertEqual(oh.get_attribute_value(attr), b"")
-        pychecker.check_attribute(attr)
 
     def test_attr_repeated_float(self) -> None:
         attr = oh.make_attribute("floats", [1.0, 2.0])

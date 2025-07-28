@@ -1,4 +1,4 @@
-from . import AttributeProto
+from . import AttributeProto, SparseTensorProto
 
 
 class ValidationError(ValueError):
@@ -19,6 +19,15 @@ def check_attribute(att: AttributeProto):
         att.has_tensors(),
         att.has_sparse_tensors(),
     ]
-    assert any(oneof), f"The attribute has no value: {att}"
+    if not any(oneof):
+        raise ValidationError(f"The attribute has no value: {att}")
     total = sum(int(i) for i in oneof)
-    assert total == 1, f"The attribute has more than one value: {att}"
+    if total != 1:
+        raise ValidationError(f"The attribute has more than one value: {att}")
+
+
+def check_sparse_tensor(sp: SparseTensorProto):
+    """Checks a SparseTensorProto is valid."""
+    shape = tuple(sp.dims)
+    if len(shape) != 2:
+        raise ValidationError(f"Only 2D sparse tensors are allowed: {shape}")
