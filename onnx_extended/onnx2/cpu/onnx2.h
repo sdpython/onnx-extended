@@ -392,6 +392,60 @@ FIELD_REPEATED(StringStringEntryProto, metadata_props, 4,
                "Named metadata values; keys should be distinct.")
 END_PROTO()
 
+// AttributeProto
+
+BEGIN_PROTO_NOINIT(AttributeProto,
+                   "A named attribute containing either singular float, integer, string, graph, and "
+                   "tensor values, or repeated float, integer, string, graph, and tensor values. An "
+                   "AttributeProto MUST contain the name field, and *only one* of the following "
+                   "content fields, effectively enforcing a C/C++ union equivalent.")
+enum class AttributeType : int32_t {
+  UNDEFINED = 0,
+  FLOAT = 1,
+  INT = 2,
+  STRING = 3,
+  TENSOR = 4,
+  GRAPH = 5,
+  SPARSE_TENSOR = 11,
+  TYPE_PROTO = 13,
+
+  FLOATS = 6,
+  INTS = 7,
+  STRINGS = 8,
+  TENSORS = 9,
+  GRAPHS = 10,
+  SPARSE_TENSORS = 12,
+  TYPE_PROTOS = 14,
+};
+
+inline AttributeProto() { type_ = AttributeType::UNDEFINED; }
+
+FIELD_STR(name, 1, "Attribute name. This field MUST be present in this version of the IR.")
+FIELD_STR(ref_attr_name, 21,
+          "If ref_attr_name is not empty, ref_attr_name is the attribute name in parent function. In "
+          "this case, this AttributeProto does not contain data, and it's a reference of attribute in "
+          "parent scope. NOTE: This should ONLY be used in function (sub-graph). It's invalid to be "
+          "used in main graph.")
+FIELD_STR(doc_string, 13, "A human-readable documentation for this tensor. Markdown is allowed.")
+FIELD(AttributeType, type, 20,
+      "The type field MUST be present for this version of the IR. For 0.0.1 versions of the IR, this "
+      "field was not defined, and implementations needed to use has_field heuristics to determine "
+      "which value field was in use.  For IR_VERSION 0.0.2 or later, this field MUST be set and match "
+      "the f|i|s|t|... field in use.  This change was made to accommodate proto3 implementations.")
+FIELD_OPTIONAL(float, f, 2, "Optional float attribute.")
+FIELD_OPTIONAL(int64_t, i, 3, "Optional int64_t attribute.")
+FIELD_STR(s, 4, "Optional string attribute.")
+FIELD_OPTIONAL(TensorProto, t, 5, "Optional tensor attribute.")
+// FIELD_OPTIONAL(GraphProto, g, 6, "Optional graph attribute.")
+FIELD_OPTIONAL(SparseTensorProto, sparse_tensor, 22, "Optional sparse tensor attribute.")
+FIELD_REPEATED(float, floats, 7, "Optional repeated float attribute.")
+FIELD_REPEATED(int64_t, ints, 8, "Optional repeated int64_t attribute.")
+FIELD_REPEATED(utils::String, strings, 9, "Optional repeated string attribute.")
+FIELD_REPEATED(TensorProto, tensors, 10, "Optional repeated tensor attribute.")
+FIELD_REPEATED(TensorProto, sparse_tensors, 23, "Optional repeated tensor attribute.")
+// FIELD_REPEATED(GraphProto, graphs, 11, "Optional repeated graph attribute.")
+END_PROTO()
+
 } // namespace onnx2
 
 #include "fields.hpp"

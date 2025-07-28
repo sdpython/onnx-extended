@@ -100,5 +100,14 @@ public:
   }
 };
 
+template <> class OptionalField<float> : public _OptionalField<float> {
+public:
+  explicit inline OptionalField() : _OptionalField<float>() {}
+  inline OptionalField<float> &operator=(const float &other) {
+    value = other;
+    return *this;
+  }
+};
+
 } // namespace utils
 } // namespace onnx2

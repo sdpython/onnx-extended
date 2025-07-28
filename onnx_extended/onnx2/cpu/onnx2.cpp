@@ -462,4 +462,56 @@ std::vector<std::string> ValueInfoProto::SerializeToVectorString() const {
                                         NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(metadata_props));
 }
 
+// AttributeProto
+IMPLEMENT_PROTO(AttributeProto)
+
+void AttributeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, name)
+  WRITE_FIELD(stream, ref_attr_name)
+  WRITE_ENUM_FIELD(stream, type)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_FIELD(stream, f)
+  WRITE_FIELD(stream, i)
+  WRITE_FIELD(stream, s)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, t)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, sparse_tensor)
+  // WRITE_FIELD(stream, g)
+  WRITE_REPEATED_FIELD(stream, floats)
+  WRITE_REPEATED_FIELD(stream, ints)
+  WRITE_REPEATED_FIELD(stream, strings)
+  WRITE_REPEATED_FIELD(stream, tensors)
+  WRITE_REPEATED_FIELD(stream, sparse_tensors)
+  // WRITE_REPEATED_FIELD(stream, graphs)
+}
+
+void AttributeProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, AttributeProto)               //
+    READ_FIELD(stream, name)                         //
+    READ_FIELD(stream, ref_attr_name)                //
+    READ_ENUM_FIELD(stream, type)                    //
+    READ_FIELD(stream, doc_string)                   //
+    READ_FIELD(stream, f)                            //
+    READ_FIELD(stream, i)                            //
+    READ_FIELD(stream, s)                            //
+    READ_OPTIONAL_PROTO_FIELD(stream, t)             //
+    READ_OPTIONAL_PROTO_FIELD(stream, sparse_tensor) //
+    // WRITE_FIELD(stream, g)
+    READ_REPEATED_FIELD(stream, floats)         //
+    READ_REPEATED_FIELD(stream, ints)           //
+    READ_REPEATED_FIELD(stream, strings)        //
+    READ_REPEATED_FIELD(stream, tensors)        //
+    READ_REPEATED_FIELD(stream, sparse_tensors) //
+    // READ_REPEATED_FIELD(stream, graphs)
+    READ_END(stream, AttributeProto) //
+}
+
+std::vector<std::string> AttributeProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(
+      NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ref_attr_name), NAME_EXIST_VALUE(doc_string),
+      NAME_EXIST_VALUE(type), NAME_EXIST_VALUE(f), NAME_EXIST_VALUE(i), NAME_EXIST_VALUE(s),
+      NAME_EXIST_VALUE(t), NAME_EXIST_VALUE(sparse_tensor), NAME_EXIST_VALUE(floats),
+      NAME_EXIST_VALUE(ints), NAME_EXIST_VALUE(strings), NAME_EXIST_VALUE(tensors),
+      NAME_EXIST_VALUE(sparse_tensors));
+}
+
 } // namespace onnx2

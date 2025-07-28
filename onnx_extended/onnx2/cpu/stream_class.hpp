@@ -326,6 +326,13 @@ void read_field(utils::BinaryStream &stream, int wire_type, utils::OptionalField
 }
 
 template <>
+void read_field(utils::BinaryStream &stream, int wire_type, utils::OptionalField<float> &field,
+                const char *name) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name, "'");
+  field = stream.next_float();
+}
+
+template <>
 void read_field(utils::BinaryStream &stream, int wire_type, uint64_t &field, const char *name) {
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name, "'");
   field = stream.next_uint64();
@@ -370,7 +377,7 @@ void read_field(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t>
 template <typename T>
 void read_enum_field(utils::BinaryStream &stream, int wire_type, T &field, const char *name) {
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name, "'");
-  field = static_cast<TensorProto::DataType>(stream.next_uint64());
+  field = static_cast<T>(stream.next_uint64());
 }
 
 template <typename T>
@@ -589,6 +596,11 @@ std::vector<std::string> write_into_vector_string(const char *field_name, const 
 }
 
 template <>
+std::vector<std::string> write_into_vector_string(const char *field_name, const float &field) {
+  return {MakeString(field_name, ": ", write_as_string(field), ",")};
+}
+
+template <>
 std::vector<std::string> write_into_vector_string(const char *field_name, const uint64_t &field) {
   return {MakeString(field_name, ": ", write_as_string(field), ",")};
 }
@@ -601,6 +613,12 @@ std::vector<std::string> write_into_vector_string(const char *field_name, const 
 template <>
 std::vector<std::string> write_into_vector_string(const char *field_name,
                                                   const TensorProto::DataType &field) {
+  return {MakeString(field_name, ": ", write_as_string(static_cast<int32_t>(field)), ",")};
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(const char *field_name,
+                                                  const AttributeProto::AttributeType &field) {
   return {MakeString(field_name, ": ", write_as_string(static_cast<int32_t>(field)), ",")};
 }
 
