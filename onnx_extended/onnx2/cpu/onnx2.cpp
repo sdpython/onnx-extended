@@ -102,8 +102,8 @@ void SimpleShardedDimProto::ParseFromStream(utils::BinaryStream &stream){
 }
 
 std::vector<std::string> SimpleShardedDimProto::SerializeToVectorString() const {
-  return write_proto_into_vector_string(
-      NAME_EXIST_VALUE(dim_value), NAME_EXIST_VALUE(dim_param), NAME_EXIST_VALUE(num_shards));
+  return write_proto_into_vector_string(NAME_EXIST_VALUE(dim_value), NAME_EXIST_VALUE(dim_param),
+                                        NAME_EXIST_VALUE(num_shards));
 }
 
 // ShardedDimProto
@@ -122,8 +122,7 @@ void ShardedDimProto::ParseFromStream(utils::BinaryStream &stream){
 }
 
 std::vector<std::string> ShardedDimProto::SerializeToVectorString() const {
-  return write_proto_into_vector_string(NAME_EXIST_VALUE(axis),
-                                        NAME_EXIST_VALUE(simple_sharding));
+  return write_proto_into_vector_string(NAME_EXIST_VALUE(axis), NAME_EXIST_VALUE(simple_sharding));
 }
 
 // ShardingSpecProto
@@ -211,8 +210,8 @@ void TensorShapeProto::Dimension::ParseFromStream(utils::BinaryStream &stream){
 }
 
 std::vector<std::string> TensorShapeProto::Dimension::SerializeToVectorString() const {
-  return write_proto_into_vector_string(
-      NAME_EXIST_VALUE(dim_value), NAME_EXIST_VALUE(dim_param), NAME_EXIST_VALUE(denotation));
+  return write_proto_into_vector_string(NAME_EXIST_VALUE(dim_value), NAME_EXIST_VALUE(dim_param),
+                                        NAME_EXIST_VALUE(denotation));
 }
 
 // TensorShapeProto
@@ -292,10 +291,9 @@ std::vector<std::string> TensorProto::SerializeToVectorString() const {
   return write_proto_into_vector_string(
       NAME_EXIST_VALUE(dims), NAME_EXIST_VALUE(data_type), NAME_EXIST_VALUE(name),
       NAME_EXIST_VALUE(segment), NAME_EXIST_VALUE(raw_data), NAME_EXIST_VALUE(doc_string),
-      NAME_EXIST_VALUE(external_data), NAME_EXIST_VALUE(metadata_props),
-      NAME_EXIST_VALUE(double_data), NAME_EXIST_VALUE(float_data), NAME_EXIST_VALUE(int32_data),
-      NAME_EXIST_VALUE(int64_data), NAME_EXIST_VALUE(uint64_data),
-      NAME_EXIST_VALUE(string_data));
+      NAME_EXIST_VALUE(external_data), NAME_EXIST_VALUE(metadata_props), NAME_EXIST_VALUE(double_data),
+      NAME_EXIST_VALUE(float_data), NAME_EXIST_VALUE(int32_data), NAME_EXIST_VALUE(int64_data),
+      NAME_EXIST_VALUE(uint64_data), NAME_EXIST_VALUE(string_data));
 }
 
 // SparseTensorProto
@@ -391,8 +389,7 @@ void TypeProto::Map::ParseFromStream(utils::BinaryStream &stream){
 }
 
 std::vector<std::string> TypeProto::Map::SerializeToVectorString() const {
-  return write_proto_into_vector_string(NAME_EXIST_VALUE(key_type),
-                                        NAME_EXIST_VALUE(value_type));
+  return write_proto_into_vector_string(NAME_EXIST_VALUE(key_type), NAME_EXIST_VALUE(value_type));
 }
 
 // TypeProto::Optional
@@ -435,10 +432,10 @@ void TypeProto::ParseFromStream(utils::BinaryStream &stream){
 }
 
 std::vector<std::string> TypeProto::SerializeToVectorString() const {
-  return write_proto_into_vector_string(
-      NAME_EXIST_VALUE(tensor_type), NAME_EXIST_VALUE(sequence_type),
-      NAME_EXIST_VALUE(map_type), NAME_EXIST_VALUE(denotation),
-      NAME_EXIST_VALUE(sparse_tensor_type), NAME_EXIST_VALUE(optional_type));
+  return write_proto_into_vector_string(NAME_EXIST_VALUE(tensor_type), NAME_EXIST_VALUE(sequence_type),
+                                        NAME_EXIST_VALUE(map_type), NAME_EXIST_VALUE(denotation),
+                                        NAME_EXIST_VALUE(sparse_tensor_type),
+                                        NAME_EXIST_VALUE(optional_type));
 }
 
 // ValueInfoProto
@@ -462,8 +459,7 @@ void ValueInfoProto::ParseFromStream(utils::BinaryStream &stream){
 
 std::vector<std::string> ValueInfoProto::SerializeToVectorString() const {
   return write_proto_into_vector_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(type),
-                                        NAME_EXIST_VALUE(doc_string),
-                                        NAME_EXIST_VALUE(metadata_props));
+                                        NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(metadata_props));
 }
 
 } // namespace onnx2

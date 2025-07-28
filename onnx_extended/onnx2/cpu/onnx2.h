@@ -56,8 +56,7 @@ FIELD_REPEATED(StringStringEntryProto, quant_parameter_tensor_names, 2,
 END_PROTO()
 
 BEGIN_PROTO(DeviceConfigurationProto, "Describes a multi-device configuration for a model.")
-FIELD_STR(name, 1,
-          "This field MUST be present for this version of the IR. Name of the configuration.")
+FIELD_STR(name, 1, "This field MUST be present for this version of the IR. Name of the configuration.")
 FIELD_DEFAULT(int32_t, num_devices, 2, 0,
               "This field MUST be present for this version of the IR. Number of devices inside "
               "this configuration.")
@@ -91,11 +90,10 @@ END_PROTO()
 
 BEGIN_PROTO(ShardingSpecProto,
             "Describes the sharding spec for a specific, input or output tensor of a node.")
-FIELD_STR(
-    tensor_name, 1,
-    "This field MUST be present for this version of the IR. Identifies the input or output of "
-    "the node that is being sharded. Required to match a name specified in the node's input or "
-    "output list of ValueInfoProtos. It is called `logical tensor` in subsequent descriptions.")
+FIELD_STR(tensor_name, 1,
+          "This field MUST be present for this version of the IR. Identifies the input or output of "
+          "the node that is being sharded. Required to match a name specified in the node's input or "
+          "output list of ValueInfoProtos. It is called `logical tensor` in subsequent descriptions.")
 FIELD_REPEATED(int64_t, device, 2,
                "The following is the list of devices across which the logical tensor is "
                "sharded or replicated.")
@@ -110,8 +108,7 @@ FIELD_REPEATED(ShardedDimProto, sharded_dim, 4,
                "sharding-spec for each axis of the tensor.")
 END_PROTO()
 
-BEGIN_PROTO(NodeDeviceConfigurationProto,
-            "Defines a multi-device configuration proto for NodeProto.")
+BEGIN_PROTO(NodeDeviceConfigurationProto, "Defines a multi-device configuration proto for NodeProto.")
 FIELD_STR(configuration_id, 1,
           "This field MUST be present for this version of the IR., ID of the configuration. "
           "MUST match the name of a DeviceConfigurationProto.")
@@ -119,8 +116,7 @@ FIELD_REPEATED(ShardingSpecProto, sharding_spec, 2, "Sharding spec for the node.
 FIELD_OPTIONAL(int32_t, pipeline_stage, 3, "Pipeline stage of this node.")
 END_PROTO()
 
-BEGIN_PROTO(OperatorSetIdProto,
-            "Defines a unqiue pair domain, opset version for a set of operators.")
+BEGIN_PROTO(OperatorSetIdProto, "Defines a unqiue pair domain, opset version for a set of operators.")
 FIELD_STR(domain, 1,
           "The domain of the operator set being identified. The empty string ("
           ") or absence of this field implies the operator set that is defined as part of the "
@@ -138,16 +134,15 @@ BEGIN_PROTO(Dimension, "Defines a dimension, it can be fixed (an integer dim_val
                        "(a string dim_param). Only one of them can be set.")
 FIELD_OPTIONAL(int64_t, dim_value, 1, "Dimension value if it is a fixed value.")
 FIELD_STR(dim_param, 2, "Dimension value if it is a dynamic value.")
-FIELD_STR(
-    denotation, 3,
-    "The indices of the non-default values, which may be stored in one of two formats. (a) "
-    "Indices can be a tensor of shape [NNZ, rank] with the [i,j]-th value corresponding to the "
-    "j-th index of the i-th value (in the values tensor). (b) Indices can be a tensor of shape "
-    "[NNZ], in which case the i-th value must be the linearized-index of the i-th value (in "
-    "the values tensor). The linearized-index can be converted into an index tuple "
-    "(k_1,...,k_rank) using the shape provided below. The indices must appear in ascending "
-    "order without duplication. In the first format, the ordering is lexicographic-ordering: "
-    "e.g., index-value [1,4] must appear before [2,1]")
+FIELD_STR(denotation, 3,
+          "The indices of the non-default values, which may be stored in one of two formats. (a) "
+          "Indices can be a tensor of shape [NNZ, rank] with the [i,j]-th value corresponding to the "
+          "j-th index of the i-th value (in the values tensor). (b) Indices can be a tensor of shape "
+          "[NNZ], in which case the i-th value must be the linearized-index of the i-th value (in "
+          "the values tensor). The linearized-index can be converted into an index tuple "
+          "(k_1,...,k_rank) using the shape provided below. The indices must appear in ascending "
+          "order without duplication. In the first format, the ordering is lexicographic-ordering: "
+          "e.g., index-value [1,4] must appear before [2,1]")
 END_PROTO()
 inline TensorShapeProto() {}
 FIELD_REPEATED(Dimension, dim, 1, "Shape as a list of Dimension.")
@@ -212,10 +207,9 @@ enum class DataType : int32_t {
 
 enum DataLocation { DEFAULT = 0, EXTERNAL = 1 };
 
-BEGIN_PROTO(
-    Segment,
-    "For very large tensors, we may want to store them in chunks, in which case the following "
-    "fields will specify the segment that is stored in the current TensorProto.")
+BEGIN_PROTO(Segment,
+            "For very large tensors, we may want to store them in chunks, in which case the following "
+            "fields will specify the segment that is stored in the current TensorProto.")
 FIELD_DEFAULT(int64_t, begin, 1, 0, "Segment start.")
 FIELD_DEFAULT(int64_t, end, 1, 0, "Segment end.")
 END_PROTO()
@@ -254,9 +248,8 @@ FIELD_REPEATED(utils::String, string_data, 6,
                "trailing null, no leading BOM. The 'string' scalar type is not used to match "
                "ML community conventions. When this field is "
                "present, the data_type field MUST be STRING")
-FIELD_REPEATED_PACKED(
-    int64_t, int64_data, 7,
-    "For int64. When this field is present, the data_type field MUST be INT64")
+FIELD_REPEATED_PACKED(int64_t, int64_data, 7,
+                      "For int64. When this field is present, the data_type field MUST be INT64")
 FIELD_STR(name, 8, "Optionally, a name for the tensor.")
 FIELD(std::vector<uint8_t>, raw_data, 9,
       "Serializations can either use one of the fields above, or use this raw bytes field. The "
@@ -282,8 +275,7 @@ FIELD_REPEATED_PACKED(
 FIELD_REPEATED_PACKED(uint64_t, uint64_data, 11,
                       "For uint64 and uint32 values. When this field is present, the data_type "
                       "field MUST be UINT32 or UINT64.")
-FIELD_STR(doc_string, 12,
-          "A human-readable documentation for this tensor. Markdown is allowed.")
+FIELD_STR(doc_string, 12, "A human-readable documentation for this tensor. Markdown is allowed.")
 FIELD_REPEATED(
     StringStringEntryProto, external_data, 13,
     "Data can be stored inside the protobuf file using type-specific fields or raw_data. "
@@ -297,12 +289,11 @@ FIELD_REPEATED(
     "Offset values SHOULD be multiples 4096 (page size) to enable mmap support. "
     "- length (optional) - number of bytes containing data. Integer stored as string. "
     "- checksum (optional) - SHA1 digest of file specified in under 'location' key.")
-FIELD(
-    DataLocation, data_location, 14,
-    "Location of the data for this tensor. MUST be one of: - DEFAULT - data stored inside the "
-    "protobuf message. Data is stored in raw_data (if set) otherwise in type-specified field. "
-    "- EXTERNAL - data stored in an external location as described by external_data field. If "
-    "value not set, data is stored in raw_data (if set) otherwise in type-specified field.")
+FIELD(DataLocation, data_location, 14,
+      "Location of the data for this tensor. MUST be one of: - DEFAULT - data stored inside the "
+      "protobuf message. Data is stored in raw_data (if set) otherwise in type-specified field. "
+      "- EXTERNAL - data stored in an external location as described by external_data field. If "
+      "value not set, data is stored in raw_data (if set) otherwise in type-specified field.")
 FIELD_REPEATED(StringStringEntryProto, metadata_props, 16,
                "Named metadata values; keys should be distinct.")
 END_PROTO()
@@ -332,10 +323,9 @@ END_PROTO()
 BEGIN_PROTO_NOINIT(TypeProto, "Defines a type, it can be a tensor type (element type and "
                               "shape), a sequence of the same element type, ...")
 BEGIN_PROTO(Tensor, "Defines a tensor type (element type, shape).")
-FIELD_OPTIONAL(
-    int32_t, elem_type, 1,
-    "This field MUST NOT have the value of UNDEFINED. This field MUST have a valid "
-    "TensorProto.DataType value. This field MUST be present for this version of the IR.")
+FIELD_OPTIONAL(int32_t, elem_type, 1,
+               "This field MUST NOT have the value of UNDEFINED. This field MUST have a valid "
+               "TensorProto.DataType value. This field MUST be present for this version of the IR.")
 FIELD_OPTIONAL(TensorShapeProto, shape, 2, "The shape.")
 END_PROTO()
 
@@ -367,8 +357,7 @@ FIELD(int32_t, key_type, 1,
       "This field MUST have a valid TensorProto.DataType value. This field MUST be present for "
       "this version of the IR. This field MUST refer to an integral type ([U]INT{8|16|32|64}) "
       "or STRING optional int32 key_type = 1;")
-FIELD_OPTIONAL(TypeProto, value_type, 2,
-               "This field MUST be present for this version of the IR.")
+FIELD_OPTIONAL(TypeProto, value_type, 2, "This field MUST be present for this version of the IR.")
 END_PROTO()
 
 inline TypeProto() {}
@@ -383,8 +372,8 @@ FIELD_STR(denotation, 6,
 FIELD_OPTIONAL_ONEOF(SparseTensor, sparse_tensor_type, 8, type, "Type of the sparse tensor")
 FIELD_OPTIONAL_ONEOF(Optional, optional_type, 9, type, "The type of an optional.")
 inline bool has_type() const {
-  return has_tensor_type() || has_sequence_type() || has_map_type() ||
-         has_sparse_tensor_type() || has_optional_type();
+  return has_tensor_type() || has_sequence_type() || has_map_type() || has_sparse_tensor_type() ||
+         has_optional_type();
 }
 END_PROTO()
 
@@ -392,9 +381,8 @@ using TensorProto_DataType = TensorProto::DataType;
 
 // ValueInfoProto
 
-BEGIN_PROTO(
-    ValueInfoProto,
-    "Defines information on value, including the name, the type, and the shape of the value.")
+BEGIN_PROTO(ValueInfoProto,
+            "Defines information on value, including the name, the type, and the shape of the value.")
 FIELD_STR(name, 1, "This field MUST be present in this version of the IR.")
 FIELD_OPTIONAL(TypeProto, type, 2,
                "This field MUST be present in this version of the IR for inputs and outputs of "

@@ -25,18 +25,13 @@ public:
   inline void remove_range(size_t start, size_t stop, size_t step) {
     EXT_ENFORCE(step == 1, "remove_range not implemented for step=", static_cast<int>(step));
     EXT_ENFORCE(start == 0, "remove_range not implemented for start=", static_cast<int>(start));
-    EXT_ENFORCE(stop == size(),
-                "remove_range not implemented for stop=", static_cast<int>(stop),
+    EXT_ENFORCE(stop == size(), "remove_range not implemented for stop=", static_cast<int>(stop),
                 " and size=", static_cast<int>(size()));
     clear();
   }
-  inline void extend(const std::vector<T> &v) {
-    values.insert(values.end(), v.begin(), v.end());
-  }
+  inline void extend(const std::vector<T> &v) { values.insert(values.end(), v.begin(), v.end()); }
   inline void push_back(const T &v) { values.push_back(v); }
-  inline void extend(const RepeatedField<T> &v) {
-    values.insert(values.end(), v.begin(), v.end());
-  }
+  inline void extend(const RepeatedField<T> &v) { values.insert(values.end(), v.begin(), v.end()); }
 
   inline T &add() {
     values.emplace_back(T());
@@ -59,9 +54,7 @@ public:
 template <typename T> class OptionalField {
 public:
   explicit inline OptionalField() : value(nullptr) {}
-  explicit inline OptionalField(OptionalField<T> &&move) : value(move.value) {
-    move.value = nullptr;
-  }
+  explicit inline OptionalField(OptionalField<T> &&move) : value(move.value) { move.value = nullptr; }
   inline bool has_value() const { return value != nullptr; }
   ~OptionalField();
   void reset();

@@ -9,15 +9,14 @@ namespace onnx2 {
 namespace utils {
 
 std::string FieldNumber::string() const {
-  return onnx_extended_helpers::MakeString("[field_number=", field_number,
-                                           ", wire_type=", wire_type, "]");
+  return onnx_extended_helpers::MakeString("[field_number=", field_number, ", wire_type=", wire_type,
+                                           "]");
 }
 
 RefString BinaryStream::next_string() {
   uint64_t length = next_uint64();
   this->can_read(length, "[StringStream::next_string]");
-  return RefString(reinterpret_cast<const char *>(read_bytes(length)),
-                   static_cast<size_t>(length));
+  return RefString(reinterpret_cast<const char *>(read_bytes(length)), static_cast<size_t>(length));
 }
 
 int64_t BinaryStream::next_int64() {
@@ -32,9 +31,7 @@ int32_t BinaryStream::next_int32() {
   return static_cast<int32_t>(value);
 }
 
-float BinaryStream::next_float() {
-  return *reinterpret_cast<const float *>(read_bytes(sizeof(float)));
-}
+float BinaryStream::next_float() { return *reinterpret_cast<const float *>(read_bytes(sizeof(float))); }
 
 double BinaryStream::next_double() {
   return *reinterpret_cast<const double *>(read_bytes(sizeof(double)));
@@ -82,8 +79,7 @@ uint64_t StringStream::next_uint64() {
 
     shift += 7;
   }
-  EXT_THROW("[StringStream::next_uint64] unable to read an int64 at pos=", pos_,
-            ", size=", size_);
+  EXT_THROW("[StringStream::next_uint64] unable to read an int64 at pos=", pos_, ", size=", size_);
 }
 
 void BinaryWriteStream::write_variant_uint64(uint64_t value) {

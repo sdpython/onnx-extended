@@ -11,8 +11,7 @@
 namespace onnx2 {
 namespace utils {
 
-template <typename T>
-std::vector<std::string> RepeatedField<T>::SerializeToVectorString() const {
+template <typename T> std::vector<std::string> RepeatedField<T>::SerializeToVectorString() const {
   std::vector<std::string> rows{"["};
   for (const auto &p : values) {
     std::vector<std::string> r = p.SerializeToVectorString();
