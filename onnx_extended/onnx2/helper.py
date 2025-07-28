@@ -1,7 +1,10 @@
 # source: https://github.com/onnx/onnx/blob/main/onnx/helper.py
 import collections
+import functools
+import math
 import numbers
-from typing import Any, Sequence
+from typing import Any, NamedTuple, Sequence
+import numpy as np
 from .cpu._onnx2py import (
     AttributeProto,
     OperatorSetIdProto,
@@ -17,6 +20,77 @@ _ATTRIBUTE_TYPE_TO_STR: dict[int, str] = {
 _ATTRIBUTE_TYPE_INT_TO_STR: dict[int, str] = {
     int(k): v for v, k in AttributeProto.AttributeType.items()
 }
+
+
+class TensorDtypeMap(NamedTuple):
+    np_dtype: np.dtype
+    storage_dtype: int
+    name: str
+
+
+TENSOR_TYPE_MAP: dict[int, TensorDtypeMap] = {
+    int(TensorProto.FLOAT): TensorDtypeMap(
+        np.dtype("float32"), int(TensorProto.FLOAT), "TensorProto.FLOAT"
+    ),
+    int(TensorProto.UINT8): TensorDtypeMap(
+        np.dtype("uint8"), int(TensorProto.INT32), "TensorProto.UINT8"
+    ),
+    int(TensorProto.INT8): TensorDtypeMap(
+        np.dtype("int8"), int(TensorProto.INT32), "TensorProto.INT8"
+    ),
+    int(TensorProto.UINT16): TensorDtypeMap(
+        np.dtype("uint16"), int(TensorProto.INT32), "TensorProto.UINT16"
+    ),
+    int(TensorProto.INT16): TensorDtypeMap(
+        np.dtype("int16"), int(TensorProto.INT32), "TensorProto.INT16"
+    ),
+    int(TensorProto.INT32): TensorDtypeMap(
+        np.dtype("int32"), int(TensorProto.INT32), "TensorProto.INT32"
+    ),
+    int(TensorProto.INT64): TensorDtypeMap(
+        np.dtype("int64"), int(TensorProto.INT64), "TensorProto.INT64"
+    ),
+    int(TensorProto.BOOL): TensorDtypeMap(
+        np.dtype("bool"), int(TensorProto.INT32), "TensorProto.BOOL"
+    ),
+    int(TensorProto.FLOAT16): TensorDtypeMap(
+        np.dtype("float16"), int(TensorProto.INT32), "TensorProto.FLOAT16"
+    ),
+    int(TensorProto.DOUBLE): TensorDtypeMap(
+        np.dtype("float64"), int(TensorProto.DOUBLE), "TensorProto.DOUBLE"
+    ),
+    int(TensorProto.COMPLEX64): TensorDtypeMap(
+        np.dtype("complex64"), int(TensorProto.FLOAT), "TensorProto.COMPLEX64"
+    ),
+    int(TensorProto.COMPLEX128): TensorDtypeMap(
+        np.dtype("complex128"),
+        int(TensorProto.DOUBLE),
+        "TensorProto.COMPLEX128",
+    ),
+    int(TensorProto.UINT32): TensorDtypeMap(
+        np.dtype("uint32"), int(TensorProto.UINT64), "TensorProto.UINT32"
+    ),
+    int(TensorProto.UINT64): TensorDtypeMap(
+        np.dtype("uint64"), int(TensorProto.UINT64), "TensorProto.UINT64"
+    ),
+    int(TensorProto.STRING): TensorDtypeMap(
+        np.dtype("object"), int(TensorProto.STRING), "TensorProto.STRING"
+    ),
+}
+
+
+def tensor_dtype_to_np_dtype(tensor_dtype: int) -> np.dtype:
+    """
+    Converts a TensorProto's data_type to corresponding numpy dtype.
+    It can be used while making tensor.
+
+    Args:
+        tensor_dtype: TensorProto's data_type
+
+    Returns:
+        numpy's data_type
+    """
+    return TENSOR_TYPE_MAP[tensor_dtype].np_dtype
 
 
 def make_operatorsetid(
@@ -76,6 +150,7 @@ def make_tensor_type_proto(
 
 
 def make_empty_tensor_value_info(name: str) -> ValueInfoProto:
+    """Creates an empty tensor value info."""
     value_info_proto = ValueInfoProto()
     value_info_proto.name = name
     return value_info_proto
@@ -366,6 +441,7 @@ def make_attribute_ref(
 
 
 def get_attribute_value(attr: AttributeProto) -> Any:
+    """Returns the attribute value whatever the type is."""
     if attr.ref_attr_name:
         raise ValueError(f"Cannot get value of reference attribute: {attr}")
     if attr.type == AttributeProto.FLOAT:
@@ -399,3 +475,141 @@ def get_attribute_value(attr: AttributeProto) -> Any:
     if attr.type == AttributeProto.UNDEFINED:
         return None
     raise ValueError(f"Unsupported ONNX attribute: {attr}")
+
+
+@functools.lru_cache(None)
+def tensor_dtype_to_field(tensor_dtype: int) -> str:
+    """
+    Converts a TensorProto's data_type to corresponding field name for storage.
+    It can be used while making tensors.
+
+    Args:
+        tensor_dtype: TensorProto's data_type
+
+    Returns:
+        field name
+    """
+    storage_tensor_type_to_field = {
+        int(TensorProto.FLOAT): "float_data",
+        int(TensorProto.INT32): "int32_data",
+        int(TensorProto.INT64): "int64_data",
+        int(TensorProto.DOUBLE): "double_data",
+        int(TensorProto.UINT32): "uint64_data",
+        int(TensorProto.UINT64): "uint64_data",
+        int(TensorProto.STRING): "string_data",
+    }
+    return storage_tensor_type_to_field[TENSOR_TYPE_MAP[tensor_dtype].storage_dtype]
+
+
+def make_tensor(
+    name: str,
+    data_type: int,
+    dims: Sequence[int],
+    vals: Sequence[int | float] | bytes | np.ndarray,
+    raw: bool = False,
+) -> TensorProto:
+    """
+    Makes a TensorProto with specified arguments.  If raw is False, this
+    function will choose the corresponding proto field to store the
+    values based on data_type. If raw is True, use "raw_data" proto
+    field to store the values, and values should be of type bytes in
+    this case.
+
+    Args:
+        name: tensor name
+        data_type: a value such as onnx.TensorProto.FLOAT
+        dims: shape
+        vals: values
+        raw: if True, vals contains the serialized content of the tensor,
+            otherwise, vals should be a list of values
+            of the type defined by ``data_type``.
+
+    Returns:
+        TensorProto
+    """
+    tensor = TensorProto()
+    tensor.data_type = data_type
+    tensor.name = name
+    tensor.dims.extend(dims)
+
+    if data_type == TensorProto.STRING and raw:
+        raise TypeError("Can not use raw_data to store string type.")
+
+    np_dtype = tensor_dtype_to_np_dtype(data_type)
+
+    if raw:
+        # NumPy doesn't have INT4/FP4. It is packed in couples to UINT8 buffers.
+        if data_type in {TensorProto.UINT4, TensorProto.INT4, TensorProto.FLOAT4E2M1}:
+            expected_size_bytes = 0.5
+        else:
+            expected_size_bytes = np_dtype.itemsize
+        expected_size_bytes *= math.prod(dims)
+        expected_size_bytes = math.ceil(expected_size_bytes)
+        if isinstance(vals, np.ndarray):
+            raw_data = vals.tobytes()
+        elif isinstance(vals, bytes):
+            raw_data = vals
+        else:
+            raise TypeError(
+                f"Raw data must be bytes or numpy.ndarray, but got {type(vals)}."
+            )
+        if len(raw_data) != expected_size_bytes:
+            raise ValueError(
+                f"Raw data size does not match tensor's size. "
+                f"Expected {expected_size_bytes} bytes, "
+                f"but got {len(raw_data)} bytes."
+            )
+        tensor.raw_data = raw_data
+        return tensor
+
+    assert not raw, "Bug: raw should be False at this point."
+
+    if data_type == TensorProto.STRING:
+        vals = np.array(vals).flatten()
+        if len(vals) != 0:
+            vals = np.vectorize(_to_bytes)(vals)
+    else:
+        vals = np.asarray(vals, dtype=np_dtype).flatten()
+
+    if data_type == TensorProto.COMPLEX128:
+        vals = vals.view(np.float64)
+    elif data_type == TensorProto.COMPLEX64:
+        vals = vals.view(np.float32)
+    elif data_type in {TensorProto.BFLOAT16, TensorProto.FLOAT16}:
+        vals = vals.view(np.uint16)
+    elif data_type in {
+        TensorProto.FLOAT8E4M3FN,
+        TensorProto.FLOAT8E4M3FNUZ,
+        TensorProto.FLOAT8E5M2,
+        TensorProto.FLOAT8E5M2FNUZ,
+        TensorProto.FLOAT8E8M0,
+    }:
+        vals = vals.view(np.uint8)
+    elif data_type == TensorProto.BOOL:
+        vals = vals.astype(np.uint8)
+    elif data_type >= 16:
+        raise AssertionError(f"Unexpected data_type={data_type}.")
+
+    field = tensor_dtype_to_field(data_type)
+    getattr(tensor, field).extend(vals)
+    return tensor
+
+
+def make_sparse_tensor(
+    values: TensorProto, indices: TensorProto, dims: Sequence[int]
+) -> SparseTensorProto:
+    """Construct a SparseTensorProto
+
+    Args:
+        values (TensorProto): the values
+        indices (TensorProto): the indices
+        dims: the shape
+
+    Returns:
+        SparseTensorProto
+    """
+    sparse = SparseTensorProto()
+    sparse.values.CopyFrom(values)
+    sparse.indices.CopyFrom(indices)
+    sparse.dims.extend(dims)
+    return sparse

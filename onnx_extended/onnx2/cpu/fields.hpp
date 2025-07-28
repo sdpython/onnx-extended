@@ -61,5 +61,17 @@ template <typename T> OptionalField<T> &OptionalField<T>::operator=(const T &v) 
   return *this;
 }
 
+template <typename T> OptionalField<T> &OptionalField<T>::operator=(const OptionalField<T> &v) {
+  // We make a copy.
+  set_empty_value();
+  if (v.has_value()) {
+    StringWriteStream stream;
+    (*v).SerializeToStream(stream);
+    StringStream rstream(stream.data(), stream.size());
+    value->ParseFromStream(rstream);
+  }
+  return *this;
+}
+
 } // namespace utils
 } // namespace onnx2

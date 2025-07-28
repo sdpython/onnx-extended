@@ -61,6 +61,7 @@ public:
   T &operator*();
   const T &operator*() const;
   OptionalField<T> &operator=(const T &other);
+  OptionalField<T> &operator=(const OptionalField<T> &other);
   void set_empty_value();
   T *value;
 };

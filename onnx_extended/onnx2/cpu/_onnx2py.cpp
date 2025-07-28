@@ -134,6 +134,31 @@ namespace py = pybind11;
   def_property_readonly_static(#dtype,                                                                 \
                                [](py::object) -> int { return static_cast<int>(onnx2::cls::dtype); })
 
+template <typename T> void push_back_item(onnx2::utils::RepeatedField<T> &self, py::handle &item) {
+  EXT_ENFORCE(py::isinstance<const T &>(item),
+              "One of the item in the list is not of the expected type.");
+  self.push_back(item.cast<const T &>());
+}
+template <> void push_back_item(onnx2::utils::RepeatedField<int32_t> &self, py::handle &item) {
+  self.push_back(item.cast<int32_t>());
+}
+template <> void push_back_item(onnx2::utils::RepeatedField<int64_t> &self, py::handle &item) {
+  self.push_back(item.cast<int64_t>());
+}
+template <> void push_back_item(onnx2::utils::RepeatedField<uint64_t> &self, py::handle &item) {
+  self.push_back(item.cast<uint64_t>());
+}
+template <> void push_back_item(onnx2::utils::RepeatedField<float> &self, py::handle &item) {
+  self.push_back(item.cast<float>());
+}
+template <> void push_back_item(onnx2::utils::RepeatedField<double> &self, py::handle &item) {
+  self.push_back(item.cast<double>());
+}
+template <>
+void push_back_item(onnx2::utils::RepeatedField<onnx2::utils::String> &self, py::handle &item) {
+  self.push_back(item.cast<const onnx2::utils::String &>());
+}
+
 template <typename T> void define_repeated_field_type(py::module_ &m, const std::string &name) {
   py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "repeated field")
       .def(py::init<>())
@@ -166,7 +191,11 @@ template <typename T> void define_repeated_field_type(py::module_ &m, const std:
           "extend",
           [](onnx2::utils::RepeatedField<T> &self, py::iterable iterable) {
             if (py::isinstance<onnx2::utils::RepeatedField<T>>(iterable)) {
-              self.extend(iterable.cast<onnx2::utils::RepeatedField<T>>());
+              self.extend(iterable.cast<onnx2::utils::RepeatedField<T> &>());
+            //} else if (py::isinstance<py::list>(iterable)) {
+            //  for (py::handle item : iterable.cast<py::list>()) {
+            //    push_back_item(self, item);
+            //  }
             } else {
               self.extend(iterable.cast<std::vector<T>>());
             }
@@ -476,12 +505,14 @@ PYBIND11_MODULE(_onnx2py, m) {
           },
           onnx2::TensorProto::DOC_raw_data)
       .PYADD_PROTO_SERIALIZATION(TensorProto);
+  define_repeated_field_type<onnx2::TensorProto>(m, "RepeatedFieldTensorProto");
 
   PYDEFINE_PROTO(m, SparseTensorProto)
       .PYFIELD(SparseTensorProto, values)
       .PYFIELD(SparseTensorProto, indices)
       .PYFIELD(SparseTensorProto, dims)
       .PYADD_PROTO_SERIALIZATION(SparseTensorProto);
+  define_repeated_field_type<onnx2::SparseTensorProto>(m, "RepeatedFieldSparseTensorProto");
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto, cls_type_proto);
   PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Tensor)
@@ -516,6 +547,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(ValueInfoProto, doc_string)
       .PYFIELD(ValueInfoProto, metadata_props)
       .PYADD_PROTO_SERIALIZATION(ValueInfoProto);
+  define_repeated_field_type<onnx2::ValueInfoProto>(m, "RepeatedFieldValueInfoProto");
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, AttributeProto, cls_attribute_proto);
 
@@ -615,4 +647,5 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(AttributeProto, sparse_tensors)
       //.PYFIELD(AttributeProto, graphs)
       .PYADD_PROTO_SERIALIZATION(AttributeProto);
+  define_repeated_field_type<onnx2::AttributeProto>(m, "RepeatedFieldAttributeProto");
 }
