@@ -40,12 +40,12 @@
 
 #define WRITE_FIELD(stream, name)                                                              \
   if (has_##name()) {                                                                          \
-    write_field(stream, order_##name(), name());                                               \
+    write_field(stream, order_##name(), ref_##name());                                         \
   }
 
 #define WRITE_ENUM_FIELD(stream, name)                                                         \
   if (has_##name()) {                                                                          \
-    write_enum_field(stream, order_##name(), name());                                          \
+    write_enum_field(stream, order_##name(), ref_##name());                                    \
   }
 
 #define WRITE_REPEATED_FIELD(stream, name)                                                     \

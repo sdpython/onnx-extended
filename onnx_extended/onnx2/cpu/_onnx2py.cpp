@@ -61,7 +61,7 @@ namespace py = pybind11;
   def_property(                                                                                \
       #name,                                                                                   \
       [](const onnx2::cls &self) -> std::string {                                              \
-        std::string s = self.name().as_string();                                               \
+        std::string s = self.ref_##name().as_string();                                         \
         return s;                                                                              \
       },                                                                                       \
       [](onnx2::cls &self, py::object obj) {                                                   \
@@ -81,7 +81,7 @@ namespace py = pybind11;
       [](onnx2::cls &self) -> py::object {                                                     \
         if (!self.has_##name())                                                                \
           return py::none();                                                                   \
-        return py::cast(self.name(), py::return_value_policy::reference);                      \
+        return py::cast(self.ref_##name(), py::return_value_policy::reference);                \
       },                                                                                       \
       [](onnx2::cls &self, py::object obj) {                                                   \
         if (obj.is_none()) {                                                                   \

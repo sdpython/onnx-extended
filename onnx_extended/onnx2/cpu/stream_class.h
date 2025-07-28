@@ -47,8 +47,8 @@
 
 #define FIELD(type, name, order, doc)                                                          \
 public:                                                                                        \
-  inline type &name() { return name##_; }                                                      \
-  inline const type &name() const { return name##_; }                                          \
+  inline type &ref_##name() { return name##_; }                                                \
+  inline const type &ref_##name() const { return name##_; }                                    \
   inline const type *ptr_##name() const { return &name##_; }                                   \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline void set_##name(const type &v) { name##_ = v; }                                       \
@@ -60,8 +60,8 @@ public:                                                                         
 
 #define FIELD_DEFAULT(type, name, order, default_value, doc)                                   \
 public:                                                                                        \
-  inline type &name() { return name##_; }                                                      \
-  inline const type &name() const { return name##_; }                                          \
+  inline type &ref_##name() { return name##_; }                                                \
+  inline const type &ref_##name() const { return name##_; }                                    \
   inline const type *ptr_##name() const { return &name##_; }                                   \
   inline bool has_##name() const { return _has_field_(name##_); }                              \
   inline void set_##name(const type &v) { name##_ = v; }                                       \
@@ -78,8 +78,8 @@ public:                                                                         
 
 #define FIELD_REPEATED(type, name, order, doc)                                                 \
 public:                                                                                        \
-  inline utils::RepeatedField<type> &name() { return name##_; }                                \
-  inline const utils::RepeatedField<type> &name() const { return name##_; }                    \
+  inline utils::RepeatedField<type> &ref_##name() { return name##_; }                          \
+  inline const utils::RepeatedField<type> &ref_##name() const { return name##_; }              \
   inline const utils::RepeatedField<type> *ptr_##name() const { return &name##_; }             \
   inline type &add_##name() { return name##_.add(); }                                          \
   inline type &add_##name(type &&v) {                                                          \
@@ -96,8 +96,8 @@ public:                                                                         
 
 #define FIELD_REPEATED_PACKED(type, name, order, doc)                                          \
 public:                                                                                        \
-  inline utils::RepeatedField<type> &name() { return name##_; }                                \
-  inline const utils::RepeatedField<type> &name() const { return name##_; }                    \
+  inline utils::RepeatedField<type> &ref_##name() { return name##_; }                          \
+  inline const utils::RepeatedField<type> &ref_##name() const { return name##_; }              \
   inline const utils::RepeatedField<type> *ptr_##name() const { return &name##_; }             \
   inline type &add_##name() { return name##_.add(); }                                          \
   inline type &add_##name(const type &v) {                                                     \
@@ -114,11 +114,11 @@ public:                                                                         
 
 #define _FIELD_OPTIONAL(type, name, order, doc)                                                \
 public:                                                                                        \
-  inline type &name() {                                                                        \
+  inline type &ref_##name() {                                                                  \
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
     return *name##_;                                                                           \
   }                                                                                            \
-  inline const type &name() const {                                                            \
+  inline const type &ref_##name() const {                                                      \
     EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");            \
     return *name##_;                                                                           \
   }                                                                                            \
