@@ -54,6 +54,7 @@ public:
 template <typename T> class OptionalField {
 public:
   explicit inline OptionalField() : value(nullptr) {}
+  explicit inline OptionalField(const OptionalField<T> &copy) : value(nullptr) { *this = copy; }
   explicit inline OptionalField(OptionalField<T> &&move) : value(move.value) { move.value = nullptr; }
   inline bool has_value() const { return value != nullptr; }
   ~OptionalField();
