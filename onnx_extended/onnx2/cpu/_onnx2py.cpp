@@ -68,6 +68,9 @@ namespace py = pybind11;
         if (py::isinstance<py::str>(obj)) {                                                            \
           std::string st = obj.cast<std::string>();                                                    \
           self.set_##name(st);                                                                         \
+        } else if (py::isinstance<py::bytes>(obj)) {                                                   \
+          std::string st = obj.cast<py::bytes>();                                                      \
+          self.set_##name(st);                                                                         \
         } else {                                                                                       \
           self.set_##name(obj.cast<onnx2::cls::name##_t &>());                                         \
         }                                                                                              \
@@ -75,7 +78,7 @@ namespace py = pybind11;
       onnx2::cls::DOC_##name)                                                                          \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
 
-#define PYFIELD_OPTIONAL_INT(cls, name)                                                                \
+#define _PYFIELD_OPTIONAL_CTYPE(cls, name, ctype)                                                      \
   def_property(                                                                                        \
       #name,                                                                                           \
       [](onnx2::cls &self) -> py::object {                                                             \
@@ -86,14 +89,17 @@ namespace py = pybind11;
       [](onnx2::cls &self, py::object obj) {                                                           \
         if (obj.is_none()) {                                                                           \
           self.reset_##name();                                                                         \
-        } else if (py::isinstance<py::int_>(obj)) {                                                    \
-          self.set_##name(obj.cast<int>());                                                            \
+        } else if (py::isinstance<py::ctype##_>(obj)) {                                                \
+          self.set_##name(obj.cast<ctype>());                                                          \
         } else {                                                                                       \
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'.");         \
         }                                                                                              \
       },                                                                                               \
       onnx2::cls::DOC_##name)                                                                          \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
+
+#define PYFIELD_OPTIONAL_INT(cls, name) _PYFIELD_OPTIONAL_CTYPE(cls, name, int)
+#define PYFIELD_OPTIONAL_FLOAT(cls, name) _PYFIELD_OPTIONAL_CTYPE(cls, name, float)
 
 #define PYFIELD_OPTIONAL_PROTO(cls, name)                                                              \
   def_property(                                                                                        \
@@ -124,9 +130,9 @@ namespace py = pybind11;
           },                                                                                           \
           py::return_value_policy::reference, "Sets an empty value.")
 
-#define SHORTEN_CODE(dtype)                                                                            \
-  def_property_readonly_static(                                                                        \
-      #dtype, [](py::object) -> int { return static_cast<int>(onnx2::TensorProto::DataType::dtype); })
+#define SHORTEN_CODE(cls, dtype)                                                                       \
+  def_property_readonly_static(#dtype,                                                                 \
+                               [](py::object) -> int { return static_cast<int>(onnx2::cls::dtype); })
 
 template <typename T> void define_repeated_field_type(py::module_ &m, const std::string &name) {
   py::class_<onnx2::utils::RepeatedField<T>>(m, name.c_str(), "repeated field")
@@ -287,34 +293,6 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("STABLE", onnx2::OperatorStatus::STABLE)
       .export_values();
 
-  py::enum_<onnx2::TensorProto::DataType>(m, "DataType", py::arithmetic())
-      .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
-      .value("FLOAT", onnx2::TensorProto::DataType::FLOAT)
-      .value("UINT8", onnx2::TensorProto::DataType::UINT8)
-      .value("INT8", onnx2::TensorProto::DataType::INT8)
-      .value("UINT16", onnx2::TensorProto::DataType::UINT16)
-      .value("INT16", onnx2::TensorProto::DataType::INT16)
-      .value("INT32", onnx2::TensorProto::DataType::INT32)
-      .value("INT64", onnx2::TensorProto::DataType::INT64)
-      .value("STRING", onnx2::TensorProto::DataType::STRING)
-      .value("BOOL", onnx2::TensorProto::DataType::BOOL)
-      .value("FLOAT16", onnx2::TensorProto::DataType::FLOAT16)
-      .value("DOUBLE", onnx2::TensorProto::DataType::DOUBLE)
-      .value("UINT32", onnx2::TensorProto::DataType::UINT32)
-      .value("UINT64", onnx2::TensorProto::DataType::UINT64)
-      .value("COMPLEX64", onnx2::TensorProto::DataType::COMPLEX64)
-      .value("COMPLEX128", onnx2::TensorProto::DataType::COMPLEX128)
-      .value("BFLOAT16", onnx2::TensorProto::DataType::BFLOAT16)
-      .value("FLOAT8E4M3FN", onnx2::TensorProto::DataType::FLOAT8E4M3FN)
-      .value("FLOAT8E4M3FNUZ", onnx2::TensorProto::DataType::FLOAT8E4M3FNUZ)
-      .value("FLOAT8E5M2", onnx2::TensorProto::DataType::FLOAT8E5M2)
-      .value("FLOAT8E5M2FNUZ", onnx2::TensorProto::DataType::FLOAT8E5M2FNUZ)
-      .value("UINT4", onnx2::TensorProto::DataType::UINT4)
-      .value("INT4", onnx2::TensorProto::DataType::INT4)
-      .value("FLOAT4E2M1", onnx2::TensorProto::DataType::FLOAT4E2M1)
-      .value("FLOAT8E8M0", onnx2::TensorProto::DataType::FLOAT8E8M0)
-      .export_values();
-
   py::class_<onnx2::Message>(m, "Message", "Message, base class for all onnx2 classes")
       .def(py::init<>());
 
@@ -383,32 +361,60 @@ PYBIND11_MODULE(_onnx2py, m) {
   define_repeated_field_type<onnx2::TensorShapeProto::Dimension>(m, "RepeatedFieldDimension");
   cls_tensor_shape_proto.PYFIELD(TensorShapeProto, dim).PYADD_PROTO_SERIALIZATION(TensorShapeProto);
 
-  PYDEFINE_PROTO(m, TensorProto)
-      .SHORTEN_CODE(UNDEFINED)
-      .SHORTEN_CODE(FLOAT)
-      .SHORTEN_CODE(UINT8)
-      .SHORTEN_CODE(INT8)
-      .SHORTEN_CODE(UINT16)
-      .SHORTEN_CODE(INT16)
-      .SHORTEN_CODE(INT32)
-      .SHORTEN_CODE(INT64)
-      .SHORTEN_CODE(STRING)
-      .SHORTEN_CODE(BOOL)
-      .SHORTEN_CODE(FLOAT16)
-      .SHORTEN_CODE(DOUBLE)
-      .SHORTEN_CODE(UINT32)
-      .SHORTEN_CODE(UINT64)
-      .SHORTEN_CODE(COMPLEX64)
-      .SHORTEN_CODE(COMPLEX128)
-      .SHORTEN_CODE(BFLOAT16)
-      .SHORTEN_CODE(FLOAT8E4M3FN)
-      .SHORTEN_CODE(FLOAT8E4M3FNUZ)
-      .SHORTEN_CODE(FLOAT8E5M2)
-      .SHORTEN_CODE(FLOAT8E5M2FNUZ)
-      .SHORTEN_CODE(UINT4)
-      .SHORTEN_CODE(INT4)
-      .SHORTEN_CODE(FLOAT4E2M1)
-      .SHORTEN_CODE(FLOAT8E8M0)
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorProto, cls_tensor_proto);
+
+  py::enum_<onnx2::TensorProto::DataType>(cls_tensor_proto, "DataType", py::arithmetic())
+      .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
+      .value("FLOAT", onnx2::TensorProto::DataType::FLOAT)
+      .value("UINT8", onnx2::TensorProto::DataType::UINT8)
+      .value("INT8", onnx2::TensorProto::DataType::INT8)
+      .value("UINT16", onnx2::TensorProto::DataType::UINT16)
+      .value("INT16", onnx2::TensorProto::DataType::INT16)
+      .value("INT32", onnx2::TensorProto::DataType::INT32)
+      .value("INT64", onnx2::TensorProto::DataType::INT64)
+      .value("STRING", onnx2::TensorProto::DataType::STRING)
+      .value("BOOL", onnx2::TensorProto::DataType::BOOL)
+      .value("FLOAT16", onnx2::TensorProto::DataType::FLOAT16)
+      .value("DOUBLE", onnx2::TensorProto::DataType::DOUBLE)
+      .value("UINT32", onnx2::TensorProto::DataType::UINT32)
+      .value("UINT64", onnx2::TensorProto::DataType::UINT64)
+      .value("COMPLEX64", onnx2::TensorProto::DataType::COMPLEX64)
+      .value("COMPLEX128", onnx2::TensorProto::DataType::COMPLEX128)
+      .value("BFLOAT16", onnx2::TensorProto::DataType::BFLOAT16)
+      .value("FLOAT8E4M3FN", onnx2::TensorProto::DataType::FLOAT8E4M3FN)
+      .value("FLOAT8E4M3FNUZ", onnx2::TensorProto::DataType::FLOAT8E4M3FNUZ)
+      .value("FLOAT8E5M2", onnx2::TensorProto::DataType::FLOAT8E5M2)
+      .value("FLOAT8E5M2FNUZ", onnx2::TensorProto::DataType::FLOAT8E5M2FNUZ)
+      .value("UINT4", onnx2::TensorProto::DataType::UINT4)
+      .value("INT4", onnx2::TensorProto::DataType::INT4)
+      .value("FLOAT4E2M1", onnx2::TensorProto::DataType::FLOAT4E2M1)
+      .value("FLOAT8E8M0", onnx2::TensorProto::DataType::FLOAT8E8M0)
+      .export_values();
+  cls_tensor_proto.SHORTEN_CODE(TensorProto::DataType, UNDEFINED)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT)
+      .SHORTEN_CODE(TensorProto::DataType, UINT8)
+      .SHORTEN_CODE(TensorProto::DataType, INT8)
+      .SHORTEN_CODE(TensorProto::DataType, UINT16)
+      .SHORTEN_CODE(TensorProto::DataType, INT16)
+      .SHORTEN_CODE(TensorProto::DataType, INT32)
+      .SHORTEN_CODE(TensorProto::DataType, INT64)
+      .SHORTEN_CODE(TensorProto::DataType, STRING)
+      .SHORTEN_CODE(TensorProto::DataType, BOOL)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT16)
+      .SHORTEN_CODE(TensorProto::DataType, DOUBLE)
+      .SHORTEN_CODE(TensorProto::DataType, UINT32)
+      .SHORTEN_CODE(TensorProto::DataType, UINT64)
+      .SHORTEN_CODE(TensorProto::DataType, COMPLEX64)
+      .SHORTEN_CODE(TensorProto::DataType, COMPLEX128)
+      .SHORTEN_CODE(TensorProto::DataType, BFLOAT16)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT8E4M3FN)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT8E4M3FNUZ)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT8E5M2)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT8E5M2FNUZ)
+      .SHORTEN_CODE(TensorProto::DataType, UINT4)
+      .SHORTEN_CODE(TensorProto::DataType, INT4)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT4E2M1)
+      .SHORTEN_CODE(TensorProto::DataType, FLOAT8E8M0)
       .PYFIELD(TensorProto, dims)
       .def_property(
           "data_type",
@@ -510,4 +516,103 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(ValueInfoProto, doc_string)
       .PYFIELD(ValueInfoProto, metadata_props)
       .PYADD_PROTO_SERIALIZATION(ValueInfoProto);
+
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, AttributeProto, cls_attribute_proto);
+
+  py::enum_<onnx2::AttributeProto::AttributeType> attribute_type(cls_attribute_proto, "AttributeType",
+                                                                 py::arithmetic());
+  attribute_type.value("UNDEFINED", onnx2::AttributeProto::AttributeType::UNDEFINED)
+      .value("FLOAT", onnx2::AttributeProto::AttributeType::FLOAT)
+      .value("INT", onnx2::AttributeProto::AttributeType::INT)
+      .value("STRING", onnx2::AttributeProto::AttributeType::STRING)
+      .value("GRAPH", onnx2::AttributeProto::AttributeType::GRAPH)
+      .value("SPARSE_TENSOR", onnx2::AttributeProto::AttributeType::SPARSE_TENSOR)
+      .value("FLOATS", onnx2::AttributeProto::AttributeType::FLOATS)
+      .value("INTS", onnx2::AttributeProto::AttributeType::INTS)
+      .value("STRINGS", onnx2::AttributeProto::AttributeType::STRINGS)
+      .value("GRAPHS", onnx2::AttributeProto::AttributeType::GRAPHS)
+      .value("SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS)
+      .export_values();
+  attribute_type
+      .def_static("items",
+                  []() {
+                    return std::vector<std::pair<std::string, onnx2::AttributeProto::AttributeType>>{
+                        {"UNDEFINED", onnx2::AttributeProto::AttributeType::UNDEFINED},
+                        {"FLOAT", onnx2::AttributeProto::AttributeType::FLOAT},
+                        {"INT", onnx2::AttributeProto::AttributeType::INT},
+                        {"STRING", onnx2::AttributeProto::AttributeType::STRING},
+                        {"GRAPH", onnx2::AttributeProto::AttributeType::GRAPH},
+                        {"SPARSE_TENSOR", onnx2::AttributeProto::AttributeType::SPARSE_TENSOR},
+                        {"FLOATS", onnx2::AttributeProto::AttributeType::FLOATS},
+                        {"INTS", onnx2::AttributeProto::AttributeType::INTS},
+                        {"STRINGS", onnx2::AttributeProto::AttributeType::STRINGS},
+                        {"GRAPHS", onnx2::AttributeProto::AttributeType::GRAPHS},
+                        {"SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS},
+                    };
+                  })
+      .def_static("keys",
+                  []() {
+                    return std::vector<std::string>{
+                        "UNDEFINED", "FLOAT", "INT",     "STRING", "GRAPH",          "SPARSE_TENSOR",
+                        "FLOATS",    "INTS",  "STRINGS", "GRAPHS", "SPARSE_TENSORS",
+                    };
+                  })
+      .def_static("values", []() {
+        return std::vector<onnx2::AttributeProto::AttributeType>{
+            onnx2::AttributeProto::AttributeType::UNDEFINED,
+            onnx2::AttributeProto::AttributeType::FLOAT,
+            onnx2::AttributeProto::AttributeType::INT,
+            onnx2::AttributeProto::AttributeType::STRING,
+            onnx2::AttributeProto::AttributeType::GRAPH,
+            onnx2::AttributeProto::AttributeType::SPARSE_TENSOR,
+            onnx2::AttributeProto::AttributeType::FLOATS,
+            onnx2::AttributeProto::AttributeType::INTS,
+            onnx2::AttributeProto::AttributeType::STRINGS,
+            onnx2::AttributeProto::AttributeType::GRAPHS,
+            onnx2::AttributeProto::AttributeType::SPARSE_TENSORS,
+        };
+      });
+
+  cls_attribute_proto.SHORTEN_CODE(AttributeProto::AttributeType, UNDEFINED)
+      .SHORTEN_CODE(AttributeProto::AttributeType, FLOAT)
+      .SHORTEN_CODE(AttributeProto::AttributeType, INT)
+      .SHORTEN_CODE(AttributeProto::AttributeType, STRING)
+      .SHORTEN_CODE(AttributeProto::AttributeType, TENSOR)
+      .SHORTEN_CODE(AttributeProto::AttributeType, GRAPH)
+      .SHORTEN_CODE(AttributeProto::AttributeType, SPARSE_TENSOR)
+      .SHORTEN_CODE(AttributeProto::AttributeType, FLOATS)
+      .SHORTEN_CODE(AttributeProto::AttributeType, INTS)
+      .SHORTEN_CODE(AttributeProto::AttributeType, STRINGS)
+      .SHORTEN_CODE(AttributeProto::AttributeType, TENSORS)
+      .SHORTEN_CODE(AttributeProto::AttributeType, GRAPHS)
+      .SHORTEN_CODE(AttributeProto::AttributeType, SPARSE_TENSORS)
+      .PYFIELD_STR(AttributeProto, name)
+      .PYFIELD_STR(AttributeProto, ref_attr_name)
+      .PYFIELD_STR(AttributeProto, doc_string)
+      .def_property(
+          "type",
+          [](const onnx2::AttributeProto &self) -> onnx2::AttributeProto::AttributeType {
+            return self.type_;
+          },
+          [](onnx2::AttributeProto &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.type_ = static_cast<onnx2::AttributeProto::AttributeType>(obj.cast<int>());
+            } else {
+              self.type_ = obj.cast<onnx2::AttributeProto::AttributeType>();
+            }
+          },
+          onnx2::AttributeProto::DOC_type)
+      .PYFIELD_OPTIONAL_FLOAT(AttributeProto, f)
+      .PYFIELD_OPTIONAL_INT(AttributeProto, i)
+      .PYFIELD_STR(AttributeProto, s)
+      .PYFIELD_OPTIONAL_PROTO(AttributeProto, t)
+      .PYFIELD_OPTIONAL_PROTO(AttributeProto, sparse_tensor)
+      //.PYFIELD_OPTIONAL_PROTO(AttributeProto, g)
+      .PYFIELD(AttributeProto, floats)
+      .PYFIELD(AttributeProto, ints)
+      .PYFIELD(AttributeProto, strings)
+      .PYFIELD(AttributeProto, tensors)
+      .PYFIELD(AttributeProto, sparse_tensors)
+      //.PYFIELD(AttributeProto, graphs)
+      .PYADD_PROTO_SERIALIZATION(AttributeProto);
 }

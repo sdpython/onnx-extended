@@ -1,6 +1,6 @@
 from .cpu._onnx2py import (
+    AttributeProto,
     DeviceConfigurationProto,
-    DataType,
     IntIntListEntryProto,
     Message,
     NodeDeviceConfigurationProto,
