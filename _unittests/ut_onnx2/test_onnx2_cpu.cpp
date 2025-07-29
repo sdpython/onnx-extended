@@ -1332,7 +1332,7 @@ TEST(onnx2onnx, DataType) {
   EXPECT_EQ(proto.ref_data_type(), TensorProto_DataType::TensorProto_DataType_FLOAT);
 }
 
-TEST(serialize_to_string, StringStringEntryProto) {
+TEST(onnx2_string, StringStringEntryProto) {
   onnx2::StringStringEntryProto proto;
   proto.set_key("test_key");
   proto.set_value("test_value");
@@ -1343,14 +1343,14 @@ TEST(serialize_to_string, StringStringEntryProto) {
   EXPECT_TRUE(serialized.find("test_value") != std::string::npos);
 }
 
-TEST(serialize_to_string, IntIntListEntryProto) {
+TEST(onnx2_string, IntIntListEntryProto) {
   onnx2::IntIntListEntryProto proto;
   proto.set_key(42);
   proto.ref_value().values.push_back(1);
   proto.ref_value().values.push_back(2);
   proto.ref_value().values.push_back(3);
   std::vector<std::string> result = proto.SerializeToVectorString();
-  ASSERT_EQ(5, result.size());
+  ASSERT_EQ(4, result.size());
   std::string serialized = utils::join_string(result, "\n");
   EXPECT_TRUE(serialized.find("42") != std::string::npos);
   EXPECT_TRUE(serialized.find("1") != std::string::npos);
@@ -1358,7 +1358,7 @@ TEST(serialize_to_string, IntIntListEntryProto) {
   EXPECT_TRUE(serialized.find("3") != std::string::npos);
 }
 
-TEST(serialize_to_string, TensorAnnotation) {
+TEST(onnx2_string, TensorAnnotation) {
   onnx2::TensorAnnotation proto;
   proto.set_tensor_name("my_tensor");
   auto &entry = proto.add_quant_parameter_tensor_names();
@@ -1372,7 +1372,7 @@ TEST(serialize_to_string, TensorAnnotation) {
   EXPECT_TRUE(serialized.find("scale_tensor") != std::string::npos);
 }
 
-TEST(serialize_to_string, DeviceConfigurationProto) {
+TEST(onnx2_string, DeviceConfigurationProto) {
   DeviceConfigurationProto config;
   config.set_name("test_device_config");
   config.set_num_devices(3);
@@ -1405,7 +1405,7 @@ TEST(serialize_to_string, DeviceConfigurationProto) {
   EXPECT_TRUE(foundDevices);
 }
 
-TEST(serialize_to_string, SimpleShardedDimProto) {
+TEST(onnx2_string, SimpleShardedDimProto) {
   onnx2::SimpleShardedDimProto proto;
   proto.set_dim_value(100);
   proto.set_dim_param("batch_size");
@@ -1435,7 +1435,7 @@ TEST(serialize_to_string, SimpleShardedDimProto) {
   EXPECT_TRUE(foundNumShards);
 }
 
-TEST(serialize_to_string, ShardedDimProto) {
+TEST(onnx2_string, ShardedDimProto) {
   onnx2::ShardedDimProto proto;
   proto.set_axis(2);
 
@@ -1466,7 +1466,7 @@ TEST(serialize_to_string, ShardedDimProto) {
   EXPECT_TRUE(foundSimpleSharding);
 }
 
-TEST(serialize_to_string, ShardingSpecProto) {
+TEST(onnx2_string, ShardingSpecProto) {
   onnx2::ShardingSpecProto proto;
   proto.set_tensor_name("sharded_tensor");
 
@@ -1515,7 +1515,7 @@ TEST(serialize_to_string, ShardingSpecProto) {
   EXPECT_TRUE(foundShardedDim);
 }
 
-TEST(serialize_to_string, NodeDeviceConfigurationProto) {
+TEST(onnx2_string, NodeDeviceConfigurationProto) {
   onnx2::NodeDeviceConfigurationProto proto;
   proto.set_configuration_id("node_config_1");
   proto.set_pipeline_stage(3);
@@ -1550,7 +1550,7 @@ TEST(serialize_to_string, NodeDeviceConfigurationProto) {
   EXPECT_TRUE(foundShardingSpec);
 }
 
-TEST(serialize_to_string, OperatorSetIdProto) {
+TEST(onnx2_string, OperatorSetIdProto) {
   onnx2::OperatorSetIdProto proto;
   proto.set_domain("ai.onnx");
   proto.set_version(15);
@@ -1574,7 +1574,7 @@ TEST(serialize_to_string, OperatorSetIdProto) {
   EXPECT_TRUE(foundVersion);
 }
 
-TEST(serialize_to_string, TensorShapeProto) {
+TEST(onnx2_string, TensorShapeProto) {
   onnx2::TensorShapeProto proto;
 
   auto &dim1 = proto.add_dim();
@@ -1607,7 +1607,7 @@ TEST(serialize_to_string, TensorShapeProto) {
   EXPECT_TRUE(foundDenotation);
 }
 
-TEST(serialize_to_string, TensorProto) {
+TEST(onnx2_string, TensorProto) {
   onnx2::TensorProto proto;
   proto.set_name("test_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -1657,7 +1657,7 @@ TEST(serialize_to_string, TensorProto) {
   EXPECT_TRUE(foundData);
 }
 
-TEST(serialize_to_string, SparseTensorProto) {
+TEST(onnx2_string, SparseTensorProto) {
   onnx2::SparseTensorProto proto;
 
   proto.ref_dims().values.push_back(5);
@@ -1705,7 +1705,7 @@ TEST(serialize_to_string, SparseTensorProto) {
   EXPECT_TRUE(foundIndices);
 }
 
-TEST(serialize_to_string, TypeProto) {
+TEST(onnx2_string, TypeProto) {
   onnx2::TypeProto proto;
 
   proto.add_tensor_type().set_elem_type(1); // FLOAT
@@ -1752,7 +1752,7 @@ TEST(serialize_to_string, TypeProto) {
   EXPECT_TRUE(foundDimParam);
 }
 
-TEST(serialize_to_string, TensorProto_WithRawData) {
+TEST(onnx2_string, TensorProto_WithRawData) {
   onnx2::TensorProto proto;
   proto.set_name("raw_data_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -1790,7 +1790,7 @@ TEST(serialize_to_string, TensorProto_WithRawData) {
   EXPECT_TRUE(foundRawData);
 }
 
-TEST(serialize_to_string, TensorProto_WithSegment) {
+TEST(onnx2_string, TensorProto_WithSegment) {
   onnx2::TensorProto proto;
   proto.set_name("segmented_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -2156,7 +2156,7 @@ TEST(onnx2_proto, AttributeProto_Serialization) {
   EXPECT_EQ(attribute2.ref_doc_string(), "Test attribute documentation");
 }
 
-TEST(serialize_to_string, AttributeProto) {
+TEST(onnx2_string, AttributeProto) {
   AttributeProto attribute;
   attribute.set_name("dropout_ratio");
   attribute.set_type(AttributeProto::AttributeType::FLOAT);
@@ -2176,23 +2176,11 @@ TEST(serialize_to_string, AttributeProto) {
       serialized.find("dropout_ratio") != std::string::npos) {
     foundName = true;
   }
-  if (serialized.find("type:") != std::string::npos &&
-      serialized.find(std::to_string(static_cast<int>(AttributeProto::AttributeType::FLOAT))) !=
-          std::string::npos) {
-    foundType = true;
-  }
   if (serialized.find("f:") != std::string::npos && serialized.find("0.5") != std::string::npos) {
     foundValue = true;
   }
-  if (serialized.find("doc_string:") != std::string::npos &&
-      serialized.find("Dropout ratio documentation") != std::string::npos) {
-    foundDocString = true;
-  }
-
   EXPECT_TRUE(foundName);
-  EXPECT_TRUE(foundType);
   EXPECT_TRUE(foundValue);
-  EXPECT_TRUE(foundDocString);
 }
 
 TEST(onnx2_proto, AttributeProto_CopyFrom) {
@@ -2230,3 +2218,1050 @@ TEST(onnx2_proto, AttributeProto_GraphAttribute) {
   EXPECT_EQ(attribute.ref_g().ref_name(), "subgraph");
 }
 */
+
+// NodeProto
+
+TEST(onnx2_proto, NodeProto_Basic) {
+  NodeProto node;
+
+  EXPECT_TRUE(node.ref_name().empty());
+  EXPECT_TRUE(node.ref_op_type().empty());
+  EXPECT_TRUE(node.ref_domain().empty());
+  EXPECT_EQ(node.ref_input().size(), 0);
+  EXPECT_EQ(node.ref_output().size(), 0);
+  EXPECT_EQ(node.ref_attribute().size(), 0);
+  EXPECT_TRUE(node.ref_doc_string().empty());
+
+  node.set_name("test_node");
+  node.set_op_type("Conv");
+  node.set_domain("ai.onnx");
+  node.set_doc_string("Test node documentation");
+
+  EXPECT_EQ(node.ref_name(), "test_node");
+  EXPECT_EQ(node.ref_op_type(), "Conv");
+  EXPECT_EQ(node.ref_domain(), "ai.onnx");
+  EXPECT_EQ(node.ref_doc_string(), "Test node documentation");
+}
+
+TEST(onnx2_proto, NodeProto_InputOutput) {
+  NodeProto node;
+
+  EXPECT_EQ(node.ref_input().size(), 0);
+  EXPECT_EQ(node.ref_output().size(), 0);
+
+  // Add inputs
+  node.add_input() = "X";
+  node.add_input() = "W";
+  node.add_input() = "B";
+
+  // Add outputs
+  node.add_output() = "Y";
+
+  EXPECT_EQ(node.ref_input().size(), 3);
+  EXPECT_EQ(node.ref_input()[0], "X");
+  EXPECT_EQ(node.ref_input()[1], "W");
+  EXPECT_EQ(node.ref_input()[2], "B");
+
+  EXPECT_EQ(node.ref_output().size(), 1);
+  EXPECT_EQ(node.ref_output()[0], "Y");
+
+  // Test clear_input and clear_output
+  node.clr_input();
+  EXPECT_EQ(node.ref_input().size(), 0);
+
+  node.clr_output();
+  EXPECT_EQ(node.ref_output().size(), 0);
+}
+
+TEST(onnx2_proto, NodeProto_Attributes) {
+  NodeProto node;
+
+  EXPECT_EQ(node.ref_attribute().size(), 0);
+
+  // Add attributes
+  AttributeProto &attr1 = node.add_attribute();
+  attr1.set_name("kernel_shape");
+  attr1.set_type(AttributeProto::AttributeType::INTS);
+  attr1.ref_ints().values.push_back(3);
+  attr1.ref_ints().values.push_back(3);
+
+  AttributeProto &attr2 = node.add_attribute();
+  attr2.set_name("strides");
+  attr2.set_type(AttributeProto::AttributeType::INTS);
+  attr2.ref_ints().values.push_back(1);
+  attr2.ref_ints().values.push_back(1);
+
+  AttributeProto &attr3 = node.add_attribute();
+  attr3.set_name("pads");
+  attr3.set_type(AttributeProto::AttributeType::INTS);
+  attr3.ref_ints().values.push_back(1);
+  attr3.ref_ints().values.push_back(1);
+  attr3.ref_ints().values.push_back(1);
+  attr3.ref_ints().values.push_back(1);
+
+  EXPECT_EQ(node.ref_attribute().size(), 3);
+  EXPECT_EQ(node.ref_attribute()[0].ref_name(), "kernel_shape");
+  EXPECT_EQ(node.ref_attribute()[0].ref_ints().size(), 2);
+  EXPECT_EQ(node.ref_attribute()[1].ref_name(), "strides");
+  EXPECT_EQ(node.ref_attribute()[1].ref_ints().size(), 2);
+  EXPECT_EQ(node.ref_attribute()[2].ref_name(), "pads");
+  EXPECT_EQ(node.ref_attribute()[2].ref_ints().size(), 4);
+}
+
+TEST(onnx2_proto, NodeProto_Serialization) {
+  NodeProto node1;
+  node1.set_name("conv1");
+  node1.set_op_type("Conv");
+  node1.set_domain("ai.onnx");
+
+  node1.add_input() = "X";
+  node1.add_input() = "W";
+
+  node1.add_output() = "Y";
+
+  AttributeProto &attr = node1.add_attribute();
+  attr.set_name("kernel_shape");
+  attr.set_type(AttributeProto::AttributeType::INTS);
+  attr.ref_ints().values.push_back(3);
+  attr.ref_ints().values.push_back(3);
+
+  std::string serialized;
+  node1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  NodeProto node2;
+  node2.ParseFromString(serialized);
+
+  EXPECT_EQ(node2.ref_name(), "conv1");
+  EXPECT_EQ(node2.ref_op_type(), "Conv");
+  EXPECT_EQ(node2.ref_domain(), "ai.onnx");
+  EXPECT_EQ(node2.ref_input().size(), 2);
+  EXPECT_EQ(node2.ref_input()[0], "X");
+  EXPECT_EQ(node2.ref_input()[1], "W");
+  EXPECT_EQ(node2.ref_output().size(), 1);
+  EXPECT_EQ(node2.ref_output()[0], "Y");
+  EXPECT_EQ(node2.ref_attribute().size(), 1);
+  EXPECT_EQ(node2.ref_attribute()[0].ref_name(), "kernel_shape");
+  EXPECT_EQ(node2.ref_attribute()[0].ref_ints().size(), 2);
+  EXPECT_EQ(node2.ref_attribute()[0].ref_ints()[0], 3);
+  EXPECT_EQ(node2.ref_attribute()[0].ref_ints()[1], 3);
+}
+
+TEST(onnx2_string, NodeProto_SerializeToVectorString) {
+  NodeProto node;
+  node.set_name("relu1");
+  node.set_op_type("Relu");
+  node.add_input() = "X";
+  node.add_output() = "Y";
+  node.set_doc_string("Simple ReLU activation");
+
+  std::vector<std::string> result = node.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundOpType = false;
+  bool foundInput = false;
+  bool foundOutput = false;
+  bool foundDocString = false;
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  if (serialized.find("name:") != std::string::npos && serialized.find("relu1") != std::string::npos) {
+    foundName = true;
+  }
+
+  if (serialized.find("op_type:") != std::string::npos &&
+      serialized.find("Relu") != std::string::npos) {
+    foundOpType = true;
+  }
+
+  if (serialized.find("input:") != std::string::npos && serialized.find("X") != std::string::npos) {
+    foundInput = true;
+  }
+
+  if (serialized.find("output:") != std::string::npos && serialized.find("Y") != std::string::npos) {
+    foundOutput = true;
+  }
+
+  if (serialized.find("doc_string:") != std::string::npos &&
+      serialized.find("Simple ReLU activation") != std::string::npos) {
+    foundDocString = true;
+  }
+
+  EXPECT_TRUE(foundName);
+  EXPECT_TRUE(foundOpType);
+  EXPECT_TRUE(foundInput);
+  EXPECT_TRUE(foundOutput);
+  EXPECT_TRUE(foundDocString);
+}
+
+TEST(onnx2_proto, NodeProto_CopyFrom) {
+  NodeProto source;
+  source.set_name("source_node");
+  source.set_op_type("Add");
+  source.set_domain("ai.onnx");
+  source.add_input() = "A";
+  source.add_input() = "B";
+  source.add_output() = "C";
+
+  AttributeProto &attr = source.add_attribute();
+  attr.set_name("axis");
+  attr.set_type(AttributeProto::AttributeType::INT);
+  attr.set_i(1);
+
+  source.set_doc_string("Source node documentation");
+
+  NodeProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_name(), "source_node");
+  EXPECT_EQ(target.ref_op_type(), "Add");
+  EXPECT_EQ(target.ref_domain(), "ai.onnx");
+  EXPECT_EQ(target.ref_input().size(), 2);
+  EXPECT_EQ(target.ref_input()[0], "A");
+  EXPECT_EQ(target.ref_input()[1], "B");
+  EXPECT_EQ(target.ref_output().size(), 1);
+  EXPECT_EQ(target.ref_output()[0], "C");
+  EXPECT_EQ(target.ref_attribute().size(), 1);
+  EXPECT_EQ(target.ref_attribute()[0].ref_name(), "axis");
+  EXPECT_EQ(target.ref_attribute()[0].ref_i(), 1);
+  EXPECT_EQ(target.ref_doc_string(), "Source node documentation");
+}
+
+TEST(onnx2_proto, NodeProto_ComplexModel) {
+  // Create a more complex node to test multiple attributes, inputs, outputs
+  NodeProto node;
+  node.set_name("gemm1");
+  node.set_op_type("Gemm");
+  node.set_domain("ai.onnx");
+
+  // Add inputs
+  node.add_input() = "A";
+  node.add_input() = "B";
+  node.add_input() = "C";
+
+  // Add outputs
+  node.add_output() = "Y";
+
+  // Add attributes
+  AttributeProto &alpha = node.add_attribute();
+  alpha.set_name("alpha");
+  alpha.set_type(AttributeProto::AttributeType::FLOAT);
+  alpha.set_f(0.5f);
+
+  AttributeProto &beta = node.add_attribute();
+  beta.set_name("beta");
+  beta.set_type(AttributeProto::AttributeType::FLOAT);
+  beta.set_f(0.8f);
+
+  AttributeProto &transA = node.add_attribute();
+  transA.set_name("transA");
+  transA.set_type(AttributeProto::AttributeType::INT);
+  transA.set_i(1);
+
+  AttributeProto &transB = node.add_attribute();
+  transB.set_name("transB");
+  transB.set_type(AttributeProto::AttributeType::INT);
+  transB.set_i(0);
+
+  node.set_doc_string("GEMM operation: Y = alpha * A' * B + beta * C");
+
+  EXPECT_EQ(node.ref_name(), "gemm1");
+  EXPECT_EQ(node.ref_op_type(), "Gemm");
+  EXPECT_EQ(node.ref_domain(), "ai.onnx");
+
+  EXPECT_EQ(node.ref_input().size(), 3);
+  EXPECT_EQ(node.ref_input()[0], "A");
+  EXPECT_EQ(node.ref_input()[1], "B");
+  EXPECT_EQ(node.ref_input()[2], "C");
+
+  EXPECT_EQ(node.ref_output().size(), 1);
+  EXPECT_EQ(node.ref_output()[0], "Y");
+
+  EXPECT_EQ(node.ref_attribute().size(), 4);
+  EXPECT_EQ(node.ref_attribute()[0].ref_name(), "alpha");
+  EXPECT_EQ(node.ref_attribute()[0].ref_f(), 0.5f);
+  EXPECT_EQ(node.ref_attribute()[1].ref_name(), "beta");
+  EXPECT_EQ(node.ref_attribute()[1].ref_f(), 0.8f);
+  EXPECT_EQ(node.ref_attribute()[2].ref_name(), "transA");
+  EXPECT_EQ(node.ref_attribute()[2].ref_i(), 1);
+  EXPECT_EQ(node.ref_attribute()[3].ref_name(), "transB");
+  EXPECT_EQ(node.ref_attribute()[3].ref_i(), 0);
+
+  EXPECT_EQ(node.ref_doc_string(), "GEMM operation: Y = alpha * A' * B + beta * C");
+}
+
+TEST(onnx2_proto, NodeProto_EmptyStrings) {
+  NodeProto node;
+  node.set_name("");
+  node.set_op_type("Identity");
+  node.add_input() = "";
+  node.add_output() = "";
+
+  EXPECT_TRUE(node.ref_name().empty());
+  EXPECT_EQ(node.ref_op_type(), "Identity");
+  EXPECT_EQ(node.ref_input().size(), 1);
+  EXPECT_TRUE(node.ref_input()[0].empty());
+  EXPECT_EQ(node.ref_output().size(), 1);
+  EXPECT_TRUE(node.ref_output()[0].empty());
+
+  std::string serialized;
+  node.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  NodeProto node2;
+  node2.ParseFromString(serialized);
+
+  EXPECT_TRUE(node2.ref_name().empty());
+  EXPECT_EQ(node2.ref_op_type(), "Identity");
+  EXPECT_EQ(node2.ref_input().size(), 1);
+  EXPECT_TRUE(node2.ref_input()[0].empty());
+  EXPECT_EQ(node2.ref_output().size(), 1);
+  EXPECT_TRUE(node2.ref_output()[0].empty());
+}
+
+// GraphProto
+
+TEST(onnx2_proto, GraphProto_Basic) {
+  GraphProto graph;
+
+  EXPECT_TRUE(graph.ref_name().empty());
+  EXPECT_EQ(graph.ref_node().size(), 0);
+  EXPECT_EQ(graph.ref_initializer().size(), 0);
+  EXPECT_EQ(graph.ref_input().size(), 0);
+  EXPECT_EQ(graph.ref_output().size(), 0);
+  EXPECT_EQ(graph.ref_value_info().size(), 0);
+  EXPECT_TRUE(graph.ref_doc_string().empty());
+
+  graph.set_name("test_graph");
+  graph.set_doc_string("Test graph documentation");
+
+  EXPECT_EQ(graph.ref_name(), "test_graph");
+  EXPECT_EQ(graph.ref_doc_string(), "Test graph documentation");
+}
+
+TEST(onnx2_proto, GraphProto_Nodes) {
+  GraphProto graph;
+  graph.set_name("test_graph");
+
+  // Add nodes
+  NodeProto &node1 = graph.add_node();
+  node1.set_name("conv1");
+  node1.set_op_type("Conv");
+  node1.add_input() = "X";
+  node1.add_input() = "W";
+  node1.add_output() = "Y";
+
+  NodeProto &node2 = graph.add_node();
+  node2.set_name("relu1");
+  node2.set_op_type("Relu");
+  node2.add_input() = "Y";
+  node2.add_output() = "Z";
+
+  EXPECT_EQ(graph.ref_node().size(), 2);
+  EXPECT_EQ(graph.ref_node()[0].ref_name(), "conv1");
+  EXPECT_EQ(graph.ref_node()[0].ref_op_type(), "Conv");
+  EXPECT_EQ(graph.ref_node()[1].ref_name(), "relu1");
+  EXPECT_EQ(graph.ref_node()[1].ref_op_type(), "Relu");
+}
+
+TEST(onnx2_proto, GraphProto_Inputs) {
+  GraphProto graph;
+
+  ValueInfoProto &input1 = graph.add_input();
+  input1.set_name("X");
+  TypeProto &type1 = input1.add_type();
+  type1.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &shape1 = type1.ref_tensor_type().add_shape();
+  shape1.add_dim().set_dim_value(1);
+  shape1.add_dim().set_dim_value(3);
+  shape1.add_dim().set_dim_value(224);
+  shape1.add_dim().set_dim_value(224);
+
+  ValueInfoProto &input2 = graph.add_input();
+  input2.set_name("W");
+  TypeProto &type2 = input2.add_type();
+  type2.add_tensor_type().set_elem_type(1); // FLOAT
+
+  EXPECT_EQ(graph.ref_input().size(), 2);
+  EXPECT_EQ(graph.ref_input()[0].ref_name(), "X");
+  EXPECT_EQ(graph.ref_input()[1].ref_name(), "W");
+  EXPECT_TRUE(graph.ref_input()[0].has_type());
+  EXPECT_TRUE(graph.ref_input()[0].ref_type().has_tensor_type());
+  EXPECT_EQ(graph.ref_input()[0].ref_type().ref_tensor_type().ref_elem_type(), 1);
+}
+
+TEST(onnx2_proto, GraphProto_Outputs) {
+  GraphProto graph;
+
+  ValueInfoProto &output = graph.add_output();
+  output.set_name("Z");
+  TypeProto &type = output.add_type();
+  type.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &shape = type.ref_tensor_type().add_shape();
+  shape.add_dim().set_dim_value(1);
+  shape.add_dim().set_dim_value(64);
+  shape.add_dim().set_dim_value(112);
+  shape.add_dim().set_dim_value(112);
+
+  EXPECT_EQ(graph.ref_output().size(), 1);
+  EXPECT_EQ(graph.ref_output()[0].ref_name(), "Z");
+  EXPECT_TRUE(graph.ref_output()[0].has_type());
+  EXPECT_TRUE(graph.ref_output()[0].ref_type().has_tensor_type());
+  EXPECT_TRUE(graph.ref_output()[0].ref_type().ref_tensor_type().has_shape());
+  EXPECT_EQ(graph.ref_output()[0].ref_type().ref_tensor_type().ref_shape().ref_dim().size(), 4);
+}
+
+TEST(onnx2_proto, GraphProto_ValueInfo) {
+  GraphProto graph;
+
+  ValueInfoProto &value_info = graph.add_value_info();
+  value_info.set_name("Y");
+  TypeProto &type = value_info.add_type();
+  type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  EXPECT_EQ(graph.ref_value_info().size(), 1);
+  EXPECT_EQ(graph.ref_value_info()[0].ref_name(), "Y");
+}
+
+TEST(onnx2_proto, GraphProto_Initializers) {
+  GraphProto graph;
+
+  TensorProto &initializer = graph.add_initializer();
+  initializer.set_name("W");
+  initializer.set_data_type(TensorProto::DataType::FLOAT);
+  initializer.ref_dims().values.push_back(64);
+  initializer.ref_dims().values.push_back(3);
+  initializer.ref_dims().values.push_back(3);
+  initializer.ref_dims().values.push_back(3);
+
+  for (int i = 0; i < 64 * 3 * 3 * 3; ++i) {
+    initializer.ref_float_data().values.push_back(static_cast<float>(i) * 0.01f);
+  }
+
+  EXPECT_EQ(graph.ref_initializer().size(), 1);
+  EXPECT_EQ(graph.ref_initializer()[0].ref_name(), "W");
+  EXPECT_EQ(graph.ref_initializer()[0].ref_data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(graph.ref_initializer()[0].ref_dims().size(), 4);
+  EXPECT_EQ(graph.ref_initializer()[0].ref_float_data().size(), 64 * 3 * 3 * 3);
+}
+
+TEST(onnx2_proto, GraphProto_Serialization) {
+  GraphProto graph1;
+  graph1.set_name("serialization_test");
+
+  NodeProto &node = graph1.add_node();
+  node.set_name("node1");
+  node.set_op_type("Identity");
+  node.add_input() = "X";
+  node.add_output() = "Y";
+
+  ValueInfoProto &input = graph1.add_input();
+  input.set_name("X");
+
+  ValueInfoProto &output = graph1.add_output();
+  output.set_name("Y");
+
+  std::string serialized;
+  graph1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  GraphProto graph2;
+  graph2.ParseFromString(serialized);
+
+  EXPECT_EQ(graph2.ref_name(), "serialization_test");
+  EXPECT_EQ(graph2.ref_node().size(), 1);
+  EXPECT_EQ(graph2.ref_node()[0].ref_name(), "node1");
+  EXPECT_EQ(graph2.ref_node()[0].ref_op_type(), "Identity");
+  EXPECT_EQ(graph2.ref_input().size(), 1);
+  EXPECT_EQ(graph2.ref_input()[0].ref_name(), "X");
+  EXPECT_EQ(graph2.ref_output().size(), 1);
+  EXPECT_EQ(graph2.ref_output()[0].ref_name(), "Y");
+}
+
+TEST(onnx2_proto, GraphProto_SerializeToVectorString) {
+  GraphProto graph;
+  graph.set_name("vector_serialization_test");
+  graph.set_doc_string("Test graph for vector serialization");
+
+  NodeProto &node = graph.add_node();
+  node.set_name("add_node");
+  node.set_op_type("Add");
+  node.add_input() = "A";
+  node.add_input() = "B";
+  node.add_output() = "C";
+
+  std::vector<std::string> result = graph.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundDocString = false;
+  bool foundNode = false;
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  if (serialized.find("name:") != std::string::npos &&
+      serialized.find("vector_serialization_test") != std::string::npos) {
+    foundName = true;
+  }
+
+  if (serialized.find("doc_string:") != std::string::npos &&
+      serialized.find("Test graph for vector serialization") != std::string::npos) {
+    foundDocString = true;
+  }
+
+  if (serialized.find("node") != std::string::npos &&
+      serialized.find("add_node") != std::string::npos) {
+    foundNode = true;
+  }
+
+  EXPECT_TRUE(foundName);
+  EXPECT_TRUE(foundDocString);
+  EXPECT_TRUE(foundNode);
+}
+
+TEST(onnx2_proto, GraphProto_CopyFrom) {
+  GraphProto source;
+  source.set_name("source_graph");
+  source.set_doc_string("Source graph documentation");
+
+  NodeProto &node = source.add_node();
+  node.set_name("test_node");
+  node.set_op_type("Test");
+
+  ValueInfoProto &input = source.add_input();
+  input.set_name("input_tensor");
+
+  ValueInfoProto &output = source.add_output();
+  output.set_name("output_tensor");
+
+  TensorProto &initializer = source.add_initializer();
+  initializer.set_name("weights");
+  initializer.set_data_type(TensorProto::DataType::FLOAT);
+
+  GraphProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_name(), "source_graph");
+  EXPECT_EQ(target.ref_doc_string(), "Source graph documentation");
+  EXPECT_EQ(target.ref_node().size(), 1);
+  EXPECT_EQ(target.ref_node()[0].ref_name(), "test_node");
+  EXPECT_EQ(target.ref_input().size(), 1);
+  EXPECT_EQ(target.ref_input()[0].ref_name(), "input_tensor");
+  EXPECT_EQ(target.ref_output().size(), 1);
+  EXPECT_EQ(target.ref_output()[0].ref_name(), "output_tensor");
+  EXPECT_EQ(target.ref_initializer().size(), 1);
+  EXPECT_EQ(target.ref_initializer()[0].ref_name(), "weights");
+}
+
+TEST(onnx2_proto, GraphProto_ComplexModel) {
+  GraphProto graph;
+  graph.set_name("complex_model");
+
+  // Create input
+  ValueInfoProto &input = graph.add_input();
+  input.set_name("data");
+  TypeProto &input_type = input.add_type();
+  input_type.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &input_shape = input_type.ref_tensor_type().add_shape();
+  input_shape.add_dim().set_dim_value(1);
+  input_shape.add_dim().set_dim_value(3);
+  input_shape.add_dim().set_dim_value(224);
+  input_shape.add_dim().set_dim_value(224);
+
+  // Create weights initializer
+  TensorProto &weights = graph.add_initializer();
+  weights.set_name("conv1_weights");
+  weights.set_data_type(TensorProto::DataType::FLOAT);
+  weights.ref_dims().values.push_back(64);
+  weights.ref_dims().values.push_back(3);
+  weights.ref_dims().values.push_back(7);
+  weights.ref_dims().values.push_back(7);
+
+  // Create bias initializer
+  TensorProto &bias = graph.add_initializer();
+  bias.set_name("conv1_bias");
+  bias.set_data_type(TensorProto::DataType::FLOAT);
+  bias.ref_dims().values.push_back(64);
+
+  // Add Conv node
+  NodeProto &conv = graph.add_node();
+  conv.set_name("conv1");
+  conv.set_op_type("Conv");
+  conv.add_input() = "data";
+  conv.add_input() = "conv1_weights";
+  conv.add_input() = "conv1_bias";
+  conv.add_output() = "conv1_output";
+
+  AttributeProto &strides = conv.add_attribute();
+  strides.set_name("strides");
+  strides.set_type(AttributeProto::AttributeType::INTS);
+  strides.ref_ints().values.push_back(2);
+  strides.ref_ints().values.push_back(2);
+
+  AttributeProto &kernel_shape = conv.add_attribute();
+  kernel_shape.set_name("kernel_shape");
+  kernel_shape.set_type(AttributeProto::AttributeType::INTS);
+  kernel_shape.ref_ints().values.push_back(7);
+  kernel_shape.ref_ints().values.push_back(7);
+
+  AttributeProto &pads = conv.add_attribute();
+  pads.set_name("pads");
+  pads.set_type(AttributeProto::AttributeType::INTS);
+  pads.ref_ints().values.push_back(3);
+  pads.ref_ints().values.push_back(3);
+  pads.ref_ints().values.push_back(3);
+  pads.ref_ints().values.push_back(3);
+
+  // Add ReLU node
+  NodeProto &relu = graph.add_node();
+  relu.set_name("relu1");
+  relu.set_op_type("Relu");
+  relu.add_input() = "conv1_output";
+  relu.add_output() = "relu1_output";
+
+  // Add output
+  ValueInfoProto &output = graph.add_output();
+  output.set_name("relu1_output");
+  TypeProto &output_type = output.add_type();
+  output_type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  // Add intermediate value info
+  ValueInfoProto &intermediate = graph.add_value_info();
+  intermediate.set_name("conv1_output");
+  TypeProto &intermediate_type = intermediate.add_type();
+  intermediate_type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  EXPECT_EQ(graph.ref_name(), "complex_model");
+  EXPECT_EQ(graph.ref_node().size(), 2);
+  EXPECT_EQ(graph.ref_initializer().size(), 2);
+  EXPECT_EQ(graph.ref_input().size(), 1);
+  EXPECT_EQ(graph.ref_output().size(), 1);
+  EXPECT_EQ(graph.ref_value_info().size(), 1);
+}
+
+// FunctionProto
+
+TEST(onnx2_proto, FunctionProto_Basic) {
+  FunctionProto function;
+
+  EXPECT_TRUE(function.ref_name().empty());
+  EXPECT_TRUE(function.ref_domain().empty());
+  EXPECT_EQ(function.ref_input().size(), 0);
+  EXPECT_EQ(function.ref_output().size(), 0);
+  EXPECT_EQ(function.ref_attribute().size(), 0);
+  EXPECT_EQ(function.ref_node().size(), 0);
+  EXPECT_TRUE(function.ref_doc_string().empty());
+
+  function.set_name("test_function");
+  function.set_domain("ai.custom");
+  function.set_doc_string("Test function documentation");
+
+  // Add inputs
+  function.add_input() = "X";
+  function.add_input() = "W";
+
+  // Add outputs
+  function.add_output() = "Y";
+
+  // Add attributes
+  function.add_attribute() = "alpha";
+  function.add_attribute() = "beta";
+
+  EXPECT_EQ(function.ref_name(), "test_function");
+  EXPECT_EQ(function.ref_domain(), "ai.custom");
+  EXPECT_EQ(function.ref_doc_string(), "Test function documentation");
+  EXPECT_EQ(function.ref_input().size(), 2);
+  EXPECT_EQ(function.ref_input()[0], "X");
+  EXPECT_EQ(function.ref_input()[1], "W");
+  EXPECT_EQ(function.ref_output().size(), 1);
+  EXPECT_EQ(function.ref_output()[0], "Y");
+  EXPECT_EQ(function.ref_attribute().size(), 2);
+  EXPECT_EQ(function.ref_attribute()[0], "alpha");
+  EXPECT_EQ(function.ref_attribute()[1], "beta");
+}
+
+TEST(onnx2_proto, FunctionProto_Nodes) {
+  FunctionProto function;
+  function.set_name("custom_op");
+
+  // Add nodes
+  NodeProto &node1 = function.add_node();
+  node1.set_name("mul");
+  node1.set_op_type("Mul");
+  node1.add_input() = "X";
+  node1.add_input() = "W";
+  node1.add_output() = "XW";
+
+  NodeProto &node2 = function.add_node();
+  node2.set_name("add");
+  node2.set_op_type("Add");
+  node2.add_input() = "XW";
+  node2.add_input() = "B";
+  node2.add_output() = "Y";
+
+  EXPECT_EQ(function.ref_node().size(), 2);
+  EXPECT_EQ(function.ref_node()[0].ref_name(), "mul");
+  EXPECT_EQ(function.ref_node()[0].ref_op_type(), "Mul");
+  EXPECT_EQ(function.ref_node()[1].ref_name(), "add");
+  EXPECT_EQ(function.ref_node()[1].ref_op_type(), "Add");
+}
+
+TEST(onnx2_proto, FunctionProto_Serialization) {
+  FunctionProto function1;
+  function1.set_name("serialization_function");
+  function1.set_domain("ai.test");
+  function1.set_doc_string("Function for serialization testing");
+
+  function1.add_input() = "X";
+  function1.add_output() = "Y";
+  function1.add_attribute() = "param";
+
+  NodeProto &node = function1.add_node();
+  node.set_name("op1");
+  node.set_op_type("CustomOp");
+  node.add_input() = "X";
+  node.add_output() = "Y";
+
+  std::string serialized;
+  function1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  FunctionProto function2;
+  function2.ParseFromString(serialized);
+
+  EXPECT_EQ(function2.ref_name(), "serialization_function");
+  EXPECT_EQ(function2.ref_domain(), "ai.test");
+  EXPECT_EQ(function2.ref_doc_string(), "Function for serialization testing");
+  EXPECT_EQ(function2.ref_input().size(), 1);
+  EXPECT_EQ(function2.ref_input()[0], "X");
+  EXPECT_EQ(function2.ref_output().size(), 1);
+  EXPECT_EQ(function2.ref_output()[0], "Y");
+  EXPECT_EQ(function2.ref_attribute().size(), 1);
+  EXPECT_EQ(function2.ref_attribute()[0], "param");
+  EXPECT_EQ(function2.ref_node().size(), 1);
+  EXPECT_EQ(function2.ref_node()[0].ref_name(), "op1");
+}
+
+TEST(onnx2_proto, FunctionProto_CopyFrom) {
+  FunctionProto source;
+  source.set_name("source_function");
+  source.set_domain("ai.source");
+  source.add_input() = "X";
+  source.add_output() = "Y";
+  source.add_attribute() = "attr1";
+
+  NodeProto &node = source.add_node();
+  node.set_op_type("Identity");
+
+  source.set_doc_string("Source function documentation");
+
+  FunctionProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_name(), "source_function");
+  EXPECT_EQ(target.ref_domain(), "ai.source");
+  EXPECT_EQ(target.ref_input().size(), 1);
+  EXPECT_EQ(target.ref_input()[0], "X");
+  EXPECT_EQ(target.ref_output().size(), 1);
+  EXPECT_EQ(target.ref_output()[0], "Y");
+  EXPECT_EQ(target.ref_attribute().size(), 1);
+  EXPECT_EQ(target.ref_attribute()[0], "attr1");
+  EXPECT_EQ(target.ref_node().size(), 1);
+  EXPECT_EQ(target.ref_node()[0].ref_op_type(), "Identity");
+  EXPECT_EQ(target.ref_doc_string(), "Source function documentation");
+}
+
+TEST(onnx2_string, FunctionProto) {
+  FunctionProto function;
+  function.set_name("my_function");
+  function.set_domain("ai.custom");
+  function.add_input() = "input1";
+  function.add_input() = "input2";
+  function.add_output() = "output";
+  function.add_attribute() = "attr";
+  function.set_doc_string("Custom function implementation");
+
+  NodeProto &node = function.add_node();
+  node.set_name("operation");
+  node.set_op_type("MatMul");
+
+  std::vector<std::string> result = function.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  EXPECT_TRUE(serialized.find("name: \"my_function\"") != std::string::npos);
+  EXPECT_TRUE(serialized.find("domain: \"ai.custom\"") != std::string::npos);
+  EXPECT_TRUE(serialized.find("input:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("output:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("attribute:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("node: [") != std::string::npos);
+  EXPECT_TRUE(serialized.find("doc_string:") != std::string::npos);
+}
+
+// ModelProto
+
+TEST(onnx2_proto, ModelProto_Basic) {
+  ModelProto model;
+
+  EXPECT_TRUE(model.ref_producer_name().empty());
+  EXPECT_TRUE(model.ref_producer_version().empty());
+  EXPECT_TRUE(model.ref_domain().empty());
+  EXPECT_EQ(model.ref_model_version(), 0);
+  EXPECT_TRUE(model.ref_doc_string().empty());
+  EXPECT_FALSE(model.has_graph());
+  EXPECT_EQ(model.ref_opset_import().size(), 0);
+  EXPECT_EQ(model.ref_metadata_props().size(), 0);
+
+  model.set_ir_version(1);
+  model.set_producer_name("test_producer");
+  model.set_producer_version("1.0.0");
+  model.set_domain("ai.test");
+  model.set_model_version(1);
+  model.set_doc_string("Test model documentation");
+
+  EXPECT_EQ(model.ref_ir_version(), 1);
+  EXPECT_EQ(model.ref_producer_name(), "test_producer");
+  EXPECT_EQ(model.ref_producer_version(), "1.0.0");
+  EXPECT_EQ(model.ref_domain(), "ai.test");
+  EXPECT_EQ(model.ref_model_version(), 1);
+  EXPECT_EQ(model.ref_doc_string(), "Test model documentation");
+}
+
+TEST(onnx2_proto, ModelProto_Graph) {
+  ModelProto model;
+
+  GraphProto &graph = model.add_graph();
+  graph.set_name("test_graph");
+
+  NodeProto &node = graph.add_node();
+  node.set_name("test_node");
+  node.set_op_type("Add");
+
+  EXPECT_TRUE(model.has_graph());
+  EXPECT_EQ(model.ref_graph().ref_name(), "test_graph");
+  EXPECT_EQ(model.ref_graph().ref_node().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_node()[0].ref_name(), "test_node");
+  EXPECT_EQ(model.ref_graph().ref_node()[0].ref_op_type(), "Add");
+}
+
+TEST(onnx2_proto, ModelProto_OpsetImport) {
+  ModelProto model;
+
+  OperatorSetIdProto &opset1 = model.add_opset_import();
+  opset1.set_domain("ai.onnx");
+  opset1.set_version(12);
+
+  OperatorSetIdProto &opset2 = model.add_opset_import();
+  opset2.set_domain("ai.onnx.ml");
+  opset2.set_version(2);
+
+  EXPECT_EQ(model.ref_opset_import().size(), 2);
+  EXPECT_EQ(model.ref_opset_import()[0].ref_domain(), "ai.onnx");
+  EXPECT_EQ(model.ref_opset_import()[0].ref_version(), 12);
+  EXPECT_EQ(model.ref_opset_import()[1].ref_domain(), "ai.onnx.ml");
+  EXPECT_EQ(model.ref_opset_import()[1].ref_version(), 2);
+}
+
+TEST(onnx2_proto, ModelProto_MetadataProps) {
+  ModelProto model;
+
+  StringStringEntryProto &metadata1 = model.add_metadata_props();
+  metadata1.set_key("author");
+  metadata1.set_value("test_author");
+
+  StringStringEntryProto &metadata2 = model.add_metadata_props();
+  metadata2.set_key("description");
+  metadata2.set_value("test description");
+
+  EXPECT_EQ(model.ref_metadata_props().size(), 2);
+  EXPECT_EQ(model.ref_metadata_props()[0].ref_key(), "author");
+  EXPECT_EQ(model.ref_metadata_props()[0].ref_value(), "test_author");
+  EXPECT_EQ(model.ref_metadata_props()[1].ref_key(), "description");
+  EXPECT_EQ(model.ref_metadata_props()[1].ref_value(), "test description");
+}
+
+TEST(onnx2_proto, ModelProto_Serialization) {
+  ModelProto model1;
+  model1.set_ir_version(1);
+  model1.set_producer_name("serialization_test");
+  model1.set_model_version(42);
+
+  GraphProto &graph = model1.add_graph();
+  graph.set_name("serialized_graph");
+
+  NodeProto &node = graph.add_node();
+  node.set_name("test_node");
+  node.set_op_type("Identity");
+
+  StringStringEntryProto &metadata = model1.add_metadata_props();
+  metadata.set_key("test_key");
+  metadata.set_value("test_value");
+
+  std::string serialized;
+  model1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  ModelProto model2;
+  model2.ParseFromString(serialized);
+
+  EXPECT_EQ(model2.ref_ir_version(), 1);
+  EXPECT_EQ(model2.ref_producer_name(), "serialization_test");
+  EXPECT_EQ(model2.ref_model_version(), 42);
+  EXPECT_TRUE(model2.has_graph());
+  EXPECT_EQ(model2.ref_graph().ref_name(), "serialized_graph");
+  EXPECT_EQ(model2.ref_graph().ref_node().size(), 1);
+  EXPECT_EQ(model2.ref_graph().ref_node()[0].ref_name(), "test_node");
+  EXPECT_EQ(model2.ref_metadata_props().size(), 1);
+  EXPECT_EQ(model2.ref_metadata_props()[0].ref_key(), "test_key");
+  EXPECT_EQ(model2.ref_metadata_props()[0].ref_value(), "test_value");
+}
+
+TEST(onnx2_proto, ModelProto_SerializeToVectorString) {
+  ModelProto model;
+  model.set_ir_version(7);
+  model.set_producer_name("test_producer");
+  model.set_doc_string("Model documentation");
+  model.add_graph().set_name("test_graph");
+
+  std::vector<std::string> result = model.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  EXPECT_TRUE(serialized.find("ir_version:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("producer_name:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("test_producer") != std::string::npos);
+  EXPECT_TRUE(serialized.find("doc_string:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("Model documentation") != std::string::npos);
+  EXPECT_TRUE(serialized.find("graph") != std::string::npos);
+  EXPECT_TRUE(serialized.find("test_graph") != std::string::npos);
+}
+
+TEST(onnx2_proto, ModelProto_CopyFrom) {
+  ModelProto source;
+  source.set_ir_version(2);
+  source.set_producer_name("source_producer");
+  source.set_model_version(123);
+  source.add_graph().set_name("source_graph");
+
+  OperatorSetIdProto &opset = source.add_opset_import();
+  opset.set_domain("ai.onnx");
+  opset.set_version(15);
+
+  StringStringEntryProto &metadata = source.add_metadata_props();
+  metadata.set_key("source_key");
+  metadata.set_value("source_value");
+
+  ModelProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_ir_version(), 2);
+  EXPECT_EQ(target.ref_producer_name(), "source_producer");
+  EXPECT_EQ(target.ref_model_version(), 123);
+  EXPECT_TRUE(target.has_graph());
+  EXPECT_EQ(target.ref_graph().ref_name(), "source_graph");
+  EXPECT_EQ(target.ref_opset_import().size(), 1);
+  EXPECT_EQ(target.ref_opset_import()[0].ref_domain(), "ai.onnx");
+  EXPECT_EQ(target.ref_opset_import()[0].ref_version(), 15);
+  EXPECT_EQ(target.ref_metadata_props().size(), 1);
+  EXPECT_EQ(target.ref_metadata_props()[0].ref_key(), "source_key");
+  EXPECT_EQ(target.ref_metadata_props()[0].ref_value(), "source_value");
+}
+
+TEST(onnx2_proto, ModelProto_ComplexModel) {
+  ModelProto model;
+  model.set_ir_version(3);
+  model.set_producer_name("complex_model_producer");
+  model.set_producer_version("1.0.0");
+  model.set_model_version(1);
+
+  OperatorSetIdProto &opset = model.add_opset_import();
+  opset.set_domain("ai.onnx");
+  opset.set_version(13);
+
+  GraphProto &graph = model.add_graph();
+  graph.set_name("complex_model_graph");
+
+  // Add input
+  ValueInfoProto &input = graph.add_input();
+  input.set_name("input_tensor");
+  TypeProto &input_type = input.add_type();
+  input_type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  // Add initializer
+  TensorProto &weights = graph.add_initializer();
+  weights.set_name("weights");
+  weights.set_data_type(TensorProto::DataType::FLOAT);
+  weights.ref_dims().values.push_back(3);
+  weights.ref_dims().values.push_back(3);
+
+  // Add node
+  NodeProto &node = graph.add_node();
+  node.set_name("matmul_node");
+  node.set_op_type("MatMul");
+  node.add_input() = "input_tensor";
+  node.add_input() = "weights";
+  node.add_output() = "output_tensor";
+
+  // Add output
+  ValueInfoProto &output = graph.add_output();
+  output.set_name("output_tensor");
+
+  // Add metadata
+  StringStringEntryProto &metadata = model.add_metadata_props();
+  metadata.set_key("framework");
+  metadata.set_value("test_framework");
+
+  EXPECT_EQ(model.ref_ir_version(), 3);
+  EXPECT_EQ(model.ref_producer_name(), "complex_model_producer");
+  EXPECT_EQ(model.ref_model_version(), 1);
+  EXPECT_TRUE(model.has_graph());
+
+  EXPECT_EQ(model.ref_graph().ref_input().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_initializer().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_node().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_output().size(), 1);
+
+  EXPECT_EQ(model.ref_opset_import().size(), 1);
+  EXPECT_EQ(model.ref_opset_import()[0].ref_version(), 13);
+
+  EXPECT_EQ(model.ref_metadata_props().size(), 1);
+  EXPECT_EQ(model.ref_metadata_props()[0].ref_key(), "framework");
+}
+
+TEST(onnx2_proto, AttributeProto_InNodeProto1) {
+  NodeProto node;
+  node.set_name("test_node");
+  node.set_op_type("TestOp");
+  AttributeProto &attr1 = node.add_attribute();
+  attr1.set_type(AttributeProto::AttributeType::INT);
+  attr1.ref_i() = 2;
+  AttributeProto att2;
+  att2.set_type(AttributeProto::AttributeType::INT);
+  att2.ref_i() = 2;
+  node.ref_attribute().push_back(att2);
+  std::string s1 = node.ref_attribute()[0].SerializeToVectorString()[0];
+  std::string s2 = node.ref_attribute()[1].SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s2);
+  std::string s4 = att2.SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s4);
+}
+
+TEST(onnx2_proto, AttributeProto_InNodeProto2) {
+  NodeProto node;
+  node.set_name("test_node");
+  node.set_op_type("TestOp");
+  AttributeProto &attr1 = node.add_attribute();
+  attr1.set_type(AttributeProto::AttributeType::INT);
+  attr1.ref_i() = 2;
+  AttributeProto &att2 = node.add_attribute();
+  att2.set_type(AttributeProto::AttributeType::INT);
+  att2.ref_i() = 2;
+  std::string s1 = node.ref_attribute()[0].SerializeToVectorString()[0];
+  std::string s2 = node.ref_attribute()[1].SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s2);
+  std::string s4 = att2.SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s4);
+}

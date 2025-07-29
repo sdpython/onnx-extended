@@ -88,6 +88,7 @@ public:                                                                         
   }                                                                                                    \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }                  \
   inline int order_##name() const { return order; }                                                    \
+  inline void clr_##name() { name##_.clear(); }                                                        \
   static inline constexpr const char *DOC_##name = doc;                                                \
   static inline constexpr const char *_name_##name = #name;                                            \
   inline bool packed_##name() const { return false; }                                                  \
@@ -106,6 +107,7 @@ public:                                                                         
   }                                                                                                    \
   inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }                  \
   inline int order_##name() const { return order; }                                                    \
+  inline void clr_##name() { name##_.clear(); }                                                        \
   static inline constexpr const char *DOC_##name = doc;                                                \
   static inline constexpr const char *_name_##name = #name;                                            \
   inline bool packed_##name() const { return true; }                                                   \
@@ -115,7 +117,9 @@ public:                                                                         
 #define _FIELD_OPTIONAL(type, name, order, doc)                                                        \
 public:                                                                                                \
   inline type &ref_##name() {                                                                          \
-    EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");                    \
+    if (!has_##name()) {                                                                               \
+      add_##name();                                                                                    \
+    }                                                                                                  \
     return *name##_;                                                                                   \
   }                                                                                                    \
   inline const type &ref_##name() const {                                                              \

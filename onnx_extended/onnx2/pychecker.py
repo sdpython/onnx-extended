@@ -1,4 +1,4 @@
-from . import AttributeProto, SparseTensorProto
+from . import AttributeProto, ModelProto, SparseTensorProto
 
 
 class ValidationError(ValueError):
@@ -31,3 +31,12 @@ def check_sparse_tensor(sp: SparseTensorProto):
     shape = tuple(sp.dims)
     if len(shape) != 2:
         raise ValidationError(f"Only 2D sparse tensors are allowed: {shape}")
+
+
+def check_model(model: ModelProto):
+    """Checks a ModelProto is valid."""
+    meta = set(m.key for m in model.metadata_props)
+    if len(meta) != len(model.metadata_props):
+        raise ValidationError(
+            f"Duplicated key in metadata_props: {model.metadata_props}"
+        )

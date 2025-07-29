@@ -44,6 +44,12 @@ jobs:
       python -m pip install -e . -v
     displayName: 'pip install -e . -v'
   - script: |
+      set -e
+      for f in $(find . -type f -name "test_*_cpp" -executable); do
+          "$f"
+      done  
+    displayName: 'Unit test C++ onnx2'
+  - script: |
       find . -type f -name "test_onnx*_cpp" -executable -exec {} \;
       find . -type f -name "test_validation*_cpp" -executable -exec {} \;
       find . -type f -name "test_c*_cpp" -executable -exec {} \;

@@ -1,9 +1,13 @@
 from .cpu._onnx2py import (
     AttributeProto,
     DeviceConfigurationProto,
+    FunctionProto,
+    GraphProto,
     IntIntListEntryProto,
     Message,
+    ModelProto,
     NodeDeviceConfigurationProto,
+    NodeProto,
     OperatorSetIdProto,
     OperatorStatus,
     ShardedDimProto,

@@ -506,12 +506,191 @@ void AttributeProto::ParseFromStream(utils::BinaryStream &stream){
 }
 
 std::vector<std::string> AttributeProto::SerializeToVectorString() const {
+  switch (type_) {
+  case AttributeType::UNDEFINED:
+    return {MakeString("{ ", name_.as_string(), ": UNDEFINED }")};
+  case AttributeType::FLOAT:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(f))};
+  case AttributeType::INT:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(i))};
+  case AttributeType::STRING:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(s))};
+  case AttributeType::FLOATS:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(floats))};
+  case AttributeType::INTS:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ints))};
+  case AttributeType::STRINGS:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(strings))};
+  default:
+    return write_proto_into_vector_string(
+        NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ref_attr_name), NAME_EXIST_VALUE(doc_string),
+        NAME_EXIST_VALUE(type), NAME_EXIST_VALUE(f), NAME_EXIST_VALUE(i), NAME_EXIST_VALUE(s),
+        NAME_EXIST_VALUE(t), NAME_EXIST_VALUE(sparse_tensor), NAME_EXIST_VALUE(floats),
+        NAME_EXIST_VALUE(ints), NAME_EXIST_VALUE(strings), NAME_EXIST_VALUE(tensors),
+        NAME_EXIST_VALUE(sparse_tensors));
+  }
+}
+
+// NodeProto
+IMPLEMENT_PROTO(NodeProto)
+
+void NodeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_REPEATED_FIELD(stream, input)
+  WRITE_REPEATED_FIELD(stream, output)
+  WRITE_FIELD(stream, name)
+  WRITE_FIELD(stream, op_type)
+  WRITE_REPEATED_FIELD(stream, attribute)
+  WRITE_FIELD(stream, domain)
+  WRITE_FIELD(stream, overload)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+  WRITE_REPEATED_FIELD(stream, device_configurations)
+}
+
+void NodeProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, NodeProto)                      //
+    READ_REPEATED_FIELD(stream, input)                 //
+    READ_REPEATED_FIELD(stream, output)                //
+    READ_FIELD(stream, name)                           //
+    READ_FIELD(stream, op_type)                        //
+    READ_REPEATED_FIELD(stream, attribute)             //
+    READ_FIELD(stream, domain)                         //
+    READ_FIELD(stream, overload)                       //
+    READ_FIELD(stream, doc_string)                     //
+    READ_REPEATED_FIELD(stream, metadata_props)        //
+    READ_REPEATED_FIELD(stream, device_configurations) //
+    READ_END(stream, NodeProto)                        //
+}
+
+std::vector<std::string> NodeProto::SerializeToVectorString() const {
   return write_proto_into_vector_string(
-      NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ref_attr_name), NAME_EXIST_VALUE(doc_string),
-      NAME_EXIST_VALUE(type), NAME_EXIST_VALUE(f), NAME_EXIST_VALUE(i), NAME_EXIST_VALUE(s),
-      NAME_EXIST_VALUE(t), NAME_EXIST_VALUE(sparse_tensor), NAME_EXIST_VALUE(floats),
-      NAME_EXIST_VALUE(ints), NAME_EXIST_VALUE(strings), NAME_EXIST_VALUE(tensors),
-      NAME_EXIST_VALUE(sparse_tensors));
+      NAME_EXIST_VALUE(input), NAME_EXIST_VALUE(output), NAME_EXIST_VALUE(name),
+      NAME_EXIST_VALUE(op_type), NAME_EXIST_VALUE(attribute), NAME_EXIST_VALUE(domain),
+      NAME_EXIST_VALUE(overload), NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(metadata_props),
+      NAME_EXIST_VALUE(device_configurations));
+}
+
+// GraphProto
+IMPLEMENT_PROTO(GraphProto)
+
+void GraphProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_REPEATED_FIELD(stream, node)
+  WRITE_FIELD(stream, name)
+  WRITE_REPEATED_FIELD(stream, initializer)
+  WRITE_REPEATED_FIELD(stream, sparse_initializer)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_REPEATED_FIELD(stream, input)
+  WRITE_REPEATED_FIELD(stream, output)
+  WRITE_REPEATED_FIELD(stream, value_info)
+  WRITE_REPEATED_FIELD(stream, quantization_annotation)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+}
+
+void GraphProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, GraphProto)                       //
+    READ_REPEATED_FIELD(stream, node)                    //
+    READ_FIELD(stream, name)                             //
+    READ_REPEATED_FIELD(stream, initializer)             //
+    READ_REPEATED_FIELD(stream, sparse_initializer)      //
+    READ_FIELD(stream, doc_string)                       //
+    READ_REPEATED_FIELD(stream, input)                   //
+    READ_REPEATED_FIELD(stream, output)                  //
+    READ_REPEATED_FIELD(stream, value_info)              //
+    READ_REPEATED_FIELD(stream, quantization_annotation) //
+    READ_REPEATED_FIELD(stream, metadata_props)          //
+    READ_END(stream, GraphProto)                         //  // NOLINT
+}
+
+std::vector<std::string> GraphProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(
+      NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(input),
+      NAME_EXIST_VALUE(output), NAME_EXIST_VALUE(metadata_props), NAME_EXIST_VALUE(node),
+      NAME_EXIST_VALUE(initializer), NAME_EXIST_VALUE(sparse_initializer), NAME_EXIST_VALUE(value_info),
+      NAME_EXIST_VALUE(quantization_annotation));
+}
+
+// FunctionProto
+IMPLEMENT_PROTO(FunctionProto)
+
+void FunctionProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, name)
+  WRITE_REPEATED_FIELD(stream, input)
+  WRITE_REPEATED_FIELD(stream, output)
+  WRITE_REPEATED_FIELD(stream, attribute)
+  WRITE_REPEATED_FIELD(stream, attribute_proto)
+  WRITE_REPEATED_FIELD(stream, node)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_REPEATED_FIELD(stream, opset_import)
+  WRITE_FIELD(stream, domain)
+  WRITE_FIELD(stream, overload)
+  WRITE_REPEATED_FIELD(stream, value_info)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+}
+
+void FunctionProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, FunctionProto)            //
+    READ_FIELD(stream, name)                     //
+    READ_REPEATED_FIELD(stream, input)           //
+    READ_REPEATED_FIELD(stream, output)          //
+    READ_REPEATED_FIELD(stream, attribute)       //
+    READ_REPEATED_FIELD(stream, attribute_proto) //
+    READ_REPEATED_FIELD(stream, node)            //
+    READ_FIELD(stream, doc_string)               //
+    READ_REPEATED_FIELD(stream, opset_import)    //
+    READ_FIELD(stream, domain)                   //
+    READ_FIELD(stream, overload)                 //
+    READ_REPEATED_FIELD(stream, value_info)      //
+    READ_REPEATED_FIELD(stream, metadata_props)  //
+    READ_END(stream, FunctionProto)              //  // NOLINT
+}
+
+std::vector<std::string> FunctionProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(
+      NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(domain), NAME_EXIST_VALUE(overload),
+      NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(input), NAME_EXIST_VALUE(output),
+      NAME_EXIST_VALUE(opset_import), NAME_EXIST_VALUE(attribute), NAME_EXIST_VALUE(attribute_proto),
+      NAME_EXIST_VALUE(node), NAME_EXIST_VALUE(value_info), NAME_EXIST_VALUE(metadata_props));
+}
+
+// ModelProto
+IMPLEMENT_PROTO(ModelProto)
+
+void ModelProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, ir_version)
+  WRITE_REPEATED_FIELD(stream, opset_import)
+  WRITE_FIELD(stream, producer_name)
+  WRITE_FIELD(stream, producer_version)
+  WRITE_FIELD(stream, domain)
+  WRITE_FIELD(stream, model_version)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_OPTIONAL_PROTO_FIELD(stream, graph)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+  WRITE_REPEATED_FIELD(stream, functions)
+  WRITE_REPEATED_FIELD(stream, configuration)
+}
+
+void ModelProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, ModelProto)              //
+    READ_FIELD(stream, ir_version)              //
+    READ_REPEATED_FIELD(stream, opset_import)   //
+    READ_FIELD(stream, producer_name)           //
+    READ_FIELD(stream, producer_version)        //
+    READ_FIELD(stream, domain)                  //
+    READ_FIELD(stream, model_version)           //
+    READ_FIELD(stream, doc_string)              //
+    READ_OPTIONAL_PROTO_FIELD(stream, graph)    //
+    READ_REPEATED_FIELD(stream, metadata_props) //
+    READ_REPEATED_FIELD(stream, functions)      //
+    READ_REPEATED_FIELD(stream, configuration)  //
+    READ_END(stream, ModelProto)                //  // NOLINT
+}
+
+std::vector<std::string> ModelProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(
+      NAME_EXIST_VALUE(ir_version), NAME_EXIST_VALUE(opset_import), NAME_EXIST_VALUE(producer_name),
+      NAME_EXIST_VALUE(producer_version), NAME_EXIST_VALUE(domain), NAME_EXIST_VALUE(model_version),
+      NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(graph), NAME_EXIST_VALUE(metadata_props),
+      NAME_EXIST_VALUE(functions), NAME_EXIST_VALUE(configuration));
 }
 
 } // namespace onnx2

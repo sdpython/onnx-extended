@@ -3,12 +3,17 @@ import collections
 import functools
 import math
 import numbers
-from typing import Any, NamedTuple, Sequence
+from typing import Any, NamedTuple, Optional, Sequence
 import numpy as np
 from .cpu._onnx2py import (
     AttributeProto,
+    FunctionProto,
+    GraphProto,
+    ModelProto,
+    NodeProto,
     OperatorSetIdProto,
     SparseTensorProto,
+    StringStringEntryProto,
     TensorProto,
     TypeProto,
     ValueInfoProto,
@@ -512,7 +517,7 @@ def make_tensor(
     this case.
 
     :param name: tensor name
-    :param data_type: a value such as onnx.TensorProto.FLOAT
+    :param data_type: a value such as TensorProto.FLOAT
     :param dims: shape
     :param vals: values
     :param raw: if True, vals contains the serialized content of the tensor,
@@ -606,3 +611,239 @@ def make_sparse_tensor(
     sparse.indices.CopyFrom(indices)
     sparse.dims.extend(dims)
     return sparse
+
+
+def make_node(
+    op_type: str,
+    inputs: Sequence[str],
+    outputs: Sequence[str],
+    name: str | None = None,
+    doc_string: str | None = None,
+    domain: str | None = None,
+    overload: str | None = None,
+    **kwargs: Any,
+) -> NodeProto:
+    """
+    Constructs a NodeProto.
+
+    :param op_type: (string): The name of the operator to construct
+    :param inputs: (list of string): list of input names
+    :param outputs: (list of string): list of output names
+    :param name: (string, default None): optional unique identifier for NodeProto
+    :param doc_string: (string, default None):
+        optional documentation string for NodeProto
+    :param domain: (string, default None): optional domain for NodeProto.
+        If it's None, we will just use default domain (which is empty)
+    :param overload: (string, default None): optional field, used to
+        resolve calls to model-local functions
+    :param kwargs: (dict): the attributes of the node.  The acceptable values
+        are documented in :func:`make_attribute`.
+    :return: NodeProto
+    """
+    node = NodeProto()
+    node.op_type = op_type
+    node.input.extend(inputs)
+    node.output.extend(outputs)
+    if name:
+        node.name = name
+    if doc_string:
+        node.doc_string = doc_string
+    if domain is not None:
+        node.domain = domain
+    if overload is not None:
+        node.overload = overload
+    if kwargs:
+        node.attribute.extend(
+            make_attribute(key, value)
+            for key, value in sorted(kwargs.items())
+            if value is not None
+        )
+    return node
+
+
+def set_metadata_props(
+    proto: (
+        ModelProto
+        | GraphProto
+        | FunctionProto
+        | NodeProto
+        | TensorProto
+        | ValueInfoProto
+    ),
+    dict_value: dict[str, str],
+) -> None:
+    """Sets metadata_props."""
+    del proto.metadata_props[:]
+    for k, v in dict_value.items():
+        entry = proto.metadata_props.add()
+        entry.key = k
+        entry.value = v
+
+
+def set_model_props(model: ModelProto, dict_value: dict[str, str]) -> None:
+    """Sets metadata_props."""
+    set_metadata_props(model, dict_value)
+
+
+def make_graph(
+    nodes: Sequence[NodeProto],
+    name: str,
+    inputs: Sequence[ValueInfoProto],
+    outputs: Sequence[ValueInfoProto],
+    initializer: Sequence[TensorProto] | None = None,
+    doc_string: str | None = None,
+    value_info: Sequence[ValueInfoProto] | None = None,
+    sparse_initializer: Sequence[SparseTensorProto] | None = None,
+) -> GraphProto:
+    """
+    Constructs a GraphProto
+
+    Args:
+        nodes: list of NodeProto
+        name (string): graph name
+        inputs: list of ValueInfoProto
+        outputs: list of ValueInfoProto
+        initializer: list of TensorProto
+        doc_string (string): graph documentation
+        value_info: list of ValueInfoProto
+        sparse_initializer: list of SparseTensorProto
+    Returns:
+        GraphProto
+    """
+    if initializer is None:
+        initializer = []
+    if sparse_initializer is None:
+        sparse_initializer = []
+    if value_info is None:
+        value_info = []
+    graph = GraphProto()
+    graph.node.extend(nodes)
+    graph.name = name
+    graph.input.extend(inputs)
+    graph.output.extend(outputs)
+    graph.initializer.extend(initializer)
+    graph.sparse_initializer.extend(sparse_initializer)
+    graph.value_info.extend(value_info)
+    if doc_string:
+        graph.doc_string = doc_string
+    return graph
+
+
+def make_opsetid(domain: str, version: int) -> OperatorSetIdProto:
+    """
+    Constructs an OperatorSetIdProto.
+
+    Args:
+        domain (string): The domain of the operator set id
+        version (integer): Version of operator set id
+    Returns:
+        OperatorSetIdProto
+    """
+    opsetid = OperatorSetIdProto()
+    opsetid.domain = domain
+    opsetid.version = version
+    return opsetid
+
+
+def make_function(
+    domain: str,
+    fname: str,
+    inputs: Sequence[str],
+    outputs: Sequence[str],
+    nodes: Sequence[NodeProto],
+    opset_imports: Sequence[OperatorSetIdProto],
+    attributes: Sequence[str] | None = None,
+    attribute_protos: Sequence[AttributeProto] | None = None,
+    doc_string: str | None = None,
+    overload: str | None = None,
+    value_info: Sequence[ValueInfoProto] | None = None,
+) -> FunctionProto:
+    """
+    Constructs a FunctionProto.
+
+    :param domain: domain name
+    :param fname: function name
+    :param inputs: input names
+    :param outputs: output names
+    :param nodes: sequence of NodeProto
+    :param opset_imports: required domains (opset_import)
+    :param attributes: attribute names
+    :param attribute_protos: typed attributes
+    :param doc_string: documentation
+    :param overload: overload
+    :param value_info: information about type and shape for results
+    :return: a FunctionProto
+    """
+    if attributes is None:
+        attributes = []
+    if attribute_protos is None:
+        attribute_protos = []
+    if value_info is None:
+        value_info = []
+    f = FunctionProto()
+    f.domain = domain
+    f.name = fname
+    f.input.extend(inputs)
+    f.output.extend(outputs)
+    f.node.extend(nodes)
+    f.opset_import.extend(opset_imports)
+    f.attribute.extend(attributes)
+    f.attribute_proto.extend(attribute_protos)
+    if doc_string:
+        f.doc_string = doc_string
+    if overload is not None:
+        f.overload = overload
+    f.value_info.extend(value_info)
+    return f
+
+
+def _onnx_opset_version() -> int:
+    return 23
+
+
+def _onnx_ir_version() -> int:
+    return 11
+
+
+def make_model(
+    graph: GraphProto,
+    ir_version: int = _onnx_ir_version(),
+    opset_imports: Optional[Sequence[OperatorSetIdProto]] = None,
+    functions: Optional[Sequence[FunctionProto]] = None,
+    metadata_props: Optional[Sequence[StringStringEntryProto]] = None,
+    doc_string: Optional[str] = None,
+    producer_name: Optional[str] = None,
+    producer_version: Optional[str] = None,
+) -> ModelProto:
+    """
+    Constructs a ModelProto
+
+    :param graph: GraphProto
+    :param ir_version: ir version, use the default one if missing
+    :param opset_imports: required domains, use the default one if missing
+    :param functions: list of functions
+    :param metadata_props: additional information
+    :param producer_name: producer name
+    :param producer_version: producer version
+    :param doc_string: documentation
+    :return: model
+    """
+    model = ModelProto()
+    model.ir_version = ir_version
+    model.graph.CopyFrom(graph)
+    if opset_imports is not None:
+        model.opset_import.extend(opset_imports)
+    else:
+        imp = model.opset_import.add()
+        imp.version = _onnx_opset_version()
+    if functions:
+        model.functions.extend(functions)
+    if metadata_props:
+        model.metadata_props.extend(metadata_props)
+    if doc_string:
+        model.doc_string = doc_string
+    if producer_name:
+        model.producer_name = producer_name
+    if producer_version:
+        model.producer_version = producer_version
+    return model

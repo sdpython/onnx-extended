@@ -446,6 +446,147 @@ FIELD_REPEATED(SparseTensorProto, sparse_tensors, 23, "Optional repeated tensor 
 // FIELD_REPEATED(GraphProto, graphs, 11, "Optional repeated graph attribute.")
 END_PROTO()
 
+// NodeProto
+
+BEGIN_PROTO(NodeProto, "Computation graphs are made up of a DAG of nodes, which represent what is "
+                       "commonly called a 'layer' or 'pipeline stage' in machine learning frameworks. "
+                       "For example, it can be a node of type 'Conv' that takes in an image, a filter "
+                       "tensor and a bias tensor, and produces the convolved output.")
+FIELD_REPEATED(utils::String, input, 1, "inputs of the node")
+FIELD_REPEATED(utils::String, output, 2, "outputs of the node")
+FIELD_STR(name, 3,
+          "An optional identifier for this node in a graph. This field MAY be absent in this version "
+          "of the IR.")
+FIELD_STR(op_type, 4, "The symbolic identifier of the Operator to execute.")
+FIELD_REPEATED(AttributeProto, attribute, 5, "Attributes associated with this node.")
+FIELD_STR(domain, 7, "The domain of the OperatorSet that specifies the operator named by op_type.")
+FIELD_STR(overload, 8, "Overload identifier, used only to map this to a model-local function.")
+FIELD_STR(doc_string, 6, "A human-readable documentation for this node. Markdown is allowed.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 9,
+               "Named metadata values; keys should be distinct.")
+FIELD_REPEATED(NodeDeviceConfigurationProto, device_configurations, 10,
+               "Configuration of multi-device annotations.")
+END_PROTO()
+
+// GraphProto
+
+BEGIN_PROTO(GraphProto,
+            "A graph defines the computational logic of a model and is comprised of a parameterized "
+            "list of nodes that form a directed acyclic graph based on their inputs and outputs. This "
+            "is the equivalent of the 'network' or 'graph' in many deep learning frameworks.")
+FIELD_REPEATED(NodeProto, node, 1, "The nodes in the graph, sorted topologically.")
+FIELD_STR(name, 2, "The name of the graph.")
+FIELD_REPEATED(TensorProto, initializer, 5,
+               "A list of named sparse tensor values, used to specify constant inputs of the graph. "
+               "Each initializer (both TensorProto as well SparseTensorProto) MUST have a name. The "
+               "name MUST be unique across both initializer and sparse_initializer, but the name MAY "
+               "also appear in the input list.")
+FIELD_REPEATED(
+    SparseTensorProto, sparse_initializer, 15,
+    "A list of named tensor values, used to specify constant inputs of the graph. Each initializer "
+    "(both TensorProto as well SparseTensorProto) MUST have a name. The name MUST be unique across "
+    "both initializer and sparse_initializer, but the name MAY also appear in the input list.")
+FIELD_STR(doc_string, 10, "A human-readable documentation for this graph. Markdown is allowed.")
+FIELD_REPEATED(
+    ValueInfoProto, input, 11,
+    "Inputs of the graph, shapes and types are optional in a subgraph and mandatory in the main graph.")
+FIELD_REPEATED(ValueInfoProto, output, 12,
+               "Outputs of the graph, shapes and types are optional in a subgraph and mandatory in the "
+               "main graph.")
+FIELD_REPEATED(ValueInfoProto, value_info, 13,
+               "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
+               "It is optional for a value to appear in value_info list.")
+FIELD_REPEATED(
+    TensorAnnotation, quantization_annotation, 14,
+    "This field carries information to indicate the mapping among a tensor and its quantization "
+    "parameter tensors. For example: For tensor 'a', it may have {'SCALE_TENSOR', 'a_scale'} and "
+    "{'ZERO_POINT_TENSOR', 'a_zero_point'} annotated, which means, tensor 'a_scale' and tensor "
+    "'a_zero_point' are scale and zero point of tensor 'a' in the model.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 16,
+               "Named metadata values; keys should be distinct.")
+END_PROTO()
+
+// FunctionProto
+
+BEGIN_PROTO(FunctionProto,
+            "A function defines a sub-operator that can be used in a graph. It is similar to a "
+            "function in C/C++ or Python, and can be used to define reusable sub-graphs.")
+FIELD_STR(name, 1, "The name of the function. This field MUST be present in this version of the IR.")
+FIELD_REPEATED(utils::String, input, 4, "input names of the function")
+FIELD_REPEATED(utils::String, output, 5, "output names of the function")
+FIELD_REPEATED(utils::String, attribute, 6, "attribute names of the function")
+FIELD_REPEATED(AttributeProto, attribute_proto, 11, "typed attributes")
+FIELD_REPEATED(NodeProto, node, 7, "The nodes in the graph, sorted topologically.")
+FIELD_STR(doc_string, 8, "A human-readable documentation for this graph. Markdown is allowed.")
+FIELD_REPEATED(
+    OperatorSetIdProto, opset_import, 9,
+    "The OperatorSets this function body (graph) relies on. All nodes in the function body (graph) "
+    "will bind against the operator with the same-domain/same-op_type operator with the HIGHEST "
+    "version in the referenced operator sets. This means at most one version can be relied for one "
+    "domain. The operator sets imported by FunctionProto should be compatible with the ones imported "
+    "by ModelProto. Example, if same operator set say 'A' is imported by FunctionProto and ModelProto "
+    "then versions for the operator set may be different but, the operator schema returned for "
+    "op_type, domain, version combination for both the versions should be same.")
+FIELD_STR(domain, 10,
+          "The domain which this function belongs to. This is part of the unique-id (domain, name, "
+          "overload) of FunctionProtos in a model.")
+FIELD_STR(overload, 13,
+          "The overload identifier of the function. This is part of the unique-id (domain, name, "
+          "overload) of FunctionProtos in a model.")
+FIELD_REPEATED(ValueInfoProto, value_info, 12,
+               "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
+               "It is optional for a value to appear in value_info list.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 14,
+               "Named metadata values; keys should be distinct.")
+END_PROTO()
+
+// ModelProto
+
+BEGIN_PROTO(ModelProto, "ModelProto is a top-level file/container format for bundling a ML model and "
+                        "associating its computation graph with metadata. The semantics of the model "
+                        "are described by the associated GraphProto's.")
+FIELD_OPTIONAL(
+    int64_t, ir_version, 1,
+    "The version of the IR this model targets. See Version enum above. This field MUST be present.")
+FIELD_REPEATED(
+    OperatorSetIdProto, opset_import, 8,
+    "The OperatorSets this model relies on. All ModelProtos MUST have at least one entry that "
+    "specifies which version of the ONNX OperatorSet is being imported. All nodes in the ModelProto's "
+    "graph will bind against the operator with the same-domain/same-op_type operator with the HIGHEST "
+    "version in the referenced operator sets.")
+FIELD_STR(producer_name, 2,
+          "The name of the framework or tool used to generate this model. This field SHOULD be present "
+          "to indicate which implementation/tool/framework emitted the model.")
+FIELD_STR(producer_version, 3,
+          "The version of the framework or tool used to generate this model. This field SHOULD be "
+          "present to indicate which implementation/tool/framework emitted the model.")
+FIELD_STR(domain, 4,
+          "Domain name of the model. We use reverse domain names as name space indicators. For "
+          "example: `company.name`. Together with `model_version` and GraphProto.name, this forms the "
+          "unique identity of the graph.")
+FIELD_OPTIONAL(int64_t, model_version, 5, "The version of the graph encoded. See Version enum below.")
+FIELD_STR(doc_string, 6, "A human-readable documentation for this graph. Markdown is allowed.")
+FIELD_OPTIONAL(GraphProto, graph, 7, "The parameterized graph that is evaluated to execute the model.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 14,
+               "Named metadata values; keys should be distinct.")
+// FIELD_REPEATED(TrainingInfoProto, training_info, 20, ",not yet implemented")
+FIELD_REPEATED(
+    FunctionProto, functions, 25,
+    "A list of function protos local to the model. The (domain, name, overload) tuple must be unique "
+    "across the function protos in this list. In case of any conflicts the behavior (whether the model "
+    "local functions are given higher priority, or standard operator sets are given higher priority or "
+    "this is treated as error) is defined by the runtimes. The operator sets imported by FunctionProto "
+    "should be compatible with the ones imported by ModelProto and other model local FunctionProtos. "
+    "Example, if same operator set say 'A' is imported by a FunctionProto and ModelProto or by 2 "
+    "FunctionProtos then versions for the operator set may be different but, the operator schema "
+    "returned for op_type, domain, version combination for both the versions should be same for every "
+    "node in the function body. One FunctionProto can reference other FunctionProto in the model, "
+    "however, recursive reference is not allowed.")
+FIELD_REPEATED(DeviceConfigurationProto, configuration, 26,
+               "Describes different target configurations for a multi-device use case. A model MAY "
+               "describe multiple multi-device configurations for execution.")
+END_PROTO()
+
 } // namespace onnx2
 
 #include "fields.hpp"

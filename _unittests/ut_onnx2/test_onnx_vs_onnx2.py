@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import onnx
 import onnx.helper as oh
+import onnx_extended.onnx2.helper as oh2
 import onnx.numpy_helper as onh
 from onnx_extended.ext_test_case import ExtTestCase
 import onnx_extended.onnx2.cpu._onnx2py as onnx2
@@ -777,6 +778,92 @@ class TestOnnx2(ExtTestCase):
         self.assertEqual(
             p.sequence_type.elem_type.tensor_type.shape.dim[1].dim_param, "b"
         )
+
+    def test_make_attribute_serialization(self):
+        p = onnx2.AttributeProto()
+        p.type = onnx2.AttributeProto.INT
+        p.i = 1
+
+        s = p.SerializeToString()
+        p2 = onnx.AttributeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(p2.i, 1)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.AttributeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_make_attribute_int(self):
+        t = onnx2.AttributeProto()
+        t.type = onnx2.AttributeProto.INT
+        t.i = 1
+        t2 = onnx2.AttributeProto()
+        t2.CopyFrom(t)
+        self.assertEqual(str(t), str(t2))
+        node = onnx2.NodeProto()
+        node.attribute.append(t)
+        self.assertEqual(str(t), str(node.attribute[0]))
+
+    def test_make_attribute_string(self):
+        t = onnx2.AttributeProto()
+        t.type = onnx2.AttributeProto.STRING
+        t.s = "s1"
+        t2 = onnx2.AttributeProto()
+        t2.CopyFrom(t)
+        self.assertEqual(str(t), str(t2))
+        node = onnx2.NodeProto()
+        node.attribute.append(t)
+        self.assertEqual(str(t), str(node.attribute[0]))
+
+    def test_make_attribute_tensor(self):
+        values_tensor = oh2.make_tensor(
+            name="v",
+            data_type=onnx.TensorProto.FLOAT,
+            dims=[3],
+            vals=np.array([5, 6, 7]).astype(np.float32),
+            raw=False,
+        )
+        self.assertIsInstance(values_tensor, onnx2.TensorProto)
+        t = onnx2.AttributeProto()
+        t.type = onnx2.AttributeProto.TENSOR
+        t.t = values_tensor
+        self.assertFalse(t.has_sparse_tensor())
+        t2 = onnx2.AttributeProto()
+        t2.CopyFrom(t)
+        self.assertFalse(t2.has_sparse_tensor())
+        self.assertEqual(str(t), str(t2))
+        node = onnx2.NodeProto()
+        node.attribute.append(t)
+        self.assertFalse(t.has_sparse_tensor())
+        self.assertFalse(node.attribute[0].has_sparse_tensor())
+        self.assertEqual(str(t), str(node.attribute[0]))
+
+    def test_make_attribute_tensor_serialization(self):
+        values_tensor = oh2.make_tensor(
+            name="v",
+            data_type=onnx.TensorProto.FLOAT,
+            dims=[3],
+            vals=np.array([5, 6, 7]).astype(np.float32),
+            raw=False,
+        )
+        self.assertIsInstance(values_tensor, onnx2.TensorProto)
+        p = onnx2.AttributeProto()
+        p.type = onnx2.AttributeProto.TENSOR
+        p.t = values_tensor
+
+        s = p.SerializeToString()
+        p2 = onnx.AttributeProto()
+        p2.ParseFromString(s)
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.AttributeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+        self.assertIn("float_data: [5, 6, 7],", str(p))
+        self.assertIn("float_data: [5, 6, 7],", str(p0))
+        self.assertFalse(p.has_sparse_tensor())
+        self.assertFalse(p0.has_sparse_tensor())
 
 
 if __name__ == "__main__":
