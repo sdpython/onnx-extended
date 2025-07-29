@@ -165,8 +165,8 @@ class TestOnnx2Helper(ExtTestCase):
         ]
         attr = oh.make_attribute("tensors", tensors)
         attr_tensors = list(attr.tensors)
-        self.asssertIsInstance(attr_tensors, list)
-        self.asssertIsInstance(tensors, list)
+        self.assertIsInstance(attr_tensors, list)
+        self.assertIsInstance(tensors, list)
         self.assertEqual(attr.name, "tensors")
         self.assertEqual(tensors, attr_tensors)
         pychecker.check_attribute(attr)

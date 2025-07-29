@@ -122,16 +122,18 @@ public:
 
   class iterator {
   private:
-     RepeatedProtoField<T> *parent_;
+    RepeatedProtoField<T> *parent_;
     size_t pos_;
 
   public:
-    iterator( RepeatedProtoField<T>* parent, size_t pos=0) : parent_(parent),pos_(pos) {}
+    iterator(RepeatedProtoField<T> *parent, size_t pos = 0) : parent_(parent), pos_(pos) {}
     iterator &operator++() {
       ++pos_;
       return *this;
     }
-    bool operator==(const iterator &other) const { return pos_ == other.pos_ && parent_ == other.parent_; }
+    bool operator==(const iterator &other) const {
+      return pos_ == other.pos_ && parent_ == other.parent_;
+    }
     bool operator!=(const iterator &other) const { return !(*this == other); }
     T &operator*() { return (*parent_)[pos_]; }
   };
