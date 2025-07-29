@@ -52,7 +52,7 @@ template <typename T> void RepeatedProtoField<T>::extend(const RepeatedProtoFiel
 template <typename T> void RepeatedProtoField<T>::extend(const RepeatedProtoField<T> &&v) {
   values_.reserve(values_.size() + v.values_.size());
   for (size_t i = 0; i < v.size(); ++i) {
-    values_.push_back();
+    values_.emplace_back(simple_unique_ptr<T>(nullptr));
     values_.back().swap(v.get(i));
   }
   v.values_.clear();

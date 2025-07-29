@@ -76,14 +76,11 @@ public:
   inline void push_back(const T &v) { values_.push_back(v); }
   inline void extend(const std::vector<T> &v) { values_.insert(values_.end(), v.begin(), v.end()); }
   inline void extend(const RepeatedField<T> &v) { values_.insert(values_.end(), v.begin(), v.end()); }
-
   inline T &add() {
     values_.emplace_back(T());
     return values_.back();
   }
-
   inline T &back() { return values_.back(); }
-
   inline std::vector<T>::iterator begin() { return values_.begin(); }
   inline std::vector<T>::iterator end() { return values_.end(); }
   inline std::vector<T>::const_iterator begin() const { return values_.begin(); }
@@ -101,12 +98,11 @@ template <typename T> class RepeatedProtoField {
 public:
   explicit inline RepeatedProtoField() {}
   inline void reserve(size_t n) { values_.reserve(n); }
-  void clear();
   inline bool empty() const { return values_.empty(); }
   inline size_t size() const { return values_.size(); }
   inline T &operator[](size_t index);
-  inline simple_unique_ptr<T> &get(size_t index) { return values_[index]; }
   inline const T &operator[](size_t index) const;
+  inline simple_unique_ptr<T> &get(size_t index) { return values_[index]; }
   inline void remove_range(size_t start, size_t stop, size_t step) {
     EXT_ENFORCE(step == 1, "remove_range not implemented for step=", static_cast<int>(step));
     EXT_ENFORCE(start == 0, "remove_range not implemented for start=", static_cast<int>(start));
@@ -114,15 +110,33 @@ public:
                 " and size=", static_cast<int>(size()));
     clear();
   }
+
+  void clear();
   void push_back(const T &v);
   void extend(const std::vector<T> &v);
   void extend(const RepeatedProtoField<T> &v);
   void extend(const RepeatedProtoField<T> &&v);
-
   T &add();
   T &back();
-
   std::vector<std::string> SerializeToVectorString() const;
+
+  class iterator {
+  private:
+     RepeatedProtoField<T> *parent_;
+    size_t pos_;
+
+  public:
+    iterator( RepeatedProtoField<T>* parent, size_t pos=0) : parent_(parent),pos_(pos) {}
+    iterator &operator++() {
+      ++pos_;
+      return *this;
+    }
+    bool operator==(const iterator &other) const { return pos_ == other.pos_ && parent_ == other.parent_; }
+    bool operator!=(const iterator &other) const { return !(*this == other); }
+    T &operator*() { return (*parent_)[pos_]; }
+  };
+  inline iterator begin() { return iterator(this, 0); }
+  inline iterator end() { return iterator(this, size()); }
 
 private:
   std::vector<simple_unique_ptr<T>> values_;
