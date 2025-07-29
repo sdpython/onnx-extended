@@ -131,7 +131,7 @@ namespace py = pybind11;
             return py::none();                                                                         \
           self.name##_.set_empty_value();                                                              \
         }                                                                                              \
-        return py::cast(self.name##_.value, py::return_value_policy::reference);                       \
+        return py::cast(*self.name##_, py::return_value_policy::reference);                       \
       },                                                                                               \
       [](onnx2::cls &self, py::object obj) {                                                           \
         if (obj.is_none()) {                                                                           \
@@ -184,7 +184,7 @@ void define_repeated_field_type(py::class_<onnx2::utils::RepeatedField<T>> &pycl
               index += static_cast<int>(self.size());
             EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
                         " out of boundary");
-            return self.values[index];
+            return self[index];
           },
           py::return_value_policy::reference, py::arg("index"),
           "Returns the element at position index.")
@@ -219,7 +219,7 @@ void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedProtoFiel
               index += static_cast<int>(self.size());
             EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
                         " out of boundary");
-            return *self.values[index];
+            return self[index];
           },
           py::return_value_policy::reference, py::arg("index"),
           "Returns the element at position index.")

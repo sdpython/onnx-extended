@@ -270,16 +270,16 @@ WRITE_REPEATED_FIELD_IMPL_INT(int32_t)
 template <typename T>
 void write_repeated_field(utils::BinaryWriteStream &stream, int order,
                           const utils::RepeatedField<T> &field, bool is_packed) {
-  write_repeated_field(stream, order, field.values, is_packed);
+  write_repeated_field(stream, order, field.values(), is_packed);
 }
 
 template <typename T>
 void write_repeated_field(utils::BinaryWriteStream &stream, int order,
                           const utils::RepeatedProtoField<T> &field, bool is_packed) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
-  for (const auto &d : field.values) {
+  for (size_t i = 0; i<field.size(); ++i) {
     utils::StringWriteStream local;
-    d->SerializeToStream(local);
+    field[i].SerializeToStream(local);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
     stream.write_string_stream(local);
   }
@@ -469,7 +469,7 @@ READ_REPEATED_FIELD_IMPL_INT(uint64_t, next_uint64)
 template <typename T>
 void read_repeated_field(utils::BinaryStream &stream, int wire_type, utils::RepeatedField<T> &field,
                          const char *name, bool is_packed) {
-  read_repeated_field(stream, wire_type, field.values, name, is_packed);
+  read_repeated_field(stream, wire_type, field.mutable_values(), name, is_packed);
 }
 
 template <typename T>
@@ -754,7 +754,7 @@ template <typename T>
 std::vector<std::string> write_into_vector_string_optional(const char *field_name,
                                                            const utils::OptionalField<T> &field) {
   if (field.has_value()) {
-    return {MakeString(field_name, ": ", write_as_string(field.value), ",")};
+    return {MakeString(field_name, ": ", write_as_string(*field), ",")};
   } else {
     return {MakeString(field_name, ": null,")};
   }
