@@ -778,6 +778,16 @@ class TestOnnx2(ExtTestCase):
             p.sequence_type.elem_type.tensor_type.shape.dim[1].dim_param, "b"
         )
 
+    def test_make_attribute(self):
+        t = onnx2.AttributeProto()
+        t.i = 1
+        t2 = onnx2.AttributeProto()
+        t2.CopyFrom(t)
+        self.assertEqual(str(t), str(t2))
+        node = onnx2.NodeProto()
+        node.attribute.append(t)
+        self.assertEqual(str(t), str(node.attribute[0]))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

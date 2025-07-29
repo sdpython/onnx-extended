@@ -325,6 +325,11 @@ class TestOnnx2Helper(ExtTestCase):
         self.assertEqual(list(node_def.input), ["X"])
         self.assertEqual(list(node_def.output), ["Y"])
         self.assertEqual(len(node_def.attribute), 1)
+        print("------")
+        print(node_def.attribute[0])
+        print("*************")
+        print(oh.make_attribute("arg_value", 1))
+        print("*")
         self.assertEqual(node_def.attribute[0], oh.make_attribute("arg_value", 1))
 
     def test_node_domain(self) -> None:

@@ -663,6 +663,30 @@ def make_node(
     return node
 
 
+def set_metadata_props(
+    proto: (
+        ModelProto
+        | GraphProto
+        | FunctionProto
+        | NodeProto
+        | TensorProto
+        | ValueInfoProto
+    ),
+    dict_value: dict[str, str],
+) -> None:
+    """Sets metadata_props."""
+    del proto.metadata_props[:]
+    for k, v in dict_value.items():
+        entry = proto.metadata_props.add()
+        entry.key = k
+        entry.value = v
+
+
+def set_model_props(model: ModelProto, dict_value: dict[str, str]) -> None:
+    """Sets metadata_props."""
+    set_metadata_props(model, dict_value)
+
+
 def make_graph(
     nodes: Sequence[NodeProto],
     name: str,
