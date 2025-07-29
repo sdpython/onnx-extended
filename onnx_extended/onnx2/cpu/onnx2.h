@@ -68,7 +68,7 @@ BEGIN_PROTO(SimpleShardedDimProto,
             "Indicates that N blocks are divided into M shards. N is allowed to be symbolic "
             "where M is required to be a constant.")
 FIELD_OPTIONAL(int64_t, dim_value, 1, "Dimension value to be sharded if it is a fixed value.")
-FIELD_STR(dim_param, 2, "Dimension value to be sharded if it is a dynamic value.")
+FIELD_STR(dim_param, 2, "Dimension name to be sharded if it is a dynamic value.")
 FIELD_DEFAULT(int64_t, num_shards, 3, 0,
               "This field MUST be present for this version of the IR. Number of shards to "
               "split dim into.")
@@ -133,7 +133,7 @@ BEGIN_PROTO_NOINIT(TensorShapeProto,
 BEGIN_PROTO(Dimension, "Defines a dimension, it can be fixed (an integer dim_value) or dynamic "
                        "(a string dim_param). Only one of them can be set.")
 FIELD_OPTIONAL(int64_t, dim_value, 1, "Dimension value if it is a fixed value.")
-FIELD_STR(dim_param, 2, "Dimension value if it is a dynamic value.")
+FIELD_STR(dim_param, 2, "Dimension name if it is a dynamic value.")
 FIELD_STR(denotation, 3,
           "The indices of the non-default values, which may be stored in one of two formats. (a) "
           "Indices can be a tensor of shape [NNZ, rank] with the [i,j]-th value corresponding to the "
@@ -214,7 +214,10 @@ FIELD_DEFAULT(int64_t, begin, 1, 0, "Segment start.")
 FIELD_DEFAULT(int64_t, end, 1, 0, "Segment end.")
 END_PROTO()
 
-inline TensorProto() { data_type_ = DataType::UNDEFINED; }
+inline TensorProto() {
+  data_type_ = DataType::UNDEFINED;
+  data_location_ = DataLocation::DEFAULT;
+}
 
 FIELD_REPEATED(uint64_t, dims, 1, "The shape of the tensor.")
 FIELD(DataType, data_type, 2,
@@ -353,10 +356,10 @@ FIELD_OPTIONAL(
 END_PROTO()
 
 BEGIN_PROTO(Map, "Defines the type of the key and the type of each value in a dictionary.")
-FIELD(int32_t, key_type, 1,
-      "This field MUST have a valid TensorProto.DataType value. This field MUST be present for "
-      "this version of the IR. This field MUST refer to an integral type ([U]INT{8|16|32|64}) "
-      "or STRING optional int32 key_type = 1;")
+FIELD_DEFAULT(int32_t, key_type, 1, -1,
+              "This field MUST have a valid TensorProto.DataType value. This field MUST be present for "
+              "this version of the IR. This field MUST refer to an integral type ([U]INT{8|16|32|64}) "
+              "or STRING optional int32 key_type = 1;")
 FIELD_OPTIONAL(TypeProto, value_type, 2, "This field MUST be present for this version of the IR.")
 END_PROTO()
 
@@ -393,6 +396,7 @@ FIELD_REPEATED(StringStringEntryProto, metadata_props, 4,
 END_PROTO()
 
 // AttributeProto
+class GraphProto;
 
 BEGIN_PROTO_NOINIT(AttributeProto,
                    "A named attribute containing either singular float, integer, string, graph, and "
@@ -436,14 +440,14 @@ FIELD_OPTIONAL(float, f, 2, "Optional float attribute.")
 FIELD_OPTIONAL(int64_t, i, 3, "Optional int64 attribute.")
 FIELD_STR(s, 4, "Optional string attribute.")
 FIELD_OPTIONAL(TensorProto, t, 5, "Optional tensor attribute.")
-// FIELD_OPTIONAL(GraphProto, g, 6, "Optional graph attribute.")
+FIELD_OPTIONAL(GraphProto, g, 6, "Optional graph attribute.")
 FIELD_OPTIONAL(SparseTensorProto, sparse_tensor, 22, "Optional sparse tensor attribute.")
 FIELD_REPEATED(float, floats, 7, "Optional repeated float attribute.")
 FIELD_REPEATED(int64_t, ints, 8, "Optional repeated int64 attribute.")
 FIELD_REPEATED(utils::String, strings, 9, "Optional repeated string attribute.")
-FIELD_REPEATED(TensorProto, tensors, 10, "Optional repeated tensor attribute.")
-FIELD_REPEATED(SparseTensorProto, sparse_tensors, 23, "Optional repeated tensor attribute.")
-// FIELD_REPEATED(GraphProto, graphs, 11, "Optional repeated graph attribute.")
+FIELD_REPEATED_PROTO(TensorProto, tensors, 10, "Optional repeated tensor attribute.")
+FIELD_REPEATED_PROTO(SparseTensorProto, sparse_tensors, 23, "Optional repeated tensor attribute.")
+FIELD_REPEATED_PROTO(GraphProto, graphs, 11, "Optional repeated graph attribute.")
 END_PROTO()
 
 // NodeProto
@@ -458,7 +462,7 @@ FIELD_STR(name, 3,
           "An optional identifier for this node in a graph. This field MAY be absent in this version "
           "of the IR.")
 FIELD_STR(op_type, 4, "The symbolic identifier of the Operator to execute.")
-FIELD_REPEATED(AttributeProto, attribute, 5, "Attributes associated with this node.")
+FIELD_REPEATED_PROTO(AttributeProto, attribute, 5, "Attributes associated with this node.")
 FIELD_STR(domain, 7, "The domain of the OperatorSet that specifies the operator named by op_type.")
 FIELD_STR(overload, 8, "Overload identifier, used only to map this to a model-local function.")
 FIELD_STR(doc_string, 6, "A human-readable documentation for this node. Markdown is allowed.")
@@ -474,28 +478,31 @@ BEGIN_PROTO(GraphProto,
             "A graph defines the computational logic of a model and is comprised of a parameterized "
             "list of nodes that form a directed acyclic graph based on their inputs and outputs. This "
             "is the equivalent of the 'network' or 'graph' in many deep learning frameworks.")
-FIELD_REPEATED(NodeProto, node, 1, "The nodes in the graph, sorted topologically.")
+FIELD_REPEATED_PROTO(NodeProto, node, 1, "The nodes in the graph, sorted topologically.")
 FIELD_STR(name, 2, "The name of the graph.")
-FIELD_REPEATED(TensorProto, initializer, 5,
-               "A list of named sparse tensor values, used to specify constant inputs of the graph. "
-               "Each initializer (both TensorProto as well SparseTensorProto) MUST have a name. The "
-               "name MUST be unique across both initializer and sparse_initializer, but the name MAY "
-               "also appear in the input list.")
-FIELD_REPEATED(
+FIELD_REPEATED_PROTO(
+    TensorProto, initializer, 5,
+    "A list of named sparse tensor values, used to specify constant inputs of the graph. "
+    "Each initializer (both TensorProto as well SparseTensorProto) MUST have a name. The "
+    "name MUST be unique across both initializer and sparse_initializer, but the name MAY "
+    "also appear in the input list.")
+FIELD_REPEATED_PROTO(
     SparseTensorProto, sparse_initializer, 15,
     "A list of named tensor values, used to specify constant inputs of the graph. Each initializer "
     "(both TensorProto as well SparseTensorProto) MUST have a name. The name MUST be unique across "
     "both initializer and sparse_initializer, but the name MAY also appear in the input list.")
 FIELD_STR(doc_string, 10, "A human-readable documentation for this graph. Markdown is allowed.")
-FIELD_REPEATED(
+FIELD_REPEATED_PROTO(
     ValueInfoProto, input, 11,
     "Inputs of the graph, shapes and types are optional in a subgraph and mandatory in the main graph.")
-FIELD_REPEATED(ValueInfoProto, output, 12,
-               "Outputs of the graph, shapes and types are optional in a subgraph and mandatory in the "
-               "main graph.")
-FIELD_REPEATED(ValueInfoProto, value_info, 13,
-               "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
-               "It is optional for a value to appear in value_info list.")
+FIELD_REPEATED_PROTO(
+    ValueInfoProto, output, 12,
+    "Outputs of the graph, shapes and types are optional in a subgraph and mandatory in the "
+    "main graph.")
+FIELD_REPEATED_PROTO(
+    ValueInfoProto, value_info, 13,
+    "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
+    "It is optional for a value to appear in value_info list.")
 FIELD_REPEATED(
     TensorAnnotation, quantization_annotation, 14,
     "This field carries information to indicate the mapping among a tensor and its quantization "
@@ -515,8 +522,8 @@ FIELD_STR(name, 1, "The name of the function. This field MUST be present in this
 FIELD_REPEATED(utils::String, input, 4, "input names of the function")
 FIELD_REPEATED(utils::String, output, 5, "output names of the function")
 FIELD_REPEATED(utils::String, attribute, 6, "attribute names of the function")
-FIELD_REPEATED(AttributeProto, attribute_proto, 11, "typed attributes")
-FIELD_REPEATED(NodeProto, node, 7, "The nodes in the graph, sorted topologically.")
+FIELD_REPEATED_PROTO(AttributeProto, attribute_proto, 11, "typed attributes")
+FIELD_REPEATED_PROTO(NodeProto, node, 7, "The nodes in the graph, sorted topologically.")
 FIELD_STR(doc_string, 8, "A human-readable documentation for this graph. Markdown is allowed.")
 FIELD_REPEATED(
     OperatorSetIdProto, opset_import, 9,
@@ -533,9 +540,10 @@ FIELD_STR(domain, 10,
 FIELD_STR(overload, 13,
           "The overload identifier of the function. This is part of the unique-id (domain, name, "
           "overload) of FunctionProtos in a model.")
-FIELD_REPEATED(ValueInfoProto, value_info, 12,
-               "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
-               "It is optional for a value to appear in value_info list.")
+FIELD_REPEATED_PROTO(
+    ValueInfoProto, value_info, 12,
+    "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
+    "It is optional for a value to appear in value_info list.")
 FIELD_REPEATED(StringStringEntryProto, metadata_props, 14,
                "Named metadata values; keys should be distinct.")
 END_PROTO()
@@ -570,7 +578,7 @@ FIELD_OPTIONAL(GraphProto, graph, 7, "The parameterized graph that is evaluated 
 FIELD_REPEATED(StringStringEntryProto, metadata_props, 14,
                "Named metadata values; keys should be distinct.")
 // FIELD_REPEATED(TrainingInfoProto, training_info, 20, ",not yet implemented")
-FIELD_REPEATED(
+FIELD_REPEATED_PROTO(
     FunctionProto, functions, 25,
     "A list of function protos local to the model. The (domain, name, overload) tuple must be unique "
     "across the function protos in this list. In case of any conflicts the behavior (whether the model "
