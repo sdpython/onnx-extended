@@ -571,7 +571,7 @@ FIELD_REPEATED(StringStringEntryProto, metadata_props, 14,
                "Named metadata values; keys should be distinct.")
 // FIELD_REPEATED(TrainingInfoProto, training_info, 20, ",not yet implemented")
 FIELD_REPEATED(
-    FunctionProto, function, 25,
+    FunctionProto, functions, 25,
     "A list of function protos local to the model. The (domain, name, overload) tuple must be unique "
     "across the function protos in this list. In case of any conflicts the behavior (whether the model "
     "local functions are given higher priority, or standard operator sets are given higher priority or "

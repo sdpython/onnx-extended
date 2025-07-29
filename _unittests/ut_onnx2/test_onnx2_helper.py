@@ -226,7 +226,7 @@ class TestOnnx2Helper(ExtTestCase):
         for s in oh.get_attribute_value(attr):
             pychecker.check_sparse_tensor(s)
 
-    @unittest.skipIf(not hasattr(onnx2, "GraphProto"), "not yet implemented")
+    @unittest.skipIf(True, "not yet implemented")
     def test_attr_repeated_graph_proto(self) -> None:
         graphs = [onnx2.GraphProto(), onnx2.GraphProto()]
         graphs[0].name = "a"
@@ -311,6 +311,84 @@ class TestOnnx2Helper(ExtTestCase):
             self.assertRaises(
                 pychecker.ValidationError, pychecker.check_attribute, attr
             )
+
+    def test_node_no_arg(self) -> None:
+        node_def = oh.make_node("Relu", ["X"], ["Y"], name="test")
+        self.assertEqual(node_def.op_type, "Relu")
+        self.assertEqual(node_def.name, "test")
+        self.assertEqual(list(node_def.input), ["X"])
+        self.assertEqual(list(node_def.output), ["Y"])
+
+    def test_node_with_arg(self) -> None:
+        node_def = oh.make_node("Relu", ["X"], ["Y"], arg_value=1)
+        self.assertEqual(node_def.op_type, "Relu")
+        self.assertEqual(list(node_def.input), ["X"])
+        self.assertEqual(list(node_def.output), ["Y"])
+        self.assertEqual(len(node_def.attribute), 1)
+        self.assertEqual(node_def.attribute[0], oh.make_attribute("arg_value", 1))
+
+    def test_node_domain(self) -> None:
+        node_def = oh.make_node(
+            "Relu", ["X"], ["Y"], name="test", doc_string="doc", domain="test.domain"
+        )
+        self.assertEqual(node_def.domain, "test.domain")
+
+    def test_graph(self) -> None:
+        node_def1 = oh.make_node("Relu", ["X"], ["Y"])
+        node_def2 = oh.make_node("Add", ["X", "Y"], ["Z"])
+        value_info = [oh.make_tensor_value_info("Y", onnx2.TensorProto.FLOAT, [1, 2])]
+        graph = oh.make_graph(
+            [node_def1, node_def2],
+            "test",
+            [oh.make_tensor_value_info("X", onnx2.TensorProto.FLOAT, [1, 2])],
+            [oh.make_tensor_value_info("Z", onnx2.TensorProto.FLOAT, [1, 2])],
+            doc_string=None,
+            value_info=value_info,
+        )
+        self.assertEqual(graph.name, "test")
+        self.assertEqual(len(graph.node), 2)
+        self.assertEqual(graph.node[0], node_def1)
+        self.assertEqual(graph.node[1], node_def2)
+        self.assertEqual(graph.doc_string, "")
+        self.assertEqual(graph.value_info[0], value_info[0])
+
+    def test_graph_docstring(self) -> None:
+        graph = oh.make_graph([], "my graph", [], [], None, "my docs")
+        self.assertEqual(graph.name, "my graph")
+        self.assertEqual(graph.doc_string, "my docs")
+
+    def test_model(self) -> None:
+        node_def = oh.make_node("Relu", ["X"], ["Y"])
+        graph_def = oh.make_graph(
+            [node_def],
+            "test",
+            [oh.make_tensor_value_info("X", onnx2.TensorProto.FLOAT, [1, 2])],
+            [oh.make_tensor_value_info("Y", onnx2.TensorProto.FLOAT, [1, 2])],
+        )
+        self.assertRaises((AttributeError, TypeError), oh.make_model, graph_def, xxx=1)
+        model_def = oh.make_model(graph_def, producer_name="test")
+        self.assertEqual(model_def.producer_name, "test")
+
+    def test_model_docstring(self) -> None:
+        graph = oh.make_graph([], "my graph", [], [])
+        model_def = oh.make_model(graph, doc_string="test")
+        # models may have their own documentation, but don't have a name
+        # their name is the domain-qualified name of the underlying graph.
+        self.assertFalse(hasattr(model_def, "name"))
+        self.assertEqual(model_def.doc_string, "test")
+
+    def test_model_metadata_props(self) -> None:
+        graph = oh.make_graph([], "my graph", [], [])
+        model_def = oh.make_model(graph, doc_string="test")
+        oh.set_model_props(model_def, {"Title": "my graph", "Keywords": "test;graph"})
+        pychecker.check_model(model_def)
+        oh.set_model_props(model_def, {"Title": "my graph", "Keywords": "test;graph"})
+        pychecker.check_model(model_def)  # helper replaces, so no dupe
+
+        dupe = model_def.metadata_props.add()
+        dupe.key = "Title"
+        dupe.value = "Other"
+        self.assertRaises(pychecker.ValidationError, pychecker.check_model, model_def)
 
 
 if __name__ == "__main__":

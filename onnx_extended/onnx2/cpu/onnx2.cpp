@@ -648,7 +648,7 @@ void ModelProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
   WRITE_FIELD(stream, doc_string)
   WRITE_OPTIONAL_PROTO_FIELD(stream, graph)
   WRITE_REPEATED_FIELD(stream, metadata_props)
-  WRITE_REPEATED_FIELD(stream, function)
+  WRITE_REPEATED_FIELD(stream, functions)
   WRITE_REPEATED_FIELD(stream, configuration)
 }
 
@@ -663,7 +663,7 @@ void ModelProto::ParseFromStream(utils::BinaryStream &stream){
     READ_FIELD(stream, doc_string)              //
     READ_OPTIONAL_PROTO_FIELD(stream, graph)    //
     READ_REPEATED_FIELD(stream, metadata_props) //
-    READ_REPEATED_FIELD(stream, function)       //
+    READ_REPEATED_FIELD(stream, functions)      //
     READ_REPEATED_FIELD(stream, configuration)  //
     READ_END(stream, ModelProto)                //  // NOLINT
 }
@@ -673,7 +673,7 @@ std::vector<std::string> ModelProto::SerializeToVectorString() const {
       NAME_EXIST_VALUE(ir_version), NAME_EXIST_VALUE(opset_import), NAME_EXIST_VALUE(producer_name),
       NAME_EXIST_VALUE(producer_version), NAME_EXIST_VALUE(domain), NAME_EXIST_VALUE(model_version),
       NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(graph), NAME_EXIST_VALUE(metadata_props),
-      NAME_EXIST_VALUE(function), NAME_EXIST_VALUE(configuration));
+      NAME_EXIST_VALUE(functions), NAME_EXIST_VALUE(configuration));
 }
 
 } // namespace onnx2

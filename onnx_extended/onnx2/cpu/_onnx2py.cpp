@@ -715,10 +715,10 @@ PYBIND11_MODULE(_onnx2py, m) {
 
   PYDEFINE_PROTO(m, GraphProto)
       .PYFIELD(GraphProto, node)
-      .PYFIELD(GraphProto, name)
+      .PYFIELD_STR(GraphProto, name)
       .PYFIELD(GraphProto, initializer)
       .PYFIELD(GraphProto, sparse_initializer)
-      .PYFIELD(GraphProto, doc_string)
+      .PYFIELD_STR(GraphProto, doc_string)
       .PYFIELD(GraphProto, input)
       .PYFIELD(GraphProto, output)
       .PYFIELD(GraphProto, value_info)
@@ -751,11 +751,11 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(ModelProto, domain)
       .PYFIELD(ModelProto, model_version)
       .PYFIELD_STR(ModelProto, doc_string)
-      .PYFIELD(ModelProto, graph)
+      .PYFIELD_OPTIONAL_PROTO(ModelProto, graph)
       .PYFIELD(ModelProto, opset_import)
-      .PYFIELD(ModelProto, ir_version)
+      .PYFIELD_OPTIONAL_INT(ModelProto, ir_version)
       .PYFIELD(ModelProto, metadata_props)
-      .PYFIELD(ModelProto, function)
+      .PYFIELD(ModelProto, functions)
       .PYFIELD(ModelProto, configuration)
       .PYADD_PROTO_SERIALIZATION(ModelProto);
 }
