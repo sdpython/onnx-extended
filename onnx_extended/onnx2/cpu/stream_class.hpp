@@ -498,6 +498,30 @@ template <typename T> std::string write_as_string_vector(const std::vector<T> &f
   return result.str();
 }
 
+template <typename T> std::string write_as_repeated_field(const utils::RepeatedField<T> &field) {
+  std::stringstream result;
+  result << "[";
+  for (size_t i = 0; i < field.size(); ++i) {
+    result << field[i];
+    if (i + 1 != field.size())
+      result << ", ";
+  }
+  result << "]";
+  return result.str();
+}
+
+template <> std::string write_as_repeated_field(const utils::RepeatedField<utils::String> &field) {
+  std::stringstream result;
+  result << "[";
+  for (size_t i = 0; i < field.size(); ++i) {
+    result << field[i].as_string();
+    if (i + 1 != field.size())
+      result << ", ";
+  }
+  result << "]";
+  return result.str();
+}
+
 template <typename T> std::string write_as_string_optional(const std::optional<T> &field) {
   if (!field)
     return "null";
@@ -542,6 +566,18 @@ template <> std::string write_as_string(const std::optional<double> &field) {
 
 template <> std::string write_as_string(const std::optional<int32_t> &field) {
   return write_as_string_optional(field);
+}
+
+template <> std::string write_as_string(const utils::RepeatedField<float> &field) {
+  return write_as_repeated_field(field);
+}
+
+template <> std::string write_as_string(const utils::RepeatedField<int64_t> &field) {
+  return write_as_repeated_field(field);
+}
+
+template <> std::string write_as_string(const utils::RepeatedField<utils::String> &field) {
+  return write_as_repeated_field(field);
 }
 
 template <typename... Args> std::string write_as_string(const Args &...args) {

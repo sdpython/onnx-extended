@@ -506,12 +506,29 @@ void AttributeProto::ParseFromStream(utils::BinaryStream &stream){
 }
 
 std::vector<std::string> AttributeProto::SerializeToVectorString() const {
-  return write_proto_into_vector_string(
-      NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ref_attr_name), NAME_EXIST_VALUE(doc_string),
-      NAME_EXIST_VALUE(type), NAME_EXIST_VALUE(f), NAME_EXIST_VALUE(i), NAME_EXIST_VALUE(s),
-      NAME_EXIST_VALUE(t), NAME_EXIST_VALUE(sparse_tensor), NAME_EXIST_VALUE(floats),
-      NAME_EXIST_VALUE(ints), NAME_EXIST_VALUE(strings), NAME_EXIST_VALUE(tensors),
-      NAME_EXIST_VALUE(sparse_tensors));
+  switch (type_) {
+  case AttributeType::UNDEFINED:
+    return {MakeString("{ ", name_.as_string(), ": UNDEFINED }")};
+  case AttributeType::FLOAT:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(f))};
+  case AttributeType::INT:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(i))};
+  case AttributeType::STRING:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(s))};
+  case AttributeType::FLOATS:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(floats))};
+  case AttributeType::INTS:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ints))};
+  case AttributeType::STRINGS:
+    return {write_as_string(NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(strings))};
+  default:
+    return write_proto_into_vector_string(
+        NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ref_attr_name), NAME_EXIST_VALUE(doc_string),
+        NAME_EXIST_VALUE(type), NAME_EXIST_VALUE(f), NAME_EXIST_VALUE(i), NAME_EXIST_VALUE(s),
+        NAME_EXIST_VALUE(t), NAME_EXIST_VALUE(sparse_tensor), NAME_EXIST_VALUE(floats),
+        NAME_EXIST_VALUE(ints), NAME_EXIST_VALUE(strings), NAME_EXIST_VALUE(tensors),
+        NAME_EXIST_VALUE(sparse_tensors));
+  }
 }
 
 // NodeProto

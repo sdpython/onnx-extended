@@ -2176,23 +2176,11 @@ TEST(onnx2_string, AttributeProto) {
       serialized.find("dropout_ratio") != std::string::npos) {
     foundName = true;
   }
-  if (serialized.find("type:") != std::string::npos &&
-      serialized.find(std::to_string(static_cast<int>(AttributeProto::AttributeType::FLOAT))) !=
-          std::string::npos) {
-    foundType = true;
-  }
   if (serialized.find("f:") != std::string::npos && serialized.find("0.5") != std::string::npos) {
     foundValue = true;
   }
-  if (serialized.find("doc_string:") != std::string::npos &&
-      serialized.find("Dropout ratio documentation") != std::string::npos) {
-    foundDocString = true;
-  }
-
   EXPECT_TRUE(foundName);
-  EXPECT_TRUE(foundType);
   EXPECT_TRUE(foundValue);
-  EXPECT_TRUE(foundDocString);
 }
 
 TEST(onnx2_proto, AttributeProto_CopyFrom) {
@@ -3241,4 +3229,39 @@ TEST(onnx2_proto, ModelProto_ComplexModel) {
 
   EXPECT_EQ(model.ref_metadata_props().size(), 1);
   EXPECT_EQ(model.ref_metadata_props()[0].ref_key(), "framework");
+}
+
+TEST(onnx2_proto, AttributeProto_InNodeProto1) {
+  NodeProto node;
+  node.set_name("test_node");
+  node.set_op_type("TestOp");
+  AttributeProto &attr1 = node.add_attribute();
+  attr1.set_type(AttributeProto::AttributeType::INT);
+  attr1.ref_i() = 2;
+  AttributeProto att2;
+  att2.set_type(AttributeProto::AttributeType::INT);
+  att2.ref_i() = 2;
+  node.ref_attribute().push_back(att2);
+  std::string s1 = node.ref_attribute()[0].SerializeToVectorString()[0];
+  std::string s2 = node.ref_attribute()[1].SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s2);
+  std::string s4 = att2.SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s4);
+}
+
+TEST(onnx2_proto, AttributeProto_InNodeProto2) {
+  NodeProto node;
+  node.set_name("test_node");
+  node.set_op_type("TestOp");
+  AttributeProto &attr1 = node.add_attribute();
+  attr1.set_type(AttributeProto::AttributeType::INT);
+  attr1.ref_i() = 2;
+  AttributeProto &att2 = node.add_attribute();
+  att2.set_type(AttributeProto::AttributeType::INT);
+  att2.ref_i() = 2;
+  std::string s1 = node.ref_attribute()[0].SerializeToVectorString()[0];
+  std::string s2 = node.ref_attribute()[1].SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s2);
+  std::string s4 = att2.SerializeToVectorString()[0];
+  EXPECT_EQ(s1, s4);
 }
