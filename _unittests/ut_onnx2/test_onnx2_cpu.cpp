@@ -2005,3 +2005,228 @@ TEST(onnx2_proto, CopyFrom_SparseTensorProto) {
   EXPECT_EQ(target.ref_values().ref_float_data().size(), 1);
   EXPECT_EQ(target.ref_values().ref_float_data()[0], 1.5f);
 }
+
+TEST(onnx2_proto, AttributeProto_Basic) {
+  AttributeProto attribute;
+
+  EXPECT_TRUE(attribute.ref_name().empty());
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::UNDEFINED);
+  EXPECT_FALSE(attribute.has_i());
+  EXPECT_FALSE(attribute.has_f());
+  EXPECT_FALSE(attribute.has_s());
+  EXPECT_EQ(attribute.ref_ints().size(), 0);
+  EXPECT_EQ(attribute.ref_floats().size(), 0);
+  EXPECT_EQ(attribute.ref_strings().size(), 0);
+
+  attribute.set_name("weight_decay");
+  attribute.set_type(AttributeProto::AttributeType::FLOAT);
+  attribute.set_f(0.01f);
+
+  EXPECT_EQ(attribute.ref_name(), "weight_decay");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::FLOAT);
+  EXPECT_TRUE(attribute.has_f());
+  EXPECT_EQ(attribute.ref_f(), 0.01f);
+}
+
+TEST(onnx2_proto, AttributeProto_IntAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("axis");
+  attribute.set_type(AttributeProto::AttributeType::INT);
+  attribute.set_i(2);
+
+  EXPECT_EQ(attribute.ref_name(), "axis");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::INT);
+  EXPECT_TRUE(attribute.has_i());
+  EXPECT_EQ(attribute.ref_i(), 2);
+  EXPECT_FALSE(attribute.has_f());
+  EXPECT_FALSE(attribute.has_s());
+}
+
+TEST(onnx2_proto, AttributeProto_StringAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("mode");
+  attribute.set_type(AttributeProto::AttributeType::STRING);
+  attribute.set_s("constant");
+
+  EXPECT_EQ(attribute.ref_name(), "mode");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::STRING);
+  EXPECT_TRUE(attribute.has_s());
+  EXPECT_EQ(attribute.ref_s(), "constant");
+  EXPECT_FALSE(attribute.has_i());
+  EXPECT_FALSE(attribute.has_f());
+}
+
+TEST(onnx2_proto, AttributeProto_IntsAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("pads");
+  attribute.set_type(AttributeProto::AttributeType::INTS);
+  attribute.ref_ints().values.push_back(0);
+  attribute.ref_ints().values.push_back(0);
+  attribute.ref_ints().values.push_back(1);
+  attribute.ref_ints().values.push_back(1);
+
+  EXPECT_EQ(attribute.ref_name(), "pads");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::INTS);
+  EXPECT_EQ(attribute.ref_ints().size(), 4);
+  EXPECT_EQ(attribute.ref_ints()[0], 0);
+  EXPECT_EQ(attribute.ref_ints()[1], 0);
+  EXPECT_EQ(attribute.ref_ints()[2], 1);
+  EXPECT_EQ(attribute.ref_ints()[3], 1);
+}
+
+TEST(onnx2_proto, AttributeProto_FloatsAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("scales");
+  attribute.set_type(AttributeProto::AttributeType::FLOATS);
+  attribute.ref_floats().values.push_back(1.0f);
+  attribute.ref_floats().values.push_back(2.0f);
+  attribute.ref_floats().values.push_back(3.0f);
+
+  EXPECT_EQ(attribute.ref_name(), "scales");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::FLOATS);
+  EXPECT_EQ(attribute.ref_floats().size(), 3);
+  EXPECT_EQ(attribute.ref_floats()[0], 1.0f);
+  EXPECT_EQ(attribute.ref_floats()[1], 2.0f);
+  EXPECT_EQ(attribute.ref_floats()[2], 3.0f);
+}
+
+TEST(onnx2_proto, AttributeProto_StringsAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("tags");
+  attribute.set_type(AttributeProto::AttributeType::STRINGS);
+  attribute.add_strings() = "tag1";
+  attribute.add_strings() = "tag2";
+  attribute.add_strings() = "tag3";
+
+  EXPECT_EQ(attribute.ref_name(), "tags");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::STRINGS);
+  EXPECT_EQ(attribute.ref_strings().size(), 3);
+  EXPECT_EQ(attribute.ref_strings()[0], "tag1");
+  EXPECT_EQ(attribute.ref_strings()[1], "tag2");
+  EXPECT_EQ(attribute.ref_strings()[2], "tag3");
+}
+
+TEST(onnx2_proto, AttributeProto_TensorAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("value");
+  attribute.set_type(AttributeProto::AttributeType::TENSOR);
+
+  TensorProto &tensor = attribute.add_t();
+  tensor.set_name("const_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_dims().values.push_back(2);
+  tensor.ref_dims().values.push_back(2);
+  tensor.ref_float_data().values.push_back(1.0f);
+  tensor.ref_float_data().values.push_back(2.0f);
+  tensor.ref_float_data().values.push_back(3.0f);
+  tensor.ref_float_data().values.push_back(4.0f);
+
+  EXPECT_EQ(attribute.ref_name(), "value");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::TENSOR);
+  EXPECT_TRUE(attribute.has_t());
+  EXPECT_EQ(attribute.ref_t().ref_name(), "const_tensor");
+  EXPECT_EQ(attribute.ref_t().ref_data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(attribute.ref_t().ref_dims().size(), 2);
+  EXPECT_EQ(attribute.ref_t().ref_float_data().size(), 4);
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization) {
+  AttributeProto attribute;
+  attribute.set_name("test_attribute");
+  attribute.set_type(AttributeProto::AttributeType::INT);
+  attribute.set_i(42);
+  attribute.set_doc_string("Test attribute documentation");
+
+  std::string serialized;
+  attribute.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  AttributeProto attribute2;
+  attribute2.ParseFromString(serialized);
+
+  EXPECT_EQ(attribute2.ref_name(), "test_attribute");
+  EXPECT_EQ(attribute2.ref_type(), AttributeProto::AttributeType::INT);
+  EXPECT_EQ(attribute2.ref_i(), 42);
+  EXPECT_EQ(attribute2.ref_doc_string(), "Test attribute documentation");
+}
+
+TEST(serialize_to_string, AttributeProto) {
+  AttributeProto attribute;
+  attribute.set_name("dropout_ratio");
+  attribute.set_type(AttributeProto::AttributeType::FLOAT);
+  attribute.set_f(0.5f);
+  attribute.set_doc_string("Dropout ratio documentation");
+
+  std::vector<std::string> result = attribute.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundType = false;
+  bool foundValue = false;
+  bool foundDocString = false;
+
+  std::string serialized = utils::join_string(result, "\n");
+  if (serialized.find("name:") != std::string::npos &&
+      serialized.find("dropout_ratio") != std::string::npos) {
+    foundName = true;
+  }
+  if (serialized.find("type:") != std::string::npos &&
+      serialized.find(std::to_string(static_cast<int>(AttributeProto::AttributeType::FLOAT))) !=
+          std::string::npos) {
+    foundType = true;
+  }
+  if (serialized.find("f:") != std::string::npos && serialized.find("0.5") != std::string::npos) {
+    foundValue = true;
+  }
+  if (serialized.find("doc_string:") != std::string::npos &&
+      serialized.find("Dropout ratio documentation") != std::string::npos) {
+    foundDocString = true;
+  }
+
+  EXPECT_TRUE(foundName);
+  EXPECT_TRUE(foundType);
+  EXPECT_TRUE(foundValue);
+  EXPECT_TRUE(foundDocString);
+}
+
+TEST(onnx2_proto, AttributeProto_CopyFrom) {
+  AttributeProto source;
+  source.set_name("source_attribute");
+  source.set_type(AttributeProto::AttributeType::INTS);
+  source.ref_ints().values.push_back(10);
+  source.ref_ints().values.push_back(20);
+  source.set_doc_string("Source documentation");
+
+  AttributeProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_name(), "source_attribute");
+  EXPECT_EQ(target.ref_type(), AttributeProto::AttributeType::INTS);
+  EXPECT_EQ(target.ref_ints().size(), 2);
+  EXPECT_EQ(target.ref_ints()[0], 10);
+  EXPECT_EQ(target.ref_ints()[1], 20);
+  EXPECT_EQ(target.ref_doc_string(), "Source documentation");
+}
+
+/*
+TEST(onnx2_proto, AttributeProto_GraphAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("body");
+  attribute.set_type(AttributeProto::AttributeType::GRAPH);
+
+  // Assuming GraphProto has methods similar to TensorProto
+  attribute.add_g().set_name("subgraph");
+
+  EXPECT_EQ(attribute.ref_name(), "body");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::GRAPH);
+  EXPECT_TRUE(attribute.has_g());
+  EXPECT_EQ(attribute.ref_g().ref_name(), "subgraph");
+}
+*/

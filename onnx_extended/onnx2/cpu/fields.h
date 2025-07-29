@@ -54,6 +54,7 @@ public:
 template <typename T> class OptionalField {
 public:
   explicit inline OptionalField() : value(nullptr) {}
+  explicit inline OptionalField(const OptionalField<T> &copy) : value(nullptr) { *this = copy; }
   explicit inline OptionalField(OptionalField<T> &&move) : value(move.value) { move.value = nullptr; }
   inline bool has_value() const { return value != nullptr; }
   ~OptionalField();
@@ -61,6 +62,7 @@ public:
   T &operator*();
   const T &operator*() const;
   OptionalField<T> &operator=(const T &other);
+  OptionalField<T> &operator=(const OptionalField<T> &other);
   void set_empty_value();
   T *value;
 };
@@ -95,6 +97,15 @@ template <> class OptionalField<int32_t> : public _OptionalField<int32_t> {
 public:
   explicit inline OptionalField() : _OptionalField<int32_t>() {}
   inline OptionalField<int32_t> &operator=(const int32_t &other) {
+    value = other;
+    return *this;
+  }
+};
+
+template <> class OptionalField<float> : public _OptionalField<float> {
+public:
+  explicit inline OptionalField() : _OptionalField<float>() {}
+  inline OptionalField<float> &operator=(const float &other) {
     value = other;
     return *this;
   }
