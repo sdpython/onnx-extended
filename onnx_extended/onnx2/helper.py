@@ -511,17 +511,14 @@ def make_tensor(
     field to store the values, and values should be of type bytes in
     this case.
 
-    Args:
-        name: tensor name
-        data_type: a value such as onnx.TensorProto.FLOAT
-        dims: shape
-        vals: values
-        raw: if True, vals contains the serialized content of the tensor,
-            otherwise, vals should be a list of values
-            of the type defined by ``data_type``.
-
-    Returns:
-        TensorProto
+    :param name: tensor name
+    :param data_type: a value such as onnx.TensorProto.FLOAT
+    :param dims: shape
+    :param vals: values
+    :param raw: if True, vals contains the serialized content of the tensor,
+        otherwise, vals should be a list of values
+        of the type defined by ``data_type``.
+    :return: TensorProto
     """
     tensor = TensorProto()
     tensor.data_type = data_type
