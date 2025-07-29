@@ -41,7 +41,7 @@ namespace py = pybind11;
           "Creates a printable string for this class.")                                                \
       .def(                                                                                            \
           "CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); },             \
-          "Copies one instance into this one.")                                                          \
+          "Copies one instance into this one.")                                                        \
       .def(                                                                                            \
           "__eq__",                                                                                    \
           [](const onnx2::cls &self, const onnx2::cls &src) -> bool {                                  \
@@ -612,45 +612,49 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS)
       .export_values();
   attribute_type
-      .def_static("items",
-                  []() {
-                    return std::vector<std::pair<std::string, onnx2::AttributeProto::AttributeType>>{
-                        {"UNDEFINED", onnx2::AttributeProto::AttributeType::UNDEFINED},
-                        {"FLOAT", onnx2::AttributeProto::AttributeType::FLOAT},
-                        {"INT", onnx2::AttributeProto::AttributeType::INT},
-                        {"STRING", onnx2::AttributeProto::AttributeType::STRING},
-                        {"GRAPH", onnx2::AttributeProto::AttributeType::GRAPH},
-                        {"SPARSE_TENSOR", onnx2::AttributeProto::AttributeType::SPARSE_TENSOR},
-                        {"FLOATS", onnx2::AttributeProto::AttributeType::FLOATS},
-                        {"INTS", onnx2::AttributeProto::AttributeType::INTS},
-                        {"STRINGS", onnx2::AttributeProto::AttributeType::STRINGS},
-                        {"GRAPHS", onnx2::AttributeProto::AttributeType::GRAPHS},
-                        {"SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS},
-                    };
+      .def_static(
+          "items",
+          []() {
+            return std::vector<std::pair<std::string, onnx2::AttributeProto::AttributeType>>{
+                {"UNDEFINED", onnx2::AttributeProto::AttributeType::UNDEFINED},
+                {"FLOAT", onnx2::AttributeProto::AttributeType::FLOAT},
+                {"INT", onnx2::AttributeProto::AttributeType::INT},
+                {"STRING", onnx2::AttributeProto::AttributeType::STRING},
+                {"GRAPH", onnx2::AttributeProto::AttributeType::GRAPH},
+                {"SPARSE_TENSOR", onnx2::AttributeProto::AttributeType::SPARSE_TENSOR},
+                {"FLOATS", onnx2::AttributeProto::AttributeType::FLOATS},
+                {"INTS", onnx2::AttributeProto::AttributeType::INTS},
+                {"STRINGS", onnx2::AttributeProto::AttributeType::STRINGS},
+                {"GRAPHS", onnx2::AttributeProto::AttributeType::GRAPHS},
+                {"SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS},
+            };
           },
           "Returns the list of (name, type).")
-      .def_static("keys",
-                  []() {
-                    return std::vector<std::string>{
-                        "UNDEFINED", "FLOAT", "INT",     "STRING", "GRAPH",          "SPARSE_TENSOR",
-                        "FLOATS",    "INTS",  "STRINGS", "GRAPHS", "SPARSE_TENSORS",
-                    };
+      .def_static(
+          "keys",
+          []() {
+            return std::vector<std::string>{
+                "UNDEFINED", "FLOAT", "INT",     "STRING", "GRAPH",          "SPARSE_TENSOR",
+                "FLOATS",    "INTS",  "STRINGS", "GRAPHS", "SPARSE_TENSORS",
+            };
           },
           "Returns the list of names.")
-      .def_static("values", []() {
-        return std::vector<onnx2::AttributeProto::AttributeType>{
-            onnx2::AttributeProto::AttributeType::UNDEFINED,
-            onnx2::AttributeProto::AttributeType::FLOAT,
-            onnx2::AttributeProto::AttributeType::INT,
-            onnx2::AttributeProto::AttributeType::STRING,
-            onnx2::AttributeProto::AttributeType::GRAPH,
-            onnx2::AttributeProto::AttributeType::SPARSE_TENSOR,
-            onnx2::AttributeProto::AttributeType::FLOATS,
-            onnx2::AttributeProto::AttributeType::INTS,
-            onnx2::AttributeProto::AttributeType::STRINGS,
-            onnx2::AttributeProto::AttributeType::GRAPHS,
-            onnx2::AttributeProto::AttributeType::SPARSE_TENSORS,
-        };
+      .def_static(
+          "values",
+          []() {
+            return std::vector<onnx2::AttributeProto::AttributeType>{
+                onnx2::AttributeProto::AttributeType::UNDEFINED,
+                onnx2::AttributeProto::AttributeType::FLOAT,
+                onnx2::AttributeProto::AttributeType::INT,
+                onnx2::AttributeProto::AttributeType::STRING,
+                onnx2::AttributeProto::AttributeType::GRAPH,
+                onnx2::AttributeProto::AttributeType::SPARSE_TENSOR,
+                onnx2::AttributeProto::AttributeType::FLOATS,
+                onnx2::AttributeProto::AttributeType::INTS,
+                onnx2::AttributeProto::AttributeType::STRINGS,
+                onnx2::AttributeProto::AttributeType::GRAPHS,
+                onnx2::AttributeProto::AttributeType::SPARSE_TENSORS,
+            };
           },
           "Returns the list of types.");
 
