@@ -446,6 +446,28 @@ FIELD_REPEATED(SparseTensorProto, sparse_tensors, 23, "Optional repeated tensor 
 // FIELD_REPEATED(GraphProto, graphs, 11, "Optional repeated graph attribute.")
 END_PROTO()
 
+// NodeProto
+
+BEGIN_PROTO(NodeProto, "Computation graphs are made up of a DAG of nodes, which represent what is "
+                       "commonly called a 'layer' or 'pipeline stage' in machine learning frameworks. "
+                       "For example, it can be a node of type 'Conv' that takes in an image, a filter "
+                       "tensor and a bias tensor, and produces the convolved output.")
+FIELD_REPEATED(utils::String, input, 1, "inputs of the node")
+FIELD_REPEATED(utils::String, output, 2, "outputs of the node")
+FIELD_STR(name, 3,
+          "An optional identifier for this node in a graph. This field MAY be absent in this version "
+          "of the IR.")
+FIELD_STR(op_type, 4, "The symbolic identifier of the Operator to execute.")
+FIELD_REPEATED(AttributeProto, attribute, 5, "Attributes associated with this node.")
+FIELD_STR(domain, 7, "The domain of the OperatorSet that specifies the operator named by op_type.")
+FIELD_STR(overload, 8, "Overload identifier, used only to map this to a model-local function.")
+FIELD_STR(doc_string, 6, "A human-readable documentation for this node. Markdown is allowed.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 9,
+               "Named metadata values; keys should be distinct.")
+FIELD_REPEATED(NodeDeviceConfigurationProto, device_configurations, 10,
+               "Configuration of multi-device annotations.")
+END_PROTO()
+
 } // namespace onnx2
 
 #include "fields.hpp"

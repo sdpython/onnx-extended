@@ -696,4 +696,20 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(AttributeProto, rep_ap);
   define_repeated_field_type(rep_ap);
   define_repeated_field_type_extend_list(rep_ap);
+
+  PYDEFINE_PROTO(m, NodeProto)
+      .PYFIELD(NodeProto, input)
+      .PYFIELD(NodeProto, output)
+      .PYFIELD_STR(NodeProto, name)
+      .PYFIELD_STR(NodeProto, op_type)
+      .PYFIELD_STR(NodeProto, domain)
+      .PYFIELD_STR(NodeProto, overload)
+      .PYFIELD(NodeProto, attribute)
+      .PYFIELD_STR(NodeProto, doc_string)
+      .PYFIELD(NodeProto, metadata_props)
+      .PYFIELD(NodeProto, device_configurations)
+      .PYADD_PROTO_SERIALIZATION(NodeProto);
+  DECLARE_REPEATED_FIELD_PROTO(NodeProto, rep_node);
+  define_repeated_field_type(rep_node);
+  define_repeated_field_type_extend_list(rep_node);
 }

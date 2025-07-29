@@ -514,4 +514,43 @@ std::vector<std::string> AttributeProto::SerializeToVectorString() const {
       NAME_EXIST_VALUE(sparse_tensors));
 }
 
+// NodeProto
+IMPLEMENT_PROTO(NodeProto)
+
+void NodeProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_REPEATED_FIELD(stream, input)
+  WRITE_REPEATED_FIELD(stream, output)
+  WRITE_FIELD(stream, name)
+  WRITE_FIELD(stream, op_type)
+  WRITE_REPEATED_FIELD(stream, attribute)
+  WRITE_FIELD(stream, domain)
+  WRITE_FIELD(stream, overload)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+  WRITE_REPEATED_FIELD(stream, device_configurations)
+}
+
+void NodeProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, NodeProto)                      //
+    READ_REPEATED_FIELD(stream, input)                 //
+    READ_REPEATED_FIELD(stream, output)                //
+    READ_FIELD(stream, name)                           //
+    READ_FIELD(stream, op_type)                        //
+    READ_REPEATED_FIELD(stream, attribute)             //
+    READ_FIELD(stream, domain)                         //
+    READ_FIELD(stream, overload)                       //
+    READ_FIELD(stream, doc_string)                     //
+    READ_REPEATED_FIELD(stream, metadata_props)        //
+    READ_REPEATED_FIELD(stream, device_configurations) //
+    READ_END(stream, NodeProto)                        //
+}
+
+std::vector<std::string> NodeProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(
+      NAME_EXIST_VALUE(input), NAME_EXIST_VALUE(output), NAME_EXIST_VALUE(name),
+      NAME_EXIST_VALUE(op_type), NAME_EXIST_VALUE(attribute), NAME_EXIST_VALUE(domain),
+      NAME_EXIST_VALUE(overload), NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(metadata_props),
+      NAME_EXIST_VALUE(device_configurations));
+}
+
 } // namespace onnx2

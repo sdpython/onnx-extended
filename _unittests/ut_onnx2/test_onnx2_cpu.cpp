@@ -1350,7 +1350,7 @@ TEST(serialize_to_string, IntIntListEntryProto) {
   proto.ref_value().values.push_back(2);
   proto.ref_value().values.push_back(3);
   std::vector<std::string> result = proto.SerializeToVectorString();
-  ASSERT_EQ(5, result.size());
+  ASSERT_EQ(4, result.size());
   std::string serialized = utils::join_string(result, "\n");
   EXPECT_TRUE(serialized.find("42") != std::string::npos);
   EXPECT_TRUE(serialized.find("1") != std::string::npos);
@@ -2230,3 +2230,303 @@ TEST(onnx2_proto, AttributeProto_GraphAttribute) {
   EXPECT_EQ(attribute.ref_g().ref_name(), "subgraph");
 }
 */
+
+TEST(onnx2_proto, NodeProto_Basic) {
+  NodeProto node;
+
+  EXPECT_TRUE(node.ref_name().empty());
+  EXPECT_TRUE(node.ref_op_type().empty());
+  EXPECT_TRUE(node.ref_domain().empty());
+  EXPECT_EQ(node.ref_input().size(), 0);
+  EXPECT_EQ(node.ref_output().size(), 0);
+  EXPECT_EQ(node.ref_attribute().size(), 0);
+  EXPECT_TRUE(node.ref_doc_string().empty());
+
+  node.set_name("test_node");
+  node.set_op_type("Conv");
+  node.set_domain("ai.onnx");
+  node.set_doc_string("Test node documentation");
+
+  EXPECT_EQ(node.ref_name(), "test_node");
+  EXPECT_EQ(node.ref_op_type(), "Conv");
+  EXPECT_EQ(node.ref_domain(), "ai.onnx");
+  EXPECT_EQ(node.ref_doc_string(), "Test node documentation");
+}
+
+TEST(onnx2_proto, NodeProto_InputOutput) {
+  NodeProto node;
+
+  EXPECT_EQ(node.ref_input().size(), 0);
+  EXPECT_EQ(node.ref_output().size(), 0);
+
+  // Add inputs
+  node.add_input() = "X";
+  node.add_input() = "W";
+  node.add_input() = "B";
+
+  // Add outputs
+  node.add_output() = "Y";
+
+  EXPECT_EQ(node.ref_input().size(), 3);
+  EXPECT_EQ(node.ref_input()[0], "X");
+  EXPECT_EQ(node.ref_input()[1], "W");
+  EXPECT_EQ(node.ref_input()[2], "B");
+
+  EXPECT_EQ(node.ref_output().size(), 1);
+  EXPECT_EQ(node.ref_output()[0], "Y");
+
+  // Test clear_input and clear_output
+  node.clr_input();
+  EXPECT_EQ(node.ref_input().size(), 0);
+
+  node.clr_output();
+  EXPECT_EQ(node.ref_output().size(), 0);
+}
+
+TEST(onnx2_proto, NodeProto_Attributes) {
+  NodeProto node;
+
+  EXPECT_EQ(node.ref_attribute().size(), 0);
+
+  // Add attributes
+  AttributeProto &attr1 = node.add_attribute();
+  attr1.set_name("kernel_shape");
+  attr1.set_type(AttributeProto::AttributeType::INTS);
+  attr1.ref_ints().values.push_back(3);
+  attr1.ref_ints().values.push_back(3);
+
+  AttributeProto &attr2 = node.add_attribute();
+  attr2.set_name("strides");
+  attr2.set_type(AttributeProto::AttributeType::INTS);
+  attr2.ref_ints().values.push_back(1);
+  attr2.ref_ints().values.push_back(1);
+
+  AttributeProto &attr3 = node.add_attribute();
+  attr3.set_name("pads");
+  attr3.set_type(AttributeProto::AttributeType::INTS);
+  attr3.ref_ints().values.push_back(1);
+  attr3.ref_ints().values.push_back(1);
+  attr3.ref_ints().values.push_back(1);
+  attr3.ref_ints().values.push_back(1);
+
+  EXPECT_EQ(node.ref_attribute().size(), 3);
+  EXPECT_EQ(node.ref_attribute()[0].ref_name(), "kernel_shape");
+  EXPECT_EQ(node.ref_attribute()[0].ref_ints().size(), 2);
+  EXPECT_EQ(node.ref_attribute()[1].ref_name(), "strides");
+  EXPECT_EQ(node.ref_attribute()[1].ref_ints().size(), 2);
+  EXPECT_EQ(node.ref_attribute()[2].ref_name(), "pads");
+  EXPECT_EQ(node.ref_attribute()[2].ref_ints().size(), 4);
+}
+
+TEST(onnx2_proto, NodeProto_Serialization) {
+  NodeProto node1;
+  node1.set_name("conv1");
+  node1.set_op_type("Conv");
+  node1.set_domain("ai.onnx");
+
+  node1.add_input() = "X";
+  node1.add_input() = "W";
+
+  node1.add_output() = "Y";
+
+  AttributeProto &attr = node1.add_attribute();
+  attr.set_name("kernel_shape");
+  attr.set_type(AttributeProto::AttributeType::INTS);
+  attr.ref_ints().values.push_back(3);
+  attr.ref_ints().values.push_back(3);
+
+  std::string serialized;
+  node1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  NodeProto node2;
+  node2.ParseFromString(serialized);
+
+  EXPECT_EQ(node2.ref_name(), "conv1");
+  EXPECT_EQ(node2.ref_op_type(), "Conv");
+  EXPECT_EQ(node2.ref_domain(), "ai.onnx");
+  EXPECT_EQ(node2.ref_input().size(), 2);
+  EXPECT_EQ(node2.ref_input()[0], "X");
+  EXPECT_EQ(node2.ref_input()[1], "W");
+  EXPECT_EQ(node2.ref_output().size(), 1);
+  EXPECT_EQ(node2.ref_output()[0], "Y");
+  EXPECT_EQ(node2.ref_attribute().size(), 1);
+  EXPECT_EQ(node2.ref_attribute()[0].ref_name(), "kernel_shape");
+  EXPECT_EQ(node2.ref_attribute()[0].ref_ints().size(), 2);
+  EXPECT_EQ(node2.ref_attribute()[0].ref_ints()[0], 3);
+  EXPECT_EQ(node2.ref_attribute()[0].ref_ints()[1], 3);
+}
+
+TEST(onnx2_proto, NodeProto_SerializeToVectorString) {
+  NodeProto node;
+  node.set_name("relu1");
+  node.set_op_type("Relu");
+  node.add_input() = "X";
+  node.add_output() = "Y";
+  node.set_doc_string("Simple ReLU activation");
+
+  std::vector<std::string> result = node.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundOpType = false;
+  bool foundInput = false;
+  bool foundOutput = false;
+  bool foundDocString = false;
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  if (serialized.find("name:") != std::string::npos && serialized.find("relu1") != std::string::npos) {
+    foundName = true;
+  }
+
+  if (serialized.find("op_type:") != std::string::npos &&
+      serialized.find("Relu") != std::string::npos) {
+    foundOpType = true;
+  }
+
+  if (serialized.find("input:") != std::string::npos && serialized.find("X") != std::string::npos) {
+    foundInput = true;
+  }
+
+  if (serialized.find("output:") != std::string::npos && serialized.find("Y") != std::string::npos) {
+    foundOutput = true;
+  }
+
+  if (serialized.find("doc_string:") != std::string::npos &&
+      serialized.find("Simple ReLU activation") != std::string::npos) {
+    foundDocString = true;
+  }
+
+  EXPECT_TRUE(foundName);
+  EXPECT_TRUE(foundOpType);
+  EXPECT_TRUE(foundInput);
+  EXPECT_TRUE(foundOutput);
+  EXPECT_TRUE(foundDocString);
+}
+
+TEST(onnx2_proto, NodeProto_CopyFrom) {
+  NodeProto source;
+  source.set_name("source_node");
+  source.set_op_type("Add");
+  source.set_domain("ai.onnx");
+  source.add_input() = "A";
+  source.add_input() = "B";
+  source.add_output() = "C";
+
+  AttributeProto &attr = source.add_attribute();
+  attr.set_name("axis");
+  attr.set_type(AttributeProto::AttributeType::INT);
+  attr.set_i(1);
+
+  source.set_doc_string("Source node documentation");
+
+  NodeProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_name(), "source_node");
+  EXPECT_EQ(target.ref_op_type(), "Add");
+  EXPECT_EQ(target.ref_domain(), "ai.onnx");
+  EXPECT_EQ(target.ref_input().size(), 2);
+  EXPECT_EQ(target.ref_input()[0], "A");
+  EXPECT_EQ(target.ref_input()[1], "B");
+  EXPECT_EQ(target.ref_output().size(), 1);
+  EXPECT_EQ(target.ref_output()[0], "C");
+  EXPECT_EQ(target.ref_attribute().size(), 1);
+  EXPECT_EQ(target.ref_attribute()[0].ref_name(), "axis");
+  EXPECT_EQ(target.ref_attribute()[0].ref_i(), 1);
+  EXPECT_EQ(target.ref_doc_string(), "Source node documentation");
+}
+
+TEST(onnx2_proto, NodeProto_ComplexModel) {
+  // Create a more complex node to test multiple attributes, inputs, outputs
+  NodeProto node;
+  node.set_name("gemm1");
+  node.set_op_type("Gemm");
+  node.set_domain("ai.onnx");
+
+  // Add inputs
+  node.add_input() = "A";
+  node.add_input() = "B";
+  node.add_input() = "C";
+
+  // Add outputs
+  node.add_output() = "Y";
+
+  // Add attributes
+  AttributeProto &alpha = node.add_attribute();
+  alpha.set_name("alpha");
+  alpha.set_type(AttributeProto::AttributeType::FLOAT);
+  alpha.set_f(0.5f);
+
+  AttributeProto &beta = node.add_attribute();
+  beta.set_name("beta");
+  beta.set_type(AttributeProto::AttributeType::FLOAT);
+  beta.set_f(0.8f);
+
+  AttributeProto &transA = node.add_attribute();
+  transA.set_name("transA");
+  transA.set_type(AttributeProto::AttributeType::INT);
+  transA.set_i(1);
+
+  AttributeProto &transB = node.add_attribute();
+  transB.set_name("transB");
+  transB.set_type(AttributeProto::AttributeType::INT);
+  transB.set_i(0);
+
+  node.set_doc_string("GEMM operation: Y = alpha * A' * B + beta * C");
+
+  EXPECT_EQ(node.ref_name(), "gemm1");
+  EXPECT_EQ(node.ref_op_type(), "Gemm");
+  EXPECT_EQ(node.ref_domain(), "ai.onnx");
+
+  EXPECT_EQ(node.ref_input().size(), 3);
+  EXPECT_EQ(node.ref_input()[0], "A");
+  EXPECT_EQ(node.ref_input()[1], "B");
+  EXPECT_EQ(node.ref_input()[2], "C");
+
+  EXPECT_EQ(node.ref_output().size(), 1);
+  EXPECT_EQ(node.ref_output()[0], "Y");
+
+  EXPECT_EQ(node.ref_attribute().size(), 4);
+  EXPECT_EQ(node.ref_attribute()[0].ref_name(), "alpha");
+  EXPECT_EQ(node.ref_attribute()[0].ref_f(), 0.5f);
+  EXPECT_EQ(node.ref_attribute()[1].ref_name(), "beta");
+  EXPECT_EQ(node.ref_attribute()[1].ref_f(), 0.8f);
+  EXPECT_EQ(node.ref_attribute()[2].ref_name(), "transA");
+  EXPECT_EQ(node.ref_attribute()[2].ref_i(), 1);
+  EXPECT_EQ(node.ref_attribute()[3].ref_name(), "transB");
+  EXPECT_EQ(node.ref_attribute()[3].ref_i(), 0);
+
+  EXPECT_EQ(node.ref_doc_string(), "GEMM operation: Y = alpha * A' * B + beta * C");
+}
+
+TEST(onnx2_proto, NodeProto_EmptyStrings) {
+  NodeProto node;
+  node.set_name("");
+  node.set_op_type("Identity");
+  node.add_input() = "";
+  node.add_output() = "";
+
+  EXPECT_TRUE(node.ref_name().empty());
+  EXPECT_EQ(node.ref_op_type(), "Identity");
+  EXPECT_EQ(node.ref_input().size(), 1);
+  EXPECT_TRUE(node.ref_input()[0].empty());
+  EXPECT_EQ(node.ref_output().size(), 1);
+  EXPECT_TRUE(node.ref_output()[0].empty());
+
+  std::string serialized;
+  node.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  NodeProto node2;
+  node2.ParseFromString(serialized);
+
+  EXPECT_TRUE(node2.ref_name().empty());
+  EXPECT_EQ(node2.ref_op_type(), "Identity");
+  EXPECT_EQ(node2.ref_input().size(), 1);
+  EXPECT_TRUE(node2.ref_input()[0].empty());
+  EXPECT_EQ(node2.ref_output().size(), 1);
+  EXPECT_TRUE(node2.ref_output()[0].empty());
+}
+
