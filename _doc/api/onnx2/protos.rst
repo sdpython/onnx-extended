@@ -105,12 +105,6 @@ TensorAnnotation
 .. autoclass:: onnx_extended.onnx2.TensorAnnotation 
     :membes:
 
-TensorAnnotation
-================
-
-.. autoclass:: onnx_extended.onnx2.TensorAnnotation 
-    :membes:
-
 TensorProto
 ===========
 
