@@ -68,7 +68,7 @@ BEGIN_PROTO(SimpleShardedDimProto,
             "Indicates that N blocks are divided into M shards. N is allowed to be symbolic "
             "where M is required to be a constant.")
 FIELD_OPTIONAL(int64_t, dim_value, 1, "Dimension value to be sharded if it is a fixed value.")
-FIELD_STR(dim_param, 2, "Dimension value to be sharded if it is a dynamic value.")
+FIELD_STR(dim_param, 2, "Dimension name to be sharded if it is a dynamic value.")
 FIELD_DEFAULT(int64_t, num_shards, 3, 0,
               "This field MUST be present for this version of the IR. Number of shards to "
               "split dim into.")
@@ -133,7 +133,7 @@ BEGIN_PROTO_NOINIT(TensorShapeProto,
 BEGIN_PROTO(Dimension, "Defines a dimension, it can be fixed (an integer dim_value) or dynamic "
                        "(a string dim_param). Only one of them can be set.")
 FIELD_OPTIONAL(int64_t, dim_value, 1, "Dimension value if it is a fixed value.")
-FIELD_STR(dim_param, 2, "Dimension value if it is a dynamic value.")
+FIELD_STR(dim_param, 2, "Dimension name if it is a dynamic value.")
 FIELD_STR(denotation, 3,
           "The indices of the non-default values, which may be stored in one of two formats. (a) "
           "Indices can be a tensor of shape [NNZ, rank] with the [i,j]-th value corresponding to the "
@@ -393,6 +393,7 @@ FIELD_REPEATED(StringStringEntryProto, metadata_props, 4,
 END_PROTO()
 
 // AttributeProto
+class GraphProto;
 
 BEGIN_PROTO_NOINIT(AttributeProto,
                    "A named attribute containing either singular float, integer, string, graph, and "
@@ -436,14 +437,14 @@ FIELD_OPTIONAL(float, f, 2, "Optional float attribute.")
 FIELD_OPTIONAL(int64_t, i, 3, "Optional int64 attribute.")
 FIELD_STR(s, 4, "Optional string attribute.")
 FIELD_OPTIONAL(TensorProto, t, 5, "Optional tensor attribute.")
-// FIELD_OPTIONAL(GraphProto, g, 6, "Optional graph attribute.")
+FIELD_OPTIONAL(GraphProto, g, 6, "Optional graph attribute.")
 FIELD_OPTIONAL(SparseTensorProto, sparse_tensor, 22, "Optional sparse tensor attribute.")
 FIELD_REPEATED(float, floats, 7, "Optional repeated float attribute.")
 FIELD_REPEATED(int64_t, ints, 8, "Optional repeated int64 attribute.")
 FIELD_REPEATED(utils::String, strings, 9, "Optional repeated string attribute.")
 FIELD_REPEATED(TensorProto, tensors, 10, "Optional repeated tensor attribute.")
 FIELD_REPEATED(SparseTensorProto, sparse_tensors, 23, "Optional repeated tensor attribute.")
-// FIELD_REPEATED(GraphProto, graphs, 11, "Optional repeated graph attribute.")
+FIELD_REPEATED(GraphProto, graphs, 11, "Optional repeated graph attribute.")
 END_PROTO()
 
 // NodeProto

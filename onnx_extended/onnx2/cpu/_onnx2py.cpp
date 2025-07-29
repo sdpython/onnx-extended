@@ -41,7 +41,7 @@ namespace py = pybind11;
           "Creates a printable string for this class.")                                                \
       .def(                                                                                            \
           "CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); },             \
-          "Copy one instance into this one.")                                                          \
+          "Copies one instance into this one.")                                                          \
       .def(                                                                                            \
           "__eq__",                                                                                    \
           [](const onnx2::cls &self, const onnx2::cls &src) -> bool {                                  \
@@ -54,7 +54,7 @@ namespace py = pybind11;
           "Compares the serialized strings.")
 
 #define PYFIELD(cls, name)                                                                             \
-  def_readwrite(#name, &onnx2::cls::name##_, #name)                                                    \
+  def_readwrite(#name, &onnx2::cls::name##_, onnx2::cls::DOC_##name)                                   \
       .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
 
 #define PYFIELD_STR(cls, name)                                                                         \
@@ -627,14 +627,16 @@ PYBIND11_MODULE(_onnx2py, m) {
                         {"GRAPHS", onnx2::AttributeProto::AttributeType::GRAPHS},
                         {"SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS},
                     };
-                  })
+          },
+          "Returns the list of (name, type).")
       .def_static("keys",
                   []() {
                     return std::vector<std::string>{
                         "UNDEFINED", "FLOAT", "INT",     "STRING", "GRAPH",          "SPARSE_TENSOR",
                         "FLOATS",    "INTS",  "STRINGS", "GRAPHS", "SPARSE_TENSORS",
                     };
-                  })
+          },
+          "Returns the list of names.")
       .def_static("values", []() {
         return std::vector<onnx2::AttributeProto::AttributeType>{
             onnx2::AttributeProto::AttributeType::UNDEFINED,
@@ -649,7 +651,8 @@ PYBIND11_MODULE(_onnx2py, m) {
             onnx2::AttributeProto::AttributeType::GRAPHS,
             onnx2::AttributeProto::AttributeType::SPARSE_TENSORS,
         };
-      });
+          },
+          "Returns the list of types.");
 
   cls_attribute_proto.SHORTEN_CODE(AttributeProto::AttributeType, UNDEFINED)
       .SHORTEN_CODE(AttributeProto::AttributeType, FLOAT)
@@ -685,13 +688,13 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR_AS_BYTES(AttributeProto, s)
       .PYFIELD_OPTIONAL_PROTO(AttributeProto, t)
       .PYFIELD_OPTIONAL_PROTO(AttributeProto, sparse_tensor)
-      //.PYFIELD_OPTIONAL_PROTO(AttributeProto, g)
+      .PYFIELD_OPTIONAL_PROTO(AttributeProto, g)
       .PYFIELD(AttributeProto, floats)
       .PYFIELD(AttributeProto, ints)
       .PYFIELD(AttributeProto, strings)
       .PYFIELD(AttributeProto, tensors)
       .PYFIELD(AttributeProto, sparse_tensors)
-      //.PYFIELD(AttributeProto, graphs)
+      .PYFIELD(AttributeProto, graphs)
       .PYADD_PROTO_SERIALIZATION(AttributeProto);
   DECLARE_REPEATED_FIELD_PROTO(AttributeProto, rep_ap);
   define_repeated_field_type(rep_ap);
