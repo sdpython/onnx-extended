@@ -7,124 +7,124 @@ AttributeProto
 ==============
 
 .. autoclass:: onnx_extended.onnx2.AttributeProto 
-    :membes:
+    :members:
 
 DeviceConfigurationProto
 ========================
 
 .. autoclass:: onnx_extended.onnx2.DeviceConfigurationProto 
-    :membes:
+    :members:
 
 FunctionProto
 =============
 
 .. autoclass:: onnx_extended.onnx2.FunctionProto 
-    :membes:
+    :members:
 
 GraphProto
 ==========
 
 .. autoclass:: onnx_extended.onnx2.GraphProto 
-    :membes:
+    :members:
 
 IntIntListEntryProto
 ====================
 
 .. autoclass:: onnx_extended.onnx2.IntIntListEntryProto 
-    :membes:
+    :members:
 
 Message
 =======
 
 .. autoclass:: onnx_extended.onnx2.Message 
-    :membes:
+    :members:
 
 ModelProto
 ==========
 
 .. autoclass:: onnx_extended.onnx2.ModelProto 
-    :membes:
+    :members:
 
 NodeDeviceConfigurationProto
 ============================
 
 .. autoclass:: onnx_extended.onnx2.NodeDeviceConfigurationProto 
-    :membes:
+    :members:
 
 NodeProto
 =========
 
 .. autoclass:: onnx_extended.onnx2.NodeProto 
-    :membes:
+    :members:
 
 OperatorSetIdProto
 ==================
 
 .. autoclass:: onnx_extended.onnx2.OperatorSetIdProto 
-    :membes:
+    :members:
 
 OperatorStatus
 ==============
 
 .. autoclass:: onnx_extended.onnx2.OperatorStatus 
-    :membes:
+    :members:
 
 ShardedDimProto
 ===============
 
 .. autoclass:: onnx_extended.onnx2.ShardedDimProto 
-    :membes:
+    :members:
 
 ShardingSpecProto
 =================
 
 .. autoclass:: onnx_extended.onnx2.ShardingSpecProto 
-    :membes:
+    :members:
 
 SimpleShardedDimProto
 =====================
 
 .. autoclass:: onnx_extended.onnx2.SimpleShardedDimProto 
-    :membes:
+    :members:
 
 SparseTensorProto
 =================
 
 .. autoclass:: onnx_extended.onnx2.SparseTensorProto 
-    :membes:
+    :members:
 
 StringStringEntryProto
 ======================
 
 .. autoclass:: onnx_extended.onnx2.StringStringEntryProto 
-    :membes:
+    :members:
 
 TensorAnnotation
 ================
 
 .. autoclass:: onnx_extended.onnx2.TensorAnnotation 
-    :membes:
+    :members:
 
 TensorProto
 ===========
 
 .. autoclass:: onnx_extended.onnx2.TensorProto 
-    :membes:
+    :members:
 
 TensorShapeProto
 ================
 
 .. autoclass:: onnx_extended.onnx2.TensorShapeProto 
-    :membes:
+    :members:
 
 TypeProto
 =========
 
 .. autoclass:: onnx_extended.onnx2.TypeProto 
-    :membes:
+    :members:
 
 ValueInfoProto
 ==============
 
 .. autoclass:: onnx_extended.onnx2.ValueInfoProto 
-    :membes:
+    :members:
