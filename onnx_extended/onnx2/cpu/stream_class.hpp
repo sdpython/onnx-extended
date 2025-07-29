@@ -612,9 +612,9 @@ std::vector<std::string> write_into_vector_string(const char *field_name, const 
       if (i == 0) {
         rows[0] += r[0];
       } else if (i + 1 == r.size()) {
-        rows.push_back(MakeString("  ", r[i], ","));
+        rows.push_back(MakeString(r[i]));
       } else {
-        rows.push_back(MakeString("  ", r[i]));
+        rows.push_back(r[i]);
       }
     }
     return rows;

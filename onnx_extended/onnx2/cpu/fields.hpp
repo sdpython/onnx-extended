@@ -63,8 +63,9 @@ template <typename T> OptionalField<T> &OptionalField<T>::operator=(const T &v) 
 
 template <typename T> OptionalField<T> &OptionalField<T>::operator=(const OptionalField<T> &v) {
   // We make a copy.
-  set_empty_value();
+  reset();
   if (v.has_value()) {
+    set_empty_value();
     StringWriteStream stream;
     (*v).SerializeToStream(stream);
     StringStream rstream(stream.data(), stream.size());
