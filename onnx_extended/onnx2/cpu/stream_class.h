@@ -95,6 +95,25 @@ public:                                                                         
   utils::RepeatedField<type> name##_;                                                                  \
   using name##_t = type;
 
+#define FIELD_REPEATED_PROTO(type, name, order, doc)                                                   \
+public:                                                                                                \
+  inline utils::RepeatedProtoField<type> &ref_##name() { return name##_; }                             \
+  inline const utils::RepeatedProtoField<type> &ref_##name() const { return name##_; }                 \
+  inline const utils::RepeatedProtoField<type> *ptr_##name() const { return &name##_; }                \
+  inline type &add_##name() { return name##_.add(); }                                                  \
+  inline type &add_##name(const type &v) {                                                             \
+    name##_.push_back(v);                                                                              \
+    return name##_.back();                                                                             \
+  }                                                                                                    \
+  inline bool has_##name() const { return _has_field_(name##_) && !name##_.empty(); }                  \
+  inline int order_##name() const { return order; }                                                    \
+  inline void clr_##name() { name##_.clear(); }                                                        \
+  static inline constexpr const char *DOC_##name = doc;                                                \
+  static inline constexpr const char *_name_##name = #name;                                            \
+  inline bool packed_##name() const { return false; }                                                  \
+  utils::RepeatedProtoField<type> name##_;                                                             \
+  using name##_t = type;
+
 #define FIELD_REPEATED_PACKED(type, name, order, doc)                                                  \
 public:                                                                                                \
   inline utils::RepeatedField<type> &ref_##name() { return name##_; }                                  \

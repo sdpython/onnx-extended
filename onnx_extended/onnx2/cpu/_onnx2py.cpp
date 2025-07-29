@@ -157,17 +157,22 @@ namespace py = pybind11;
 
 #define DECLARE_REPEATED_FIELD(T, inst_name)                                                           \
   py::class_<onnx2::utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);
+
 #define DECLARE_REPEATED_FIELD_PROTO(T, inst_name)                                                     \
   py::class_<onnx2::utils::RepeatedField<onnx2::T>> inst_name(m, "RepeatedField" #T,                   \
-                                                              "RepeatedField" #T);
+                                                              "RepeatedField" #T);                     \
+  py::class_<onnx2::utils::RepeatedProtoField<onnx2::T>> inst_name##_proto(m, "RepeatedProtoField" #T, \
+                                                                           "RepeatedProtoField" #T);
+
 #define DECLARE_REPEATED_FIELD_SUBPROTO(cls, T, inst_name)                                             \
   py::class_<onnx2::utils::RepeatedField<onnx2::cls::T>> inst_name(m, "RepeatedField" #cls #T,         \
-                                                                   "RepeatedField" #cls #T);
+                                                                   "RepeatedField" #cls #T);           \
+  py::class_<onnx2::utils::RepeatedProtoField<onnx2::cls::T>> inst_name##_proto(                       \
+      m, "RepeatedProtoField" #cls #T, "RepeatedProtoField" #cls #T);
 
 template <typename T>
 void define_repeated_field_type(py::class_<onnx2::utils::RepeatedField<T>> &pycls) {
   pycls.def(py::init<>())
-      .def_readwrite("values", &onnx2::utils::RepeatedField<T>::values)
       .def("add", &onnx2::utils::RepeatedField<T>::add, py::return_value_policy::reference,
            "Adds an empty element.")
       .def("clear", &onnx2::utils::RepeatedField<T>::clear, "Removes every element.")
@@ -191,7 +196,42 @@ void define_repeated_field_type(py::class_<onnx2::utils::RepeatedField<T>> &pycl
               self.remove_range(start, stop, step);
             }
           },
-          "removes elements")
+          "Removes elements.")
+      .def(
+          "__iter__",
+          [](onnx2::utils::RepeatedField<T> &self) {
+            return py::make_iterator(self.begin(), self.end());
+          },
+          py::keep_alive<0, 1>(), "Iterates over the elements.");
+}
+
+template <typename T>
+void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedProtoField<T>> &pycls) {
+  pycls.def(py::init<>())
+      .def("add", &onnx2::utils::RepeatedProtoField<T>::add, py::return_value_policy::reference,
+           "Adds an empty element.")
+      .def("clear", &onnx2::utils::RepeatedProtoField<T>::clear, "Removes every element.")
+      .def("__len__", &onnx2::utils::RepeatedProtoField<T>::size, "Returns the number of elements.")
+      .def(
+          "__getitem__",
+          [](onnx2::utils::RepeatedProtoField<T> &self, int index) -> T & {
+            if (index < 0)
+              index += static_cast<int>(self.size());
+            EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
+                        " out of boundary");
+            return *self.values[index];
+          },
+          py::return_value_policy::reference, py::arg("index"),
+          "Returns the element at position index.")
+      .def(
+          "__delitem__",
+          [](onnx2::utils::RepeatedProtoField<T> &self, py::slice slice) {
+            size_t start, stop, step, slicelength;
+            if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
+              self.remove_range(start, stop, step);
+            }
+          },
+          "Removes elements.")
       .def(
           "__iter__",
           [](onnx2::utils::RepeatedField<T> &self) {
@@ -211,6 +251,24 @@ void define_repeated_field_type_extend(py::class_<onnx2::utils::RepeatedField<T>
           [](onnx2::utils::RepeatedField<T> &self, py::iterable iterable) {
             if (py::isinstance<onnx2::utils::RepeatedField<T>>(iterable)) {
               self.extend(iterable.cast<onnx2::utils::RepeatedField<T> &>());
+            } else {
+              self.extend(iterable.cast<std::vector<T>>());
+            }
+          },
+          py::arg("sequence"), "Extends the list of values.");
+}
+
+template <typename T>
+void define_repeated_field_type_proto_extend(py::class_<onnx2::utils::RepeatedProtoField<T>> &pycls) {
+  pycls
+      .def(
+          "append", [](onnx2::utils::RepeatedProtoField<T> &self, T v) { self.push_back(v); },
+          py::arg("item"), "Append one element to the list of values.")
+      .def(
+          "extend",
+          [](onnx2::utils::RepeatedProtoField<T> &self, py::iterable iterable) {
+            if (py::isinstance<onnx2::utils::RepeatedProtoField<T>>(iterable)) {
+              self.extend(iterable.cast<onnx2::utils::RepeatedProtoField<T> &>());
             } else {
               self.extend(iterable.cast<std::vector<T>>());
             }
@@ -259,6 +317,34 @@ void define_repeated_field_type_extend_list(py::class_<onnx2::utils::RepeatedFie
           [](onnx2::utils::RepeatedField<T> &self, py::iterable iterable) {
             if (py::isinstance<onnx2::utils::RepeatedField<T>>(iterable)) {
               self.extend(iterable.cast<onnx2::utils::RepeatedField<T> &>());
+            } else {
+              py::list els = iterable.cast<py::list>();
+              for (auto it : els) {
+                if (py::isinstance<const T &>(it)) {
+                  self.push_back(it.cast<T>());
+                } else if (py::isinstance<T>(it)) {
+                  self.push_back(it.cast<T>());
+                } else {
+                  EXT_THROW("Unable to cast an element of type into ", typeid(T).name());
+                }
+              }
+            }
+          },
+          py::arg("sequence"), "Extends the list of values.");
+}
+
+template <typename T>
+void define_repeated_field_type_proto_extend_list(
+    py::class_<onnx2::utils::RepeatedProtoField<T>> &pycls) {
+  pycls
+      .def(
+          "append", [](onnx2::utils::RepeatedProtoField<T> &self, const T &v) { self.push_back(v); },
+          py::arg("item"), "Append one element to the list of values.")
+      .def(
+          "extend",
+          [](onnx2::utils::RepeatedProtoField<T> &self, py::iterable iterable) {
+            if (py::isinstance<onnx2::utils::RepeatedProtoField<T>>(iterable)) {
+              self.extend(iterable.cast<onnx2::utils::RepeatedProtoField<T> &>());
             } else {
               py::list els = iterable.cast<py::list>();
               for (auto it : els) {
@@ -359,6 +445,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(StringStringEntryProto, rep_ssentry);
   define_repeated_field_type(rep_ssentry);
   define_repeated_field_type_extend_list(rep_ssentry);
+  define_repeated_field_type_proto(rep_ssentry_proto);
+  define_repeated_field_type_proto_extend_list(rep_ssentry_proto);
 
   PYDEFINE_PROTO(m, OperatorSetIdProto)
       .PYFIELD_STR(OperatorSetIdProto, domain)
@@ -367,6 +455,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(OperatorSetIdProto, rep_osp);
   define_repeated_field_type(rep_osp);
   define_repeated_field_type_extend_list(rep_osp);
+  define_repeated_field_type_proto(rep_osp_proto);
+  define_repeated_field_type_proto_extend_list(rep_osp_proto);
 
   PYDEFINE_PROTO(m, TensorAnnotation)
       .PYFIELD_STR(TensorAnnotation, tensor_name)
@@ -380,6 +470,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(IntIntListEntryProto, rep_iil);
   define_repeated_field_type(rep_iil);
   define_repeated_field_type_extend_list(rep_iil);
+  define_repeated_field_type_proto(rep_iil_proto);
+  define_repeated_field_type_proto_extend_list(rep_iil_proto);
 
   PYDEFINE_PROTO(m, DeviceConfigurationProto)
       .PYFIELD_STR(DeviceConfigurationProto, name)
@@ -395,6 +487,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(SimpleShardedDimProto, rep_ssdp);
   define_repeated_field_type(rep_ssdp);
   define_repeated_field_type_extend_list(rep_ssdp);
+  define_repeated_field_type_proto(rep_ssdp_proto);
+  define_repeated_field_type_proto_extend_list(rep_ssdp_proto);
 
   PYDEFINE_PROTO(m, ShardedDimProto)
       .PYFIELD(ShardedDimProto, axis)
@@ -413,6 +507,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(ShardingSpecProto, rep_ssp);
   define_repeated_field_type(rep_ssp);
   define_repeated_field_type_extend_list(rep_ssp);
+  define_repeated_field_type_proto(rep_ssp_proto);
+  define_repeated_field_type_proto_extend_list(rep_ssp_proto);
 
   PYDEFINE_PROTO(m, NodeDeviceConfigurationProto)
       .PYFIELD_STR(NodeDeviceConfigurationProto, configuration_id)
@@ -429,6 +525,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_SUBPROTO(TensorShapeProto, Dimension, rep_tspd);
   define_repeated_field_type(rep_tspd);
   define_repeated_field_type_extend_list(rep_tspd);
+  define_repeated_field_type_proto(rep_tspd_proto);
+  define_repeated_field_type_proto_extend_list(rep_tspd_proto);
   cls_tensor_shape_proto.PYFIELD(TensorShapeProto, dim).PYADD_PROTO_SERIALIZATION(TensorShapeProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorProto, cls_tensor_proto);
@@ -549,6 +647,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(TensorProto, rep_tp);
   define_repeated_field_type(rep_tp);
   define_repeated_field_type_extend_list(rep_tp);
+  define_repeated_field_type_proto(rep_tp_proto);
+  define_repeated_field_type_proto_extend_list(rep_tp_proto);
 
   PYDEFINE_PROTO(m, SparseTensorProto)
       .PYFIELD(SparseTensorProto, values)
@@ -558,6 +658,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(SparseTensorProto, rep_tsp);
   define_repeated_field_type(rep_tsp);
   define_repeated_field_type_extend_list(rep_tsp);
+  define_repeated_field_type_proto(rep_tsp_proto);
+  define_repeated_field_type_proto_extend_list(rep_tsp_proto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto, cls_type_proto);
   PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Tensor)
@@ -595,6 +697,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(ValueInfoProto, rep_vip);
   define_repeated_field_type(rep_vip);
   define_repeated_field_type_extend_list(rep_vip);
+  define_repeated_field_type_proto(rep_vip_proto);
+  define_repeated_field_type_proto_extend_list(rep_vip_proto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, AttributeProto, cls_attribute_proto);
   py::enum_<onnx2::AttributeProto::AttributeType> attribute_type(cls_attribute_proto, "AttributeType",
@@ -703,6 +807,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(AttributeProto, rep_ap);
   define_repeated_field_type(rep_ap);
   define_repeated_field_type_extend_list(rep_ap);
+  define_repeated_field_type_proto(rep_ap_proto);
+  define_repeated_field_type_proto_extend_list(rep_ap_proto);
 
   PYDEFINE_PROTO(m, NodeProto)
       .PYFIELD(NodeProto, input)
@@ -719,6 +825,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(NodeProto, rep_node);
   define_repeated_field_type(rep_node);
   define_repeated_field_type_extend_list(rep_node);
+  define_repeated_field_type_proto(rep_node_proto);
+  define_repeated_field_type_proto_extend_list(rep_node_proto);
 
   PYDEFINE_PROTO(m, GraphProto)
       .PYFIELD(GraphProto, node)
@@ -735,6 +843,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(GraphProto, rep_graph);
   define_repeated_field_type(rep_graph);
   define_repeated_field_type_extend_list(rep_graph);
+  define_repeated_field_type_proto(rep_graph_proto);
+  define_repeated_field_type_proto_extend_list(rep_graph_proto);
 
   PYDEFINE_PROTO(m, FunctionProto)
       .PYFIELD_STR(FunctionProto, name)
@@ -751,6 +861,8 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(FunctionProto, rep_function);
   define_repeated_field_type(rep_function);
   define_repeated_field_type_extend_list(rep_function);
+  define_repeated_field_type_proto(rep_function_proto);
+  define_repeated_field_type_proto_extend_list(rep_function_proto);
 
   PYDEFINE_PROTO(m, ModelProto)
       .PYFIELD_STR(ModelProto, producer_name)

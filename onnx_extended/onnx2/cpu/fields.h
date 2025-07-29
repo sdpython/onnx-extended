@@ -51,6 +51,36 @@ public:
   std::vector<T> values;
 };
 
+template <typename T> class RepeatedProtoField {
+public:
+  explicit inline RepeatedProtoField() {}
+  inline void reserve(size_t n) { values.reserve(n); }
+  void clear();
+  inline bool empty() const { return values.empty(); }
+  inline size_t size() const { return values.size(); }
+  inline T &operator[](size_t index);
+  inline const T &operator[](size_t index) const;
+  inline void remove_range(size_t start, size_t stop, size_t step) {
+    EXT_ENFORCE(step == 1, "remove_range not implemented for step=", static_cast<int>(step));
+    EXT_ENFORCE(start == 0, "remove_range not implemented for start=", static_cast<int>(start));
+    EXT_ENFORCE(stop == size(), "remove_range not implemented for stop=", static_cast<int>(stop),
+                " and size=", static_cast<int>(size()));
+    clear();
+  }
+  void push_back(const T &v);
+  void extend(const std::vector<T> &v);
+  void extend(const std::vector<T *> &v);
+  void extend(const std::vector<T *> &&v);
+  void extend(const RepeatedProtoField<T> &v);
+  void extend(const RepeatedProtoField<T> &&v);
+
+  T &add();
+  T &back();
+
+  std::vector<std::string> SerializeToVectorString() const;
+  std::vector<std::unique_ptr<T>> values;
+};
+
 template <typename T> class OptionalField {
 public:
   explicit inline OptionalField() : value(nullptr) {}

@@ -27,6 +27,83 @@ template <typename T> std::vector<std::string> RepeatedField<T>::SerializeToVect
   return rows;
 }
 
+template <typename T> void RepeatedProtoField<T>::clear() {
+  for (auto &p : values) {
+    p.reset();
+  }
+  values.clear();
+}
+
+template <typename T> inline T &RepeatedProtoField<T>::operator[](size_t index) {
+  return *values[index];
+}
+
+template <typename T> inline const T &RepeatedProtoField<T>::operator[](size_t index) const {
+  return *values[index];
+}
+
+template <typename T> void RepeatedProtoField<T>::push_back(const T &v) { values.push_back(std::make_unique<T>()); }
+
+template <typename T> void RepeatedProtoField<T>::extend(const std::vector<T> &v) {
+  for (const auto &item : v) {
+    values.push_back(std::make_unique<T>(item));
+  }
+}
+
+template <typename T> void RepeatedProtoField<T>::extend(const std::vector<T *> &v) {
+  for (const auto &item : v) {
+    EXT_ENFORCE(item != nullptr, "Cannot extend RepeatedProtoField with a null pointer.");
+    values.push_back(std::make_unique<T>(*item));
+  }
+}
+
+template <typename T> void RepeatedProtoField<T>::extend(const std::vector<T *> &&v) {
+  for (const auto &item : v) {
+    EXT_ENFORCE(item != nullptr, "Cannot extend RepeatedProtoField with a null pointer.");
+    values.push_back(std::move(item));
+  }
+  v.clear();
+}
+
+template <typename T> void RepeatedProtoField<T>::extend(const RepeatedProtoField<T> &v) {
+  for (const auto &item : v.values) {
+    values.push_back(std::make_unique<T>(*item));
+  }
+}
+
+template <typename T> void RepeatedProtoField<T>::extend(const RepeatedProtoField<T> &&v) {
+  for (const auto &item : v.values) {
+    values.push_back(std::move(item));
+  }
+  v.values.clear();
+}
+
+template <typename T> T &RepeatedProtoField<T>::add() {
+  values.push_back(std::make_unique<T>());
+  return *values.back();
+}
+
+template <typename T> T &RepeatedProtoField<T>::back() {
+  EXT_ENFORCE(!values.empty(), "Cannot call back() on an empty RepeatedField.");
+  return *values.back();
+}
+
+template <typename T> std::vector<std::string> RepeatedProtoField<T>::SerializeToVectorString() const {
+  std::vector<std::string> rows{"["};
+  for (const auto &p : values) {
+    std::vector<std::string> r = p->SerializeToVectorString();
+    for (size_t i = 0; i < r.size(); ++i) {
+      if (i + 1 == r.size()) {
+        rows.push_back(onnx_extended_helpers::MakeString("  ", r[i], ","));
+      } else {
+        rows.push_back(onnx_extended_helpers::MakeString("  ", r[i]));
+      }
+    }
+  }
+  rows.push_back("],");
+  return rows;
+}
+
 template <typename T> OptionalField<T>::~OptionalField() { reset(); }
 
 template <typename T> void OptionalField<T>::reset() {
