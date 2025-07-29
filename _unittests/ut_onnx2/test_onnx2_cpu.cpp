@@ -1332,7 +1332,7 @@ TEST(onnx2onnx, DataType) {
   EXPECT_EQ(proto.ref_data_type(), TensorProto_DataType::TensorProto_DataType_FLOAT);
 }
 
-TEST(serialize_to_string, StringStringEntryProto) {
+TEST(onnx2_string, StringStringEntryProto) {
   onnx2::StringStringEntryProto proto;
   proto.set_key("test_key");
   proto.set_value("test_value");
@@ -1343,7 +1343,7 @@ TEST(serialize_to_string, StringStringEntryProto) {
   EXPECT_TRUE(serialized.find("test_value") != std::string::npos);
 }
 
-TEST(serialize_to_string, IntIntListEntryProto) {
+TEST(onnx2_string, IntIntListEntryProto) {
   onnx2::IntIntListEntryProto proto;
   proto.set_key(42);
   proto.ref_value().values.push_back(1);
@@ -1358,7 +1358,7 @@ TEST(serialize_to_string, IntIntListEntryProto) {
   EXPECT_TRUE(serialized.find("3") != std::string::npos);
 }
 
-TEST(serialize_to_string, TensorAnnotation) {
+TEST(onnx2_string, TensorAnnotation) {
   onnx2::TensorAnnotation proto;
   proto.set_tensor_name("my_tensor");
   auto &entry = proto.add_quant_parameter_tensor_names();
@@ -1372,7 +1372,7 @@ TEST(serialize_to_string, TensorAnnotation) {
   EXPECT_TRUE(serialized.find("scale_tensor") != std::string::npos);
 }
 
-TEST(serialize_to_string, DeviceConfigurationProto) {
+TEST(onnx2_string, DeviceConfigurationProto) {
   DeviceConfigurationProto config;
   config.set_name("test_device_config");
   config.set_num_devices(3);
@@ -1405,7 +1405,7 @@ TEST(serialize_to_string, DeviceConfigurationProto) {
   EXPECT_TRUE(foundDevices);
 }
 
-TEST(serialize_to_string, SimpleShardedDimProto) {
+TEST(onnx2_string, SimpleShardedDimProto) {
   onnx2::SimpleShardedDimProto proto;
   proto.set_dim_value(100);
   proto.set_dim_param("batch_size");
@@ -1435,7 +1435,7 @@ TEST(serialize_to_string, SimpleShardedDimProto) {
   EXPECT_TRUE(foundNumShards);
 }
 
-TEST(serialize_to_string, ShardedDimProto) {
+TEST(onnx2_string, ShardedDimProto) {
   onnx2::ShardedDimProto proto;
   proto.set_axis(2);
 
@@ -1466,7 +1466,7 @@ TEST(serialize_to_string, ShardedDimProto) {
   EXPECT_TRUE(foundSimpleSharding);
 }
 
-TEST(serialize_to_string, ShardingSpecProto) {
+TEST(onnx2_string, ShardingSpecProto) {
   onnx2::ShardingSpecProto proto;
   proto.set_tensor_name("sharded_tensor");
 
@@ -1515,7 +1515,7 @@ TEST(serialize_to_string, ShardingSpecProto) {
   EXPECT_TRUE(foundShardedDim);
 }
 
-TEST(serialize_to_string, NodeDeviceConfigurationProto) {
+TEST(onnx2_string, NodeDeviceConfigurationProto) {
   onnx2::NodeDeviceConfigurationProto proto;
   proto.set_configuration_id("node_config_1");
   proto.set_pipeline_stage(3);
@@ -1550,7 +1550,7 @@ TEST(serialize_to_string, NodeDeviceConfigurationProto) {
   EXPECT_TRUE(foundShardingSpec);
 }
 
-TEST(serialize_to_string, OperatorSetIdProto) {
+TEST(onnx2_string, OperatorSetIdProto) {
   onnx2::OperatorSetIdProto proto;
   proto.set_domain("ai.onnx");
   proto.set_version(15);
@@ -1574,7 +1574,7 @@ TEST(serialize_to_string, OperatorSetIdProto) {
   EXPECT_TRUE(foundVersion);
 }
 
-TEST(serialize_to_string, TensorShapeProto) {
+TEST(onnx2_string, TensorShapeProto) {
   onnx2::TensorShapeProto proto;
 
   auto &dim1 = proto.add_dim();
@@ -1607,7 +1607,7 @@ TEST(serialize_to_string, TensorShapeProto) {
   EXPECT_TRUE(foundDenotation);
 }
 
-TEST(serialize_to_string, TensorProto) {
+TEST(onnx2_string, TensorProto) {
   onnx2::TensorProto proto;
   proto.set_name("test_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -1657,7 +1657,7 @@ TEST(serialize_to_string, TensorProto) {
   EXPECT_TRUE(foundData);
 }
 
-TEST(serialize_to_string, SparseTensorProto) {
+TEST(onnx2_string, SparseTensorProto) {
   onnx2::SparseTensorProto proto;
 
   proto.ref_dims().values.push_back(5);
@@ -1705,7 +1705,7 @@ TEST(serialize_to_string, SparseTensorProto) {
   EXPECT_TRUE(foundIndices);
 }
 
-TEST(serialize_to_string, TypeProto) {
+TEST(onnx2_string, TypeProto) {
   onnx2::TypeProto proto;
 
   proto.add_tensor_type().set_elem_type(1); // FLOAT
@@ -1752,7 +1752,7 @@ TEST(serialize_to_string, TypeProto) {
   EXPECT_TRUE(foundDimParam);
 }
 
-TEST(serialize_to_string, TensorProto_WithRawData) {
+TEST(onnx2_string, TensorProto_WithRawData) {
   onnx2::TensorProto proto;
   proto.set_name("raw_data_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -1790,7 +1790,7 @@ TEST(serialize_to_string, TensorProto_WithRawData) {
   EXPECT_TRUE(foundRawData);
 }
 
-TEST(serialize_to_string, TensorProto_WithSegment) {
+TEST(onnx2_string, TensorProto_WithSegment) {
   onnx2::TensorProto proto;
   proto.set_name("segmented_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -2156,7 +2156,7 @@ TEST(onnx2_proto, AttributeProto_Serialization) {
   EXPECT_EQ(attribute2.ref_doc_string(), "Test attribute documentation");
 }
 
-TEST(serialize_to_string, AttributeProto) {
+TEST(onnx2_string, AttributeProto) {
   AttributeProto attribute;
   attribute.set_name("dropout_ratio");
   attribute.set_type(AttributeProto::AttributeType::FLOAT);
@@ -2230,6 +2230,8 @@ TEST(onnx2_proto, AttributeProto_GraphAttribute) {
   EXPECT_EQ(attribute.ref_g().ref_name(), "subgraph");
 }
 */
+
+// NodeProto
 
 TEST(onnx2_proto, NodeProto_Basic) {
   NodeProto node;
@@ -2357,7 +2359,7 @@ TEST(onnx2_proto, NodeProto_Serialization) {
   EXPECT_EQ(node2.ref_attribute()[0].ref_ints()[1], 3);
 }
 
-TEST(onnx2_proto, NodeProto_SerializeToVectorString) {
+TEST(onnx2_string, NodeProto_SerializeToVectorString) {
   NodeProto node;
   node.set_name("relu1");
   node.set_op_type("Relu");
@@ -2530,3 +2532,322 @@ TEST(onnx2_proto, NodeProto_EmptyStrings) {
   EXPECT_TRUE(node2.ref_output()[0].empty());
 }
 
+// GraphProto
+
+TEST(onnx2_proto, GraphProto_Basic) {
+  GraphProto graph;
+
+  EXPECT_TRUE(graph.ref_name().empty());
+  EXPECT_EQ(graph.ref_node().size(), 0);
+  EXPECT_EQ(graph.ref_initializer().size(), 0);
+  EXPECT_EQ(graph.ref_input().size(), 0);
+  EXPECT_EQ(graph.ref_output().size(), 0);
+  EXPECT_EQ(graph.ref_value_info().size(), 0);
+  EXPECT_TRUE(graph.ref_doc_string().empty());
+
+  graph.set_name("test_graph");
+  graph.set_doc_string("Test graph documentation");
+
+  EXPECT_EQ(graph.ref_name(), "test_graph");
+  EXPECT_EQ(graph.ref_doc_string(), "Test graph documentation");
+}
+
+TEST(onnx2_proto, GraphProto_Nodes) {
+  GraphProto graph;
+  graph.set_name("test_graph");
+
+  // Add nodes
+  NodeProto &node1 = graph.add_node();
+  node1.set_name("conv1");
+  node1.set_op_type("Conv");
+  node1.add_input() = "X";
+  node1.add_input() = "W";
+  node1.add_output() = "Y";
+
+  NodeProto &node2 = graph.add_node();
+  node2.set_name("relu1");
+  node2.set_op_type("Relu");
+  node2.add_input() = "Y";
+  node2.add_output() = "Z";
+
+  EXPECT_EQ(graph.ref_node().size(), 2);
+  EXPECT_EQ(graph.ref_node()[0].ref_name(), "conv1");
+  EXPECT_EQ(graph.ref_node()[0].ref_op_type(), "Conv");
+  EXPECT_EQ(graph.ref_node()[1].ref_name(), "relu1");
+  EXPECT_EQ(graph.ref_node()[1].ref_op_type(), "Relu");
+}
+
+TEST(onnx2_proto, GraphProto_Inputs) {
+  GraphProto graph;
+
+  ValueInfoProto &input1 = graph.add_input();
+  input1.set_name("X");
+  TypeProto &type1 = input1.add_type();
+  type1.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &shape1 = type1.ref_tensor_type().add_shape();
+  shape1.add_dim().set_dim_value(1);
+  shape1.add_dim().set_dim_value(3);
+  shape1.add_dim().set_dim_value(224);
+  shape1.add_dim().set_dim_value(224);
+
+  ValueInfoProto &input2 = graph.add_input();
+  input2.set_name("W");
+  TypeProto &type2 = input2.add_type();
+  type2.add_tensor_type().set_elem_type(1); // FLOAT
+
+  EXPECT_EQ(graph.ref_input().size(), 2);
+  EXPECT_EQ(graph.ref_input()[0].ref_name(), "X");
+  EXPECT_EQ(graph.ref_input()[1].ref_name(), "W");
+  EXPECT_TRUE(graph.ref_input()[0].has_type());
+  EXPECT_TRUE(graph.ref_input()[0].ref_type().has_tensor_type());
+  EXPECT_EQ(graph.ref_input()[0].ref_type().ref_tensor_type().ref_elem_type(), 1);
+}
+
+TEST(onnx2_proto, GraphProto_Outputs) {
+  GraphProto graph;
+
+  ValueInfoProto &output = graph.add_output();
+  output.set_name("Z");
+  TypeProto &type = output.add_type();
+  type.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &shape = type.ref_tensor_type().add_shape();
+  shape.add_dim().set_dim_value(1);
+  shape.add_dim().set_dim_value(64);
+  shape.add_dim().set_dim_value(112);
+  shape.add_dim().set_dim_value(112);
+
+  EXPECT_EQ(graph.ref_output().size(), 1);
+  EXPECT_EQ(graph.ref_output()[0].ref_name(), "Z");
+  EXPECT_TRUE(graph.ref_output()[0].has_type());
+  EXPECT_TRUE(graph.ref_output()[0].ref_type().has_tensor_type());
+  EXPECT_TRUE(graph.ref_output()[0].ref_type().ref_tensor_type().has_shape());
+  EXPECT_EQ(graph.ref_output()[0].ref_type().ref_tensor_type().ref_shape().ref_dim().size(), 4);
+}
+
+TEST(onnx2_proto, GraphProto_ValueInfo) {
+  GraphProto graph;
+
+  ValueInfoProto &value_info = graph.add_value_info();
+  value_info.set_name("Y");
+  TypeProto &type = value_info.add_type();
+  type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  EXPECT_EQ(graph.ref_value_info().size(), 1);
+  EXPECT_EQ(graph.ref_value_info()[0].ref_name(), "Y");
+}
+
+TEST(onnx2_proto, GraphProto_Initializers) {
+  GraphProto graph;
+
+  TensorProto &initializer = graph.add_initializer();
+  initializer.set_name("W");
+  initializer.set_data_type(TensorProto::DataType::FLOAT);
+  initializer.ref_dims().values.push_back(64);
+  initializer.ref_dims().values.push_back(3);
+  initializer.ref_dims().values.push_back(3);
+  initializer.ref_dims().values.push_back(3);
+
+  for (int i = 0; i < 64 * 3 * 3 * 3; ++i) {
+    initializer.ref_float_data().values.push_back(static_cast<float>(i) * 0.01f);
+  }
+
+  EXPECT_EQ(graph.ref_initializer().size(), 1);
+  EXPECT_EQ(graph.ref_initializer()[0].ref_name(), "W");
+  EXPECT_EQ(graph.ref_initializer()[0].ref_data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(graph.ref_initializer()[0].ref_dims().size(), 4);
+  EXPECT_EQ(graph.ref_initializer()[0].ref_float_data().size(), 64 * 3 * 3 * 3);
+}
+
+TEST(onnx2_proto, GraphProto_Serialization) {
+  GraphProto graph1;
+  graph1.set_name("serialization_test");
+
+  NodeProto &node = graph1.add_node();
+  node.set_name("node1");
+  node.set_op_type("Identity");
+  node.add_input() = "X";
+  node.add_output() = "Y";
+
+  ValueInfoProto &input = graph1.add_input();
+  input.set_name("X");
+
+  ValueInfoProto &output = graph1.add_output();
+  output.set_name("Y");
+
+  std::string serialized;
+  graph1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  GraphProto graph2;
+  graph2.ParseFromString(serialized);
+
+  EXPECT_EQ(graph2.ref_name(), "serialization_test");
+  EXPECT_EQ(graph2.ref_node().size(), 1);
+  EXPECT_EQ(graph2.ref_node()[0].ref_name(), "node1");
+  EXPECT_EQ(graph2.ref_node()[0].ref_op_type(), "Identity");
+  EXPECT_EQ(graph2.ref_input().size(), 1);
+  EXPECT_EQ(graph2.ref_input()[0].ref_name(), "X");
+  EXPECT_EQ(graph2.ref_output().size(), 1);
+  EXPECT_EQ(graph2.ref_output()[0].ref_name(), "Y");
+}
+
+TEST(onnx2_proto, GraphProto_SerializeToVectorString) {
+  GraphProto graph;
+  graph.set_name("vector_serialization_test");
+  graph.set_doc_string("Test graph for vector serialization");
+
+  NodeProto &node = graph.add_node();
+  node.set_name("add_node");
+  node.set_op_type("Add");
+  node.add_input() = "A";
+  node.add_input() = "B";
+  node.add_output() = "C";
+
+  std::vector<std::string> result = graph.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  bool foundName = false;
+  bool foundDocString = false;
+  bool foundNode = false;
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  if (serialized.find("name:") != std::string::npos &&
+      serialized.find("vector_serialization_test") != std::string::npos) {
+    foundName = true;
+  }
+
+  if (serialized.find("doc_string:") != std::string::npos &&
+      serialized.find("Test graph for vector serialization") != std::string::npos) {
+    foundDocString = true;
+  }
+
+  if (serialized.find("node") != std::string::npos &&
+      serialized.find("add_node") != std::string::npos) {
+    foundNode = true;
+  }
+
+  EXPECT_TRUE(foundName);
+  EXPECT_TRUE(foundDocString);
+  EXPECT_TRUE(foundNode);
+}
+
+TEST(onnx2_proto, GraphProto_CopyFrom) {
+  GraphProto source;
+  source.set_name("source_graph");
+  source.set_doc_string("Source graph documentation");
+
+  NodeProto &node = source.add_node();
+  node.set_name("test_node");
+  node.set_op_type("Test");
+
+  ValueInfoProto &input = source.add_input();
+  input.set_name("input_tensor");
+
+  ValueInfoProto &output = source.add_output();
+  output.set_name("output_tensor");
+
+  TensorProto &initializer = source.add_initializer();
+  initializer.set_name("weights");
+  initializer.set_data_type(TensorProto::DataType::FLOAT);
+
+  GraphProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_name(), "source_graph");
+  EXPECT_EQ(target.ref_doc_string(), "Source graph documentation");
+  EXPECT_EQ(target.ref_node().size(), 1);
+  EXPECT_EQ(target.ref_node()[0].ref_name(), "test_node");
+  EXPECT_EQ(target.ref_input().size(), 1);
+  EXPECT_EQ(target.ref_input()[0].ref_name(), "input_tensor");
+  EXPECT_EQ(target.ref_output().size(), 1);
+  EXPECT_EQ(target.ref_output()[0].ref_name(), "output_tensor");
+  EXPECT_EQ(target.ref_initializer().size(), 1);
+  EXPECT_EQ(target.ref_initializer()[0].ref_name(), "weights");
+}
+
+TEST(onnx2_proto, GraphProto_ComplexModel) {
+  GraphProto graph;
+  graph.set_name("complex_model");
+
+  // Create input
+  ValueInfoProto &input = graph.add_input();
+  input.set_name("data");
+  TypeProto &input_type = input.add_type();
+  input_type.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &input_shape = input_type.ref_tensor_type().add_shape();
+  input_shape.add_dim().set_dim_value(1);
+  input_shape.add_dim().set_dim_value(3);
+  input_shape.add_dim().set_dim_value(224);
+  input_shape.add_dim().set_dim_value(224);
+
+  // Create weights initializer
+  TensorProto &weights = graph.add_initializer();
+  weights.set_name("conv1_weights");
+  weights.set_data_type(TensorProto::DataType::FLOAT);
+  weights.ref_dims().values.push_back(64);
+  weights.ref_dims().values.push_back(3);
+  weights.ref_dims().values.push_back(7);
+  weights.ref_dims().values.push_back(7);
+
+  // Create bias initializer
+  TensorProto &bias = graph.add_initializer();
+  bias.set_name("conv1_bias");
+  bias.set_data_type(TensorProto::DataType::FLOAT);
+  bias.ref_dims().values.push_back(64);
+
+  // Add Conv node
+  NodeProto &conv = graph.add_node();
+  conv.set_name("conv1");
+  conv.set_op_type("Conv");
+  conv.add_input() = "data";
+  conv.add_input() = "conv1_weights";
+  conv.add_input() = "conv1_bias";
+  conv.add_output() = "conv1_output";
+
+  AttributeProto &strides = conv.add_attribute();
+  strides.set_name("strides");
+  strides.set_type(AttributeProto::AttributeType::INTS);
+  strides.ref_ints().values.push_back(2);
+  strides.ref_ints().values.push_back(2);
+
+  AttributeProto &kernel_shape = conv.add_attribute();
+  kernel_shape.set_name("kernel_shape");
+  kernel_shape.set_type(AttributeProto::AttributeType::INTS);
+  kernel_shape.ref_ints().values.push_back(7);
+  kernel_shape.ref_ints().values.push_back(7);
+
+  AttributeProto &pads = conv.add_attribute();
+  pads.set_name("pads");
+  pads.set_type(AttributeProto::AttributeType::INTS);
+  pads.ref_ints().values.push_back(3);
+  pads.ref_ints().values.push_back(3);
+  pads.ref_ints().values.push_back(3);
+  pads.ref_ints().values.push_back(3);
+
+  // Add ReLU node
+  NodeProto &relu = graph.add_node();
+  relu.set_name("relu1");
+  relu.set_op_type("Relu");
+  relu.add_input() = "conv1_output";
+  relu.add_output() = "relu1_output";
+
+  // Add output
+  ValueInfoProto &output = graph.add_output();
+  output.set_name("relu1_output");
+  TypeProto &output_type = output.add_type();
+  output_type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  // Add intermediate value info
+  ValueInfoProto &intermediate = graph.add_value_info();
+  intermediate.set_name("conv1_output");
+  TypeProto &intermediate_type = intermediate.add_type();
+  intermediate_type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  EXPECT_EQ(graph.ref_name(), "complex_model");
+  EXPECT_EQ(graph.ref_node().size(), 2);
+  EXPECT_EQ(graph.ref_initializer().size(), 2);
+  EXPECT_EQ(graph.ref_input().size(), 1);
+  EXPECT_EQ(graph.ref_output().size(), 1);
+  EXPECT_EQ(graph.ref_value_info().size(), 1);
+}

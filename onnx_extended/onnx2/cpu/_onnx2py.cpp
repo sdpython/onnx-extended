@@ -712,4 +712,21 @@ PYBIND11_MODULE(_onnx2py, m) {
   DECLARE_REPEATED_FIELD_PROTO(NodeProto, rep_node);
   define_repeated_field_type(rep_node);
   define_repeated_field_type_extend_list(rep_node);
+
+  PYDEFINE_PROTO(m, GraphProto)
+      .PYFIELD(GraphProto, node)
+      .PYFIELD(GraphProto, name)
+      .PYFIELD(GraphProto, initializer)
+      .PYFIELD(GraphProto, sparse_initializer)
+      .PYFIELD(GraphProto, doc_string)
+      .PYFIELD(GraphProto, input)
+      .PYFIELD(GraphProto, output)
+      .PYFIELD(GraphProto, value_info)
+      .PYFIELD(GraphProto, quantization_annotation)
+      .PYFIELD(GraphProto, metadata_props)
+      .PYADD_PROTO_SERIALIZATION(GraphProto);
+  DECLARE_REPEATED_FIELD_PROTO(GraphProto, rep_graph);
+  define_repeated_field_type(rep_graph);
+  define_repeated_field_type_extend_list(rep_graph);
+
 }

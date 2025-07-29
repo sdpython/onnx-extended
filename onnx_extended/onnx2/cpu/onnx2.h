@@ -468,6 +468,44 @@ FIELD_REPEATED(NodeDeviceConfigurationProto, device_configurations, 10,
                "Configuration of multi-device annotations.")
 END_PROTO()
 
+// GraphProto
+
+BEGIN_PROTO(GraphProto,
+            "A graph defines the computational logic of a model and is comprised of a parameterized "
+            "list of nodes that form a directed acyclic graph based on their inputs and outputs. This "
+            "is the equivalent of the 'network' or 'graph' in many deep learning frameworks.")
+FIELD_REPEATED(NodeProto, node, 1, "The nodes in the graph, sorted topologically.")
+FIELD_STR(name, 2, "The name of the graph.")
+FIELD_REPEATED(TensorProto, initializer, 5,
+               "A list of named sparse tensor values, used to specify constant inputs of the graph. "
+               "Each initializer (both TensorProto as well SparseTensorProto) MUST have a name. The "
+               "name MUST be unique across both initializer and sparse_initializer, but the name MAY "
+               "also appear in the input list.")
+FIELD_REPEATED(
+    SparseTensorProto, sparse_initializer, 15,
+    "A list of named tensor values, used to specify constant inputs of the graph. Each initializer "
+    "(both TensorProto as well SparseTensorProto) MUST have a name. The name MUST be unique across "
+    "both initializer and sparse_initializer, but the name MAY also appear in the input list.")
+FIELD_STR(doc_string, 10, "A human-readable documentation for this graph. Markdown is allowed.")
+FIELD_REPEATED(
+    ValueInfoProto, input, 11,
+    "Inputs of the graph, shapes and types are optional in a subgraph and mandatory in the main graph.")
+FIELD_REPEATED(ValueInfoProto, output, 12,
+               "Outputs of the graph, shapes and types are optional in a subgraph and mandatory in the "
+               "main graph.")
+FIELD_REPEATED(ValueInfoProto, value_info, 13,
+               "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
+               "It is optional for a value to appear in value_info list.")
+FIELD_REPEATED(
+    TensorAnnotation, quantization_annotation, 14,
+    "This field carries information to indicate the mapping among a tensor and its quantization "
+    "parameter tensors. For example: For tensor 'a', it may have {'SCALE_TENSOR', 'a_scale'} and "
+    "{'ZERO_POINT_TENSOR', 'a_zero_point'} annotated, which means, tensor 'a_scale' and tensor "
+    "'a_zero_point' are scale and zero point of tensor 'a' in the model.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 16,
+               "Named metadata values; keys should be distinct.")
+END_PROTO()
+
 } // namespace onnx2
 
 #include "fields.hpp"
