@@ -3008,6 +3008,237 @@ TEST(onnx2_string, FunctionProto) {
   EXPECT_TRUE(serialized.find("input:") != std::string::npos);
   EXPECT_TRUE(serialized.find("output:") != std::string::npos);
   EXPECT_TRUE(serialized.find("attribute:") != std::string::npos);
-  EXPECT_TRUE(serialized.find("node {") != std::string::npos);
+  EXPECT_TRUE(serialized.find("node: [") != std::string::npos);
   EXPECT_TRUE(serialized.find("doc_string:") != std::string::npos);
+}
+
+// ModelProto
+
+TEST(onnx2_proto, ModelProto_Basic) {
+  ModelProto model;
+
+  EXPECT_TRUE(model.ref_producer_name().empty());
+  EXPECT_TRUE(model.ref_producer_version().empty());
+  EXPECT_TRUE(model.ref_domain().empty());
+  EXPECT_EQ(model.ref_model_version(), 0);
+  EXPECT_TRUE(model.ref_doc_string().empty());
+  EXPECT_FALSE(model.has_graph());
+  EXPECT_EQ(model.ref_opset_import().size(), 0);
+  EXPECT_EQ(model.ref_metadata_props().size(), 0);
+
+  model.set_ir_version(1);
+  model.set_producer_name("test_producer");
+  model.set_producer_version("1.0.0");
+  model.set_domain("ai.test");
+  model.set_model_version(1);
+  model.set_doc_string("Test model documentation");
+
+  EXPECT_EQ(model.ref_ir_version(), 1);
+  EXPECT_EQ(model.ref_producer_name(), "test_producer");
+  EXPECT_EQ(model.ref_producer_version(), "1.0.0");
+  EXPECT_EQ(model.ref_domain(), "ai.test");
+  EXPECT_EQ(model.ref_model_version(), 1);
+  EXPECT_EQ(model.ref_doc_string(), "Test model documentation");
+}
+
+TEST(onnx2_proto, ModelProto_Graph) {
+  ModelProto model;
+
+  GraphProto &graph = model.add_graph();
+  graph.set_name("test_graph");
+
+  NodeProto &node = graph.add_node();
+  node.set_name("test_node");
+  node.set_op_type("Add");
+
+  EXPECT_TRUE(model.has_graph());
+  EXPECT_EQ(model.ref_graph().ref_name(), "test_graph");
+  EXPECT_EQ(model.ref_graph().ref_node().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_node()[0].ref_name(), "test_node");
+  EXPECT_EQ(model.ref_graph().ref_node()[0].ref_op_type(), "Add");
+}
+
+TEST(onnx2_proto, ModelProto_OpsetImport) {
+  ModelProto model;
+
+  OperatorSetIdProto &opset1 = model.add_opset_import();
+  opset1.set_domain("ai.onnx");
+  opset1.set_version(12);
+
+  OperatorSetIdProto &opset2 = model.add_opset_import();
+  opset2.set_domain("ai.onnx.ml");
+  opset2.set_version(2);
+
+  EXPECT_EQ(model.ref_opset_import().size(), 2);
+  EXPECT_EQ(model.ref_opset_import()[0].ref_domain(), "ai.onnx");
+  EXPECT_EQ(model.ref_opset_import()[0].ref_version(), 12);
+  EXPECT_EQ(model.ref_opset_import()[1].ref_domain(), "ai.onnx.ml");
+  EXPECT_EQ(model.ref_opset_import()[1].ref_version(), 2);
+}
+
+TEST(onnx2_proto, ModelProto_MetadataProps) {
+  ModelProto model;
+
+  StringStringEntryProto &metadata1 = model.add_metadata_props();
+  metadata1.set_key("author");
+  metadata1.set_value("test_author");
+
+  StringStringEntryProto &metadata2 = model.add_metadata_props();
+  metadata2.set_key("description");
+  metadata2.set_value("test description");
+
+  EXPECT_EQ(model.ref_metadata_props().size(), 2);
+  EXPECT_EQ(model.ref_metadata_props()[0].ref_key(), "author");
+  EXPECT_EQ(model.ref_metadata_props()[0].ref_value(), "test_author");
+  EXPECT_EQ(model.ref_metadata_props()[1].ref_key(), "description");
+  EXPECT_EQ(model.ref_metadata_props()[1].ref_value(), "test description");
+}
+
+TEST(onnx2_proto, ModelProto_Serialization) {
+  ModelProto model1;
+  model1.set_ir_version(1);
+  model1.set_producer_name("serialization_test");
+  model1.set_model_version(42);
+
+  GraphProto &graph = model1.add_graph();
+  graph.set_name("serialized_graph");
+
+  NodeProto &node = graph.add_node();
+  node.set_name("test_node");
+  node.set_op_type("Identity");
+
+  StringStringEntryProto &metadata = model1.add_metadata_props();
+  metadata.set_key("test_key");
+  metadata.set_value("test_value");
+
+  std::string serialized;
+  model1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  ModelProto model2;
+  model2.ParseFromString(serialized);
+
+  EXPECT_EQ(model2.ref_ir_version(), 1);
+  EXPECT_EQ(model2.ref_producer_name(), "serialization_test");
+  EXPECT_EQ(model2.ref_model_version(), 42);
+  EXPECT_TRUE(model2.has_graph());
+  EXPECT_EQ(model2.ref_graph().ref_name(), "serialized_graph");
+  EXPECT_EQ(model2.ref_graph().ref_node().size(), 1);
+  EXPECT_EQ(model2.ref_graph().ref_node()[0].ref_name(), "test_node");
+  EXPECT_EQ(model2.ref_metadata_props().size(), 1);
+  EXPECT_EQ(model2.ref_metadata_props()[0].ref_key(), "test_key");
+  EXPECT_EQ(model2.ref_metadata_props()[0].ref_value(), "test_value");
+}
+
+TEST(onnx2_proto, ModelProto_SerializeToVectorString) {
+  ModelProto model;
+  model.set_ir_version(7);
+  model.set_producer_name("test_producer");
+  model.set_doc_string("Model documentation");
+  model.add_graph().set_name("test_graph");
+
+  std::vector<std::string> result = model.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  EXPECT_TRUE(serialized.find("ir_version:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("producer_name:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("test_producer") != std::string::npos);
+  EXPECT_TRUE(serialized.find("doc_string:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("Model documentation") != std::string::npos);
+  EXPECT_TRUE(serialized.find("graph") != std::string::npos);
+  EXPECT_TRUE(serialized.find("test_graph") != std::string::npos);
+}
+
+TEST(onnx2_proto, ModelProto_CopyFrom) {
+  ModelProto source;
+  source.set_ir_version(2);
+  source.set_producer_name("source_producer");
+  source.set_model_version(123);
+  source.add_graph().set_name("source_graph");
+
+  OperatorSetIdProto &opset = source.add_opset_import();
+  opset.set_domain("ai.onnx");
+  opset.set_version(15);
+
+  StringStringEntryProto &metadata = source.add_metadata_props();
+  metadata.set_key("source_key");
+  metadata.set_value("source_value");
+
+  ModelProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_ir_version(), 2);
+  EXPECT_EQ(target.ref_producer_name(), "source_producer");
+  EXPECT_EQ(target.ref_model_version(), 123);
+  EXPECT_TRUE(target.has_graph());
+  EXPECT_EQ(target.ref_graph().ref_name(), "source_graph");
+  EXPECT_EQ(target.ref_opset_import().size(), 1);
+  EXPECT_EQ(target.ref_opset_import()[0].ref_domain(), "ai.onnx");
+  EXPECT_EQ(target.ref_opset_import()[0].ref_version(), 15);
+  EXPECT_EQ(target.ref_metadata_props().size(), 1);
+  EXPECT_EQ(target.ref_metadata_props()[0].ref_key(), "source_key");
+  EXPECT_EQ(target.ref_metadata_props()[0].ref_value(), "source_value");
+}
+
+TEST(onnx2_proto, ModelProto_ComplexModel) {
+  ModelProto model;
+  model.set_ir_version(3);
+  model.set_producer_name("complex_model_producer");
+  model.set_producer_version("1.0.0");
+  model.set_model_version(1);
+
+  OperatorSetIdProto &opset = model.add_opset_import();
+  opset.set_domain("ai.onnx");
+  opset.set_version(13);
+
+  GraphProto &graph = model.add_graph();
+  graph.set_name("complex_model_graph");
+
+  // Add input
+  ValueInfoProto &input = graph.add_input();
+  input.set_name("input_tensor");
+  TypeProto &input_type = input.add_type();
+  input_type.add_tensor_type().set_elem_type(1); // FLOAT
+
+  // Add initializer
+  TensorProto &weights = graph.add_initializer();
+  weights.set_name("weights");
+  weights.set_data_type(TensorProto::DataType::FLOAT);
+  weights.ref_dims().values.push_back(3);
+  weights.ref_dims().values.push_back(3);
+
+  // Add node
+  NodeProto &node = graph.add_node();
+  node.set_name("matmul_node");
+  node.set_op_type("MatMul");
+  node.add_input() = "input_tensor";
+  node.add_input() = "weights";
+  node.add_output() = "output_tensor";
+
+  // Add output
+  ValueInfoProto &output = graph.add_output();
+  output.set_name("output_tensor");
+
+  // Add metadata
+  StringStringEntryProto &metadata = model.add_metadata_props();
+  metadata.set_key("framework");
+  metadata.set_value("test_framework");
+
+  EXPECT_EQ(model.ref_ir_version(), 3);
+  EXPECT_EQ(model.ref_producer_name(), "complex_model_producer");
+  EXPECT_EQ(model.ref_model_version(), 1);
+  EXPECT_TRUE(model.has_graph());
+
+  EXPECT_EQ(model.ref_graph().ref_input().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_initializer().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_node().size(), 1);
+  EXPECT_EQ(model.ref_graph().ref_output().size(), 1);
+
+  EXPECT_EQ(model.ref_opset_import().size(), 1);
+  EXPECT_EQ(model.ref_opset_import()[0].ref_version(), 13);
+
+  EXPECT_EQ(model.ref_metadata_props().size(), 1);
+  EXPECT_EQ(model.ref_metadata_props()[0].ref_key(), "framework");
 }
