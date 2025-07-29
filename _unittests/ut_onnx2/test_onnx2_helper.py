@@ -164,8 +164,11 @@ class TestOnnx2Helper(ExtTestCase):
             ),
         ]
         attr = oh.make_attribute("tensors", tensors)
+        attr_tensors = list(attr.tensors)
+        self.asssertIsInstance(attr_tensors, list)
+        self.asssertIsInstance(tensors, list)
         self.assertEqual(attr.name, "tensors")
-        self.assertEqual(list(attr.tensors), tensors)
+        self.assertEqual(tensors, attr_tensors)
         pychecker.check_attribute(attr)
 
     def test_attr_sparse_tensor_proto(self) -> None:

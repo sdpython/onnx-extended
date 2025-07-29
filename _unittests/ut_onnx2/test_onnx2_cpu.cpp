@@ -2167,9 +2167,7 @@ TEST(onnx2_string, AttributeProto) {
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
-  bool foundType = false;
   bool foundValue = false;
-  bool foundDocString = false;
 
   std::string serialized = utils::join_string(result, "\n");
   if (serialized.find("name:") != std::string::npos &&

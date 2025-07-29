@@ -234,10 +234,27 @@ void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedProtoFiel
           "Removes elements.")
       .def(
           "__iter__",
-          [](onnx2::utils::RepeatedField<T> &self) {
+          [](onnx2::utils::RepeatedProtoField<T> &self) {
             return py::make_iterator(self.begin(), self.end());
           },
-          py::keep_alive<0, 1>(), "Iterates over the elements.");
+          py::keep_alive<0, 1>(), "Iterates over the elements.")
+      .def(
+          "__eq__",
+          [](onnx2::utils::RepeatedField<T> &self, py::list &obj) -> bool {
+            if (self.size() != obj.size())
+              return false;
+            for (size_t i = 0; i < self.size(); ++i) {
+              if (!py::isinstance<T &>(obj[i]))
+                return false;
+              std::string s1, s2;
+              self[i].SerializeToString(s1);
+              obj[i].cast<T &>().SerializeToString(s2);
+              if (s1 != s2)
+                return false;
+            }
+            return true;
+          },
+          "Compares the container to a list of objects.");
 }
 
 template <typename T>
