@@ -626,21 +626,19 @@ def make_node(
     """
     Constructs a NodeProto.
 
-    Args:
-        op_type (string): The name of the operator to construct
-        inputs (list of string): list of input names
-        outputs (list of string): list of output names
-        name (string, default None): optional unique identifier for NodeProto
-        doc_string (string, default None): optional documentation string for NodeProto
-        domain (string, default None): optional domain for NodeProto.
-            If it's None, we will just use default domain (which is empty)
-        overload (string, default None): optional field, used to
-            resolve calls to model-local functions
-        **kwargs (dict): the attributes of the node.  The acceptable values
-            are documented in :func:`make_attribute`.
-
-    Returns:
-        NodeProto
+    :param op_type: (string): The name of the operator to construct
+    :param inputs: (list of string): list of input names
+    :param outputs: (list of string): list of output names
+    :param name: (string, default None): optional unique identifier for NodeProto
+    :param doc_string: (string, default None):
+        optional documentation string for NodeProto
+    :param domain: (string, default None): optional domain for NodeProto.
+        If it's None, we will just use default domain (which is empty)
+    :param overload: (string, default None): optional field, used to
+        resolve calls to model-local functions
+    :param kwargs: (dict): the attributes of the node.  The acceptable values
+        are documented in :func:`make_attribute`.
+    :return: NodeProto
     """
     node = NodeProto()
     node.op_type = op_type
