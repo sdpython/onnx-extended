@@ -729,4 +729,19 @@ PYBIND11_MODULE(_onnx2py, m) {
   define_repeated_field_type(rep_graph);
   define_repeated_field_type_extend_list(rep_graph);
 
+  PYDEFINE_PROTO(m, FunctionProto)
+      .PYFIELD_STR(FunctionProto, name)
+      .PYFIELD(FunctionProto, input)
+      .PYFIELD(FunctionProto, output)
+      .PYFIELD(FunctionProto, attribute)
+      .PYFIELD(FunctionProto, attribute_proto)
+      .PYFIELD(FunctionProto, node)
+      .PYFIELD_STR(FunctionProto, doc_string)
+      .PYFIELD(FunctionProto, opset_import)
+      .PYFIELD(FunctionProto, value_info)
+      .PYFIELD(FunctionProto, metadata_props)
+      .PYADD_PROTO_SERIALIZATION(FunctionProto);
+  DECLARE_REPEATED_FIELD_PROTO(FunctionProto, rep_function);
+  define_repeated_field_type(rep_function);
+  define_repeated_field_type_extend_list(rep_function);
 }

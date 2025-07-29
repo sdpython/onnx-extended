@@ -553,7 +553,7 @@ std::vector<std::string> NodeProto::SerializeToVectorString() const {
       NAME_EXIST_VALUE(device_configurations));
 }
 
-// NodeProto
+// GraphProto
 IMPLEMENT_PROTO(GraphProto)
 
 void GraphProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
@@ -590,6 +590,49 @@ std::vector<std::string> GraphProto::SerializeToVectorString() const {
       NAME_EXIST_VALUE(output), NAME_EXIST_VALUE(metadata_props), NAME_EXIST_VALUE(node),
       NAME_EXIST_VALUE(initializer), NAME_EXIST_VALUE(sparse_initializer), NAME_EXIST_VALUE(value_info),
       NAME_EXIST_VALUE(quantization_annotation));
+}
+
+// FunctionProto
+IMPLEMENT_PROTO(FunctionProto)
+
+void FunctionProto::SerializeToStream(utils::BinaryWriteStream &stream) const {
+  WRITE_FIELD(stream, name)
+  WRITE_REPEATED_FIELD(stream, input)
+  WRITE_REPEATED_FIELD(stream, output)
+  WRITE_REPEATED_FIELD(stream, attribute)
+  WRITE_REPEATED_FIELD(stream, attribute_proto)
+  WRITE_REPEATED_FIELD(stream, node)
+  WRITE_FIELD(stream, doc_string)
+  WRITE_REPEATED_FIELD(stream, opset_import)
+  WRITE_FIELD(stream, domain)
+  WRITE_FIELD(stream, overload)
+  WRITE_REPEATED_FIELD(stream, value_info)
+  WRITE_REPEATED_FIELD(stream, metadata_props)
+}
+
+void FunctionProto::ParseFromStream(utils::BinaryStream &stream){
+    READ_BEGIN(stream, FunctionProto)            //
+    READ_FIELD(stream, name)                     //
+    READ_REPEATED_FIELD(stream, input)           //
+    READ_REPEATED_FIELD(stream, output)          //
+    READ_REPEATED_FIELD(stream, attribute)       //
+    READ_REPEATED_FIELD(stream, attribute_proto) //
+    READ_REPEATED_FIELD(stream, node)            //
+    READ_FIELD(stream, doc_string)               //
+    READ_REPEATED_FIELD(stream, opset_import)    //
+    READ_FIELD(stream, domain)                   //
+    READ_FIELD(stream, overload)                 //
+    READ_REPEATED_FIELD(stream, value_info)      //
+    READ_REPEATED_FIELD(stream, metadata_props)  //
+    READ_END(stream, FunctionProto)              //  // NOLINT
+}
+
+std::vector<std::string> FunctionProto::SerializeToVectorString() const {
+  return write_proto_into_vector_string(
+      NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(domain), NAME_EXIST_VALUE(overload),
+      NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(input), NAME_EXIST_VALUE(output),
+      NAME_EXIST_VALUE(opset_import), NAME_EXIST_VALUE(attribute), NAME_EXIST_VALUE(attribute_proto),
+      NAME_EXIST_VALUE(node), NAME_EXIST_VALUE(value_info), NAME_EXIST_VALUE(metadata_props));
 }
 
 } // namespace onnx2

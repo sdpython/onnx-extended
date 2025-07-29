@@ -506,6 +506,40 @@ FIELD_REPEATED(StringStringEntryProto, metadata_props, 16,
                "Named metadata values; keys should be distinct.")
 END_PROTO()
 
+// FunctionProto
+
+BEGIN_PROTO(FunctionProto,
+            "A function defines a sub-operator that can be used in a graph. It is similar to a "
+            "function in C/C++ or Python, and can be used to define reusable sub-graphs.")
+FIELD_STR(name, 1, "The name of the function. This field MUST be present in this version of the IR.")
+FIELD_REPEATED(utils::String, input, 4, "input names of the function")
+FIELD_REPEATED(utils::String, output, 5, "output names of the function")
+FIELD_REPEATED(utils::String, attribute, 6, "attribute names of the function")
+FIELD_REPEATED(AttributeProto, attribute_proto, 11, "typed attributes")
+FIELD_REPEATED(NodeProto, node, 7, "The nodes in the graph, sorted topologically.")
+FIELD_STR(doc_string, 8, "A human-readable documentation for this graph. Markdown is allowed.")
+FIELD_REPEATED(
+    OperatorSetIdProto, opset_import, 9,
+    "The OperatorSets this function body (graph) relies on. All nodes in the function body (graph) "
+    "will bind against the operator with the same-domain/same-op_type operator with the HIGHEST "
+    "version in the referenced operator sets. This means at most one version can be relied for one "
+    "domain. The operator sets imported by FunctionProto should be compatible with the ones imported "
+    "by ModelProto. Example, if same operator set say 'A' is imported by FunctionProto and ModelProto "
+    "then versions for the operator set may be different but, the operator schema returned for "
+    "op_type, domain, version combination for both the versions should be same.")
+FIELD_STR(domain, 10,
+          "The domain which this function belongs to. This is part of the unique-id (domain, name, "
+          "overload) of FunctionProtos in a model.")
+FIELD_STR(overload, 13,
+          "The overload identifier of the function. This is part of the unique-id (domain, name, "
+          "overload) of FunctionProtos in a model.")
+FIELD_REPEATED(ValueInfoProto, value_info, 12,
+               "Information for the values in the graph. The ValueInfoProto.name's must be distinct. "
+               "It is optional for a value to appear in value_info list.")
+FIELD_REPEATED(StringStringEntryProto, metadata_props, 14,
+               "Named metadata values; keys should be distinct.")
+END_PROTO()
+
 } // namespace onnx2
 
 #include "fields.hpp"

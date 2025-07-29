@@ -2851,3 +2851,163 @@ TEST(onnx2_proto, GraphProto_ComplexModel) {
   EXPECT_EQ(graph.ref_output().size(), 1);
   EXPECT_EQ(graph.ref_value_info().size(), 1);
 }
+
+// FunctionProto
+
+TEST(onnx2_proto, FunctionProto_Basic) {
+  FunctionProto function;
+
+  EXPECT_TRUE(function.ref_name().empty());
+  EXPECT_TRUE(function.ref_domain().empty());
+  EXPECT_EQ(function.ref_input().size(), 0);
+  EXPECT_EQ(function.ref_output().size(), 0);
+  EXPECT_EQ(function.ref_attribute().size(), 0);
+  EXPECT_EQ(function.ref_node().size(), 0);
+  EXPECT_TRUE(function.ref_doc_string().empty());
+
+  function.set_name("test_function");
+  function.set_domain("ai.custom");
+  function.set_doc_string("Test function documentation");
+
+  // Add inputs
+  function.add_input() = "X";
+  function.add_input() = "W";
+
+  // Add outputs
+  function.add_output() = "Y";
+
+  // Add attributes
+  function.add_attribute() = "alpha";
+  function.add_attribute() = "beta";
+
+  EXPECT_EQ(function.ref_name(), "test_function");
+  EXPECT_EQ(function.ref_domain(), "ai.custom");
+  EXPECT_EQ(function.ref_doc_string(), "Test function documentation");
+  EXPECT_EQ(function.ref_input().size(), 2);
+  EXPECT_EQ(function.ref_input()[0], "X");
+  EXPECT_EQ(function.ref_input()[1], "W");
+  EXPECT_EQ(function.ref_output().size(), 1);
+  EXPECT_EQ(function.ref_output()[0], "Y");
+  EXPECT_EQ(function.ref_attribute().size(), 2);
+  EXPECT_EQ(function.ref_attribute()[0], "alpha");
+  EXPECT_EQ(function.ref_attribute()[1], "beta");
+}
+
+TEST(onnx2_proto, FunctionProto_Nodes) {
+  FunctionProto function;
+  function.set_name("custom_op");
+
+  // Add nodes
+  NodeProto &node1 = function.add_node();
+  node1.set_name("mul");
+  node1.set_op_type("Mul");
+  node1.add_input() = "X";
+  node1.add_input() = "W";
+  node1.add_output() = "XW";
+
+  NodeProto &node2 = function.add_node();
+  node2.set_name("add");
+  node2.set_op_type("Add");
+  node2.add_input() = "XW";
+  node2.add_input() = "B";
+  node2.add_output() = "Y";
+
+  EXPECT_EQ(function.ref_node().size(), 2);
+  EXPECT_EQ(function.ref_node()[0].ref_name(), "mul");
+  EXPECT_EQ(function.ref_node()[0].ref_op_type(), "Mul");
+  EXPECT_EQ(function.ref_node()[1].ref_name(), "add");
+  EXPECT_EQ(function.ref_node()[1].ref_op_type(), "Add");
+}
+
+TEST(onnx2_proto, FunctionProto_Serialization) {
+  FunctionProto function1;
+  function1.set_name("serialization_function");
+  function1.set_domain("ai.test");
+  function1.set_doc_string("Function for serialization testing");
+
+  function1.add_input() = "X";
+  function1.add_output() = "Y";
+  function1.add_attribute() = "param";
+
+  NodeProto &node = function1.add_node();
+  node.set_name("op1");
+  node.set_op_type("CustomOp");
+  node.add_input() = "X";
+  node.add_output() = "Y";
+
+  std::string serialized;
+  function1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  FunctionProto function2;
+  function2.ParseFromString(serialized);
+
+  EXPECT_EQ(function2.ref_name(), "serialization_function");
+  EXPECT_EQ(function2.ref_domain(), "ai.test");
+  EXPECT_EQ(function2.ref_doc_string(), "Function for serialization testing");
+  EXPECT_EQ(function2.ref_input().size(), 1);
+  EXPECT_EQ(function2.ref_input()[0], "X");
+  EXPECT_EQ(function2.ref_output().size(), 1);
+  EXPECT_EQ(function2.ref_output()[0], "Y");
+  EXPECT_EQ(function2.ref_attribute().size(), 1);
+  EXPECT_EQ(function2.ref_attribute()[0], "param");
+  EXPECT_EQ(function2.ref_node().size(), 1);
+  EXPECT_EQ(function2.ref_node()[0].ref_name(), "op1");
+}
+
+TEST(onnx2_proto, FunctionProto_CopyFrom) {
+  FunctionProto source;
+  source.set_name("source_function");
+  source.set_domain("ai.source");
+  source.add_input() = "X";
+  source.add_output() = "Y";
+  source.add_attribute() = "attr1";
+
+  NodeProto &node = source.add_node();
+  node.set_op_type("Identity");
+
+  source.set_doc_string("Source function documentation");
+
+  FunctionProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_name(), "source_function");
+  EXPECT_EQ(target.ref_domain(), "ai.source");
+  EXPECT_EQ(target.ref_input().size(), 1);
+  EXPECT_EQ(target.ref_input()[0], "X");
+  EXPECT_EQ(target.ref_output().size(), 1);
+  EXPECT_EQ(target.ref_output()[0], "Y");
+  EXPECT_EQ(target.ref_attribute().size(), 1);
+  EXPECT_EQ(target.ref_attribute()[0], "attr1");
+  EXPECT_EQ(target.ref_node().size(), 1);
+  EXPECT_EQ(target.ref_node()[0].ref_op_type(), "Identity");
+  EXPECT_EQ(target.ref_doc_string(), "Source function documentation");
+}
+
+TEST(onnx2_string, FunctionProto) {
+  FunctionProto function;
+  function.set_name("my_function");
+  function.set_domain("ai.custom");
+  function.add_input() = "input1";
+  function.add_input() = "input2";
+  function.add_output() = "output";
+  function.add_attribute() = "attr";
+  function.set_doc_string("Custom function implementation");
+
+  NodeProto &node = function.add_node();
+  node.set_name("operation");
+  node.set_op_type("MatMul");
+
+  std::vector<std::string> result = function.SerializeToVectorString();
+  ASSERT_FALSE(result.empty());
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  EXPECT_TRUE(serialized.find("name: \"my_function\"") != std::string::npos);
+  EXPECT_TRUE(serialized.find("domain: \"ai.custom\"") != std::string::npos);
+  EXPECT_TRUE(serialized.find("input:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("output:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("attribute:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("node {") != std::string::npos);
+  EXPECT_TRUE(serialized.find("doc_string:") != std::string::npos);
+}
