@@ -921,7 +921,7 @@ TEST(onnx2_proto, TensorProto_DataTypes) {
 
   tensor.set_data_type(TensorProto::DataType::DOUBLE);
   tensor.ref_double_data().push_back(1.5);
-  tensor.ref_double_data()  .push_back(2.5);
+  tensor.ref_double_data().push_back(2.5);
   EXPECT_EQ(tensor.ref_double_data().size(), 2);
   EXPECT_EQ(tensor.ref_double_data()[0], 1.5);
   EXPECT_EQ(tensor.ref_double_data()[1], 2.5);

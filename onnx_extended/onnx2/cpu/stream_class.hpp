@@ -277,7 +277,7 @@ template <typename T>
 void write_repeated_field(utils::BinaryWriteStream &stream, int order,
                           const utils::RepeatedProtoField<T> &field, bool is_packed) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
-  for (size_t i = 0; i<field.size(); ++i) {
+  for (size_t i = 0; i < field.size(); ++i) {
     utils::StringWriteStream local;
     field[i].SerializeToStream(local);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
@@ -473,14 +473,14 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type, utils::Repe
 }
 
 template <typename T>
-void read_repeated_field(utils::BinaryStream &stream, int wire_type, utils::RepeatedProtoField<T> &field,
-                         const char *name, bool is_packed) {
+void read_repeated_field(utils::BinaryStream &stream, int wire_type,
+                         utils::RepeatedProtoField<T> &field, const char *name, bool is_packed) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field name '", name, "'");
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
               "'");
   utils::StringStream dim_buf;
   stream.read_string_stream(dim_buf);
-  T& elem = field.add();
+  T &elem = field.add();
   elem.ParseFromStream(dim_buf);
 }
 

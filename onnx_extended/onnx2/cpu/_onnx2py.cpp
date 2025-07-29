@@ -131,7 +131,7 @@ namespace py = pybind11;
             return py::none();                                                                         \
           self.name##_.set_empty_value();                                                              \
         }                                                                                              \
-        return py::cast(*self.name##_, py::return_value_policy::reference);                       \
+        return py::cast(*self.name##_, py::return_value_policy::reference);                            \
       },                                                                                               \
       [](onnx2::cls &self, py::object obj) {                                                           \
         if (obj.is_none()) {                                                                           \

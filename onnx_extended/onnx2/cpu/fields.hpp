@@ -41,9 +41,7 @@ template <typename T> inline const T &RepeatedProtoField<T>::operator[](size_t i
   return *values_[index];
 }
 
-template <typename T> void RepeatedProtoField<T>::push_back(const T &v) {
-  add().CopyFrom(v);
-}
+template <typename T> void RepeatedProtoField<T>::push_back(const T &v) { add().CopyFrom(v); }
 
 template <typename T> void RepeatedProtoField<T>::extend(const RepeatedProtoField<T> &v) {
   values_.reserve(values_.size() + v.values_.size());
