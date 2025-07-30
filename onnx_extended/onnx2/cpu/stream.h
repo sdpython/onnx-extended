@@ -37,6 +37,7 @@ public:
   virtual bool not_end() const = 0;
   virtual offset_t tell() const = 0;
   virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
+  virtual void skip_bytes(offset_t n_bytes) = 0;
   virtual void read_string_stream(StringStream &stream) = 0;
 
   // defines from the previous ones
@@ -60,6 +61,7 @@ public:
   virtual void can_read(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
   virtual const uint8_t *read_bytes(offset_t n_bytes) override;
+  virtual void skip_bytes(offset_t n_bytes) override;
   virtual void read_string_stream(StringStream &stream) override;
   virtual bool not_end() const override { return pos_ < size_; }
   virtual offset_t tell() const override { return static_cast<offset_t>(pos_); }

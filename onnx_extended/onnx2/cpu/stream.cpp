@@ -56,6 +56,8 @@ const uint8_t *StringStream::read_bytes(offset_t n_bytes) {
   return res;
 }
 
+void StringStream::skip_bytes(offset_t n_bytes) { pos_ += n_bytes; }
+
 void StringStream::read_string_stream(StringStream &stream) {
   uint64_t length = next_uint64();
   can_read(length, "[StringStream::read_string_stream]");
