@@ -3286,3 +3286,40 @@ TEST(onnx2_proto, AttributeProto_InNodeProto2) {
   std::string s4 = att2.PrintToVectorString(options)[0];
   EXPECT_EQ(s1, s4);
 }
+
+TEST(onnx2_proto, TensorProto_SkipRawData) {
+  TensorProto tensor1;
+  tensor1.set_name("skip_raw_test");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.ref_dims().push_back(2);
+  tensor1.ref_dims().push_back(2);
+
+  // Ajout de données brutes
+  std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
+  tensor1.ref_raw_data().resize(data.size() * sizeof(float));
+  std::memcpy(tensor1.ref_raw_data().data(), data.data(), data.size() * sizeof(float));
+
+  std::string serialized1;
+  SerializeOptions options;
+  tensor1.SerializeToString(serialized1, options);
+
+  std::string serialized2;
+  SerializeOptions options2;
+  options2.skip_raw_data = true;
+  options2.raw_data_threshold = 0;
+  tensor1.SerializeToString(serialized2, options2);
+  EXPECT_EQ(serialized1.size(), 39);
+  EXPECT_EQ(serialized2.size(), 21);
+
+  // Test avec skip_raw_data = false (comportement par défaut)
+  ParseOptions parse_options;
+  parse_options.skip_raw_data = true;
+  parse_options.raw_data_threshold = 0;
+  TensorProto tensor2;
+  tensor2.ParseFromString(serialized1, parse_options);
+
+  EXPECT_EQ(tensor2.ref_name(), "skip_raw_test");
+  EXPECT_EQ(tensor2.ref_data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(tensor2.ref_dims().size(), 2);
+  EXPECT_EQ(tensor2.ref_raw_data().size(), 0);
+}

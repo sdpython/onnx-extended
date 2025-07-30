@@ -95,7 +95,7 @@
 #define READ_FIELD_LIMIT(options, stream, name)                                                        \
   else if (static_cast<int>(field_number.field_number) == order_##name()) {                            \
     DEBUG_PRINT("  + field " #name)                                                                    \
-    read_field_limit(stream, field_number.wire_type, name##_, #name, options, apply);                  \
+    read_field_limit(stream, field_number.wire_type, name##_, #name, options);                         \
     DEBUG_PRINT("  - field " #name)                                                                    \
   }
 
@@ -225,7 +225,7 @@ void write_field(utils::BinaryWriteStream &stream, int order, const std::vector<
 
 void write_field_limit(utils::BinaryWriteStream &stream, int order, const std::vector<uint8_t> &field,
                        SerializeOptions &options) {
-  if (options.skip_raw_data && field.size() < options.raw_data_threshold) {
+  if (!options.skip_raw_data || field.size() < options.raw_data_threshold) {
     write_field(stream, order, field, options);
   }
 }
