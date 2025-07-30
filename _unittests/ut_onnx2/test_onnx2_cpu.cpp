@@ -578,6 +578,7 @@ TEST(onnx2_stream, NestedStringWriteStreams) {
   readStream.read_string_stream(innerReadStream);
 
   utils::RefString str = innerReadStream.next_string();
+  readStream.set_lock(false);
   EXPECT_EQ(str, "inner data");
 }
 
@@ -3341,4 +3342,102 @@ TEST(onnx2_proto, TensorProto_SkipRawData) {
   EXPECT_EQ(tensor2.ref_data_type(), TensorProto::DataType::FLOAT);
   EXPECT_EQ(tensor2.ref_dims().size(), 2);
   EXPECT_EQ(tensor2.ref_raw_data().size(), 0);
+}
+
+TEST(onnx2_stream, FileWriteStream) {
+  std::string temp_filename = "test_file_write_stream.tmp";
+
+  // read
+  {
+    utils::FileWriteStream stream(temp_filename);
+
+    stream.write_variant_uint64(150);
+    stream.write_int64(42);
+    stream.write_int32(24);
+    stream.write_float(3.14f);
+    stream.write_string("hello");
+
+    EXPECT_GT(stream.size(), 0);
+  }
+
+  // check content
+  {
+    utils::FileStream readStream(temp_filename);
+
+    EXPECT_EQ(readStream.next_uint64(), 150);
+    EXPECT_EQ(readStream.next_int64(), 42);
+    EXPECT_EQ(readStream.next_int32(), 24);
+    EXPECT_NEAR(readStream.next_float(), 3.14f, 0.0001f);
+
+    utils::RefString str = readStream.next_string();
+    EXPECT_EQ(str, "hello");
+    EXPECT_FALSE(readStream.not_end());
+  }
+
+  // Clean up
+  std::remove(temp_filename.c_str());
+}
+
+TEST(onnx2_stream, FileStream_TensorProto) {
+  std::string temp_filename = "test_tensor_file_stream.tmp";
+
+  // create and save a TensorProto to a file
+  {
+    TensorProto tensor;
+    tensor.set_name("test_tensor");
+    tensor.set_data_type(TensorProto::DataType::FLOAT);
+    tensor.ref_dims().push_back(2);
+    tensor.ref_dims().push_back(3);
+
+    // Add float data
+    tensor.ref_float_data().push_back(1.1f);
+    tensor.ref_float_data().push_back(2.2f);
+    tensor.ref_float_data().push_back(3.3f);
+    tensor.ref_float_data().push_back(4.4f);
+    tensor.ref_float_data().push_back(5.5f);
+    tensor.ref_float_data().push_back(6.6f);
+
+    // Serialize to a file
+    utils::FileWriteStream stream(temp_filename);
+    std::string serialized;
+    tensor.SerializeToString(serialized);
+
+    // Write the size followed by the serialized data
+    stream.write_variant_uint64(serialized.size());
+    stream.write_raw_bytes(reinterpret_cast<const uint8_t *>(serialized.data()), serialized.size());
+  }
+
+  // Read and deserialize the TensorProto from the file
+  {
+    utils::FileStream stream(temp_filename);
+
+    // Read the size and data
+    uint64_t size = stream.next_uint64();
+    std::vector<uint8_t> buffer(size);
+    const uint8_t *data = stream.read_bytes(size);
+    std::memcpy(buffer.data(), data, size);
+
+    // Deserialize the TensorProto
+    TensorProto tensor;
+    tensor.ParseFromString(std::string(reinterpret_cast<const char *>(buffer.data()), buffer.size()));
+
+    // Check properties
+    EXPECT_EQ(tensor.ref_name(), "test_tensor");
+    EXPECT_EQ(tensor.ref_data_type(), TensorProto::DataType::FLOAT);
+    EXPECT_EQ(tensor.ref_dims().size(), 2);
+    EXPECT_EQ(tensor.ref_dims()[0], 2);
+    EXPECT_EQ(tensor.ref_dims()[1], 3);
+
+    // Check data
+    ASSERT_EQ(tensor.ref_float_data().size(), 6);
+    EXPECT_FLOAT_EQ(tensor.ref_float_data()[0], 1.1f);
+    EXPECT_FLOAT_EQ(tensor.ref_float_data()[1], 2.2f);
+    EXPECT_FLOAT_EQ(tensor.ref_float_data()[2], 3.3f);
+    EXPECT_FLOAT_EQ(tensor.ref_float_data()[3], 4.4f);
+    EXPECT_FLOAT_EQ(tensor.ref_float_data()[4], 5.5f);
+    EXPECT_FLOAT_EQ(tensor.ref_float_data()[5], 6.6f);
+  }
+
+  // Clean up
+  std::remove(temp_filename.c_str());
 }
