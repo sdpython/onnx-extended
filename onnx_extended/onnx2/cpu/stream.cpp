@@ -95,24 +95,52 @@ void BinaryWriteStream::write_variant_uint64(uint64_t value) {
   write_raw_bytes(reinterpret_cast<uint8_t *>(&v), 1);
 }
 
+uint64_t BinaryWriteStream::size_variant_uint64(uint64_t value) { return VarintSize(value); }
+
+
 void BinaryWriteStream::write_int64(int64_t value) {
   write_variant_uint64(static_cast<uint64_t>(value));
+}
+
+uint64_t BinaryWriteStream::size_int64(int64_t value) {
+  return VarintSize(static_cast<uint64_t>(value));
 }
 
 void BinaryWriteStream::write_int32(int32_t value) {
   write_variant_uint64(static_cast<uint64_t>(value));
 }
 
+uint64_t BinaryWriteStream::size_int32(int32_t value) {
+  return VarintSize(static_cast<uint64_t>(value));
+}
+
 void BinaryWriteStream::write_float(float value) {
   write_raw_bytes(reinterpret_cast<uint8_t *>(&value), sizeof(float));
 }
+
+uint64_t BinaryWriteStream::size_float(float) { return sizeof(float); }
 
 void BinaryWriteStream::write_double(double value) {
   write_raw_bytes(reinterpret_cast<uint8_t *>(&value), sizeof(double));
 }
 
+uint64_t BinaryWriteStream::size_double(double) { return sizeof(double); }
+
 void BinaryWriteStream::write_field_header(uint32_t field_number, uint8_t wire_type) {
   write_variant_uint64((field_number << 3) | wire_type);
+}
+
+uint64_t BinaryWriteStream::VarintSize(uint64_t value) {
+  size_t size = 0;
+  do {
+    size++;
+    value >>= 7;
+  } while (value != 0);
+  return size;
+}
+
+uint64_t BinaryWriteStream::size_field_header(uint32_t field_number, uint8_t wire_type) {
+  return VarintSize((field_number << 3) | wire_type);
 }
 
 void BinaryWriteStream::write_string(const std::string &value) {
@@ -120,9 +148,17 @@ void BinaryWriteStream::write_string(const std::string &value) {
   write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 }
 
+uint64_t BinaryWriteStream::size_string(const std::string &value) {
+  return VarintSize(value.size()) + value.size();
+}
+
 void BinaryWriteStream::write_string(const String &value) {
   write_variant_uint64(value.size());
   write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
+}
+
+uint64_t BinaryWriteStream::size_string(const String &value) {
+  return VarintSize(value.size()) + value.size();
 }
 
 void BinaryWriteStream::write_string(const RefString &value) {
@@ -130,14 +166,26 @@ void BinaryWriteStream::write_string(const RefString &value) {
   write_raw_bytes(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 }
 
+uint64_t BinaryWriteStream::size_string(const RefString &value) {
+  return VarintSize(value.size()) + value.size();
+}
+
 void BinaryWriteStream::write_string_stream(const StringWriteStream &stream) {
   write_variant_uint64(stream.size());
   write_raw_bytes(stream.data(), stream.size());
 }
 
+uint64_t BinaryWriteStream::size_string_stream(const StringWriteStream &stream) {
+  return VarintSize(stream.size()) + stream.size();
+}
+
 void BinaryWriteStream::write_string_stream(const BorrowedWriteStream &stream) {
   write_variant_uint64(stream.size());
   write_raw_bytes(stream.data(), stream.size());
+}
+
+uint64_t BinaryWriteStream::size_string_stream(const BorrowedWriteStream &stream) {
+  return VarintSize(stream.size()) + stream.size();
 }
 
 void StringWriteStream::write_raw_bytes(const uint8_t *ptr, offset_t n_bytes) {

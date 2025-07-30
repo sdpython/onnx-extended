@@ -31,6 +31,17 @@ namespace py = pybind11;
       py::arg("data"), py::arg("options") = py::none(),                                                \
       "Parses a sequence of bytes to fill this instance.")                                             \
       .def(                                                                                            \
+          "SerializeSize",                                                                             \
+          [](onnx2::cls &self, py::object options) -> uint64_t {                                       \
+            if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
+              onnx2::utils::StringWriteStream out;                                                     \
+              return self.SerializeSize(out, options.cast<onnx2::SerializeOptions &>());               \
+            } else {                                                                                   \
+              return self.SerializeSize();                                                             \
+            }                                                                                          \
+          },                                                                                           \
+          py::arg("options") = py::none(), "Returns the size once serialized without serializing.")    \
+      .def(                                                                                            \
           "SerializeToString",                                                                         \
           [](onnx2::cls &self, py::object options) {                                                   \
             std::string out;                                                                           \

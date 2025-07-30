@@ -20,7 +20,7 @@
 #define DEBUG_PRINT2(s1, s2)
 #endif
 
-//////////////////
+////////////////
 // macro helpers
 ////////////////
 
@@ -34,6 +34,59 @@
     utils::StringStream read_stream(stream.data(), stream.size());                                     \
     ParseOptions ropts;                                                                                \
     ParseFromStream(read_stream, ropts);                                                               \
+  }                                                                                                    \
+  uint64_t cls::SerializeSize() const {                                                                \
+    SerializeOptions opts;                                                                             \
+    utils::StringWriteStream stream;                                                                   \
+    return SerializeSize(stream, opts);                                                                \
+  }                                                                                                    \
+  void cls::ParseFromString(const std::string &raw) {                                                  \
+    ParseOptions opts;                                                                                 \
+    ParseFromString(raw, opts);                                                                        \
+  }                                                                                                    \
+  void cls::ParseFromString(const std::string &raw, ParseOptions &opts) {                              \
+    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                                \
+    onnx2::utils::StringStream st(ptr, raw.size());                                                    \
+    ParseFromStream(st, opts);                                                                         \
+  }                                                                                                    \
+  void cls::SerializeToString(std::string &out) const {                                                \
+    SerializeOptions opts;                                                                             \
+    SerializeToString(out, opts);                                                                      \
+  }                                                                                                    \
+  void cls::SerializeToString(std::string &out, SerializeOptions &opts) const {                        \
+    onnx2::utils::StringWriteStream buf;                                                               \
+    auto &opts_ref = opts;                                                                             \
+    SerializeToStream(buf, opts_ref);                                                                  \
+    out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                         \
+  }
+
+///////////////////////
+// macro serialize size
+///////////////////////
+
+#define SIZE_FIELD(size, options, stream, name)                                                        \
+  if (has_##name()) {                                                                                  \
+    size += size_field(stream, order_##name(), ref_##name(), options);                                 \
+  }
+
+#define SIZE_FIELD_LIMIT(size, options, stream, name)                                                  \
+  if (has_##name()) {                                                                                  \
+    size += size_field_limit(stream, order_##name(), ref_##name(), options);                           \
+  }
+
+#define SIZE_ENUM_FIELD(size, options, stream, name)                                                   \
+  if (has_##name()) {                                                                                  \
+    size += size_enum_field(stream, order_##name(), ref_##name(), options);                            \
+  }
+
+#define SIZE_REPEATED_FIELD(size, options, stream, name)                                               \
+  if (has_##name()) {                                                                                  \
+    size += size_repeated_field(stream, order_##name(), name##_, packed_##name(), options);            \
+  }
+
+#define SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, name)                                         \
+  if (has_##name()) {                                                                                  \
+    size += size_optional_proto_field(stream, order_##name(), name##_optional(), options);             \
   }
 
 //////////////
@@ -125,12 +178,210 @@ using namespace onnx_extended_helpers;
 namespace onnx2 {
 
 ////////
+// serialized size
+////////
+
+template <typename T>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const T &field,
+                    SerializeOptions &options) {
+  auto s = field.SerializeSize(stream, options);
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(s) + s;
+}
+
+template <typename T>
+uint64_t size_optional_proto_field(utils::BinaryWriteStream &stream, int order,
+                                   const utils::OptionalField<T> &field, SerializeOptions &options) {
+  if (field.has_value()) {
+    auto s = (*field).SerializeSize(stream, options);
+    return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(s) + s;
+  }
+  return 0;
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const utils::String &field,
+                    SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_string(field);
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order,
+                    const utils::OptionalField<uint64_t> &field, SerializeOptions &) {
+  if (field.has_value()) {
+    return stream.size_field_header(order, FIELD_VARINT) + stream.size_variant_uint64(*field);
+  }
+  return 0;
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order,
+                    const utils::OptionalField<int64_t> &field, SerializeOptions &) {
+  if (field.has_value()) {
+    return stream.size_field_header(order, FIELD_VARINT) + stream.size_int64(*field);
+  }
+  return 0;
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order,
+                    const utils::OptionalField<int32_t> &field, SerializeOptions &) {
+  if (field.has_value()) {
+    return stream.size_field_header(order, FIELD_VARINT) + stream.size_int32(*field);
+  }
+  return 0;
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const int64_t &field,
+                    SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_VARINT) + stream.size_int64(field);
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const uint64_t &field,
+                    SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_VARINT) + stream.size_variant_uint64(field);
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const int32_t &field,
+                    SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_VARINT) + stream.size_int32(field);
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const double &field,
+                    SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_double(field);
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const float &field,
+                    SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_float(field);
+}
+
+template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order, const std::vector<uint8_t> &field,
+                    SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(field.size()) +
+         field.size();
+}
+
+uint64_t size_field_limit(utils::BinaryWriteStream &stream, int order,
+                          const std::vector<uint8_t> &field, SerializeOptions &options) {
+  if (!options.skip_raw_data || field.size() < options.raw_data_threshold) {
+    return size_field(stream, order, field, options);
+  }
+  return 0;
+}
+
+template <typename T>
+uint64_t size_enum_field(utils::BinaryWriteStream &stream, int order, const T &field,
+                         SerializeOptions &) {
+  return stream.size_field_header(order, FIELD_VARINT) +
+         stream.VarintSize(static_cast<uint64_t>(field));
+}
+
+template <typename T>
+uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order, const std::vector<T> &field,
+                             bool is_packed, SerializeOptions &options) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
+  uint64_t size = 0;
+  for (const auto &d : field) {
+    auto s = d.SerializeSize(stream, options);
+    size += stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(s) + s;
+  }
+  return size;
+}
+
+template <>
+uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
+                             const std::vector<utils::String> &field, bool is_packed,
+                             SerializeOptions &) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
+  uint64_t size = 0;
+  for (const auto &d : field) {
+    size += stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(d.size()) + d.size();
+  }
+  return size;
+}
+
+#define SIZE_REPEATED_FIELD_IMPL(type, unpack_method)                                                  \
+  template <>                                                                                          \
+  uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,                            \
+                               const std::vector<type> &field, bool is_packed, SerializeOptions &) {   \
+    if (is_packed) {                                                                                   \
+      return stream.size_field_header(order, FIELD_FIXED_SIZE) +                                       \
+             stream.VarintSize(field.size() * sizeof(type)) + field.size() * sizeof(type);             \
+    } else {                                                                                           \
+      uint64_t size = 0;                                                                               \
+      for (const auto &d : field) {                                                                    \
+        size += stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.unpack_method(d);           \
+      }                                                                                                \
+      return size;                                                                                     \
+    }                                                                                                  \
+  }
+
+SIZE_REPEATED_FIELD_IMPL(double, size_double)
+SIZE_REPEATED_FIELD_IMPL(float, size_float)
+
+#define SIZE_REPEATED_FIELD_IMPL_INT(type)                                                             \
+  template <>                                                                                          \
+  uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,                            \
+                               const std::vector<type> &field, bool is_packed, SerializeOptions &) {   \
+    if (is_packed) {                                                                                   \
+      uint64_t size =                                                                                  \
+          stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(field.size());         \
+      for (const auto &d : field) {                                                                    \
+        size += stream.VarintSize(static_cast<uint64_t>(d));                                           \
+      }                                                                                                \
+      return size;                                                                                     \
+    } else {                                                                                           \
+      uint64_t size = 0;                                                                               \
+      for (const auto &d : field) {                                                                    \
+        size += stream.size_field_header(order, FIELD_VARINT);                                         \
+        size += stream.VarintSize(static_cast<uint64_t>(d));                                           \
+      }                                                                                                \
+      return size;                                                                                     \
+    }                                                                                                  \
+  }
+
+SIZE_REPEATED_FIELD_IMPL_INT(uint64_t)
+SIZE_REPEATED_FIELD_IMPL_INT(int64_t)
+SIZE_REPEATED_FIELD_IMPL_INT(int32_t)
+
+template <typename T>
+uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
+                             const utils::RepeatedField<T> &field, bool is_packed,
+                             SerializeOptions &options) {
+  return size_repeated_field(stream, order, field.values(), is_packed, options);
+}
+
+template <typename T>
+uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
+                             const utils::RepeatedProtoField<T> &field, bool is_packed,
+                             SerializeOptions &options) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
+  uint64_t size = 0;
+  for (size_t i = 0; i < field.size(); ++i) {
+    auto s = field[i].SerializeSize(stream, options);
+    size += stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(s) + s;
+  }
+  return size;
+}
+
+////////
 // write
 ////////
 
 template <typename T>
 void write_field(utils::BinaryWriteStream &stream, int order, const T &field,
                  SerializeOptions &options) {
+  // TODO: avoid copy
+  // If we could know the size of the field in advance (after it is serialized),
+  // we could avoid to serialize into a buffer and then write it (copy it in face)
+  // to the stream.
   utils::StringWriteStream local;
   field.SerializeToStream(local, options);
   stream.write_field_header(order, FIELD_FIXED_SIZE);
@@ -141,6 +392,10 @@ template <typename T>
 void write_optional_proto_field(utils::BinaryWriteStream &stream, int order,
                                 const utils::OptionalField<T> &field, SerializeOptions &options) {
   if (field.has_value()) {
+    // TODO: avoid copy
+    // If we could know the size of the field in advance (after it is serialized),
+    // we could avoid to serialize into a buffer and then write it (copy it in face)
+    // to the stream.
     utils::StringWriteStream local;
     (*field).SerializeToStream(local, options);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
@@ -241,6 +496,10 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order, const std
                           bool is_packed, SerializeOptions &options) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
   for (const auto &d : field) {
+    // TODO: avoid copy
+    // If we could know the size of the field in advance (after it is serialized),
+    // we could avoid to serialize into a buffer and then write it (copy it in face)
+    // to the stream.
     utils::StringWriteStream local;
     d.SerializeToStream(local, options);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
@@ -314,6 +573,10 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order,
                           SerializeOptions &options) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
   for (size_t i = 0; i < field.size(); ++i) {
+    // TODO: avoid copy
+    // If we could know the size of the field in advance (after it is serialized),
+    // we could avoid to serialize into a buffer and then write it (copy it in face)
+    // to the stream.
     utils::StringWriteStream local;
     field[i].SerializeToStream(local, options);
     stream.write_field_header(order, FIELD_FIXED_SIZE);

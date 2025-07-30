@@ -344,12 +344,14 @@ TEST(onnx2_proto, serialization_StringStringEntryProto) {
   EXPECT_EQ(proto.ref_value(), "value__");
   std::string serie;
   proto.SerializeToString(serie);
+  EXPECT_EQ(serie.size(), proto.SerializeSize());
   StringStringEntryProto proto2;
   proto2.ParseFromString(serie);
   EXPECT_EQ(proto.ref_key(), proto2.ref_key());
   EXPECT_EQ(proto.ref_value(), proto2.ref_value());
   std::string serie2;
   proto2.SerializeToString(serie2);
+  EXPECT_EQ(serie2.size(), proto2.SerializeSize());
   EXPECT_EQ(serie, serie2);
 }
 
@@ -636,6 +638,7 @@ TEST(onnx2_proto, StringStringEntryProto_Serialization) {
   std::string serialized;
   entry.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), entry.SerializeSize());
 
   StringStringEntryProto entry2;
   entry2.ParseFromString(serialized);
@@ -678,6 +681,7 @@ TEST(onnx2_proto, IntIntListEntryProto_Serialization) {
   std::string serialized;
   entry.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), entry.SerializeSize());
 
   IntIntListEntryProto entry2;
   entry2.ParseFromString(serialized);
@@ -980,6 +984,7 @@ TEST(onnx2_proto, TensorProto_Serialization) {
   std::string serialized;
   tensor1.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), tensor1.SerializeSize());
 
   TensorProto tensor2;
   tensor2.ParseFromString(serialized);
@@ -1086,6 +1091,7 @@ TEST(onnx2_proto, SerializeDeserializeTensorProto) {
   std::string serialized;
   tensor1.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), tensor1.SerializeSize());
 
   TensorProto tensor2;
   tensor2.ParseFromString(serialized);
@@ -1135,6 +1141,7 @@ TEST(onnx2_proto, StringStringEntryProtoOperations) {
   std::string serialized;
   entry.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), entry.SerializeSize());
 
   StringStringEntryProto entry2;
   entry2.ParseFromString(serialized);
@@ -1206,6 +1213,7 @@ TEST(onnx2_proto, SparseTensorProtoOperations) {
   std::string serialized;
   sparse.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), sparse.SerializeSize());
 
   SparseTensorProto sparse2;
   sparse2.ParseFromString(serialized);
@@ -1237,6 +1245,7 @@ TEST(onnx2_proto, TensorShapeProtoOperations) {
   std::string serialized;
   shape.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), shape.SerializeSize());
 
   TensorShapeProto shape2;
   shape2.ParseFromString(serialized);
@@ -1876,6 +1885,7 @@ TEST(onnx2_proto, ValueInfoProto_Serialization) {
   std::string serialized;
   value_info1.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), value_info1.SerializeSize());
 
   ValueInfoProto value_info2;
   value_info2.ParseFromString(serialized);
@@ -2162,6 +2172,7 @@ TEST(onnx2_proto, AttributeProto_Serialization) {
   std::string serialized;
   attribute.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), attribute.SerializeSize());
 
   AttributeProto attribute2;
   attribute2.ParseFromString(serialized);
@@ -2343,6 +2354,7 @@ TEST(onnx2_proto, NodeProto_Serialization) {
   std::string serialized;
   node1.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), node1.SerializeSize());
 
   NodeProto node2;
   node2.ParseFromString(serialized);
@@ -2524,6 +2536,7 @@ TEST(onnx2_proto, NodeProto_EmptyStrings) {
   std::string serialized;
   node.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), node.SerializeSize());
 
   NodeProto node2;
   node2.ParseFromString(serialized);
@@ -2681,6 +2694,7 @@ TEST(onnx2_proto, GraphProto_Serialization) {
   std::string serialized;
   graph1.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), graph1.SerializeSize());
 
   GraphProto graph2;
   graph2.ParseFromString(serialized);
@@ -2943,6 +2957,7 @@ TEST(onnx2_proto, FunctionProto_Serialization) {
   std::string serialized;
   function1.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), function1.SerializeSize());
 
   FunctionProto function2;
   function2.ParseFromString(serialized);
@@ -3120,6 +3135,7 @@ TEST(onnx2_proto, ModelProto_Serialization) {
   std::string serialized;
   model1.SerializeToString(serialized);
   EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), model1.SerializeSize());
 
   ModelProto model2;
   model2.ParseFromString(serialized);
@@ -3301,7 +3317,9 @@ TEST(onnx2_proto, TensorProto_SkipRawData) {
 
   std::string serialized1;
   SerializeOptions options;
+  utils::StringWriteStream st;
   tensor1.SerializeToString(serialized1, options);
+  EXPECT_EQ(serialized1.size(), tensor1.SerializeSize(st, options));
 
   std::string serialized2;
   SerializeOptions options2;
@@ -3310,6 +3328,7 @@ TEST(onnx2_proto, TensorProto_SkipRawData) {
   tensor1.SerializeToString(serialized2, options2);
   EXPECT_EQ(serialized1.size(), 39);
   EXPECT_EQ(serialized2.size(), 21);
+  EXPECT_EQ(serialized2.size(), tensor1.SerializeSize(st, options2));
 
   // Test avec skip_raw_data = false (comportement par défaut)
   ParseOptions parse_options;
