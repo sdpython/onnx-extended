@@ -138,7 +138,7 @@ void write_optional_proto_field(utils::BinaryWriteStream &stream, int order,
 
 template <>
 void write_field(utils::BinaryWriteStream &stream, int order, const utils::String &field,
-                 SerializeOptions &options) {
+                 SerializeOptions &) {
   stream.write_field_header(order, FIELD_FIXED_SIZE);
   stream.write_string(field);
 }
@@ -231,8 +231,7 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order, const std
 
 template <>
 void write_repeated_field(utils::BinaryWriteStream &stream, int order,
-                          const std::vector<utils::String> &field, bool is_packed,
-                          SerializeOptions &options) {
+                          const std::vector<utils::String> &field, bool is_packed, SerializeOptions &) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
   for (const auto &d : field) {
     stream.write_field_header(order, FIELD_FIXED_SIZE);

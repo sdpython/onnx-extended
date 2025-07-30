@@ -54,8 +54,7 @@ public:
 
 class StringStream : public BinaryStream {
 public:
-  explicit inline StringStream()
-      : BinaryStream(), pos_(0), size_(0), data_(nullptr) {}
+  explicit inline StringStream() : BinaryStream(), pos_(0), size_(0), data_(nullptr) {}
   explicit inline StringStream(const uint8_t *data, int64_t size)
       : BinaryStream(), pos_(0), size_(size), data_(data) {}
   virtual void can_read(uint64_t len, const char *msg) override;
