@@ -9,25 +9,12 @@
 // #define FIELD_FIXED32 5
 
 #define SERIALIZATION_METHOD()                                                                         \
-  inline void ParseFromString(const std::string &raw) {                                                \
-    ParseOptions opts;                                                                                 \
-    ParseFromString(raw, opts);                                                                        \
-  }                                                                                                    \
-  inline void ParseFromString(const std::string &raw, ParseOptions &opts) {                            \
-    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                                \
-    onnx2::utils::StringStream st(ptr, raw.size());                                                    \
-    ParseFromStream(st, opts);                                                                         \
-  }                                                                                                    \
-  inline void SerializeToString(std::string &out) const {                                              \
-    SerializeOptions opts;                                                                             \
-    SerializeToString(out, opts);                                                                      \
-  }                                                                                                    \
-  inline void SerializeToString(std::string &out, SerializeOptions &opts) const {                      \
-    onnx2::utils::StringWriteStream buf;                                                               \
-    auto &opts_ref = opts;                                                                             \
-    SerializeToStream(buf, opts_ref);                                                                  \
-    out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                         \
-  }                                                                                                    \
+  uint64_t SerializeSize() const;                                                                      \
+  void ParseFromString(const std::string &raw);                                                        \
+  void ParseFromString(const std::string &raw, ParseOptions &opts);                                    \
+  void SerializeToString(std::string &out) const;                                                      \
+  void SerializeToString(std::string &out, SerializeOptions &opts) const;                              \
+  uint64_t SerializeSize(utils::BinaryWriteStream &stream, SerializeOptions &opts) const;              \
   void ParseFromStream(utils::BinaryStream &stream, ParseOptions &options);                            \
   void SerializeToStream(utils::BinaryWriteStream &stream, SerializeOptions &options) const;           \
   std::vector<std::string> PrintToVectorString(utils::PrintOptions &options) const;

@@ -27,10 +27,11 @@ struct FieldNumber {
   std::string string() const;
 };
 
+
+
 class BinaryStream {
 public:
   explicit inline BinaryStream() {}
-
   // to overwrite
   virtual uint64_t next_uint64() = 0;
   virtual void can_read(uint64_t len, const char *msg) = 0;
@@ -39,7 +40,6 @@ public:
   virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
   virtual void skip_bytes(offset_t n_bytes) = 0;
   virtual void read_string_stream(StringStream &stream) = 0;
-
   // defines from the previous ones
   virtual RefString next_string();
   virtual int64_t next_int64();
@@ -47,7 +47,6 @@ public:
   virtual float next_float();
   virtual double next_double();
   virtual FieldNumber next_field();
-
   template <typename T> void next_packed_element(T &value) {
     value = *reinterpret_cast<const T *>(read_bytes(sizeof(T)));
   }
@@ -78,6 +77,11 @@ class BorrowedWriteStream;
 class BinaryWriteStream {
 public:
   explicit inline BinaryWriteStream() {}
+  // to overwrite
+  virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) = 0;
+  virtual int64_t size() const = 0;
+  virtual const uint8_t *data() const = 0;
+  // defined from the previous ones
   virtual void write_variant_uint64(uint64_t value);
   virtual void write_int64(int64_t value);
   virtual void write_int32(int32_t value);
@@ -92,10 +96,19 @@ public:
   template <typename T> void write_packed_element(const T &value) {
     write_raw_bytes(reinterpret_cast<const uint8_t *>(&value), sizeof(T));
   }
-
-  virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) = 0;
-  virtual int64_t size() const = 0;
-  virtual const uint8_t *data() const = 0;
+  // size
+  virtual uint64_t size_field_header(uint32_t field_number, uint8_t wire_type);
+  virtual uint64_t VarintSize(uint64_t value);
+  virtual uint64_t size_variant_uint64(uint64_t value);
+  virtual uint64_t size_int64(int64_t value);
+  virtual uint64_t size_int32(int32_t value);
+  virtual uint64_t size_float(float value);
+  virtual uint64_t size_double(double value);
+  virtual uint64_t size_string(const std::string &value);
+  virtual uint64_t size_string(const String &value);
+  virtual uint64_t size_string(const RefString &value);
+  virtual uint64_t size_string_stream(const StringWriteStream &stream);
+  virtual uint64_t size_string_stream(const BorrowedWriteStream &stream);
 };
 
 class StringWriteStream : public BinaryWriteStream {
