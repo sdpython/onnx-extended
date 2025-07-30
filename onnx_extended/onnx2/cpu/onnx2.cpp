@@ -286,7 +286,7 @@ void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeO
   WRITE_REPEATED_FIELD(options, stream, dims)
   WRITE_ENUM_FIELD(options, stream, data_type)
   WRITE_FIELD(options, stream, name)
-  WRITE_FIELD(options, stream, raw_data)
+  WRITE_FIELD_LIMIT(options, stream, raw_data)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, external_data)
   WRITE_REPEATED_FIELD(options, stream, metadata_props)
@@ -304,7 +304,7 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opt
     READ_ENUM_FIELD(options, stream, data_type)          //
     READ_FIELD(options, stream, name)                    //
     READ_FIELD(options, stream, doc_string)              //
-    READ_FIELD(options, stream, raw_data)                //
+    READ_FIELD_LIMIT(options, stream, raw_data)          //
     READ_REPEATED_FIELD(options, stream, external_data)  //
     READ_REPEATED_FIELD(options, stream, metadata_props) //
     READ_REPEATED_FIELD(options, stream, double_data)    //

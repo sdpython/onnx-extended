@@ -37,6 +37,7 @@ public:
   virtual bool not_end() const = 0;
   virtual offset_t tell() const = 0;
   virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
+  virtual void skip_bytes(offset_t n_bytes) = 0;
   virtual void read_string_stream(StringStream &stream) = 0;
 
   // defines from the previous ones

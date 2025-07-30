@@ -45,6 +45,11 @@
     write_field(stream, order_##name(), ref_##name(), options);                                        \
   }
 
+#define WRITE_FIELD_LIMIT(options, stream, name)                                                       \
+  if (has_##name()) {                                                                                  \
+    write_field_limit(stream, order_##name(), ref_##name(), options);                                  \
+  }
+
 #define WRITE_ENUM_FIELD(options, stream, name)                                                        \
   if (has_##name()) {                                                                                  \
     write_enum_field(stream, order_##name(), ref_##name(), options);                                   \
@@ -84,6 +89,13 @@
   else if (static_cast<int>(field_number.field_number) == order_##name()) {                            \
     DEBUG_PRINT("  + field " #name)                                                                    \
     read_field(stream, field_number.wire_type, name##_, #name, options);                               \
+    DEBUG_PRINT("  - field " #name)                                                                    \
+  }
+
+#define READ_FIELD_LIMIT(options, stream, name)                                                        \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                            \
+    DEBUG_PRINT("  + field " #name)                                                                    \
+    read_field_limit(stream, field_number.wire_type, name##_, #name, options, apply);                  \
     DEBUG_PRINT("  - field " #name)                                                                    \
   }
 
@@ -209,6 +221,13 @@ void write_field(utils::BinaryWriteStream &stream, int order, const std::vector<
   stream.write_field_header(order, FIELD_FIXED_SIZE);
   utils::BorrowedWriteStream local(field.data(), field.size());
   stream.write_string_stream(local);
+}
+
+void write_field_limit(utils::BinaryWriteStream &stream, int order, const std::vector<uint8_t> &field,
+                       SerializeOptions &options) {
+  if (options.skip_raw_data && field.size() < options.raw_data_threshold) {
+    write_field(stream, order, field, options);
+  }
 }
 
 template <typename T>
@@ -410,6 +429,23 @@ void read_field(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t>
   uint64_t len = stream.next_uint64();
   field.resize(len);
   memcpy(field.data(), stream.read_bytes(len), len);
+}
+
+void read_field_limit(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t> &field,
+                      const char *name, ParseOptions &options) {
+  if (!options.skip_raw_data) {
+    read_field(stream, wire_type, field, name, options);
+  } else {
+    EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
+                "'");
+    uint64_t len = stream.next_uint64();
+    if (static_cast<int64_t>(len) < options.raw_data_threshold) {
+      field.resize(len);
+      memcpy(field.data(), stream.read_bytes(len), len);
+    } else {
+      stream.skip_bytes(len);
+    }
+  }
 }
 
 template <typename T>

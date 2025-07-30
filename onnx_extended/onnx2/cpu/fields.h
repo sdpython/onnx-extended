@@ -18,7 +18,7 @@ struct PrintOptions {
    * model structure is still available */
   bool skip_raw_data = false;
   /** if skip_raw_data is true, raw data will be printed only if it is larger than the threshold */
-  bool raw_data_threshold = 1024;
+  int64_t raw_data_threshold = 1024;
 };
 
 template <typename T> class simple_unique_ptr {
