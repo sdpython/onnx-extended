@@ -11,10 +11,11 @@
 namespace onnx2 {
 namespace utils {
 
-template <typename T> std::vector<std::string> RepeatedField<T>::SerializeToVectorString() const {
+template <typename T>
+std::vector<std::string> RepeatedField<T>::PrintToVectorString(utils::PrintOptions &options) const {
   std::vector<std::string> rows{"["};
   for (const auto &p : values_) {
-    std::vector<std::string> r = p.SerializeToVectorString();
+    std::vector<std::string> r = p.PrintToVectorString(options);
     for (size_t i = 0; i < r.size(); ++i) {
       if (i + 1 == r.size()) {
         rows.push_back(onnx_extended_helpers::MakeString("  ", r[i], ","));
@@ -68,10 +69,12 @@ template <typename T> T &RepeatedProtoField<T>::back() {
   return *values_.back();
 }
 
-template <typename T> std::vector<std::string> RepeatedProtoField<T>::SerializeToVectorString() const {
+template <typename T>
+std::vector<std::string>
+RepeatedProtoField<T>::PrintToVectorString(utils::PrintOptions &options) const {
   std::vector<std::string> rows{"["};
   for (const auto &p : values_) {
-    std::vector<std::string> r = p->SerializeToVectorString();
+    std::vector<std::string> r = p->PrintToVectorString(options);
     for (size_t i = 0; i < r.size(); ++i) {
       if (i + 1 == r.size()) {
         rows.push_back(onnx_extended_helpers::MakeString("  ", r[i], ","));
@@ -102,9 +105,11 @@ template <typename T> OptionalField<T> &OptionalField<T>::operator=(const T &v) 
   // We make a copy.
   set_empty_value();
   StringWriteStream stream;
-  v.SerializeToStream(stream);
+  SerializeOptions opts;
+  v.SerializeToStream(stream, opts);
   StringStream rstream(stream.data(), stream.size());
-  value_->ParseFromStream(rstream);
+  ParseOptions ropts;
+  value_->ParseFromStream(rstream, ropts);
   return *this;
 }
 
@@ -114,9 +119,11 @@ template <typename T> OptionalField<T> &OptionalField<T>::operator=(const Option
   if (v.has_value()) {
     set_empty_value();
     StringWriteStream stream;
-    (*v).SerializeToStream(stream);
+    SerializeOptions opts;
+    (*v).SerializeToStream(stream, opts);
     StringStream rstream(stream.data(), stream.size());
-    value_->ParseFromStream(rstream);
+    ParseOptions ropts;
+    value_->ParseFromStream(rstream, ropts);
   }
   return *this;
 }

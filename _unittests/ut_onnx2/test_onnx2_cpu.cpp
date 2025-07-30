@@ -1333,10 +1333,11 @@ TEST(onnx2onnx, DataType) {
 }
 
 TEST(onnx2_string, StringStringEntryProto) {
+  utils::PrintOptions options;
   onnx2::StringStringEntryProto proto;
   proto.set_key("test_key");
   proto.set_value("test_value");
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_EQ(1, result.size());
   std::string serialized = result[0];
   EXPECT_TRUE(serialized.find("test_key") != std::string::npos);
@@ -1344,12 +1345,13 @@ TEST(onnx2_string, StringStringEntryProto) {
 }
 
 TEST(onnx2_string, IntIntListEntryProto) {
+  utils::PrintOptions options;
   onnx2::IntIntListEntryProto proto;
   proto.set_key(42);
   proto.ref_value().push_back(1);
   proto.ref_value().push_back(2);
   proto.ref_value().push_back(3);
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_EQ(4, result.size());
   std::string serialized = utils::join_string(result, "\n");
   EXPECT_TRUE(serialized.find("42") != std::string::npos);
@@ -1359,12 +1361,13 @@ TEST(onnx2_string, IntIntListEntryProto) {
 }
 
 TEST(onnx2_string, TensorAnnotation) {
+  utils::PrintOptions options;
   onnx2::TensorAnnotation proto;
   proto.set_tensor_name("my_tensor");
   auto &entry = proto.add_quant_parameter_tensor_names();
   entry.set_key("scale");
   entry.set_value("scale_tensor");
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_EQ(6, result.size());
   std::string serialized = utils::join_string(result, "\n");
   EXPECT_TRUE(serialized.find("my_tensor") != std::string::npos);
@@ -1373,6 +1376,7 @@ TEST(onnx2_string, TensorAnnotation) {
 }
 
 TEST(onnx2_string, DeviceConfigurationProto) {
+  utils::PrintOptions options;
   DeviceConfigurationProto config;
   config.set_name("test_device_config");
   config.set_num_devices(3);
@@ -1380,7 +1384,7 @@ TEST(onnx2_string, DeviceConfigurationProto) {
   config.add_device() = "device2";
   config.add_device() = "device3";
 
-  std::vector<std::string> result = config.SerializeToVectorString();
+  std::vector<std::string> result = config.PrintToVectorString(options);
 
   ASSERT_FALSE(result.empty());
 
@@ -1406,12 +1410,13 @@ TEST(onnx2_string, DeviceConfigurationProto) {
 }
 
 TEST(onnx2_string, SimpleShardedDimProto) {
+  utils::PrintOptions options;
   onnx2::SimpleShardedDimProto proto;
   proto.set_dim_value(100);
   proto.set_dim_param("batch_size");
   proto.set_num_shards(4);
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundDimValue = false;
@@ -1436,6 +1441,7 @@ TEST(onnx2_string, SimpleShardedDimProto) {
 }
 
 TEST(onnx2_string, ShardedDimProto) {
+  utils::PrintOptions options;
   onnx2::ShardedDimProto proto;
   proto.set_axis(2);
 
@@ -1447,7 +1453,7 @@ TEST(onnx2_string, ShardedDimProto) {
   simple_dim2.set_dim_param("height");
   simple_dim2.set_num_shards(2);
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundAxis = false;
@@ -1467,6 +1473,7 @@ TEST(onnx2_string, ShardedDimProto) {
 }
 
 TEST(onnx2_string, ShardingSpecProto) {
+  utils::PrintOptions options;
   onnx2::ShardingSpecProto proto;
   proto.set_tensor_name("sharded_tensor");
 
@@ -1485,7 +1492,7 @@ TEST(onnx2_string, ShardingSpecProto) {
   simple_dim.set_dim_value(64);
   simple_dim.set_num_shards(4);
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundTensorName = false;
@@ -1516,6 +1523,7 @@ TEST(onnx2_string, ShardingSpecProto) {
 }
 
 TEST(onnx2_string, NodeDeviceConfigurationProto) {
+  utils::PrintOptions options;
   onnx2::NodeDeviceConfigurationProto proto;
   proto.set_configuration_id("node_config_1");
   proto.set_pipeline_stage(3);
@@ -1525,7 +1533,7 @@ TEST(onnx2_string, NodeDeviceConfigurationProto) {
   spec.ref_device().push_back(0);
   spec.ref_device().push_back(1);
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundConfigId = false;
@@ -1551,11 +1559,12 @@ TEST(onnx2_string, NodeDeviceConfigurationProto) {
 }
 
 TEST(onnx2_string, OperatorSetIdProto) {
+  utils::PrintOptions options;
   onnx2::OperatorSetIdProto proto;
   proto.set_domain("ai.onnx");
   proto.set_version(15);
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundDomain = false;
@@ -1575,6 +1584,7 @@ TEST(onnx2_string, OperatorSetIdProto) {
 }
 
 TEST(onnx2_string, TensorShapeProto) {
+  utils::PrintOptions options;
   onnx2::TensorShapeProto proto;
 
   auto &dim1 = proto.add_dim();
@@ -1584,7 +1594,7 @@ TEST(onnx2_string, TensorShapeProto) {
   dim2.set_dim_param("batch");
   dim2.set_denotation("N");
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundDim1 = false;
@@ -1608,6 +1618,7 @@ TEST(onnx2_string, TensorShapeProto) {
 }
 
 TEST(onnx2_string, TensorProto) {
+  utils::PrintOptions options;
   onnx2::TensorProto proto;
   proto.set_name("test_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -1620,7 +1631,7 @@ TEST(onnx2_string, TensorProto) {
 
   proto.ref_doc_string() = "Un tenseur de test";
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
@@ -1658,6 +1669,7 @@ TEST(onnx2_string, TensorProto) {
 }
 
 TEST(onnx2_string, SparseTensorProto) {
+  utils::PrintOptions options;
   onnx2::SparseTensorProto proto;
 
   proto.ref_dims().push_back(5);
@@ -1681,7 +1693,7 @@ TEST(onnx2_string, SparseTensorProto) {
   proto.ref_indices().ref_int64_data().push_back(4);
   proto.ref_indices().ref_int64_data().push_back(2);
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundDims = false;
@@ -1706,6 +1718,7 @@ TEST(onnx2_string, SparseTensorProto) {
 }
 
 TEST(onnx2_string, TypeProto) {
+  utils::PrintOptions options;
   onnx2::TypeProto proto;
 
   proto.add_tensor_type().set_elem_type(1); // FLOAT
@@ -1719,7 +1732,7 @@ TEST(onnx2_string, TypeProto) {
   dim2.set_dim_param("batch");
   dim2.set_denotation("N");
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundTensorType = false;
@@ -1753,6 +1766,7 @@ TEST(onnx2_string, TypeProto) {
 }
 
 TEST(onnx2_string, TensorProto_WithRawData) {
+  utils::PrintOptions options;
   onnx2::TensorProto proto;
   proto.set_name("raw_data_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -1764,7 +1778,7 @@ TEST(onnx2_string, TensorProto_WithRawData) {
   proto.ref_raw_data().resize(data.size() * sizeof(float));
   std::memcpy(proto.ref_raw_data().data(), data.data(), data.size() * sizeof(float));
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
@@ -1791,6 +1805,7 @@ TEST(onnx2_string, TensorProto_WithRawData) {
 }
 
 TEST(onnx2_string, TensorProto_WithSegment) {
+  utils::PrintOptions options;
   onnx2::TensorProto proto;
   proto.set_name("segmented_tensor");
   proto.set_data_type(TensorProto::DataType::FLOAT);
@@ -1798,7 +1813,7 @@ TEST(onnx2_string, TensorProto_WithSegment) {
   proto.ref_segment().set_begin(5);
   proto.ref_segment().set_end(10);
 
-  std::vector<std::string> result = proto.SerializeToVectorString();
+  std::vector<std::string> result = proto.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
@@ -1877,7 +1892,8 @@ TEST(onnx2_proto, ValueInfoProto_Serialization) {
             "dynamic_dim");
 }
 
-TEST(onnx2_proto, ValueInfoProto_SerializeToVectorString) {
+TEST(onnx2_proto, ValueInfoProto_PrintToVectorString) {
+  utils::PrintOptions options;
   ValueInfoProto value_info;
   value_info.set_name("feature_vector");
   value_info.set_doc_string("Feature vector description");
@@ -1888,7 +1904,7 @@ TEST(onnx2_proto, ValueInfoProto_SerializeToVectorString) {
   shape.add_dim().set_dim_value(1);
   shape.add_dim().set_dim_value(512);
 
-  std::vector<std::string> result = value_info.SerializeToVectorString();
+  std::vector<std::string> result = value_info.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
@@ -2157,13 +2173,14 @@ TEST(onnx2_proto, AttributeProto_Serialization) {
 }
 
 TEST(onnx2_string, AttributeProto) {
+  utils::PrintOptions options;
   AttributeProto attribute;
   attribute.set_name("dropout_ratio");
   attribute.set_type(AttributeProto::AttributeType::FLOAT);
   attribute.set_f(0.5f);
   attribute.set_doc_string("Dropout ratio documentation");
 
-  std::vector<std::string> result = attribute.SerializeToVectorString();
+  std::vector<std::string> result = attribute.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
@@ -2345,7 +2362,8 @@ TEST(onnx2_proto, NodeProto_Serialization) {
   EXPECT_EQ(node2.ref_attribute()[0].ref_ints()[1], 3);
 }
 
-TEST(onnx2_string, NodeProto_SerializeToVectorString) {
+TEST(onnx2_string, NodeProto_PrintToVectorString) {
+  utils::PrintOptions options;
   NodeProto node;
   node.set_name("relu1");
   node.set_op_type("Relu");
@@ -2353,7 +2371,7 @@ TEST(onnx2_string, NodeProto_SerializeToVectorString) {
   node.add_output() = "Y";
   node.set_doc_string("Simple ReLU activation");
 
-  std::vector<std::string> result = node.SerializeToVectorString();
+  std::vector<std::string> result = node.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
@@ -2677,7 +2695,8 @@ TEST(onnx2_proto, GraphProto_Serialization) {
   EXPECT_EQ(graph2.ref_output()[0].ref_name(), "Y");
 }
 
-TEST(onnx2_proto, GraphProto_SerializeToVectorString) {
+TEST(onnx2_proto, GraphProto_PrintToVectorString) {
+  utils::PrintOptions options;
   GraphProto graph;
   graph.set_name("vector_serialization_test");
   graph.set_doc_string("Test graph for vector serialization");
@@ -2689,7 +2708,7 @@ TEST(onnx2_proto, GraphProto_SerializeToVectorString) {
   node.add_input() = "B";
   node.add_output() = "C";
 
-  std::vector<std::string> result = graph.SerializeToVectorString();
+  std::vector<std::string> result = graph.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   bool foundName = false;
@@ -2971,6 +2990,7 @@ TEST(onnx2_proto, FunctionProto_CopyFrom) {
 }
 
 TEST(onnx2_string, FunctionProto) {
+  utils::PrintOptions options;
   FunctionProto function;
   function.set_name("my_function");
   function.set_domain("ai.custom");
@@ -2984,7 +3004,7 @@ TEST(onnx2_string, FunctionProto) {
   node.set_name("operation");
   node.set_op_type("MatMul");
 
-  std::vector<std::string> result = function.SerializeToVectorString();
+  std::vector<std::string> result = function.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   std::string serialized = utils::join_string(result, "\n");
@@ -3116,14 +3136,15 @@ TEST(onnx2_proto, ModelProto_Serialization) {
   EXPECT_EQ(model2.ref_metadata_props()[0].ref_value(), "test_value");
 }
 
-TEST(onnx2_proto, ModelProto_SerializeToVectorString) {
+TEST(onnx2_proto, ModelProto_PrintToVectorString) {
+  utils::PrintOptions options;
   ModelProto model;
   model.set_ir_version(7);
   model.set_producer_name("test_producer");
   model.set_doc_string("Model documentation");
   model.add_graph().set_name("test_graph");
 
-  std::vector<std::string> result = model.SerializeToVectorString();
+  std::vector<std::string> result = model.PrintToVectorString(options);
   ASSERT_FALSE(result.empty());
 
   std::string serialized = utils::join_string(result, "\n");
@@ -3230,6 +3251,7 @@ TEST(onnx2_proto, ModelProto_ComplexModel) {
 }
 
 TEST(onnx2_proto, AttributeProto_InNodeProto1) {
+  utils::PrintOptions options;
   NodeProto node;
   node.set_name("test_node");
   node.set_op_type("TestOp");
@@ -3240,14 +3262,15 @@ TEST(onnx2_proto, AttributeProto_InNodeProto1) {
   att2.set_type(AttributeProto::AttributeType::INT);
   att2.ref_i() = 2;
   node.ref_attribute().push_back(att2);
-  std::string s1 = node.ref_attribute()[0].SerializeToVectorString()[0];
-  std::string s2 = node.ref_attribute()[1].SerializeToVectorString()[0];
+  std::string s1 = node.ref_attribute()[0].PrintToVectorString(options)[0];
+  std::string s2 = node.ref_attribute()[1].PrintToVectorString(options)[0];
   EXPECT_EQ(s1, s2);
-  std::string s4 = att2.SerializeToVectorString()[0];
+  std::string s4 = att2.PrintToVectorString(options)[0];
   EXPECT_EQ(s1, s4);
 }
 
 TEST(onnx2_proto, AttributeProto_InNodeProto2) {
+  utils::PrintOptions options;
   NodeProto node;
   node.set_name("test_node");
   node.set_op_type("TestOp");
@@ -3257,9 +3280,9 @@ TEST(onnx2_proto, AttributeProto_InNodeProto2) {
   AttributeProto &att2 = node.add_attribute();
   att2.set_type(AttributeProto::AttributeType::INT);
   att2.ref_i() = 2;
-  std::string s1 = node.ref_attribute()[0].SerializeToVectorString()[0];
-  std::string s2 = node.ref_attribute()[1].SerializeToVectorString()[0];
+  std::string s1 = node.ref_attribute()[0].PrintToVectorString(options)[0];
+  std::string s2 = node.ref_attribute()[1].PrintToVectorString(options)[0];
   EXPECT_EQ(s1, s2);
-  std::string s4 = att2.SerializeToVectorString()[0];
+  std::string s4 = att2.PrintToVectorString(options)[0];
   EXPECT_EQ(s1, s4);
 }

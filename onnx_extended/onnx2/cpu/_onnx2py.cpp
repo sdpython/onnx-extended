@@ -19,23 +19,36 @@ namespace py = pybind11;
 #define PYADD_PROTO_SERIALIZATION(cls)                                                                 \
   def(                                                                                                 \
       "ParseFromString",                                                                               \
-      [](onnx2::cls &self, py::bytes data) {                                                           \
+      [](onnx2::cls &self, py::bytes data, py::object options) {                                       \
         std::string raw = data;                                                                        \
-        self.ParseFromString(raw);                                                                     \
+        if (py::isinstance<onnx2::ParseOptions &>(options)) {                                          \
+          self.ParseFromString(raw, options.cast<onnx2::ParseOptions &>());                            \
+        } else {                                                                                       \
+          onnx2::ParseOptions opts;                                                                    \
+          self.ParseFromString(raw, opts);                                                             \
+        }                                                                                              \
       },                                                                                               \
+      py::arg("data"), py::arg("options") = py::none(),                                                \
       "Parses a sequence of bytes to fill this instance.")                                             \
       .def(                                                                                            \
           "SerializeToString",                                                                         \
-          [](onnx2::cls &self) {                                                                       \
+          [](onnx2::cls &self, py::object options) {                                                   \
             std::string out;                                                                           \
-            self.SerializeToString(out);                                                               \
+            if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
+              std::string out;                                                                         \
+              self.SerializeToString(out, options.cast<onnx2::SerializeOptions &>());                  \
+            } else {                                                                                   \
+              onnx2::SerializeOptions opts;                                                            \
+              self.SerializeToString(out, opts);                                                       \
+            }                                                                                          \
             return py::bytes(out);                                                                     \
           },                                                                                           \
-          "Serializes this instance into a sequence of bytes.")                                        \
+          py::arg("options") = py::none(), "Serializes this instance into a sequence of bytes.")       \
       .def(                                                                                            \
           "__str__",                                                                                   \
           [](onnx2::cls &self) -> std::string {                                                        \
-            std::vector<std::string> rows = self.SerializeToVectorString();                            \
+            onnx2::utils::PrintOptions opts;                                                           \
+            std::vector<std::string> rows = self.PrintToVectorString(opts);                            \
             return onnx2::utils::join_string(rows);                                                    \
           },                                                                                           \
           "Creates a printable string for this class.")                                                \
@@ -44,14 +57,15 @@ namespace py = pybind11;
           "Copies one instance into this one.")                                                        \
       .def(                                                                                            \
           "__eq__",                                                                                    \
-          [](const onnx2::cls &self, const onnx2::cls &src) -> bool {                                  \
+          [](const onnx2::cls &self, const onnx2::cls &other) -> bool {                                \
+            onnx2::SerializeOptions opts1, opts2;                                                      \
             std::string s1;                                                                            \
-            self.SerializeToString(s1);                                                                \
+            self.SerializeToString(s1, opts1);                                                         \
             std::string s2;                                                                            \
-            src.SerializeToString(s2);                                                                 \
+            other.SerializeToString(s2, opts2);                                                        \
             return s1 == s2;                                                                           \
           },                                                                                           \
-          "Compares the serialized strings.")
+          py::arg("other"), "Compares the serialized strings.")
 
 #define PYFIELD(cls, name)                                                                             \
   def_readwrite(#name, &onnx2::cls::name##_, onnx2::cls::DOC_##name)                                   \
@@ -398,10 +412,36 @@ PYBIND11_MODULE(_onnx2py, m) {
       },
       py::arg("data"),
       R"pbdoc(Reads a int64_t (protobuf format)
-
 :param data: bytes
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
+
+  py::class_<onnx2::ParseOptions>(m, "ParseOptions", "Parsing options for proto classes")
+      .def(py::init<>())
+      .def_readwrite("skip_raw_data", &onnx2::ParseOptions::skip_raw_data,
+                     "if true, raw data will not be read but skipped, tensors are not valid in that "
+                     "case  but the model structure is still available")
+      .def_readwrite(
+          "raw_data_threshold", &onnx2::ParseOptions::raw_data_threshold,
+          "if skip_raw_data is true, raw data will be read only if it is larger than the threshold");
+
+  py::class_<onnx2::SerializeOptions>(m, "SerializeOptions", "Serializing options for proto classes")
+      .def(py::init<>())
+      .def_readwrite("skip_raw_data", &onnx2::SerializeOptions::skip_raw_data,
+                     "if true, raw data will not be written but skipped, tensors are not valid in that "
+                     "case  but the model structure is still available")
+      .def_readwrite(
+          "raw_data_threshold", &onnx2::SerializeOptions::raw_data_threshold,
+          "if skip_raw_data is true, raw data will be written only if it is larger than the threshold");
+
+  py::class_<onnx2::utils::PrintOptions>(m, "PrintOptions", "Printing options for proto classes")
+      .def(py::init<>())
+      .def_readwrite("skip_raw_data", &onnx2::utils::PrintOptions::skip_raw_data,
+                     "if true, raw data will not be printed but skipped, tensors are not valid in that "
+                     "case  but the model structure is still available")
+      .def_readwrite(
+          "raw_data_threshold", &onnx2::utils::PrintOptions::raw_data_threshold,
+          "if skip_raw_data is true, raw data will be printed only if it is larger than the threshold");
 
   py::class_<onnx2::utils::String>(m, "String", "Simplified string with no final null character.")
       .def(py::init<std::string>())

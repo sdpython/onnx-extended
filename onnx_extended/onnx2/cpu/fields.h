@@ -13,6 +13,14 @@
 namespace onnx2 {
 namespace utils {
 
+struct PrintOptions {
+  /** if true, raw data will not be printed but skipped, tensors are not valid in that case but the
+   * model structure is still available */
+  bool skip_raw_data = false;
+  /** if skip_raw_data is true, raw data will be printed only if it is larger than the threshold */
+  bool raw_data_threshold = 1024;
+};
+
 template <typename T> class simple_unique_ptr {
 public:
   explicit inline simple_unique_ptr(T *ptr = nullptr) : ptr_(ptr) {}
@@ -88,7 +96,7 @@ public:
   template <class... Args> inline void emplace_back(Args &&...args) {
     values_.emplace_back(std::forward<Args>(args)...);
   }
-  std::vector<std::string> SerializeToVectorString() const;
+  std::vector<std::string> PrintToVectorString(PrintOptions &options) const;
 
 private:
   std::vector<T> values_;
@@ -118,7 +126,7 @@ public:
   void extend(const RepeatedProtoField<T> &&v);
   T &add();
   T &back();
-  std::vector<std::string> SerializeToVectorString() const;
+  std::vector<std::string> PrintToVectorString(PrintOptions &options) const;
 
   class iterator {
   private:

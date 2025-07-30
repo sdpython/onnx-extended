@@ -10,18 +10,27 @@
 
 #define SERIALIZATION_METHOD()                                                                         \
   inline void ParseFromString(const std::string &raw) {                                                \
+    ParseOptions opts;                                                                                 \
+    ParseFromString(raw, opts);                                                                        \
+  }                                                                                                    \
+  inline void ParseFromString(const std::string &raw, ParseOptions &opts) {                            \
     const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                                \
     onnx2::utils::StringStream st(ptr, raw.size());                                                    \
-    ParseFromStream(st);                                                                               \
+    ParseFromStream(st, opts);                                                                         \
   }                                                                                                    \
   inline void SerializeToString(std::string &out) const {                                              \
+    SerializeOptions opts;                                                                             \
+    SerializeToString(out, opts);                                                                      \
+  }                                                                                                    \
+  inline void SerializeToString(std::string &out, SerializeOptions &opts) const {                      \
     onnx2::utils::StringWriteStream buf;                                                               \
-    SerializeToStream(buf);                                                                            \
+    auto &opts_ref = opts;                                                                             \
+    SerializeToStream(buf, opts_ref);                                                                  \
     out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                         \
   }                                                                                                    \
-  void ParseFromStream(utils::BinaryStream &stream);                                                   \
-  void SerializeToStream(utils::BinaryWriteStream &stream) const;                                      \
-  std::vector<std::string> SerializeToVectorString() const;
+  void ParseFromStream(utils::BinaryStream &stream, ParseOptions &options);                            \
+  void SerializeToStream(utils::BinaryWriteStream &stream, SerializeOptions &options) const;           \
+  std::vector<std::string> PrintToVectorString(utils::PrintOptions &options) const;
 
 #define BEGIN_PROTO(cls, doc)                                                                          \
   class cls : public Message {                                                                         \
@@ -175,6 +184,22 @@ public:                                                                         
   inline bool has_oneof_##name() const { return has_##oneof(); }
 
 namespace onnx2 {
+
+struct ParseOptions {
+  /** if true, raw data will not be read but skipped, tensors are not valid in that case  but the model
+   * structure is still available */
+  bool skip_raw_data = false;
+  /** if skip_raw_data is true, raw data will be read only if it is larger than the threshold */
+  bool raw_data_threshold = 1024;
+};
+
+struct SerializeOptions {
+  /** if true, raw data will not be written but skipped, tensors are not valid in that case but the
+   * model structure is still available */
+  bool skip_raw_data = false;
+  /** if skip_raw_data is true, raw data will be written only if it is larger than the threshold */
+  bool raw_data_threshold = 1024;
+};
 
 using utils::offset_t;
 
