@@ -99,7 +99,7 @@
   }
 
 #define WRITE_FIELD_NULL(options, stream, name)                                                        \
-  if (name##_.null()) {                                                                                \
+  if (!name##_.null()) {                                                                               \
     write_field(stream, order_##name(), ref_##name(), options);                                        \
   }
 
