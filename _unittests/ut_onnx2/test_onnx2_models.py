@@ -54,7 +54,7 @@ class TestOnnx2Helper(ExtTestCase):
         self.assertEqual(len(model.graph.node), len(model2.graph.node))
         name = self.get_dump_file("test_model_gemm_onnx2_to_onnx.onnx")
         onnx.save(model, name)
-        model3 = onnx2.load(name)
+        model3 = onnx.load(name)
         self.assertEqualModelProto(model, model3)
 
 
