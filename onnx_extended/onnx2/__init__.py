@@ -24,3 +24,4 @@ from .cpu._onnx2py import (
     TypeProto,
     ValueInfoProto,
 )
+from .io_helper import load, save
