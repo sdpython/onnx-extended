@@ -502,8 +502,7 @@ void TypeProto::Map::ParseFromStream(utils::BinaryStream &stream, ParseOptions &
     READ_FIELD(options, stream, key_type)                  //
     READ_OPTIONAL_PROTO_FIELD(options, stream, value_type) //
     READ_END(options, stream, TypeProto::Map)              //
-}
-std::vector<std::string> TypeProto::Map::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> TypeProto::Map::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(options, NAME_EXIST_VALUE(key_type),
                                         NAME_EXIST_VALUE(value_type));
 }
@@ -525,8 +524,8 @@ void TypeProto::Optional::ParseFromStream(utils::BinaryStream &stream, ParseOpti
     READ_BEGIN(options, stream, TypeProto::Optional)      //
     READ_OPTIONAL_PROTO_FIELD(options, stream, elem_type) //
     READ_END(options, stream, TypeProto::Optional)        //
-}
-std::vector<std::string> TypeProto::Optional::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> TypeProto::Optional::PrintToVectorString(utils::PrintOptions &options)
+    const {
   return write_proto_into_vector_string(options, NAME_EXIST_VALUE(elem_type));
 }
 
@@ -559,8 +558,7 @@ void TypeProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &optio
     READ_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor_type) //
     READ_OPTIONAL_PROTO_FIELD(options, stream, optional_type)      //
     READ_END(options, stream, TypeProto)                           //
-}
-std::vector<std::string> TypeProto::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> TypeProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(tensor_type), NAME_EXIST_VALUE(sequence_type),
       NAME_EXIST_VALUE(map_type), NAME_EXIST_VALUE(denotation), NAME_EXIST_VALUE(sparse_tensor_type),
@@ -594,8 +592,7 @@ void ValueInfoProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &
     READ_FIELD(options, stream, doc_string)              //
     READ_REPEATED_FIELD(options, stream, metadata_props) //
     READ_END(options, stream, ValueInfoProto)            //
-}
-std::vector<std::string> ValueInfoProto::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> ValueInfoProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(type),
                                         NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(metadata_props));
 }
@@ -661,8 +658,7 @@ void AttributeProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &
     READ_REPEATED_FIELD(options, stream, tensors)                                          //
     READ_REPEATED_FIELD(options, stream, sparse_tensors)                                   //
     READ_REPEATED_FIELD(options, stream, graphs) READ_END(options, stream, AttributeProto) //
-}
-std::vector<std::string> AttributeProto::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> AttributeProto::PrintToVectorString(utils::PrintOptions &options) const {
   switch (type_) {
   case AttributeType::UNDEFINED:
     return {MakeString("{ ", name_.as_string(), ": UNDEFINED }")};
@@ -730,8 +726,7 @@ void NodeProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &optio
     READ_REPEATED_FIELD(options, stream, metadata_props)        //
     READ_REPEATED_FIELD(options, stream, device_configurations) //
     READ_END(options, stream, NodeProto)                        //
-}
-std::vector<std::string> NodeProto::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> NodeProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(input), NAME_EXIST_VALUE(output), NAME_EXIST_VALUE(name),
       NAME_EXIST_VALUE(op_type), NAME_EXIST_VALUE(attribute), NAME_EXIST_VALUE(domain),
@@ -781,8 +776,7 @@ void GraphProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opti
     READ_REPEATED_FIELD(options, stream, quantization_annotation) //
     READ_REPEATED_FIELD(options, stream, metadata_props)          //
     READ_END(options, stream, GraphProto)                         //  // NOLINT
-}
-std::vector<std::string> GraphProto::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> GraphProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(input),
       NAME_EXIST_VALUE(output), NAME_EXIST_VALUE(metadata_props), NAME_EXIST_VALUE(node),
@@ -840,8 +834,7 @@ void FunctionProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &o
     READ_REPEATED_FIELD(options, stream, value_info)      //
     READ_REPEATED_FIELD(options, stream, metadata_props)  //
     READ_END(options, stream, FunctionProto)              //  // NOLINT
-}
-std::vector<std::string> FunctionProto::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> FunctionProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(domain), NAME_EXIST_VALUE(overload),
       NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(input), NAME_EXIST_VALUE(output),
@@ -894,8 +887,7 @@ void ModelProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opti
     READ_REPEATED_FIELD(options, stream, functions)      //
     READ_REPEATED_FIELD(options, stream, configuration)  //
     READ_END(options, stream, ModelProto)                //  // NOLINT
-}
-std::vector<std::string> ModelProto::PrintToVectorString(utils::PrintOptions &options) const {
+} std::vector<std::string> ModelProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(ir_version), NAME_EXIST_VALUE(opset_import),
       NAME_EXIST_VALUE(producer_name), NAME_EXIST_VALUE(producer_version), NAME_EXIST_VALUE(domain),

@@ -596,6 +596,7 @@ void read_field(utils::BinaryStream &stream, int wire_type, T &field, const char
   utils::StringStream dim_buf;
   stream.read_string_stream(dim_buf);
   field.ParseFromStream(dim_buf, options);
+  stream.set_lock(false);
 }
 
 template <typename T>
@@ -608,6 +609,7 @@ void read_optional_proto_field(utils::BinaryStream &stream, int wire_type,
   stream.read_string_stream(dim_buf);
   field.set_empty_value();
   (*field).ParseFromStream(dim_buf, options);
+  stream.set_lock(false);
 }
 
 template <>
@@ -729,6 +731,7 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector
   T elem;
   elem.ParseFromStream(dim_buf, options);
   field.emplace_back(elem);
+  stream.set_lock(false);
 }
 
 template <>
@@ -809,6 +812,7 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type,
   stream.read_string_stream(dim_buf);
   T &elem = field.add();
   elem.ParseFromStream(dim_buf, options);
+  stream.set_lock(false);
 }
 
 ////////////////////////////

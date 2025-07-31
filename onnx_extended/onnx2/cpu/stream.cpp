@@ -97,7 +97,6 @@ void BinaryWriteStream::write_variant_uint64(uint64_t value) {
 
 uint64_t BinaryWriteStream::size_variant_uint64(uint64_t value) { return VarintSize(value); }
 
-
 void BinaryWriteStream::write_int64(int64_t value) {
   write_variant_uint64(static_cast<uint64_t>(value));
 }
@@ -195,8 +194,91 @@ void StringWriteStream::write_raw_bytes(const uint8_t *ptr, offset_t n_bytes) {
 int64_t StringWriteStream::size() const { return buffer_.size(); }
 const uint8_t *StringWriteStream::data() const { return buffer_.data(); }
 
-void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t) {
-  EXT_THROW("This method cannot be called on this class (BorrowedWriteStream).")
+void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t){
+    EXT_THROW("This method cannot be called on this class (BorrowedWriteStream).")}
+
+////////
+// file
+////////
+
+FileWriteStream::FileWriteStream(const std::string &file_path)
+    : BinaryWriteStream(), file_path_(file_path), file_stream_(file_path, std::ios::binary) {}
+
+void FileWriteStream::write_raw_bytes(const uint8_t *data, offset_t n_bytes) {
+  file_stream_.write(reinterpret_cast<const char *>(data), n_bytes);
+}
+
+int64_t FileWriteStream::size() const {
+  return static_cast<int64_t>(const_cast<std::ofstream &>(file_stream_).tellp());
+}
+
+const uint8_t *FileWriteStream::data() const {
+  EXT_THROW("This method cannot be called on this class (FileWriteStream).");
+}
+
+FileStream::FileStream(const std::string &file_path)
+    : file_path_(file_path), file_stream_(file_path, std::ios::binary), lock_(false) {
+  if (!file_stream_.is_open()) {
+    EXT_THROW("Unable to open file: ", file_path);
+  }
+  file_stream_.seekg(0, std::ios::end);
+  std::streampos end = file_stream_.tellg();
+  file_stream_.seekg(0);
+  size_ = static_cast<offset_t>(end);
+}
+
+bool FileStream::is_open() const { return file_stream_.is_open(); }
+
+void FileStream::can_read(uint64_t len, const char *msg) {
+  EXT_ENFORCE(static_cast<int64_t>(tell()) + static_cast<int64_t>(len) <= size_, msg,
+              " unable to read ", len, " bytes, pos_=", tell(), ", size_=", size_);
+}
+
+uint64_t FileStream::next_uint64() {
+  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
+  uint64_t result = 0;
+  int shift = 0;
+
+  for (int i = 0; i < 10; ++i) {
+    uint8_t byte = read_bytes(1)[0];
+    result |= static_cast<uint64_t>(byte & 0x7F) << shift;
+
+    if ((byte & 0x80) == 0)
+      return result;
+
+    shift += 7;
+  }
+  EXT_THROW("[FileStream::next_uint64] unable to read an int64 at pos=", tell(), ", size=", size_);
+}
+
+const uint8_t *FileStream::read_bytes(offset_t n_bytes) {
+  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
+  if (n_bytes > buffer_.size())
+    buffer_.resize(n_bytes);
+  file_stream_.read(reinterpret_cast<char *>(buffer_.data()), n_bytes);
+  return buffer_.data();
+}
+
+void FileStream::skip_bytes(offset_t n_bytes) {
+  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
+  file_stream_.seekg(n_bytes, std::ios::cur);
+}
+
+void FileStream::read_string_stream(StringStream &stream) {
+  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
+  uint64_t length = next_uint64();
+  can_read(length, "[FileStream::read_string_stream]");
+  read_bytes(length);
+  stream.data_ = buffer_.data();
+  stream.pos_ = 0;
+  stream.size_ = length;
+  set_lock(true);
+}
+
+bool FileStream::not_end() const { return static_cast<int64_t>(tell()) < size_; }
+
+offset_t FileStream::tell() const {
+  return static_cast<offset_t>(const_cast<std::ifstream &>(file_stream_).tellg());
 }
 
 } // namespace utils

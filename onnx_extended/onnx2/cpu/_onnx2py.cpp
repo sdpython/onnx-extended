@@ -31,6 +31,19 @@ namespace py = pybind11;
       py::arg("data"), py::arg("options") = py::none(),                                                \
       "Parses a sequence of bytes to fill this instance.")                                             \
       .def(                                                                                            \
+          "ParseFromFile",                                                                             \
+          [](onnx2::cls &self, const std::string &file_path, py::object options) {                     \
+            onnx2::utils::FileStream stream(file_path);                                                \
+            if (py::isinstance<onnx2::ParseOptions &>(options)) {                                      \
+              self.ParseFromStream(stream, options.cast<onnx2::ParseOptions &>());                     \
+            } else {                                                                                   \
+              onnx2::ParseOptions opts;                                                                \
+              self.ParseFromStream(stream, opts);                                                      \
+            }                                                                                          \
+          },                                                                                           \
+          py::arg("name"), py::arg("options") = py::none(),                                            \
+          "Parses a binary file to fill this instance.")                                               \
+      .def(                                                                                            \
           "SerializeSize",                                                                             \
           [](onnx2::cls &self, py::object options) -> uint64_t {                                       \
             if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
@@ -46,7 +59,6 @@ namespace py = pybind11;
           [](onnx2::cls &self, py::object options) {                                                   \
             std::string out;                                                                           \
             if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
-              std::string out;                                                                         \
               self.SerializeToString(out, options.cast<onnx2::SerializeOptions &>());                  \
             } else {                                                                                   \
               onnx2::SerializeOptions opts;                                                            \
@@ -55,6 +67,18 @@ namespace py = pybind11;
             return py::bytes(out);                                                                     \
           },                                                                                           \
           py::arg("options") = py::none(), "Serializes this instance into a sequence of bytes.")       \
+      .def(                                                                                            \
+          "SerializeToFile",                                                                           \
+          [](onnx2::cls &self, const std::string &file_path, py::object options) {                     \
+            onnx2::utils::FileWriteStream stream(file_path);                                           \
+            if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
+              self.SerializeToStream(stream, options.cast<onnx2::SerializeOptions &>());               \
+            } else {                                                                                   \
+              onnx2::SerializeOptions opts;                                                            \
+              self.SerializeToStream(stream, opts);                                                    \
+            }                                                                                          \
+          },                                                                                           \
+          py::arg("name"), py::arg("options") = py::none(), "Serializes this instance into a file.")   \
       .def(                                                                                            \
           "__str__",                                                                                   \
           [](onnx2::cls &self) -> std::string {                                                        \
