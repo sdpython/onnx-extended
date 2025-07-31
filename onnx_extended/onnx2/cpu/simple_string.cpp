@@ -7,6 +7,8 @@ namespace utils {
 bool RefString::operator==(const char *other) const {
   if (size_ == 0)
     return other == nullptr || other[0] == 0;
+  if (other == nullptr)
+    return false;
   size_t i;
   for (i = 0; i < size_ && ptr_[i] == other[i] && other[i] != 0; ++i)
     ;
@@ -64,6 +66,7 @@ void String::set(const char *ptr, size_t size) {
     if (size == 0) {
       ptr_ = new char[1];
       *ptr_ = 0;
+      size_ = 0;
     } else {
       ptr_ = new char[size - 1];
       memcpy(ptr_, ptr, size - 1);
@@ -79,6 +82,8 @@ void String::set(const char *ptr, size_t size) {
 bool String::operator==(const char *other) const {
   if (size_ == 0)
     return other == nullptr || other[0] == 0;
+  if (other == nullptr)
+    return false;
   size_t i;
   for (i = 0; i < size_ && ptr_[i] == other[i] && other[i] != 0; ++i)
     ;
@@ -128,6 +133,37 @@ std::string join_string(const std::vector<std::string> &elements, const char *de
     ++it;
   }
   return oss.str();
+}
+
+String &String::operator=(const char *s) {
+  EXT_ENFORCE(s != data(), "Cannot assign to self.");
+  clear();
+  set(s, SIZE_MAX);
+  return *this;
+}
+
+String &String::operator=(const RefString &s) {
+  if (ptr_ == s.data() && size_ == s.size())
+    return *this; // no change
+  EXT_ENFORCE(s.data() != data(), "Cannot assign to self when size is different.");
+  clear();
+  set(s.data(), s.size());
+  return *this;
+}
+
+String &String::operator=(const String &s) {
+  if (ptr_ == s.data() && size_ == s.size())
+    return *this; // no change
+  EXT_ENFORCE(s.data() != data(), "Cannot assign to self when size is different.");
+  clear();
+  set(s.data(), s.size());
+  return *this;
+}
+
+String &String::operator=(const std::string &s) {
+  clear();
+  set(s.data(), s.size());
+  return *this;
 }
 
 } // namespace utils
