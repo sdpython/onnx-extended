@@ -103,6 +103,9 @@
     write_field(stream, order_##name(), ref_##name(), options);                                        \
   }
 
+#define WRITE_FIELD_EMPTY(options, stream, name)                                                       \
+  write_field(stream, order_##name(), ref_##name(), options);
+
 #define WRITE_FIELD_LIMIT(options, stream, name)                                                       \
   if (has_##name()) {                                                                                  \
     write_field_limit(stream, order_##name(), ref_##name(), options);                                  \
