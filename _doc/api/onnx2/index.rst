@@ -10,5 +10,6 @@ without :epkg:`protobuf`.
     :maxdepth: 2
 
     helper
+    io_helper
     parsing
     protos

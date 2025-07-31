@@ -236,7 +236,7 @@ uint64_t OperatorSetIdProto::SerializeSize(utils::BinaryWriteStream &stream,
 }
 void OperatorSetIdProto::SerializeToStream(utils::BinaryWriteStream &stream,
                                            SerializeOptions &options) const {
-  WRITE_FIELD(options, stream, domain)
+  WRITE_FIELD_EMPTY(options, stream, domain)
   WRITE_FIELD(options, stream, version)
 }
 void OperatorSetIdProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
