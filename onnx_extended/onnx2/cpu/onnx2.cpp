@@ -641,39 +641,40 @@ void AttributeProto::SerializeToStream(utils::BinaryWriteStream &stream,
   WRITE_REPEATED_FIELD(options, stream, graphs)
 }
 void AttributeProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
-    READ_BEGIN(options, stream, AttributeProto)                                            //
-    READ_FIELD(options, stream, name)                                                      //
-    READ_FIELD(options, stream, ref_attr_name)                                             //
-    READ_ENUM_FIELD(options, stream, type)                                                 //
-    READ_FIELD(options, stream, doc_string)                                                //
-    READ_FIELD(options, stream, f)                                                         //
-    READ_FIELD(options, stream, i)                                                         //
-    READ_FIELD(options, stream, s)                                                         //
-    READ_OPTIONAL_PROTO_FIELD(options, stream, t)                                          //
-    READ_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor)                              //
-    READ_OPTIONAL_PROTO_FIELD(options, stream, g)                                          //
-    READ_REPEATED_FIELD(options, stream, floats)                                           //
-    READ_REPEATED_FIELD(options, stream, ints)                                             //
-    READ_REPEATED_FIELD(options, stream, strings)                                          //
-    READ_REPEATED_FIELD(options, stream, tensors)                                          //
-    READ_REPEATED_FIELD(options, stream, sparse_tensors)                                   //
-    READ_REPEATED_FIELD(options, stream, graphs) READ_END(options, stream, AttributeProto) //
+    READ_BEGIN(options, stream, AttributeProto)               //
+    READ_FIELD(options, stream, name)                         //
+    READ_FIELD(options, stream, ref_attr_name)                //
+    READ_ENUM_FIELD(options, stream, type)                    //
+    READ_FIELD(options, stream, doc_string)                   //
+    READ_FIELD(options, stream, f)                            //
+    READ_FIELD(options, stream, i)                            //
+    READ_FIELD(options, stream, s)                            //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, t)             //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor) //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, g)             //
+    READ_REPEATED_FIELD(options, stream, floats)              //
+    READ_REPEATED_FIELD(options, stream, ints)                //
+    READ_REPEATED_FIELD(options, stream, strings)             //
+    READ_REPEATED_FIELD(options, stream, tensors)             //
+    READ_REPEATED_FIELD(options, stream, sparse_tensors)      //
+    READ_REPEATED_FIELD(options, stream, graphs)              //
+    READ_END(options, stream, AttributeProto)                 //
 } std::vector<std::string> AttributeProto::PrintToVectorString(utils::PrintOptions &options) const {
   switch (type_) {
   case AttributeType::UNDEFINED:
-    return {MakeString("{ ", name_.as_string(), ": UNDEFINED }")};
+    return {MakeString("{", name_.as_string(), ": UNDEFINED }")};
   case AttributeType::FLOAT:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(f))};
+    return {MakeString("{", name_.as_string(), ": ", has_f() ? MakeString(*f_) : "?", "}")};
   case AttributeType::INT:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(i))};
+    return {MakeString("{", name_.as_string(), ": ", has_i() ? MakeString(*i_) : "?", "}")};
   case AttributeType::STRING:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(s))};
+    return {MakeString("{", name_.as_string(), ": ", s_.as_string(), "}")};
   case AttributeType::FLOATS:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(floats))};
+    return {MakeString("{", name_.as_string(), ": ", write_as_string(options, floats_), "}")};
   case AttributeType::INTS:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ints))};
+    return {MakeString("{", name_.as_string(), ": ", write_as_string(options, ints_), "}")};
   case AttributeType::STRINGS:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(strings))};
+    return {MakeString("{", name_.as_string(), ": ", write_as_string(options, strings_), "}")};
   default:
     return write_proto_into_vector_string(
         options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ref_attr_name), NAME_EXIST_VALUE(doc_string),

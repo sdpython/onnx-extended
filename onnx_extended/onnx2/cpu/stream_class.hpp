@@ -248,6 +248,15 @@ uint64_t size_field(utils::BinaryWriteStream &stream, int order,
 }
 
 template <>
+uint64_t size_field(utils::BinaryWriteStream &stream, int order,
+                    const utils::OptionalField<float> &field, SerializeOptions &) {
+  if (field.has_value()) {
+    return stream.size_field_header(order, FIELD_VARINT) + stream.size_float(*field);
+  }
+  return 0;
+}
+
+template <>
 uint64_t size_field(utils::BinaryWriteStream &stream, int order, const int64_t &field,
                     SerializeOptions &) {
   return stream.size_field_header(order, FIELD_VARINT) + stream.size_int64(field);
@@ -450,6 +459,15 @@ void write_field(utils::BinaryWriteStream &stream, int order,
   if (field.has_value()) {
     stream.write_field_header(order, FIELD_VARINT);
     stream.write_variant_uint64(static_cast<uint64_t>(*field));
+  }
+}
+
+template <>
+void write_field(utils::BinaryWriteStream &stream, int order, const utils::OptionalField<float> &field,
+                 SerializeOptions &) {
+  if (field.has_value()) {
+    stream.write_field_header(order, FIELD_VARINT);
+    stream.write_variant_uint64(static_cast<float>(*field));
   }
 }
 
@@ -661,7 +679,8 @@ void read_field(utils::BinaryStream &stream, int wire_type, utils::OptionalField
 template <>
 void read_field(utils::BinaryStream &stream, int wire_type, utils::OptionalField<float> &field,
                 const char *name, ParseOptions &) {
-  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name, "'");
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
+              "'");
   field = stream.next_float();
 }
 
@@ -978,14 +997,19 @@ std::string write_as_string(utils::PrintOptions &options, const Args &...args) {
 
   auto append_arg = [&options, &result, first = true](const auto &arg) mutable {
     if (arg.exist) {
-      result << arg.name;
-      result << ": ";
-      auto s = write_as_string(options, *arg.value);
-      result << s;
-      if (!first && (s.empty() || s[s.size() != ','])) {
+      if (!first) {
         result << ", ";
       }
       first = false;
+      result << arg.name;
+      result << ": ";
+      auto s = write_as_string(options, *arg.value);
+      if (!s.empty()) {
+        if (s[s.size() - 1] == ',') {
+          s.pop_back();
+        }
+        result << s;
+      }
     }
   };
 
@@ -1067,7 +1091,7 @@ template <>
 std::vector<std::string> write_into_vector_string(utils::PrintOptions &options, const char *field_name,
                                                   const utils::RepeatedField<utils::String> &field) {
   if (field.size() < 5)
-    return { MakeString(field_name, ": ", write_as_string(options, field), ",") };
+    return {MakeString(field_name, ": ", write_as_string(options, field), ",")};
   std::vector<std::string> rows{MakeString(field_name, ": [")};
   for (const auto &p : field) {
     auto r = p.as_string(true);
@@ -1161,7 +1185,7 @@ template <typename... Args>
 std::vector<std::string> write_proto_into_vector_string(utils::PrintOptions &options,
                                                         const Args &...args) {
   std::vector<std::string> rows{"{"};
-  auto append_arg = [&options, &rows, first = true](const auto &arg) mutable {
+  auto append_arg = [&options, &rows](const auto &arg) mutable {
     if (arg.exist) {
       std::vector<std::string> r = write_into_vector_string(options, arg.name, *arg.value);
       for (const auto &s : r) {
