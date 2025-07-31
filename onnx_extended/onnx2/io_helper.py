@@ -86,11 +86,13 @@ def load(
         opts = ParseOptions()
         opts.skip_raw_data = skip_raw_data
         opts.raw_data_threshold = raw_data_threshold
-        (
+        if isinstance(f, bytes):
             model.ParseFromString(f, opts)
-            if isinstance(f, bytes)
-            else model.ParseFromFile(f, opts)
-        )
+        else:
+            model.ParseFromFile(f, opts)
     else:
-        model.ParseFromString(f) if isinstance(f, bytes) else model.ParseFromFile(f)
+        if isinstance(f, bytes):
+            model.ParseFromString(f)
+        else:
+            model.ParseFromFile(f)
     return model
