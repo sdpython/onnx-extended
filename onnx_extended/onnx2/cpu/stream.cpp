@@ -84,6 +84,13 @@ uint64_t StringStream::next_uint64() {
   EXT_THROW("[StringStream::next_uint64] unable to read an int64 at pos=", pos_, ", size=", size_);
 }
 
+std::string StringStream::tell_around() const {
+  offset_t begin = pos_;
+  offset_t end = pos_ + 10 < static_cast<offset_t>(size()) ? pos_ + 10 : static_cast<offset_t>(size());
+  RefString ref(reinterpret_cast<const char *>(data_) + begin, end - begin);
+  return ref.as_string();
+}
+
 void BinaryWriteStream::write_variant_uint64(uint64_t value) {
   uint8_t v;
   while (value > 127) {
@@ -279,6 +286,12 @@ bool FileStream::not_end() const { return static_cast<int64_t>(tell()) < size_; 
 
 offset_t FileStream::tell() const {
   return static_cast<offset_t>(const_cast<std::ifstream &>(file_stream_).tellg());
+}
+
+std::string FileStream::tell_around() const {
+  RefString ref(reinterpret_cast<const char *>(buffer_.data()),
+                buffer_.size() < 10 ? buffer_.size() : 10);
+  return ref.as_string();
 }
 
 } // namespace utils

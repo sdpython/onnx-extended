@@ -382,7 +382,6 @@ TEST(onnx2_string, String_AssignmentOperators) {
 
 TEST(onnx2_string, String_SelfAssignmentSafety) {
   utils::String s("12345678901234567890", 19);
-  const char *original_data = s.data();
 
   s = s;
   EXPECT_EQ(s.size(), 19);

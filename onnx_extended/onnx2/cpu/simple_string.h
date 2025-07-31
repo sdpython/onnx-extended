@@ -67,7 +67,7 @@ public:
   inline bool empty() const { return size_ == 0; }
   inline bool null() const { return size_ == 0 && ptr_ == nullptr; }
   inline char operator[](size_t i) const { return ptr_[i]; }
-  String &operator=(const char *s) ;
+  String &operator=(const char *s);
   String &operator=(const RefString &s);
   String &operator=(const String &s);
   String &operator=(const std::string &s);

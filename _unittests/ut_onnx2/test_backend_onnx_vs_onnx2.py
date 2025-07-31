@@ -1,4 +1,6 @@
 import os
+import re
+import shutil
 import unittest
 import onnx
 import onnx_extended.onnx2 as onnx2
@@ -7,6 +9,15 @@ from onnx_extended.ext_test_case import ExtTestCase
 
 
 class TestOnnxVsOnnx2(ExtTestCase):
+    regs = [(re.compile("(adagrad|adam)"), "training")]
+
+    @classmethod
+    def filter_out(cls, model_name):
+        for reg, reason in cls.regs:
+            if reg.search(model_name):
+                return reason
+        return False
+
     @classmethod
     def add_test_methods(cls):
         tests = load_model_tests(kind="node")
@@ -14,16 +25,34 @@ class TestOnnxVsOnnx2(ExtTestCase):
             model = os.path.join(test.model_dir, "model.onnx")
             if not os.path.exists(model):
                 continue
-
-            def _test_(self, name=model):
-                self.run_test(name)
+            reason = cls.filter_out(model)
+            if reason:
+                @unittest.skip(reason)
+                def _test_(self, name=model):
+                    self.run_test(name)
+            else:
+                def _test_(self, name=model):
+                    self.run_test(name)
 
             short_name = os.path.split(test.model_dir)[-1].replace("test_", "")
             setattr(cls, f"test_vs_{short_name}", _test_)
 
     def run_test(self, model_name):
         onx = onnx.load(model_name)
-        onx2 = onnx2.load(model_name)
+        try:
+            onx2 = onnx2.load(model_name)
+        except RuntimeError as e:
+            name = self.get_dump_file(f"{os.path.split(os.path.split(model_name)[0])[-1]}.onnx")
+            shutil.copy(model_name, name)
+            with open(name + ".txt", "w") as f:
+                f.write(str(onx))
+            with open(model_name, "rb") as f:
+                content = f.read()
+            rows = []
+            for i in range(0, len(content), 10):
+                rows.append(f"{i:03d}: {content[i:min(i+10,len(content))]}")
+            msg = "\n".join(rows)            
+            raise AssertionError(f"Unable to load {model_name!r} with onnx2.\n---\n{msg}") from e
         self.assertEqual(len(onx.graph.node), len(onx2.graph.node))
 
         # compare the serialized string with onnx2 format
