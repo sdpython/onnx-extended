@@ -2229,7 +2229,6 @@ TEST(onnx2_proto, AttributeProto_CopyFrom) {
   EXPECT_EQ(target.ref_doc_string(), "Source documentation");
 }
 
-/*
 TEST(onnx2_proto, AttributeProto_GraphAttribute) {
   AttributeProto attribute;
 
@@ -2244,7 +2243,6 @@ TEST(onnx2_proto, AttributeProto_GraphAttribute) {
   EXPECT_TRUE(attribute.has_g());
   EXPECT_EQ(attribute.ref_g().ref_name(), "subgraph");
 }
-*/
 
 // NodeProto
 
@@ -3311,7 +3309,7 @@ TEST(onnx2_proto, TensorProto_SkipRawData) {
   tensor1.ref_dims().push_back(2);
   tensor1.ref_dims().push_back(2);
 
-  // Ajout de données brutes
+  // Ajout de donnï¿½es brutes
   std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
   tensor1.ref_raw_data().resize(data.size() * sizeof(float));
   std::memcpy(tensor1.ref_raw_data().data(), data.data(), data.size() * sizeof(float));
@@ -3331,7 +3329,7 @@ TEST(onnx2_proto, TensorProto_SkipRawData) {
   EXPECT_EQ(serialized2.size(), 21);
   EXPECT_EQ(serialized2.size(), tensor1.SerializeSize(st, options2));
 
-  // Test avec skip_raw_data = false (comportement par défaut)
+  // Test avec skip_raw_data = false (comportement par dï¿½faut)
   ParseOptions parse_options;
   parse_options.skip_raw_data = true;
   parse_options.raw_data_threshold = 0;

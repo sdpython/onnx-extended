@@ -29,7 +29,9 @@ def save(
         all_tensors_to_one_file: Effective only if save_as_external_data is True.
         If true, save all tensors to one external file specified by location.
         If false, save each tensor to a file named with the tensor name.
-    :param location: Effective only if save_as_external_data is true.
+    :param all_tensors_to_one_file: if `save_as_external_data` is True,
+        then saves all tensors into one file instead of a file per tensor
+    :param location: Effective only if `save_as_external_data` is true.
         Specify the external file that all tensors to save to.
         Path is relative to the model path.
         If not specified, will use the model name.
@@ -68,8 +70,6 @@ def load(
         smaller than this size (in bytes)
     :param load_external_data: Whether to load the external data.
             Set to True if the data is under the same directory of the model.
-            If not, users need to call :func:`load_external_data_for_model`
-            with directory to load external data from.
     :return: Loaded in-memory ModelProto.
     """
     assert isinstance(f, (str, Path)), f"Unexpected type {type(f)} for f."
