@@ -6,7 +6,7 @@
 #define FIELD_VARINT 0
 // #define FIELD_FIXED64 1
 #define FIELD_FIXED_SIZE 2
-#define FIELD_FIXED32 5  // deprecated value but used in old files
+#define FIELD_FIXED32 5 // deprecated value but used in old files
 
 #define SERIALIZATION_METHOD()                                                                         \
   uint64_t SerializeSize() const;                                                                      \
