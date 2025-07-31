@@ -714,7 +714,7 @@ void read_field(utils::BinaryStream &stream, int wire_type, int32_t &field, cons
 template <>
 void read_field(utils::BinaryStream &stream, int wire_type, float &field, const char *name,
                 ParseOptions &) {
-  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE || wire_type == wire_type == FIELD_FIXED32,
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE || wire_type == FIELD_FIXED32,
               "unexpected wire_type=", wire_type, " for field '", name, "' at position '",
               stream.tell_around(), "'");
   field = stream.next_float();

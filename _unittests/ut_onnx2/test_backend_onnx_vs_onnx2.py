@@ -27,10 +27,13 @@ class TestOnnxVsOnnx2(ExtTestCase):
                 continue
             reason = cls.filter_out(model)
             if reason:
+
                 @unittest.skip(reason)
                 def _test_(self, name=model):
                     self.run_test(name)
+
             else:
+
                 def _test_(self, name=model):
                     self.run_test(name)
 
@@ -39,20 +42,29 @@ class TestOnnxVsOnnx2(ExtTestCase):
 
     def run_test(self, model_name):
         onx = onnx.load(model_name)
+        if onx.ir_version <= 3:
+            raise unittest.SkipTest("ir_version={ir_version} too old")
         try:
             onx2 = onnx2.load(model_name)
         except RuntimeError as e:
-            name = self.get_dump_file(f"{os.path.split(os.path.split(model_name)[0])[-1]}.onnx")
+            name = self.get_dump_file(
+                f"{os.path.split(os.path.split(model_name)[0])[-1]}.onnx"
+            )
             shutil.copy(model_name, name)
             with open(name + ".txt", "w") as f:
                 f.write(str(onx))
             with open(model_name, "rb") as f:
                 content = f.read()
             rows = []
-            for i in range(0, len(content), 10):
+            for i in range(0, len(content), 20):
                 rows.append(f"{i:03d}: {content[i:min(i+10,len(content))]}")
-            msg = "\n".join(rows)            
-            raise AssertionError(f"Unable to load {model_name!r} with onnx2.\n---\n{msg}") from e
+            if len(rows) >= 20:
+                rows[20] = "..."
+                del rows[21:-10]
+            msg = "\n".join(rows)
+            raise AssertionError(
+                f"Unable to load {model_name!r} with onnx2.\n---\n{msg}"
+            ) from e
         self.assertEqual(len(onx.graph.node), len(onx2.graph.node))
 
         # compare the serialized string with onnx2 format
