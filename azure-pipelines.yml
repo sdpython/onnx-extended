@@ -57,8 +57,11 @@ jobs:
       find . -type f -name "test_optops*_cpp" -executable -exec {} \;
     displayName: 'Unit test C++'
   - script: |
-      python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference
+      python -m pytest _unittests --durations=10 --ignore _unittests/ut_ortcy --ignore _unittests/ut_reference --ignore _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py
     displayName: 'Unit Tests'
+  - script: |
+      python -m pytest _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py --durations=10 
+    displayName: 'Test onnx2'
   - script: |
       python -m pytest _unittests/ut_ortcy --durations=10
     displayName: 'Test ortcy'

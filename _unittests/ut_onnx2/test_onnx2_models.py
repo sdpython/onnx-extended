@@ -49,6 +49,7 @@ class TestOnnx2Helper(ExtTestCase):
     def test_model_gemm_onnx2_to_onnx(self):
         name2 = self.get_dump_file("test_model_gemm_onnx2_to_onnx_2.onnx")
         model2 = self.make_model_gemm(xoh2, onnx2.TensorProto)
+        print(model2)
         onnx2.save(model2, name2)
         model = onnx.load(name2)
         self.assertEqual(len(model.graph.node), len(model2.graph.node))

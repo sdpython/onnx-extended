@@ -70,7 +70,13 @@ jobs:
           pip install pytest-cov
           export PYTHONPATH=.
           export SKIP_UNSTABLE=1
-          pytest --cov=./onnx_extended/ --cov-report=xml --durations=10 --ignore-glob=**LONG*.py --ignore-glob=**notebook*.py
+          pytest --cov=./onnx_extended/ --cov-report=xml --durations=10 --ignore-glob=**LONG*.py --ignore-glob=**notebook*.py --ignore _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py
+          export PYTHONPATH=
+
+      - name: Test onnx2
+        run: |
+          export PYTHONPATH=.
+          pytest _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py --durations=10 
           export PYTHONPATH=
 
       - name: Upload coverage reports to Codecov

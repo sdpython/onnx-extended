@@ -69,6 +69,14 @@
     size += size_field(stream, order_##name(), ref_##name(), options);                                 \
   }
 
+#define SIZE_FIELD_NULL(size, options, stream, name)                                                   \
+  if (!name##_.null()) {                                                                               \
+    size += size_field(stream, order_##name(), ref_##name(), options);                                 \
+  }
+
+#define SIZE_FIELD_EMPTY(size, options, stream, name)                                                  \
+  size += size_field(stream, order_##name(), ref_##name(), options);
+
 #define SIZE_FIELD_LIMIT(size, options, stream, name)                                                  \
   if (has_##name()) {                                                                                  \
     size += size_field_limit(stream, order_##name(), ref_##name(), options);                           \
@@ -839,7 +847,7 @@ template <typename T> std::string write_as_string(utils::PrintOptions &, const T
 }
 
 template <> std::string write_as_string(utils::PrintOptions &, const utils::String &field) {
-  return MakeString("\"", field.as_string(), "\"");
+  return field.as_string(true);
 }
 
 template <> std::string write_as_string(utils::PrintOptions &, const std::vector<uint8_t> &field) {
@@ -883,7 +891,7 @@ std::string write_as_repeated_field(utils::PrintOptions &,
   std::stringstream result;
   result << "[";
   for (size_t i = 0; i < field.size(); ++i) {
-    result << field[i].as_string();
+    result << field[i].as_string(true);
     if (i + 1 != field.size())
       result << ", ";
   }
@@ -970,13 +978,14 @@ std::string write_as_string(utils::PrintOptions &options, const Args &...args) {
 
   auto append_arg = [&options, &result, first = true](const auto &arg) mutable {
     if (arg.exist) {
-      if (!first) {
+      result << arg.name;
+      result << ": ";
+      auto s = write_as_string(options, *arg.value);
+      result << s;
+      if (!first && (s.empty() || s[s.size() != ','])) {
         result << ", ";
       }
       first = false;
-      result << arg.name;
-      result << ": ";
-      result << write_as_string(options, *arg.value);
     }
   };
 
@@ -1055,11 +1064,13 @@ std::vector<std::string> write_into_vector_string(utils::PrintOptions &options, 
 }
 
 template <>
-std::vector<std::string> write_into_vector_string(utils::PrintOptions &, const char *field_name,
+std::vector<std::string> write_into_vector_string(utils::PrintOptions &options, const char *field_name,
                                                   const utils::RepeatedField<utils::String> &field) {
+  if (field.size() < 5)
+    return { MakeString(field_name, ": ", write_as_string(options, field), ",") };
   std::vector<std::string> rows{MakeString(field_name, ": [")};
   for (const auto &p : field) {
-    auto r = p.as_string();
+    auto r = p.as_string(true);
     rows.push_back(MakeString("  ", r, ","));
   }
   rows.push_back("],");

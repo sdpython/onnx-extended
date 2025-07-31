@@ -230,7 +230,7 @@ IMPLEMENT_PROTO(OperatorSetIdProto)
 uint64_t OperatorSetIdProto::SerializeSize(utils::BinaryWriteStream &stream,
                                            SerializeOptions &options) const {
   uint64_t size = 0;
-  SIZE_FIELD(size, options, stream, domain)
+  SIZE_FIELD_EMPTY(size, options, stream, domain)
   SIZE_FIELD(size, options, stream, version)
   return size;
 }
@@ -694,7 +694,7 @@ uint64_t NodeProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeOpt
   SIZE_FIELD(size, options, stream, name)
   SIZE_FIELD(size, options, stream, op_type)
   SIZE_REPEATED_FIELD(size, options, stream, attribute)
-  SIZE_FIELD(size, options, stream, domain)
+  SIZE_FIELD_EMPTY(size, options, stream, domain)
   SIZE_FIELD(size, options, stream, overload)
   SIZE_FIELD(size, options, stream, doc_string)
   SIZE_REPEATED_FIELD(size, options, stream, metadata_props)
@@ -707,7 +707,7 @@ void NodeProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOpt
   WRITE_FIELD(options, stream, name)
   WRITE_FIELD(options, stream, op_type)
   WRITE_REPEATED_FIELD(options, stream, attribute)
-  WRITE_FIELD_NULL(options, stream, domain)
+  WRITE_FIELD_EMPTY(options, stream, domain)
   WRITE_FIELD(options, stream, overload)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, metadata_props)
@@ -798,7 +798,7 @@ uint64_t FunctionProto::SerializeSize(utils::BinaryWriteStream &stream,
   SIZE_REPEATED_FIELD(size, options, stream, node)
   SIZE_FIELD(size, options, stream, doc_string)
   SIZE_REPEATED_FIELD(size, options, stream, opset_import)
-  SIZE_FIELD(size, options, stream, domain)
+  SIZE_FIELD_NULL(size, options, stream, domain)
   SIZE_FIELD(size, options, stream, overload)
   SIZE_REPEATED_FIELD(size, options, stream, value_info)
   SIZE_REPEATED_FIELD(size, options, stream, metadata_props)
