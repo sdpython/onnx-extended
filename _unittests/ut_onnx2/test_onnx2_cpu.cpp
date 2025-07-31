@@ -1,6 +1,7 @@
 #include "onnx_extended/onnx2/cpu/onnx2.h"
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
+#include <filesystem>
 #include <gtest/gtest.h>
 
 using namespace onnx2;
@@ -4236,4 +4237,20 @@ TEST(onnx2_proto, SerializeSize_ConsistencyAcrossTypes) {
   model.SerializeToString(model_serialized);
   utils::StringWriteStream model_stream;
   EXPECT_EQ(model_serialized.size(), model.SerializeSize(model_stream, options));
+}
+
+TEST(onnx2_file, LoadOnnxFile) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_ai_onnx_ml_binarizer.onnx";
+
+  ModelProto model;
+  utils::FileStream stream(file_path.string());
+  onnx2::ParseOptions opts;
+  model.ParseFromStream(stream, opts);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(model.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("Binarizer"), std::string::npos);
 }
