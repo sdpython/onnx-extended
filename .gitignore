@@ -18,6 +18,7 @@
 .build_path.txt
 .hypothesis/*
 coverage.html/*
+dump_tests/*
 _cache/*
 _deps/*
 .vs/*
