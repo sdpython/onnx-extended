@@ -4239,7 +4239,7 @@ TEST(onnx2_proto, SerializeSize_ConsistencyAcrossTypes) {
   EXPECT_EQ(model_serialized.size(), model.SerializeSize(model_stream, options));
 }
 
-TEST(onnx2_file, LoadOnnxFile) {
+TEST(onnx2_file, LoadOnnxFile_OldProtobuf) {
   namespace fs = std::filesystem;
   fs::path source_path = __FILE__;
   fs::path source_dir = source_path.parent_path();
@@ -4253,4 +4253,20 @@ TEST(onnx2_file, LoadOnnxFile) {
   utils::PrintOptions pr;
   std::string text = utils::join_string(model.PrintToVectorString(pr), "\n");
   EXPECT_NE(text.find("Binarizer"), std::string::npos);
+}
+
+TEST(onnx2_file, LoadOnnxFile_Expandas) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_softmax_example_expanded.onnx";
+
+  ModelProto model;
+  utils::FileStream stream(file_path.string());
+  onnx2::ParseOptions opts;
+  model.ParseFromStream(stream, opts);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(model.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("ReduceSum"), std::string::npos);
 }

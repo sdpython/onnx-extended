@@ -814,6 +814,26 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector
 READ_REPEATED_FIELD_IMPL(double, next_double, FIELD_FIXED_SIZE)
 READ_REPEATED_FIELD_IMPL(float, next_float, FIELD_FIXED_SIZE)
 
+template <>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<int64_t> &field,
+                         const char *name, bool is_packed, ParseOptions &) {
+  if (is_packed) {
+    DEBUG_PRINT2("    read packed", name);
+    EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
+                "' at position '", stream.tell_around(), "'");
+    uint64_t size = stream.next_uint64();
+    field.resize(size);
+    for (size_t i = 0; i < static_cast<size_t>(size); ++i) {
+      field[i] = stream.next_int64();
+    }
+  } else {
+    DEBUG_PRINT2("    read unpacked", name);
+    EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name,
+                "' at position '", stream.tell_around(), "'");
+    field.push_back(stream.next_int64());
+  }
+}
+
 #define READ_REPEATED_FIELD_IMPL_INT(type, unpack_method)                                              \
   template <>                                                                                          \
   void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<type> &field,       \
@@ -835,7 +855,7 @@ READ_REPEATED_FIELD_IMPL(float, next_float, FIELD_FIXED_SIZE)
     }                                                                                                  \
   }
 
-READ_REPEATED_FIELD_IMPL_INT(int64_t, next_int64)
+// READ_REPEATED_FIELD_IMPL_INT(int64_t, next_int64)
 READ_REPEATED_FIELD_IMPL_INT(int32_t, next_int32)
 READ_REPEATED_FIELD_IMPL_INT(uint64_t, next_uint64)
 

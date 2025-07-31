@@ -81,7 +81,7 @@ uint64_t StringStream::next_uint64() {
 
     shift += 7;
   }
-  EXT_THROW("[StringStream::next_uint64] unable to read an int64 at pos=", pos_, ", size=", size_);
+  EXT_THROW("[StringStream::next_uint64] unable to read an uint64 at pos=", pos_, ", size=", size_);
 }
 
 std::string StringStream::tell_around() const {
