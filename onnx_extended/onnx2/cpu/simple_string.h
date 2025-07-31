@@ -65,6 +65,7 @@ public:
   inline size_t size() const { return size_; }
   inline const char *data() const { return ptr_; }
   inline bool empty() const { return size_ == 0; }
+  inline bool null() const { return size_ == 0 && ptr_ == nullptr; }
   inline char operator[](size_t i) const { return ptr_[i]; }
   String &operator=(const char *s);
   String &operator=(const RefString &s);

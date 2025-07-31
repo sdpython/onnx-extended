@@ -236,7 +236,7 @@ uint64_t OperatorSetIdProto::SerializeSize(utils::BinaryWriteStream &stream,
 }
 void OperatorSetIdProto::SerializeToStream(utils::BinaryWriteStream &stream,
                                            SerializeOptions &options) const {
-  WRITE_FIELD_EMPTY(options, stream, domain)
+  WRITE_FIELD_NULL(options, stream, domain)
   WRITE_FIELD(options, stream, version)
 }
 void OperatorSetIdProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
@@ -707,7 +707,7 @@ void NodeProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOpt
   WRITE_FIELD(options, stream, name)
   WRITE_FIELD(options, stream, op_type)
   WRITE_REPEATED_FIELD(options, stream, attribute)
-  WRITE_FIELD(options, stream, domain)
+  WRITE_FIELD_NULL(options, stream, domain)
   WRITE_FIELD(options, stream, overload)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, metadata_props)
@@ -814,7 +814,7 @@ void FunctionProto::SerializeToStream(utils::BinaryWriteStream &stream,
   WRITE_REPEATED_FIELD(options, stream, node)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, opset_import)
-  WRITE_FIELD(options, stream, domain)
+  WRITE_FIELD_NULL(options, stream, domain)
   WRITE_FIELD(options, stream, overload)
   WRITE_REPEATED_FIELD(options, stream, value_info)
   WRITE_REPEATED_FIELD(options, stream, metadata_props)

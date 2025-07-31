@@ -98,8 +98,10 @@
     write_field(stream, order_##name(), ref_##name(), options);                                        \
   }
 
-#define WRITE_FIELD_EMPTY(options, stream, name)                                                       \
-  write_field(stream, order_##name(), ref_##name(), options);
+#define WRITE_FIELD_NULL(options, stream, name)                                                        \
+  if (name##_.null()) {                                                                                \
+    write_field(stream, order_##name(), ref_##name(), options);                                        \
+  }
 
 #define WRITE_FIELD_LIMIT(options, stream, name)                                                       \
   if (has_##name()) {                                                                                  \
@@ -273,7 +275,7 @@ uint64_t size_field(utils::BinaryWriteStream &stream, int order, const std::vect
 
 uint64_t size_field_limit(utils::BinaryWriteStream &stream, int order,
                           const std::vector<uint8_t> &field, SerializeOptions &options) {
-  if (!options.skip_raw_data || field.size() < options.raw_data_threshold) {
+  if (!options.skip_raw_data || field.size() < static_cast<size_t>(options.raw_data_threshold)) {
     return size_field(stream, order, field, options);
   }
   return 0;
@@ -483,7 +485,7 @@ void write_field(utils::BinaryWriteStream &stream, int order, const std::vector<
 
 void write_field_limit(utils::BinaryWriteStream &stream, int order, const std::vector<uint8_t> &field,
                        SerializeOptions &options) {
-  if (!options.skip_raw_data || field.size() < options.raw_data_threshold) {
+  if (!options.skip_raw_data || field.size() < static_cast<size_t>(options.raw_data_threshold)) {
     write_field(stream, order, field, options);
   }
 }

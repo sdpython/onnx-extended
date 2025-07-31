@@ -217,7 +217,7 @@ const uint8_t *FileWriteStream::data() const {
 }
 
 FileStream::FileStream(const std::string &file_path)
-    : file_path_(file_path), file_stream_(file_path, std::ios::binary), lock_(false) {
+    : lock_(false), file_path_(file_path), file_stream_(file_path, std::ios::binary) {
   if (!file_stream_.is_open()) {
     EXT_THROW("Unable to open file: ", file_path);
   }
@@ -253,7 +253,7 @@ uint64_t FileStream::next_uint64() {
 
 const uint8_t *FileStream::read_bytes(offset_t n_bytes) {
   EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
-  if (n_bytes > buffer_.size())
+  if (n_bytes > static_cast<offset_t>(buffer_.size()))
     buffer_.resize(n_bytes);
   file_stream_.read(reinterpret_cast<char *>(buffer_.data()), n_bytes);
   return buffer_.data();

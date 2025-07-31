@@ -62,7 +62,7 @@ def load(
     """
     Loads a serialized ModelProto into memory.
 
-    :param f: path
+    :param f: path or bytes
     :param skip_raw_data: skips the raw data of every tensor, this can be used
         to load only the architecture of the model even if the model is stored in
         one unique file
@@ -72,13 +72,13 @@ def load(
             Set to True if the data is under the same directory of the model.
     :return: Loaded in-memory ModelProto.
     """
-    assert isinstance(f, (str, Path)), f"Unexpected type {type(f)} for f."
+    assert isinstance(f, (str, bytes, Path)), f"Unexpected type {type(f)} for f."
     assert (
         load_external_data
     ), f"load_external_data={load_external_data} is not implemented yet"
-    f = str(f)
-    ext = os.path.splitext(f)[-1]
-    assert ext in {
+    if isinstance(f, Path):
+        f = str(f)
+    assert not isinstance(f, str) or os.path.splitext(f)[-1] in {
         ".onnx"
     }, f"File name must have the extension .onnx to be loaded but f={f!r}"
     model = ModelProto()
@@ -86,7 +86,11 @@ def load(
         opts = ParseOptions()
         opts.skip_raw_data = skip_raw_data
         opts.raw_data_threshold = raw_data_threshold
-        model.ParseFromFile(f)
+        (
+            model.ParseFromString(f, opts)
+            if isinstance(f, bytes)
+            else model.ParseFromFile(f, opts)
+        )
     else:
-        model.ParseFromFile(f)
+        model.ParseFromString(f) if isinstance(f, bytes) else model.ParseFromFile(f)
     return model
