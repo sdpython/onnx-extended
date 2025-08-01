@@ -4365,3 +4365,24 @@ TEST(onnx2_proto, TensorProto_uint64) {
   utils::StringWriteStream stream;
   EXPECT_EQ(serialized.size(), tensor.SerializeSize(stream, options));
 }
+
+TEST(onnx2_proto, AttributeProto_float) {
+  AttributeProto attribute = AttributeProto();
+  attribute.set_name("attribute");
+  attribute.set_type(AttributeProto::AttributeType::FLOAT);
+  attribute.set_f(0.01f);
+
+  SerializeOptions options;
+  std::string serialized;
+  attribute.SerializeToString(serialized);
+
+  AttributeProto t2 = AttributeProto();
+  ParseOptions parse_options;
+  t2.ParseFromString(serialized, parse_options);
+
+  EXPECT_EQ(t2.ref_name(), attribute.ref_name());
+  EXPECT_EQ(t2.ref_type(), attribute.ref_type());
+  EXPECT_EQ(t2.ref_f(), attribute.ref_f());
+  utils::StringWriteStream stream;
+  EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
+}

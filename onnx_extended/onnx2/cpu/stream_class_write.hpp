@@ -80,8 +80,8 @@ template <>
 void write_field(utils::BinaryWriteStream &stream, int order, const utils::OptionalField<float> &field,
                  SerializeOptions &) {
   if (field.has_value()) {
-    stream.write_field_header(order, FIELD_VARINT);
-    stream.write_variant_uint64(static_cast<float>(*field));
+    stream.write_field_header(order, FIELD_FIXED32);
+    stream.write_float(*field);
   }
 }
 
@@ -114,7 +114,7 @@ void write_field(utils::BinaryWriteStream &stream, int order, const double &fiel
 
 template <>
 void write_field(utils::BinaryWriteStream &stream, int order, const float &field, SerializeOptions &) {
-  stream.write_field_header(order, FIELD_FIXED_SIZE); // FIELD_FIXED32);
+  stream.write_field_header(order, FIELD_FIXED32);
   stream.write_float(field);
 }
 

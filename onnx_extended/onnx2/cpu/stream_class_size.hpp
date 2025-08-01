@@ -68,7 +68,7 @@ template <>
 uint64_t size_field(utils::BinaryWriteStream &stream, int order,
                     const utils::OptionalField<float> &field, SerializeOptions &) {
   if (field.has_value()) {
-    return stream.size_field_header(order, FIELD_VARINT) + stream.size_float(*field);
+    return stream.size_field_header(order, FIELD_FIXED32) + stream.size_float(*field);
   }
   return 0;
 }
@@ -100,7 +100,7 @@ uint64_t size_field(utils::BinaryWriteStream &stream, int order, const double &f
 template <>
 uint64_t size_field(utils::BinaryWriteStream &stream, int order, const float &field,
                     SerializeOptions &) {
-  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_float(field);
+  return stream.size_field_header(order, FIELD_FIXED32) + stream.size_float(field);
 }
 
 template <>
