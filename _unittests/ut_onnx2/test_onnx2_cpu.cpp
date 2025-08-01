@@ -4286,3 +4286,18 @@ TEST(onnx2_file, LoadOnnxFile_Constant) {
   std::string text = utils::join_string(node.PrintToVectorString(pr), "\n");
   EXPECT_NE(text.find("Constant"), std::string::npos);
 }
+
+TEST(onnx2_file, LoadOnnxFile_ConstantAsString) {
+  std::vector<uint8_t> data = {
+      18,  3,   65,  65, 65,  26,  2,   78, 78, 34,  8, 67, 111, 110, 115, 116, 97,  110, 116, 42,  39,
+      10,  5,   118, 97, 108, 117, 101, 42, 16, 8,   1, 16, 6,   58,  10,  255, 255, 255, 255, 255, 255,
+      255, 255, 255, 1,  106, 3,   68,  79, 67, 160, 1, 4,  170, 1,   3,   82,  69,  70,  58,  1,   77};
+  std::string data_str(data.begin(), data.end());
+  EXPECT_EQ(data_str.size(), data.size());
+  NodeProto node;
+  node.ParseFromString(data_str);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(node.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("Constant"), std::string::npos);
+}
