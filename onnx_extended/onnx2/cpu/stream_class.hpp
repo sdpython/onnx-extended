@@ -357,7 +357,7 @@ uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
 // number
 
 template <typename T>
-uint64_t size_unpacked_number_float(utils::BinaryWriteStream &stream, int order, const T &value) {
+uint64_t size_unpacked_number_float(utils::BinaryWriteStream &stream, int order, const T &) {
   return stream.size_field_header(order, FIELD_FIXED_SIZE) + sizeof(T);
 }
 
@@ -392,7 +392,7 @@ SIZE_UNPACKED_NUMBER_INT(int32_t)
 template <typename T>
 uint64_t size_repeated_field_numerical(utils::BinaryWriteStream &stream, int order,
                                        const std::vector<T> &field, bool is_packed,
-                                       SerializeOptions &options) {
+                                       SerializeOptions &) {
   if (is_packed) {
     uint64_t size = field.size() * sizeof(T);
     return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_variant_uint64(size) + size;
@@ -895,7 +895,7 @@ READ_UNPACKED_NUMBER_INT(int32_t)
 
 template <typename T>
 void read_repeated_field_numerical(utils::BinaryStream &stream, int wire_type, std::vector<T> &field,
-                                   const char *name, bool is_packed, ParseOptions &options) {
+                                   const char *name, bool is_packed, ParseOptions &) {
   if (is_packed) {
     DEBUG_PRINT2("    read packed", name);
     EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
