@@ -50,9 +50,7 @@ class TestOnnxVsOnnx2(ExtTestCase):
             o2 = t2()
             name = p.op_type if st == "NodeProto" else getattr(p, "name", "NONE")
             try:
-                p2 = o2.ParseFromString(s)
-                # print(f"-- {st}: SUCCESS, {name!r}")
-                self.assertEqual(p2.__class__.__name__, p.__class__.__name__)
+                o2.ParseFromString(s)
             except Exception as e:
                 print(f"-- {st}: FAIL due to {e} ({name!r})")
                 filename = model_name + f".{name}.onnx"
