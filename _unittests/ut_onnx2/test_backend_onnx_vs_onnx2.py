@@ -48,7 +48,7 @@ class TestOnnxVsOnnx2(ExtTestCase):
             onx2 = onnx2.load(model_name)
         except RuntimeError as e:
             name = self.get_dump_file(
-                f"{os.path.split(os.path.split(model_name)[0])[-1]}.onnx"
+                f"{os.path.split(os.path.split(model_name)[0])[-1]}.cannotload.onnx"
             )
             shutil.copy(model_name, name)
             with open(name + ".txt", "w") as f:

@@ -865,6 +865,42 @@ class TestOnnx2(ExtTestCase):
         self.assertFalse(p.has_sparse_tensor())
         self.assertFalse(p0.has_sparse_tensor())
 
+    def test_make_attribute_serialization_ints(self):
+        p = onnx.AttributeProto()
+        p.name = "axes"
+        p.type = onnx.AttributeProto.INTS
+        p.ints.extend([1])
+        self.assertEqual(list(p.ints), [1])
+
+        s = p.SerializeToString()
+        p2 = onnx2.AttributeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(list(p2.ints), [1])
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.AttributeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(list(p0.ints), [1])
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_make_attribute_serialization_ints_reverse(self):
+        p = onnx2.AttributeProto()
+        p.name = "axes"
+        p.type = onnx2.AttributeProto.INTS
+        p.ints.extend([1])
+        self.assertEqual(list(p.ints), [1])
+
+        s = p.SerializeToString()
+        p2 = onnx.AttributeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(p2.ints, [1])
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.AttributeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(list(p0.ints), [1])
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
