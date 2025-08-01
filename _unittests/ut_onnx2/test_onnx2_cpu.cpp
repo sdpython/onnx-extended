@@ -4174,7 +4174,7 @@ TEST(onnx2_proto, SerializeSize_StringWithNulls) {
   EXPECT_EQ(read_string.size(), string_with_nulls.size());
 }
 
-TEST(onnx2_proto, SerializeSize_ComplexAttributeProto) {
+TEST(onnx2_proto, SerializeSize_AttributeProto_IntFloatTensors) {
   AttributeProto attribute;
   attribute.set_name("complex_attribute");
   attribute.set_type(AttributeProto::AttributeType::TENSORS);
@@ -4194,11 +4194,49 @@ TEST(onnx2_proto, SerializeSize_ComplexAttributeProto) {
   tensor2.ref_int32_data().push_back(10);
   tensor2.ref_int32_data().push_back(20);
 
-  std::string serialized;
-  attribute.SerializeToString(serialized);
-  utils::StringWriteStream stream;
+  TensorProto &tensor3 = attribute.add_tensors();
+  tensor3.set_name("tensor3");
+  tensor3.set_data_type(TensorProto::DataType::INT64);
+  tensor3.ref_dims().push_back(1);
+  tensor3.ref_int64_data().push_back(10);
+
+  TensorProto &tensor4 = attribute.add_tensors();
+  tensor4.set_name("tensor4");
+  tensor4.set_data_type(TensorProto::DataType::INT32);
+  tensor4.ref_dims().push_back(1);
+  tensor4.ref_int32_data().push_back(10);
+
   SerializeOptions options;
-  EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor2.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor2.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor3.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor3.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor4.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor4.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor1.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor1.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    attribute.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
+  }
 }
 
 TEST(onnx2_proto, SerializeSize_ConsistencyAcrossTypes) {

@@ -171,7 +171,7 @@ uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
   return size;
 }
 
-// number
+// unpacked number
 
 template <typename T>
 uint64_t size_unpacked_number_float(utils::BinaryWriteStream &stream, int order, const T &) {
@@ -206,13 +206,65 @@ SIZE_UNPACKED_NUMBER_INT(uint64_t)
 SIZE_UNPACKED_NUMBER_INT(int64_t)
 SIZE_UNPACKED_NUMBER_INT(int32_t)
 
+// repeated packed numbers
+
+template <typename T>
+uint64_t size_repeated_field_numerical_numbers_float(utils::BinaryWriteStream &stream, int order,
+                                                     const std::vector<T> &field, bool is_packed,
+                                                     SerializeOptions &options) {
+  uint64_t size = field.size() * sizeof(T);
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_variant_uint64(size) + size;
+}
+
+template <typename T>
+uint64_t size_repeated_field_numerical_numbers_int(utils::BinaryWriteStream &stream, int order,
+                                                   const std::vector<T> &field, bool is_packed,
+                                                   SerializeOptions &options) {
+  utils::StringWriteStream local;
+  uint64_t size = 0;
+  for (const T &d : field) {
+    size += local.size_variant_uint64(static_cast<uint64_t>(d));
+  }
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) +
+         stream.size_variant_uint64(size) + size;
+}
+
+template <typename T>
+uint64_t size_repeated_field_numerical_numbers(utils::BinaryWriteStream &stream, int order,
+                                               const std::vector<T> &field, bool is_packed,
+                                               SerializeOptions &options);
+
+#define SIZE_REPEATED_FIELD_NUMERICAL_FLOAT(type)                                                      \
+  template <>                                                                                          \
+  uint64_t size_repeated_field_numerical_numbers(utils::BinaryWriteStream &stream, int order,          \
+                                                 const std::vector<type> &field, bool is_packed,       \
+                                                 SerializeOptions &options) {                          \
+    return size_repeated_field_numerical_numbers_float(stream, order, field, is_packed, options);      \
+  }
+
+SIZE_REPEATED_FIELD_NUMERICAL_FLOAT(float)
+SIZE_REPEATED_FIELD_NUMERICAL_FLOAT(double)
+
+#define SIZE_REPEATED_FIELD_NUMERICAL_INT(type)                                                        \
+  template <>                                                                                          \
+  uint64_t size_repeated_field_numerical_numbers(utils::BinaryWriteStream &stream, int order,          \
+                                                 const std::vector<type> &field, bool is_packed,       \
+                                                 SerializeOptions &options) {                          \
+    return size_repeated_field_numerical_numbers_int(stream, order, field, is_packed, options);        \
+  }
+
+SIZE_REPEATED_FIELD_NUMERICAL_INT(int64_t)
+SIZE_REPEATED_FIELD_NUMERICAL_INT(uint64_t)
+SIZE_REPEATED_FIELD_NUMERICAL_INT(int32_t)
+
+// main function to calculate size of repeated numbers
+
 template <typename T>
 uint64_t size_repeated_field_numerical(utils::BinaryWriteStream &stream, int order,
                                        const std::vector<T> &field, bool is_packed,
-                                       SerializeOptions &) {
+                                       SerializeOptions &options) {
   if (is_packed) {
-    uint64_t size = field.size() * sizeof(T);
-    return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_variant_uint64(size) + size;
+    return size_repeated_field_numerical_numbers(stream, order, field, is_packed, options);
   } else {
     uint64_t size = 0;
     for (const T &d : field) {
