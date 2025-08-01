@@ -40,6 +40,27 @@ class TestOnnxVsOnnx2(ExtTestCase):
             short_name = os.path.split(test.model_dir)[-1].replace("test_", "")
             setattr(cls, f"test_vs_{short_name}", _test_)
 
+    def break_into_pieces(self, model_name):
+        onx = onnx.load(model_name)
+        pieces = [onx, onx.graph, *onx.graph.node]
+        for p in pieces:
+            s = p.SerializeToString()
+            st = p.__class__.__name__
+            t2 = getattr(onnx2, st)
+            o2 = t2()
+            name = p.op_type if st == "NodeProto" else getattr(p, "name", "NONE")
+            try:
+                p2 = o2.ParseFromString(s)
+                # print(f"-- {st}: SUCCESS, {name!r}")
+                self.assertEqual(p2.__class__.__name__, p.__class__.__name__)
+            except Exception as e:
+                print(f"-- {st}: FAIL due to {e} ({name!r})")
+                filename = model_name + f".{name}.onnx"
+                with open(filename, "wb") as f:
+                    f.write(s)
+                with open(filename + ".txt", "w") as f:
+                    f.write(f"{e}\n----\n{str(p)}")
+
     def run_test(self, model_name):
         onx = onnx.load(model_name)
         if onx.ir_version <= 3:
@@ -51,6 +72,7 @@ class TestOnnxVsOnnx2(ExtTestCase):
                 f"{os.path.split(os.path.split(model_name)[0])[-1]}.cannotload.onnx"
             )
             shutil.copy(model_name, name)
+            self.break_into_pieces(name)
             with open(name + ".txt", "w") as f:
                 f.write(str(onx))
             with open(model_name, "rb") as f:
