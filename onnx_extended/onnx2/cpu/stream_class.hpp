@@ -308,6 +308,28 @@ uint64_t size_enum_field(utils::BinaryWriteStream &stream, int order, const T &f
          stream.VarintSize(static_cast<uint64_t>(field));
 }
 
+// repeated fields
+
+template <typename T>
+uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
+                             const utils::RepeatedField<T> &field, bool is_packed,
+                             SerializeOptions &options) {
+  return size_repeated_field(stream, order, field.values(), is_packed, options);
+}
+
+template <typename T>
+uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
+                             const utils::RepeatedProtoField<T> &field, bool is_packed,
+                             SerializeOptions &options) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
+  uint64_t size = 0;
+  for (size_t i = 0; i < field.size(); ++i) {
+    auto s = field[i].SerializeSize(stream, options);
+    size += stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(s) + s;
+  }
+  return size;
+}
+
 template <typename T>
 uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order, const std::vector<T> &field,
                              bool is_packed, SerializeOptions &options) {
@@ -332,69 +354,70 @@ uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
   return size;
 }
 
-#define SIZE_REPEATED_FIELD_IMPL(type, unpack_method)                                                  \
-  template <>                                                                                          \
-  uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,                            \
-                               const std::vector<type> &field, bool is_packed, SerializeOptions &) {   \
-    if (is_packed) {                                                                                   \
-      return stream.size_field_header(order, FIELD_FIXED_SIZE) +                                       \
-             stream.VarintSize(field.size() * sizeof(type)) + field.size() * sizeof(type);             \
-    } else {                                                                                           \
-      uint64_t size = 0;                                                                               \
-      for (const auto &d : field) {                                                                    \
-        size += stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.unpack_method(d);           \
-      }                                                                                                \
-      return size;                                                                                     \
-    }                                                                                                  \
-  }
-
-SIZE_REPEATED_FIELD_IMPL(double, size_double)
-SIZE_REPEATED_FIELD_IMPL(float, size_float)
-
-#define SIZE_REPEATED_FIELD_IMPL_INT(type)                                                             \
-  template <>                                                                                          \
-  uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,                            \
-                               const std::vector<type> &field, bool is_packed, SerializeOptions &) {   \
-    if (is_packed) {                                                                                   \
-      uint64_t size =                                                                                  \
-          stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(field.size());         \
-      for (const auto &d : field) {                                                                    \
-        size += stream.VarintSize(static_cast<uint64_t>(d));                                           \
-      }                                                                                                \
-      return size;                                                                                     \
-    } else {                                                                                           \
-      uint64_t size = 0;                                                                               \
-      for (const auto &d : field) {                                                                    \
-        size += stream.size_field_header(order, FIELD_VARINT);                                         \
-        size += stream.VarintSize(static_cast<uint64_t>(d));                                           \
-      }                                                                                                \
-      return size;                                                                                     \
-    }                                                                                                  \
-  }
-
-SIZE_REPEATED_FIELD_IMPL_INT(uint64_t)
-SIZE_REPEATED_FIELD_IMPL_INT(int64_t)
-SIZE_REPEATED_FIELD_IMPL_INT(int32_t)
+// number
 
 template <typename T>
-uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
-                             const utils::RepeatedField<T> &field, bool is_packed,
-                             SerializeOptions &options) {
-  return size_repeated_field(stream, order, field.values(), is_packed, options);
+uint64_t size_unpacked_number_float(utils::BinaryWriteStream &stream, int order, const T &value) {
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + sizeof(T);
 }
 
 template <typename T>
-uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,
-                             const utils::RepeatedProtoField<T> &field, bool is_packed,
-                             SerializeOptions &options) {
-  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
-  uint64_t size = 0;
-  for (size_t i = 0; i < field.size(); ++i) {
-    auto s = field[i].SerializeSize(stream, options);
-    size += stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.VarintSize(s) + s;
-  }
-  return size;
+uint64_t size_unpacked_number_int(utils::BinaryWriteStream &stream, int order, const T &value) {
+  return stream.size_field_header(order, FIELD_VARINT) +
+         stream.size_variant_uint64(static_cast<uint64_t>(value));
 }
+
+template <typename T>
+uint64_t size_unpacked_number(utils::BinaryWriteStream &stream, int order, const T &value);
+
+#define SIZE_UNPACKED_NUMBER_FLOAT(type)                                                               \
+  template <>                                                                                          \
+  uint64_t size_unpacked_number(utils::BinaryWriteStream &stream, int order, const type &value) {      \
+    return size_unpacked_number_float(stream, order, value);                                           \
+  }
+
+SIZE_UNPACKED_NUMBER_FLOAT(float)
+SIZE_UNPACKED_NUMBER_FLOAT(double)
+
+#define SIZE_UNPACKED_NUMBER_INT(type)                                                                 \
+  template <>                                                                                          \
+  uint64_t size_unpacked_number(utils::BinaryWriteStream &stream, int order, const type &value) {      \
+    return size_unpacked_number_int(stream, order, value);                                             \
+  }
+
+SIZE_UNPACKED_NUMBER_INT(uint64_t)
+SIZE_UNPACKED_NUMBER_INT(int64_t)
+SIZE_UNPACKED_NUMBER_INT(int32_t)
+
+template <typename T>
+uint64_t size_repeated_field_numerical(utils::BinaryWriteStream &stream, int order,
+                                       const std::vector<T> &field, bool is_packed,
+                                       SerializeOptions &options) {
+  if (is_packed) {
+    uint64_t size = field.size() * sizeof(T);
+    return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_variant_uint64(size) + size;
+  } else {
+    uint64_t size = 0;
+    for (const T &d : field) {
+      size += size_unpacked_number(stream, order, d);
+    }
+    return size;
+  }
+}
+
+#define SIZE_REPEATED_FIELD_IMPL(type)                                                                 \
+  template <>                                                                                          \
+  uint64_t size_repeated_field(utils::BinaryWriteStream &stream, int order,                            \
+                               const std::vector<type> &field, bool is_packed,                         \
+                               SerializeOptions &options) {                                            \
+    return size_repeated_field_numerical(stream, order, field, is_packed, options);                    \
+  }
+
+SIZE_REPEATED_FIELD_IMPL(double)
+SIZE_REPEATED_FIELD_IMPL(float)
+SIZE_REPEATED_FIELD_IMPL(uint64_t)
+SIZE_REPEATED_FIELD_IMPL(int64_t)
+SIZE_REPEATED_FIELD_IMPL(int32_t)
 
 ////////
 // write
@@ -525,6 +548,32 @@ void write_enum_field(utils::BinaryWriteStream &stream, int order, const T &fiel
   stream.write_variant_uint64(static_cast<uint64_t>(field));
 }
 
+// repeated fields
+
+template <typename T>
+void write_repeated_field(utils::BinaryWriteStream &stream, int order,
+                          const utils::RepeatedField<T> &field, bool is_packed,
+                          SerializeOptions &options) {
+  write_repeated_field(stream, order, field.values(), is_packed, options);
+}
+
+template <typename T>
+void write_repeated_field(utils::BinaryWriteStream &stream, int order,
+                          const utils::RepeatedProtoField<T> &field, bool is_packed,
+                          SerializeOptions &options) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
+  for (size_t i = 0; i < field.size(); ++i) {
+    // TODO: avoid copy
+    // If we could know the size of the field in advance (after it is serialized),
+    // we could avoid to serialize into a buffer and then write it (copy it in face)
+    // to the stream.
+    utils::StringWriteStream local;
+    field[i].SerializeToStream(local, options);
+    stream.write_field_header(order, FIELD_FIXED_SIZE);
+    stream.write_string_stream(local);
+  }
+}
+
 template <typename T>
 void write_repeated_field(utils::BinaryWriteStream &stream, int order, const std::vector<T> &field,
                           bool is_packed, SerializeOptions &options) {
@@ -551,72 +600,72 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order,
   }
 }
 
-#define WRITE_REPEATED_FIELD_IMPL(type, unpack_method)                                                 \
-  template <>                                                                                          \
-  void write_repeated_field(utils::BinaryWriteStream &stream, int order,                               \
-                            const std::vector<type> &field, bool is_packed, SerializeOptions &) {      \
-    if (is_packed) {                                                                                   \
-      stream.write_field_header(order, FIELD_FIXED_SIZE);                                              \
-      stream.write_variant_uint64(field.size() * sizeof(type));                                        \
-      for (const auto &d : field) {                                                                    \
-        stream.write_packed_element(d);                                                                \
-      }                                                                                                \
-    } else {                                                                                           \
-      for (const auto &d : field) {                                                                    \
-        stream.write_field_header(order, FIELD_FIXED_SIZE);                                            \
-        stream.unpack_method(d);                                                                       \
-      }                                                                                                \
-    }                                                                                                  \
-  }
-
-WRITE_REPEATED_FIELD_IMPL(double, write_double)
-WRITE_REPEATED_FIELD_IMPL(float, write_float)
-
-#define WRITE_REPEATED_FIELD_IMPL_INT(type)                                                            \
-  template <>                                                                                          \
-  void write_repeated_field(utils::BinaryWriteStream &stream, int order,                               \
-                            const std::vector<type> &field, bool is_packed, SerializeOptions &) {      \
-    if (is_packed) {                                                                                   \
-      stream.write_field_header(order, FIELD_FIXED_SIZE);                                              \
-      stream.write_variant_uint64(field.size());                                                       \
-      for (const auto &d : field) {                                                                    \
-        stream.write_variant_uint64(static_cast<uint64_t>(d));                                         \
-      }                                                                                                \
-    } else {                                                                                           \
-      for (const auto &d : field) {                                                                    \
-        stream.write_field_header(order, FIELD_VARINT);                                                \
-        stream.write_variant_uint64(static_cast<uint64_t>(d));                                         \
-      }                                                                                                \
-    }                                                                                                  \
-  }
-
-WRITE_REPEATED_FIELD_IMPL_INT(uint64_t)
-WRITE_REPEATED_FIELD_IMPL_INT(int64_t)
-WRITE_REPEATED_FIELD_IMPL_INT(int32_t)
+// numbers
 
 template <typename T>
-void write_repeated_field(utils::BinaryWriteStream &stream, int order,
-                          const utils::RepeatedField<T> &field, bool is_packed,
-                          SerializeOptions &options) {
-  write_repeated_field(stream, order, field.values(), is_packed, options);
+void write_unpacked_number_float(utils::BinaryWriteStream &stream, int order, const T &value) {
+  stream.write_field_header(order, FIELD_FIXED_SIZE);
+  stream.write_packed_element(value);
 }
 
 template <typename T>
-void write_repeated_field(utils::BinaryWriteStream &stream, int order,
-                          const utils::RepeatedProtoField<T> &field, bool is_packed,
-                          SerializeOptions &options) {
-  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
-  for (size_t i = 0; i < field.size(); ++i) {
-    // TODO: avoid copy
-    // If we could know the size of the field in advance (after it is serialized),
-    // we could avoid to serialize into a buffer and then write it (copy it in face)
-    // to the stream.
-    utils::StringWriteStream local;
-    field[i].SerializeToStream(local, options);
+void write_unpacked_number_int(utils::BinaryWriteStream &stream, int order, const T &value) {
+  stream.write_field_header(order, FIELD_VARINT);
+  stream.write_variant_uint64(static_cast<uint64_t>(value));
+}
+
+template <typename T>
+void write_unpacked_number(utils::BinaryWriteStream &stream, int order, const T &value);
+
+#define WRITE_UNPACKED_NUMBER_FLOAT(type)                                                              \
+  template <>                                                                                          \
+  void write_unpacked_number(utils::BinaryWriteStream &stream, int order, const type &value) {         \
+    write_unpacked_number_float(stream, order, value);                                                 \
+  }
+
+WRITE_UNPACKED_NUMBER_FLOAT(float)
+WRITE_UNPACKED_NUMBER_FLOAT(double)
+
+#define WRITE_UNPACKED_NUMBER_INT(type)                                                                \
+  template <>                                                                                          \
+  void write_unpacked_number(utils::BinaryWriteStream &stream, int order, const type &value) {         \
+    write_unpacked_number_int(stream, order, value);                                                   \
+  }
+
+WRITE_UNPACKED_NUMBER_INT(uint64_t)
+WRITE_UNPACKED_NUMBER_INT(int64_t)
+WRITE_UNPACKED_NUMBER_INT(int32_t)
+
+template <typename T>
+void write_repeated_field_numerical(utils::BinaryWriteStream &stream, int order,
+                                    const std::vector<T> &field, bool is_packed,
+                                    SerializeOptions &options) {
+  if (is_packed) {
     stream.write_field_header(order, FIELD_FIXED_SIZE);
-    stream.write_string_stream(local);
+    stream.write_variant_uint64(field.size() * sizeof(T));
+    for (const auto &d : field) {
+      stream.write_packed_element(d);
+    }
+  } else {
+    for (const T &d : field) {
+      write_unpacked_number(stream, order, d);
+    }
   }
 }
+
+#define WRITE_REPEATED_FIELD_IMPL(type)                                                                \
+  template <>                                                                                          \
+  void write_repeated_field(utils::BinaryWriteStream &stream, int order,                               \
+                            const std::vector<type> &field, bool is_packed,                            \
+                            SerializeOptions &options) {                                               \
+    write_repeated_field_numerical(stream, order, field, is_packed, options);                          \
+  }
+
+WRITE_REPEATED_FIELD_IMPL(double)
+WRITE_REPEATED_FIELD_IMPL(float)
+WRITE_REPEATED_FIELD_IMPL(uint64_t)
+WRITE_REPEATED_FIELD_IMPL(int64_t)
+WRITE_REPEATED_FIELD_IMPL(int32_t)
 
 ///////
 // read
@@ -763,6 +812,29 @@ void read_enum_field(utils::BinaryStream &stream, int wire_type, T &field, const
   field = static_cast<T>(stream.next_uint64());
 }
 
+// repeated fields
+
+template <typename T>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type, utils::RepeatedField<T> &field,
+                         const char *name, bool is_packed, ParseOptions &options) {
+  read_repeated_field(stream, wire_type, field.mutable_values(), name, is_packed, options);
+}
+
+template <typename T>
+void read_repeated_field(utils::BinaryStream &stream, int wire_type,
+                         utils::RepeatedProtoField<T> &field, const char *name, bool is_packed,
+                         ParseOptions &options) {
+  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field name '", name,
+              "' at position '", stream.tell_around(), "'");
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
+              "' at position '", stream.tell_around(), "'");
+  utils::StringStream dim_buf;
+  stream.read_string_stream(dim_buf);
+  T &elem = field.add();
+  elem.ParseFromStream(dim_buf, options);
+  stream.set_lock(false);
+}
+
 template <typename T>
 void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<T> &field,
                          const char *name, bool is_packed, ParseOptions &options) {
@@ -786,99 +858,74 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector
   field.emplace_back(utils::String(stream.next_string()));
 }
 
-#define READ_REPEATED_FIELD_IMPL(type, unpack_method, unpacked_wire_type)                              \
-  template <>                                                                                          \
-  void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<type> &field,       \
-                           const char *name, bool is_packed, ParseOptions &) {                         \
-    if (is_packed) {                                                                                   \
-      DEBUG_PRINT2("    read packed", name);                                                           \
-      EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",   \
-                  name, "' at position '", stream.tell_around(), "'");                                 \
-      uint64_t size = stream.next_uint64();                                                            \
-      EXT_ENFORCE(size % sizeof(type) == 0, "unexpected size ", size,                                  \
-                  ", it is not a multiple of sizeof(" #type ") for field '", name, "' at position '",  \
-                  stream.tell_around(), "'");                                                          \
-      size /= sizeof(type);                                                                            \
-      field.resize(size);                                                                              \
-      for (size_t i = 0; i < static_cast<size_t>(size); ++i) {                                         \
-        stream.next_packed_element(field[i]);                                                          \
-      }                                                                                                \
-    } else {                                                                                           \
-      DEBUG_PRINT2("    read unpacked", name);                                                         \
-      EXT_ENFORCE(wire_type == unpacked_wire_type, "unexpected wire_type=", wire_type, " for field '", \
-                  name, "' at position '", stream.tell_around(), "'");                                 \
-      field.push_back(stream.unpack_method());                                                         \
-    }                                                                                                  \
+// numbers
+
+template <typename T> T read_unpacked_number_float(utils::BinaryStream &stream, int wire_type) {
+  // same as packed.
+  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type);
+  T value;
+  stream.next_packed_element(value);
+  return value;
+}
+
+template <typename T> T read_unpacked_number_int(utils::BinaryStream &stream, int wire_type) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type);
+  uint64_t i = stream.next_uint64();
+  return static_cast<T>(i);
+}
+
+template <typename T> T read_unpacked_number(utils::BinaryStream &stream, int wire_type);
+
+#define READ_UNPACKED_NUMBER_FLOAT(type)                                                               \
+  template <> type read_unpacked_number(utils::BinaryStream &stream, int wire_type) {                  \
+    return read_unpacked_number_float<type>(stream, wire_type);                                        \
   }
 
-READ_REPEATED_FIELD_IMPL(double, next_double, FIELD_FIXED_SIZE)
-READ_REPEATED_FIELD_IMPL(float, next_float, FIELD_FIXED_SIZE)
+READ_UNPACKED_NUMBER_FLOAT(float)
+READ_UNPACKED_NUMBER_FLOAT(double)
 
-template <>
-void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<int64_t> &field,
-                         const char *name, bool is_packed, ParseOptions &) {
+#define READ_UNPACKED_NUMBER_INT(type)                                                                 \
+  template <> type read_unpacked_number(utils::BinaryStream &stream, int wire_type) {                  \
+    return read_unpacked_number_int<type>(stream, wire_type);                                          \
+  }
+
+READ_UNPACKED_NUMBER_INT(uint64_t)
+READ_UNPACKED_NUMBER_INT(int64_t)
+READ_UNPACKED_NUMBER_INT(int32_t)
+
+template <typename T>
+void read_repeated_field_numerical(utils::BinaryStream &stream, int wire_type, std::vector<T> &field,
+                                   const char *name, bool is_packed, ParseOptions &options) {
   if (is_packed) {
     DEBUG_PRINT2("    read packed", name);
     EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
                 "' at position '", stream.tell_around(), "'");
     uint64_t size = stream.next_uint64();
+    EXT_ENFORCE(size % sizeof(T) == 0, "unexpected size ", size, ", it is not a multiple of sizeof(",
+                typeid(T).name(), ") for field '", name, "' at position '", stream.tell_around(), "'");
+    size /= sizeof(T);
     field.resize(size);
     for (size_t i = 0; i < static_cast<size_t>(size); ++i) {
-      field[i] = stream.next_int64();
+      stream.next_packed_element(field[i]);
     }
   } else {
     DEBUG_PRINT2("    read unpacked", name);
-    EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name,
-                "' at position '", stream.tell_around(), "'");
-    field.push_back(stream.next_int64());
+    field.push_back(read_unpacked_number<T>(stream, wire_type));
   }
 }
 
-#define READ_REPEATED_FIELD_IMPL_INT(type, unpack_method)                                              \
+#define READ_REPEATED_FIELD_IMPL(type)                                                                 \
   template <>                                                                                          \
   void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector<type> &field,       \
-                           const char *name, bool is_packed, ParseOptions &) {                         \
-    if (is_packed) {                                                                                   \
-      DEBUG_PRINT2("    read packed", name);                                                           \
-      EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '",   \
-                  name, "' at position '", stream.tell_around(), "'");                                 \
-      uint64_t size = stream.next_uint64();                                                            \
-      field.resize(size);                                                                              \
-      for (size_t i = 0; i < static_cast<size_t>(size); ++i) {                                         \
-        field[i] = stream.unpack_method();                                                             \
-      }                                                                                                \
-    } else {                                                                                           \
-      DEBUG_PRINT2("    read unpacked", name);                                                         \
-      EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name, \
-                  "' at position '", stream.tell_around(), "'");                                       \
-      field.push_back(stream.unpack_method());                                                         \
-    }                                                                                                  \
+                           const char *name, bool is_packed, ParseOptions &options) {                  \
+    read_repeated_field_numerical(stream, wire_type, field, name, is_packed, options);                 \
   }
 
-// READ_REPEATED_FIELD_IMPL_INT(int64_t, next_int64)
-READ_REPEATED_FIELD_IMPL_INT(int32_t, next_int32)
-READ_REPEATED_FIELD_IMPL_INT(uint64_t, next_uint64)
-
-template <typename T>
-void read_repeated_field(utils::BinaryStream &stream, int wire_type, utils::RepeatedField<T> &field,
-                         const char *name, bool is_packed, ParseOptions &options) {
-  read_repeated_field(stream, wire_type, field.mutable_values(), name, is_packed, options);
-}
-
-template <typename T>
-void read_repeated_field(utils::BinaryStream &stream, int wire_type,
-                         utils::RepeatedProtoField<T> &field, const char *name, bool is_packed,
-                         ParseOptions &options) {
-  EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field name '", name,
-              "' at position '", stream.tell_around(), "'");
-  EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
-              "' at position '", stream.tell_around(), "'");
-  utils::StringStream dim_buf;
-  stream.read_string_stream(dim_buf);
-  T &elem = field.add();
-  elem.ParseFromStream(dim_buf, options);
-  stream.set_lock(false);
-}
+READ_REPEATED_FIELD_IMPL(double)
+READ_REPEATED_FIELD_IMPL(float)
+READ_REPEATED_FIELD_IMPL(uint64_t)
+READ_REPEATED_FIELD_IMPL(int64_t)
+READ_REPEATED_FIELD_IMPL(int32_t)
 
 ////////////////////////////
 // serialization into string
