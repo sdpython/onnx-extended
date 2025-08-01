@@ -210,23 +210,22 @@ SIZE_UNPACKED_NUMBER_INT(int32_t)
 
 template <typename T>
 uint64_t size_repeated_field_numerical_numbers_float(utils::BinaryWriteStream &stream, int order,
-                                                     const std::vector<T> &field, bool is_packed,
-                                                     SerializeOptions &options) {
+                                                     const std::vector<T> &field, bool,
+                                                     SerializeOptions &) {
   uint64_t size = field.size() * sizeof(T);
   return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_variant_uint64(size) + size;
 }
 
 template <typename T>
 uint64_t size_repeated_field_numerical_numbers_int(utils::BinaryWriteStream &stream, int order,
-                                                   const std::vector<T> &field, bool is_packed,
-                                                   SerializeOptions &options) {
+                                                   const std::vector<T> &field, bool,
+                                                   SerializeOptions &) {
   utils::StringWriteStream local;
   uint64_t size = 0;
   for (const T &d : field) {
     size += local.size_variant_uint64(static_cast<uint64_t>(d));
   }
-  return stream.size_field_header(order, FIELD_FIXED_SIZE) +
-         stream.size_variant_uint64(size) + size;
+  return stream.size_field_header(order, FIELD_FIXED_SIZE) + stream.size_variant_uint64(size) + size;
 }
 
 template <typename T>

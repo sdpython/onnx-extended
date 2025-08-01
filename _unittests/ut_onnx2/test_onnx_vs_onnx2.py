@@ -240,6 +240,7 @@ class TestOnnx2(ExtTestCase):
         p0.ParseFromString(s2)
         s0 = p0.SerializeToString()
         self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p.uint64_data), tuple(p2.uint64_data))
         self.assertEqual(tuple(p0.uint64_data), tuple(p2.uint64_data))
         self.assertEqual(s, s0)
 
@@ -350,6 +351,7 @@ class TestOnnx2(ExtTestCase):
         p0.ParseFromString(s2)
         s0 = p0.SerializeToString()
         self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(len(s), len(s0))
         self.assertEqual(s, s0)
 
     def test_tensor_annotation(self):
@@ -944,8 +946,8 @@ class TestOnnx2(ExtTestCase):
                 a2 = node2.attribute[0]
                 self.assertEqual(a1.name, a2.name)
                 self.assertEqual(a1.type, int(a2.type))
-                self.assertEqual(list(a1.dims), list(a2.dims))
-                self.assertEqual(list(a1.int64_data), list(a2.int64_data))
+                self.assertEqual(list(a1.t.dims), list(a2.t.dims))
+                self.assertEqual(list(a1.t.int64_data), list(a2.t.int64_data))
                 self.assertEqual(len(s), len(snn2))
 
     def test_make_tensor_int(self):

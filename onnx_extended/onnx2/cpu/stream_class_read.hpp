@@ -249,7 +249,7 @@ READ_UNPACKED_NUMBER_INT(int32_t)
 
 template <typename T>
 void read_repeated_field_packed_numerical_float(utils::BinaryStream &stream, int wire_type,
-                                                std::vector<T> &field, const char *name, bool is_packed,
+                                                std::vector<T> &field, const char *name, bool,
                                                 ParseOptions &) {
   DEBUG_PRINT2("    read packed", name);
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
@@ -266,7 +266,7 @@ void read_repeated_field_packed_numerical_float(utils::BinaryStream &stream, int
 
 template <typename T>
 void read_repeated_field_packed_numerical_int(utils::BinaryStream &stream, int wire_type,
-                                              std::vector<T> &field, const char *name, bool is_packed,
+                                              std::vector<T> &field, const char *name, bool,
                                               ParseOptions &) {
   DEBUG_PRINT2("    read packed", name);
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,

@@ -231,7 +231,7 @@ WRITE_UNPACKED_NUMBER_INT(int32_t)
 
 template <typename T>
 void write_repeated_field_packed_numerical_float(utils::BinaryWriteStream &stream, int order,
-                                                 const std::vector<T> &field, bool is_packed,
+                                                 const std::vector<T> &field, bool,
                                                  SerializeOptions &) {
   stream.write_field_header(order, FIELD_FIXED_SIZE);
   stream.write_variant_uint64(field.size() * sizeof(T));
@@ -242,8 +242,7 @@ void write_repeated_field_packed_numerical_float(utils::BinaryWriteStream &strea
 
 template <typename T>
 void write_repeated_field_packed_numerical_int(utils::BinaryWriteStream &stream, int order,
-                                               const std::vector<T> &field, bool is_packed,
-                                               SerializeOptions &) {
+                                               const std::vector<T> &field, bool, SerializeOptions &) {
   utils::StringWriteStream local;
   for (const T &d : field) {
     local.write_variant_uint64(static_cast<uint64_t>(d));
@@ -254,8 +253,7 @@ void write_repeated_field_packed_numerical_int(utils::BinaryWriteStream &stream,
 
 template <typename T>
 void write_repeated_field_packed_numerical(utils::BinaryWriteStream &stream, int order,
-                                           const std::vector<T> &field, bool is_packed,
-                                           SerializeOptions &);
+                                           const std::vector<T> &field, bool, SerializeOptions &);
 
 #define WRITE_PACKED_NUMBER_REPEATED_FLOAT(type)                                                       \
   template <>                                                                                          \
