@@ -248,7 +248,7 @@ void write_repeated_field_packed_numerical_int(utils::BinaryWriteStream &stream,
     local.write_variant_uint64(static_cast<uint64_t>(d));
   }
   stream.write_field_header(order, FIELD_FIXED_SIZE);
-  stream.write_string_stream(utils::BorrowedWriteStream(stream.data(), local.size()));
+  stream.write_string_stream(utils::BorrowedWriteStream(local.data(), local.size()));
 }
 
 template <typename T>

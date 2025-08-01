@@ -4339,3 +4339,29 @@ TEST(onnx2_file, LoadOnnxFile_ConstantAsString) {
   std::string text = utils::join_string(node.PrintToVectorString(pr), "\n");
   EXPECT_NE(text.find("Constant"), std::string::npos);
 }
+
+TEST(onnx2_proto, TensorProto_uint64) {
+  TensorProto tensor = TensorProto();
+  tensor.set_name("tensor");
+  tensor.set_data_type(TensorProto::DataType::UINT64);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_uint64_data().push_back(4);
+  tensor.ref_uint64_data().push_back(5);
+
+  SerializeOptions options;
+  std::string serialized;
+  tensor.SerializeToString(serialized);
+
+  TensorProto t2 = TensorProto();
+  ParseOptions parse_options;
+  t2.ParseFromString(serialized, parse_options);
+
+  EXPECT_EQ(t2.ref_name(), tensor.ref_name());
+  EXPECT_EQ(t2.ref_data_type(), tensor.ref_data_type());
+  EXPECT_EQ(t2.ref_dims().size(), tensor.ref_dims().size());
+  EXPECT_EQ(t2.ref_uint64_data().size(), tensor.ref_uint64_data().size());
+  EXPECT_EQ(t2.ref_uint64_data()[0], 4);
+  EXPECT_EQ(t2.ref_uint64_data()[1], 5);
+  utils::StringWriteStream stream;
+  EXPECT_EQ(serialized.size(), tensor.SerializeSize(stream, options));
+}
