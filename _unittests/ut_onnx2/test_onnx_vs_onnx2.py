@@ -903,8 +903,8 @@ class TestOnnx2(ExtTestCase):
 
     def test_make_constant_int(self):
         for dt in [
-            onnx.TensorProto.INT64,
             onnx.TensorProto.INT32,
+            onnx.TensorProto.INT64,
             onnx.TensorProto.UINT64,
         ]:
             with self.subTest(dt=dt):
@@ -932,6 +932,7 @@ class TestOnnx2(ExtTestCase):
 
                 s = node.SerializeToString()
                 snn2 = nnn2.SerializeToString()
+                onnx2.NodeProto().ParseFromString(snn2)
 
                 node2 = onnx2.NodeProto()
                 node2.ParseFromString(s)
@@ -945,6 +946,32 @@ class TestOnnx2(ExtTestCase):
                 self.assertEqual(a1.type, int(a2.type))
                 self.assertEqual(list(a1.dims), list(a2.dims))
                 self.assertEqual(list(a1.int64_data), list(a2.int64_data))
+                self.assertEqual(len(s), len(snn2))
+
+    def test_make_tensor_int(self):
+        for dt in [
+            onnx.TensorProto.INT32,
+            onnx.TensorProto.INT64,
+            onnx.TensorProto.UINT64,
+        ]:
+            with self.subTest(dt=dt):
+                t = onnx.TensorProto()
+                t.data_type = dt
+                t.dims.extend([5])
+                t.int64_data.extend([-1] * 5)
+
+                t2 = onnx2.TensorProto()
+                t2.data_type = dt
+                t2.dims.extend([5])
+                t2.int64_data.extend([-1] * 5)
+
+                s = t.SerializeToString()
+                snn2 = t2.SerializeToString()
+                read2 = onnx2.TensorProto()
+                read2.ParseFromString(s)
+                self.assertEqual(read2.name, t.name)
+                self.assertEqual(list(t.dims), list(read2.dims))
+                self.assertEqual(list(t.int64_data), list(read2.int64_data))
                 self.assertEqual(len(s), len(snn2))
 
     def test_make_constant_float(self):
