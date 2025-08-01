@@ -4255,7 +4255,7 @@ TEST(onnx2_file, LoadOnnxFile_OldProtobuf) {
   EXPECT_NE(text.find("Binarizer"), std::string::npos);
 }
 
-TEST(onnx2_file, LoadOnnxFile_Expandas) {
+TEST(onnx2_file, LoadOnnxFile_Expanded) {
   namespace fs = std::filesystem;
   fs::path source_path = __FILE__;
   fs::path source_dir = source_path.parent_path();
@@ -4269,4 +4269,20 @@ TEST(onnx2_file, LoadOnnxFile_Expandas) {
   utils::PrintOptions pr;
   std::string text = utils::join_string(model.PrintToVectorString(pr), "\n");
   EXPECT_NE(text.find("ReduceSum"), std::string::npos);
+}
+
+TEST(onnx2_file, LoadOnnxFile_Constant) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_softmax_example_expanded.Constant.onnx";
+
+  NodeProto node;
+  utils::FileStream stream(file_path.string());
+  onnx2::ParseOptions opts;
+  node.ParseFromStream(stream, opts);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(node.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("Constant"), std::string::npos);
 }
