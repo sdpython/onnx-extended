@@ -1094,6 +1094,36 @@ class TestOnnx2(ExtTestCase):
                 self.assertEqual(list(a1.t.double_data), list(a2.t.double_data))
                 self.assertEqual(len(s), len(snn2))
 
+    def test_make_node_attention(self):
+        node = oh.make_node(
+            "Attention",
+            ["A", "B", "C"],
+            ["D"],
+            kv_num_heads=3,
+            q_num_heads=3,
+            scale=0.01,
+            name="NAME",
+        )
+
+        for att in node.attribute:
+            s = att.SerializeToString()
+            a_ = onnx.AttributeProto()
+            a_.ParseFromString(s)
+            a2 = oh2.AttributeProto()
+            a2.ParseFromString(s)
+            s2 = a2.SerializeToString()
+            a3 = onnx.AttributeProto()
+            a3.ParseFromString(s2)
+
+        s = node.SerializeToString()
+        node_ = onnx.NodeProto()
+        node_.ParseFromString(s)
+        node2 = oh2.NodeProto()
+        node2.ParseFromString(s)
+        s2 = node2.SerializeToString()
+        node3 = onnx.NodeProto()
+        node3.ParseFromString(s2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

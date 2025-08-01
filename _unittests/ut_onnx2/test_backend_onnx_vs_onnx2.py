@@ -59,6 +59,25 @@ class TestOnnxVsOnnx2(ExtTestCase):
                 with open(filename + ".txt", "w") as f:
                     f.write(f"{e}\n----\n{str(p)}")
 
+    def look_into_pieces(self, model2: onnx2.ModelProto, model_name: str):
+        assert isinstance(model2, onnx2.ModelProto), f"unexpected type ({type(model2)})"
+        pieces = [model2, model2.graph, *model2.graph.node]
+        for p in pieces:
+            s = p.SerializeToString()
+            st = p.__class__.__name__
+            t2 = getattr(onnx, st)
+            o2 = t2()
+            name = p.op_type if st == "NodeProto" else getattr(p, "name", "NONE")
+            try:
+                o2.ParseFromString(s)
+            except Exception as e:
+                print(f"-- {st}: FAIL due to {e} ({name!r})")
+                filename = model_name + f".{name}.onnx"
+                with open(filename, "wb") as f:
+                    f.write(s)
+                with open(filename + ".txt", "w") as f:
+                    f.write(f"{e}\n----\n{str(p)}")
+
     def run_test(self, model_name):
         onx = onnx.load(model_name)
         if onx.ir_version <= 3:
@@ -114,7 +133,21 @@ class TestOnnxVsOnnx2(ExtTestCase):
         with self.subTest(fmt="onnx"):
             s2 = onx2.SerializeToString()
             onx2_onnx = onnx.ModelProto()
-            onx2_onnx.ParseFromString(s2)
+            onnx2.ModelProto().ParseFromString(s2)
+            try:
+                onx2_onnx.ParseFromString(s2)
+            except Exception:
+                rname = self.get_dump_file(
+                    f"{os.path.split(os.path.split(model_name)[0])[-1]}.onnx"
+                )
+                shutil.copy(model_name, rname)
+                with open(rname + ".txt", "w") as f:
+                    f.write(str(onx))
+                name = self.get_dump_file(
+                    f"{os.path.split(os.path.split(model_name)[0])[-1]}.cannotparse.onnx"
+                )
+                self.look_into_pieces(onx2, name)
+                raise
             a = onx.SerializeToString()
             b = onx2_onnx.SerializeToString()
             if a != b:
