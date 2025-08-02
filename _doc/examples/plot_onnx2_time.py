@@ -97,4 +97,3 @@ print(times)
 print("Save time with onnx.")
 _, times = measure(lambda: onnx.save(onx, full_name))
 print(times)
-
