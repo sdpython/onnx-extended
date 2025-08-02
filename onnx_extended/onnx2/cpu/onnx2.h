@@ -292,11 +292,12 @@ FIELD_REPEATED(
     "Offset values SHOULD be multiples 4096 (page size) to enable mmap support. "
     "- length (optional) - number of bytes containing data. Integer stored as string. "
     "- checksum (optional) - SHA1 digest of file specified in under 'location' key.")
-FIELD(DataLocation, data_location, 14,
-      "Location of the data for this tensor. MUST be one of: - DEFAULT - data stored inside the "
-      "protobuf message. Data is stored in raw_data (if set) otherwise in type-specified field. "
-      "- EXTERNAL - data stored in an external location as described by external_data field. If "
-      "value not set, data is stored in raw_data (if set) otherwise in type-specified field.")
+FIELD_OPTIONAL(
+    DataLocation, data_location, 14,
+    "Location of the data for this tensor. MUST be one of: - DEFAULT - data stored inside the "
+    "protobuf message. Data is stored in raw_data (if set) otherwise in type-specified field. "
+    "- EXTERNAL - data stored in an external location as described by external_data field. If "
+    "value not set, data is stored in raw_data (if set) otherwise in type-specified field.")
 FIELD_REPEATED(StringStringEntryProto, metadata_props, 16,
                "Named metadata values; keys should be distinct.")
 END_PROTO()
@@ -448,6 +449,7 @@ FIELD_REPEATED(utils::String, strings, 9, "Optional repeated string attribute.")
 FIELD_REPEATED_PROTO(TensorProto, tensors, 10, "Optional repeated tensor attribute.")
 FIELD_REPEATED_PROTO(SparseTensorProto, sparse_tensors, 23, "Optional repeated tensor attribute.")
 FIELD_REPEATED_PROTO(GraphProto, graphs, 11, "Optional repeated graph attribute.")
+FIELD_OPTIONAL(TypeProto, tp, 14, "Type proto")
 END_PROTO()
 
 // NodeProto

@@ -341,6 +341,7 @@ uint64_t TensorProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeO
   SIZE_REPEATED_FIELD(size, options, stream, int64_data)
   SIZE_REPEATED_FIELD(size, options, stream, uint64_data)
   SIZE_REPEATED_FIELD(size, options, stream, string_data)
+  SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, data_location)
   return size;
 }
 void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOptions &options) const {
@@ -357,30 +358,32 @@ void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeO
   WRITE_REPEATED_FIELD(options, stream, int64_data)
   WRITE_REPEATED_FIELD(options, stream, uint64_data)
   WRITE_REPEATED_FIELD(options, stream, string_data)
+  WRITE_OPTIONAL_PROTO_FIELD(options, stream, data_location)
 }
 void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
-    READ_BEGIN(options, stream, TensorProto)             //
-    READ_REPEATED_FIELD(options, stream, dims)           //
-    READ_ENUM_FIELD(options, stream, data_type)          //
-    READ_FIELD(options, stream, name)                    //
-    READ_FIELD(options, stream, doc_string)              //
-    READ_FIELD_LIMIT(options, stream, raw_data)          //
-    READ_REPEATED_FIELD(options, stream, external_data)  //
-    READ_REPEATED_FIELD(options, stream, metadata_props) //
-    READ_REPEATED_FIELD(options, stream, double_data)    //
-    READ_REPEATED_FIELD(options, stream, float_data)     //
-    READ_REPEATED_FIELD(options, stream, int32_data)     //
-    READ_REPEATED_FIELD(options, stream, int64_data)     //
-    READ_REPEATED_FIELD(options, stream, uint64_data)    //
-    READ_REPEATED_FIELD(options, stream, string_data)    //
-    READ_END(options, stream, TensorProto)               //
+    READ_BEGIN(options, stream, TensorProto)                  //
+    READ_REPEATED_FIELD(options, stream, dims)                //
+    READ_ENUM_FIELD(options, stream, data_type)               //
+    READ_FIELD(options, stream, name)                         //
+    READ_FIELD(options, stream, doc_string)                   //
+    READ_FIELD_LIMIT(options, stream, raw_data)               //
+    READ_REPEATED_FIELD(options, stream, external_data)       //
+    READ_REPEATED_FIELD(options, stream, metadata_props)      //
+    READ_REPEATED_FIELD(options, stream, double_data)         //
+    READ_REPEATED_FIELD(options, stream, float_data)          //
+    READ_REPEATED_FIELD(options, stream, int32_data)          //
+    READ_REPEATED_FIELD(options, stream, int64_data)          //
+    READ_REPEATED_FIELD(options, stream, uint64_data)         //
+    READ_REPEATED_FIELD(options, stream, string_data)         //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, data_location) //
+    READ_END(options, stream, TensorProto)                    //
 } std::vector<std::string> TensorProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(dims), NAME_EXIST_VALUE(data_type), NAME_EXIST_VALUE(name),
       NAME_EXIST_VALUE(segment), NAME_EXIST_VALUE(raw_data), NAME_EXIST_VALUE(doc_string),
       NAME_EXIST_VALUE(external_data), NAME_EXIST_VALUE(metadata_props), NAME_EXIST_VALUE(double_data),
       NAME_EXIST_VALUE(float_data), NAME_EXIST_VALUE(int32_data), NAME_EXIST_VALUE(int64_data),
-      NAME_EXIST_VALUE(uint64_data), NAME_EXIST_VALUE(string_data));
+      NAME_EXIST_VALUE(uint64_data), NAME_EXIST_VALUE(string_data), NAME_EXIST_VALUE(data_location));
 }
 
 // SparseTensorProto
@@ -613,6 +616,7 @@ uint64_t AttributeProto::SerializeSize(utils::BinaryWriteStream &stream,
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, t)
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, sparse_tensor)
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, g)
+  SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, tp)
   SIZE_REPEATED_FIELD(size, options, stream, floats)
   SIZE_REPEATED_FIELD(size, options, stream, ints)
   SIZE_REPEATED_FIELD(size, options, stream, strings)
@@ -633,6 +637,7 @@ void AttributeProto::SerializeToStream(utils::BinaryWriteStream &stream,
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, t)
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor)
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, g)
+  WRITE_OPTIONAL_PROTO_FIELD(options, stream, tp)
   WRITE_REPEATED_FIELD(options, stream, floats)
   WRITE_REPEATED_FIELD(options, stream, ints)
   WRITE_REPEATED_FIELD(options, stream, strings)
@@ -652,6 +657,7 @@ void AttributeProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &
     READ_OPTIONAL_PROTO_FIELD(options, stream, t)             //
     READ_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor) //
     READ_OPTIONAL_PROTO_FIELD(options, stream, g)             //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, tp)            //
     READ_REPEATED_FIELD(options, stream, floats)              //
     READ_REPEATED_FIELD(options, stream, ints)                //
     READ_REPEATED_FIELD(options, stream, strings)             //
@@ -681,7 +687,8 @@ void AttributeProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &
         NAME_EXIST_VALUE(type), NAME_EXIST_VALUE(f), NAME_EXIST_VALUE(i), NAME_EXIST_VALUE(s),
         NAME_EXIST_VALUE(t), NAME_EXIST_VALUE(sparse_tensor), NAME_EXIST_VALUE(g),
         NAME_EXIST_VALUE(floats), NAME_EXIST_VALUE(ints), NAME_EXIST_VALUE(strings),
-        NAME_EXIST_VALUE(tensors), NAME_EXIST_VALUE(sparse_tensors), NAME_EXIST_VALUE(graphs));
+        NAME_EXIST_VALUE(tensors), NAME_EXIST_VALUE(sparse_tensors), NAME_EXIST_VALUE(graphs),
+        NAME_EXIST_VALUE(tp));
   }
 }
 

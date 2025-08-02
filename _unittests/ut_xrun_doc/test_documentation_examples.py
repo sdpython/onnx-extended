@@ -94,6 +94,9 @@ class TestDocumentationExamples(ExtTestCase):
                 if sys.platform in {"darwin", "win32"}:
                     reason = "stuck due to the creation of a secondary process"
 
+            elif name in {"plot_onnx2_time.py"}:
+                reason = "too long, torch not installed"
+
             elif not has_cuda() and name in {"plot_op_mul_cuda.py"}:
                 reason = "cuda required"
 
