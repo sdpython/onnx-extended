@@ -87,14 +87,14 @@ print(times)
 #
 # Let's do it with onnx2.
 
-print("Load time with onnx2.")
+print("Save time with onnx2.")
 _, times = measure(lambda: onnx2.save(onx2, full_name))
 print(times)
 
 # %%
 # Then with onnx.
 
-print("Load time with onnx.")
+print("Save time with onnx.")
 _, times = measure(lambda: onnx.save(onx, full_name))
 print(times)
 
