@@ -237,6 +237,12 @@ std::vector<std::string> write_into_vector_string(utils::PrintOptions &options, 
 
 template <>
 std::vector<std::string> write_into_vector_string(utils::PrintOptions &options, const char *field_name,
+                                                  const TensorProto::DataLocation &field) {
+  return {MakeString(field_name, ": ", write_as_string(options, static_cast<int32_t>(field)), ",")};
+}
+
+template <>
+std::vector<std::string> write_into_vector_string(utils::PrintOptions &options, const char *field_name,
                                                   const AttributeProto::AttributeType &field) {
   return {MakeString(field_name, ": ", write_as_string(options, static_cast<int32_t>(field)), ",")};
 }
