@@ -78,6 +78,36 @@ class TestOnnxVsOnnx2(ExtTestCase):
                 with open(filename + ".txt", "w") as f:
                     f.write(f"{e}\n----\n{str(p)}")
 
+    def compare_pieces(self, model: onnx.ModelProto, model_name: str):
+        assert isinstance(model, onnx.ModelProto), f"unexpected type ({type(model)})"
+        pieces = [*model.graph.node, model.graph, model]
+        for p in pieces:
+            s = p.SerializeToString()
+            st = p.__class__.__name__
+            t2 = getattr(onnx2, st)
+            o2 = t2()
+            name = p.op_type if st == "NodeProto" else getattr(p, "name", "NONE")
+            o2.ParseFromString(s)
+            s2 = o2.SerializeToString()
+            # back
+            t3 = getattr(onnx, st)
+            o3 = t3()
+            o3.ParseFromString(s2)
+            s3 = o3.SerializeToString()
+            if s != s3:
+                filename = model_name + f".{name}.1.onnx"
+                with open(filename, "wb") as f:
+                    f.write(s)
+                with open(filename + ".txt", "w") as f:
+                    f.write(str(p))
+                filename = model_name + f".{name}.2.onnx"
+                with open(filename + ".txt", "w") as f:
+                    f.write(str(o2))
+                filename = model_name + f".{name}.3.onnx"
+                with open(filename + ".txt", "w") as f:
+                    f.write(str(o3))
+            self.assertEqual(s, s3)
+
     def run_test(self, model_name):
         onx = onnx.load(model_name)
         if onx.ir_version <= 3:
@@ -154,6 +184,7 @@ class TestOnnxVsOnnx2(ExtTestCase):
                 short_name = os.path.splitext(
                     os.path.split(os.path.split(model_name)[0])[-1]
                 )[0]
+                self.compare_pieces(onx, self.get_dump_file(short_name))
                 f1 = self.get_dump_file(short_name + ".original.onnx")
                 with open(f1, "wb") as f:
                     f.write(a)

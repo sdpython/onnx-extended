@@ -330,7 +330,7 @@ uint64_t TensorProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeO
   uint64_t size = 0;
   SIZE_REPEATED_FIELD(size, options, stream, dims)
   SIZE_ENUM_FIELD(size, options, stream, data_type)
-  SIZE_FIELD(size, options, stream, name)
+  SIZE_FIELD_NULL(size, options, stream, name)
   SIZE_FIELD_LIMIT(size, options, stream, raw_data)
   SIZE_FIELD(size, options, stream, doc_string)
   SIZE_REPEATED_FIELD(size, options, stream, external_data)
@@ -346,7 +346,7 @@ uint64_t TensorProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeO
 void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOptions &options) const {
   WRITE_REPEATED_FIELD(options, stream, dims)
   WRITE_ENUM_FIELD(options, stream, data_type)
-  WRITE_FIELD(options, stream, name)
+  WRITE_FIELD_NULL(options, stream, name)
   WRITE_FIELD_LIMIT(options, stream, raw_data)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, external_data)
