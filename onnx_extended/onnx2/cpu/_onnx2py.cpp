@@ -20,12 +20,11 @@ namespace py = pybind11;
   def(                                                                                                 \
       "ParseFromString",                                                                               \
       [](onnx2::cls &self, py::bytes data, py::object options) {                                       \
-        std::string raw = data;                                                                        \
+        std::string raw = data.cast<std::string>();                                                    \
         if (py::isinstance<onnx2::ParseOptions &>(options)) {                                          \
           self.ParseFromString(raw, options.cast<onnx2::ParseOptions &>());                            \
         } else {                                                                                       \
-          onnx2::ParseOptions opts;                                                                    \
-          self.ParseFromString(raw, opts);                                                             \
+          self.ParseFromString(raw);                                                                   \
         }                                                                                              \
       },                                                                                               \
       py::arg("data"), py::arg("options") = py::none(),                                                \

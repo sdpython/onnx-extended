@@ -7,6 +7,8 @@ namespace utils {
 bool RefString::operator==(const char *other) const {
   if (size_ == 0)
     return other == nullptr || other[0] == 0;
+  if (other == nullptr)
+    return false;
   size_t i;
   for (i = 0; i < size_ && ptr_[i] == other[i] && other[i] != 0; ++i)
     ;
@@ -39,38 +41,37 @@ bool RefString::operator!=(const String &other) const { return !(*this == other)
 bool RefString::operator!=(const RefString &other) const { return !(*this == other); }
 bool RefString::operator!=(const char *other) const { return !(*this == other); }
 
-std::string RefString::as_string() const {
+std::string RefString::as_string(bool quote) const {
   if (empty())
-    return std::string();
-  return std::string(data(), size());
+    return quote ? std::string("\"\"") : std::string();
+  auto s = std::string(data(), size());
+  return quote ? std::string("\"") + s + std::string("\"") : s;
 }
 
-String::String(const RefString &s) : size_(s.size()) {
-  if (size_ > 0) {
-    ptr_ = new char[size_];
-    memcpy(ptr_, s.data(), size_);
-  } else {
-    ptr_ = nullptr;
+void String::set(const char *ptr, size_t size) {
+  if (size == SIZE_MAX) {
+    if (ptr == nullptr) {
+      size = 0;
+    } else {
+      const char *p = ptr;
+      size = 0;
+      for (; *p != 0; ++p, ++size)
+        ;
+    }
   }
-}
-
-String::String(const String &s) : size_(s.size()) {
-  if (size_ > 0) {
-    ptr_ = new char[size_];
-    memcpy(ptr_, s.data(), size_);
-  } else {
-    ptr_ = nullptr;
-  }
-}
-
-String::String(const char *ptr, size_t size) {
-  if (ptr == nullptr || size == 0 || (size == 1 && ptr[0] == 0)) {
+  if (ptr == nullptr) {
     ptr_ = nullptr;
     size_ = 0;
   } else if (ptr[size - 1] == 0) {
-    ptr_ = new char[size - 1];
-    memcpy(ptr_, ptr, size - 1);
-    size_ = size - 1;
+    if (size == 0) {
+      ptr_ = new char[1];
+      *ptr_ = 0;
+      size_ = 0;
+    } else {
+      ptr_ = new char[size - 1];
+      memcpy(ptr_, ptr, size - 1);
+      size_ = size - 1;
+    }
   } else {
     ptr_ = new char[size];
     memcpy(ptr_, ptr, size);
@@ -78,65 +79,11 @@ String::String(const char *ptr, size_t size) {
   }
 }
 
-String::String(const std::string &s) : size_(s.size()) {
-  ptr_ = new char[s.size()];
-  memcpy(ptr_, s.c_str(), size_);
-}
-
-String &String::operator=(const char *s) {
-  clear();
-  if (s == nullptr || s[0] == 0) {
-    size_ = 0;
-    ptr_ = nullptr;
-  } else {
-    size_ = 0;
-    for (; s[size_] != 0; ++size_)
-      ;
-    ptr_ = new char[size_];
-    memcpy(ptr_, s, size_);
-  }
-  return *this;
-}
-
-String &String::operator=(const RefString &s) {
-  clear();
-  size_ = s.size();
-  if (size_ > 0) {
-    ptr_ = new char[size_];
-    memcpy(ptr_, s.data(), size_);
-  } else {
-    ptr_ = nullptr;
-  }
-  return *this;
-}
-
-String &String::operator=(const String &s) {
-  clear();
-  size_ = s.size();
-  if (size_ > 0) {
-    ptr_ = new char[size_];
-    memcpy(ptr_, s.data(), size_);
-  } else {
-    ptr_ = nullptr;
-  }
-  return *this;
-}
-
-String &String::operator=(const std::string &s) {
-  clear();
-  size_ = s.size();
-  if (size_ > 0) {
-    ptr_ = new char[size_];
-    memcpy(ptr_, s.data(), size_);
-  } else {
-    ptr_ = nullptr;
-  }
-  return *this;
-}
-
 bool String::operator==(const char *other) const {
   if (size_ == 0)
     return other == nullptr || other[0] == 0;
+  if (other == nullptr)
+    return false;
   size_t i;
   for (i = 0; i < size_ && ptr_[i] == other[i] && other[i] != 0; ++i)
     ;
@@ -167,10 +114,11 @@ bool String::operator!=(const String &other) const { return !(*this == other); }
 bool String::operator!=(const RefString &other) const { return !(*this == other); }
 bool String::operator!=(const char *other) const { return !(*this == other); }
 
-std::string String::as_string() const {
+std::string String::as_string(bool quote) const {
   if (empty())
-    return std::string();
-  return std::string(data(), size());
+    return quote ? std::string("\"\"") : std::string();
+  auto s = std::string(data(), size());
+  return quote ? std::string("\"") + s + std::string("\"") : s;
 }
 
 std::string join_string(const std::vector<std::string> &elements, const char *delimiter) {
@@ -185,6 +133,37 @@ std::string join_string(const std::vector<std::string> &elements, const char *de
     ++it;
   }
   return oss.str();
+}
+
+String &String::operator=(const char *s) {
+  EXT_ENFORCE(s != data(), "Cannot assign to self.");
+  clear();
+  set(s, SIZE_MAX);
+  return *this;
+}
+
+String &String::operator=(const RefString &s) {
+  if (ptr_ == s.data() && size_ == s.size())
+    return *this; // no change
+  EXT_ENFORCE(s.data() != data(), "Cannot assign to self when size is different.");
+  clear();
+  set(s.data(), s.size());
+  return *this;
+}
+
+String &String::operator=(const String &s) {
+  if (ptr_ == s.data() && size_ == s.size())
+    return *this; // no change
+  EXT_ENFORCE(s.data() != data(), "Cannot assign to self when size is different.");
+  clear();
+  set(s.data(), s.size());
+  return *this;
+}
+
+String &String::operator=(const std::string &s) {
+  clear();
+  set(s.data(), s.size());
+  return *this;
 }
 
 } // namespace utils

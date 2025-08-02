@@ -81,7 +81,14 @@ uint64_t StringStream::next_uint64() {
 
     shift += 7;
   }
-  EXT_THROW("[StringStream::next_uint64] unable to read an int64 at pos=", pos_, ", size=", size_);
+  EXT_THROW("[StringStream::next_uint64] unable to read an uint64 at pos=", pos_, ", size=", size_);
+}
+
+std::string StringStream::tell_around() const {
+  offset_t begin = pos_;
+  offset_t end = pos_ + 10 < static_cast<offset_t>(size()) ? pos_ + 10 : static_cast<offset_t>(size());
+  RefString ref(reinterpret_cast<const char *>(data_) + begin, end - begin);
+  return ref.as_string();
 }
 
 void BinaryWriteStream::write_variant_uint64(uint64_t value) {
@@ -217,7 +224,7 @@ const uint8_t *FileWriteStream::data() const {
 }
 
 FileStream::FileStream(const std::string &file_path)
-    : file_path_(file_path), file_stream_(file_path, std::ios::binary), lock_(false) {
+    : lock_(false), file_path_(file_path), file_stream_(file_path, std::ios::binary) {
   if (!file_stream_.is_open()) {
     EXT_THROW("Unable to open file: ", file_path);
   }
@@ -253,7 +260,7 @@ uint64_t FileStream::next_uint64() {
 
 const uint8_t *FileStream::read_bytes(offset_t n_bytes) {
   EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
-  if (n_bytes > buffer_.size())
+  if (n_bytes > static_cast<offset_t>(buffer_.size()))
     buffer_.resize(n_bytes);
   file_stream_.read(reinterpret_cast<char *>(buffer_.data()), n_bytes);
   return buffer_.data();
@@ -279,6 +286,12 @@ bool FileStream::not_end() const { return static_cast<int64_t>(tell()) < size_; 
 
 offset_t FileStream::tell() const {
   return static_cast<offset_t>(const_cast<std::ifstream &>(file_stream_).tellg());
+}
+
+std::string FileStream::tell_around() const {
+  RefString ref(reinterpret_cast<const char *>(buffer_.data()),
+                buffer_.size() < 10 ? buffer_.size() : 10);
+  return ref.as_string();
 }
 
 } // namespace utils

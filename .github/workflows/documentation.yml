@@ -46,6 +46,13 @@ jobs:
       - name: Build
         run: python setup.py build_ext --inplace --use-cuda=0
 
+      - name: Unit test C++ onnx2
+        run: |
+          set -e
+          for f in $(find . -type f -name "test_*_cpp" -executable); do
+              "$f"
+          done  
+
       - name: Unit Test C++
         run: |
           find . -type f -name "test_onnx*_cpp" -executable -exec {} \;
@@ -63,7 +70,13 @@ jobs:
           pip install pytest-cov
           export PYTHONPATH=.
           export SKIP_UNSTABLE=1
-          pytest --cov=./onnx_extended/ --cov-report=xml --durations=10 --ignore-glob=**LONG*.py --ignore-glob=**notebook*.py
+          pytest --cov=./onnx_extended/ --cov-report=xml --durations=10 --ignore-glob=**LONG*.py --ignore-glob=**notebook*.py --ignore _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py
+          export PYTHONPATH=
+
+      - name: Test onnx2
+        run: |
+          export PYTHONPATH=.
+          pytest _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py --durations=10 
           export PYTHONPATH=
 
       - name: Upload coverage reports to Codecov

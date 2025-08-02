@@ -230,7 +230,7 @@ IMPLEMENT_PROTO(OperatorSetIdProto)
 uint64_t OperatorSetIdProto::SerializeSize(utils::BinaryWriteStream &stream,
                                            SerializeOptions &options) const {
   uint64_t size = 0;
-  SIZE_FIELD(size, options, stream, domain)
+  SIZE_FIELD_EMPTY(size, options, stream, domain)
   SIZE_FIELD(size, options, stream, version)
   return size;
 }
@@ -330,7 +330,7 @@ uint64_t TensorProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeO
   uint64_t size = 0;
   SIZE_REPEATED_FIELD(size, options, stream, dims)
   SIZE_ENUM_FIELD(size, options, stream, data_type)
-  SIZE_FIELD(size, options, stream, name)
+  SIZE_FIELD_NULL(size, options, stream, name)
   SIZE_FIELD_LIMIT(size, options, stream, raw_data)
   SIZE_FIELD(size, options, stream, doc_string)
   SIZE_REPEATED_FIELD(size, options, stream, external_data)
@@ -346,7 +346,7 @@ uint64_t TensorProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeO
 void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOptions &options) const {
   WRITE_REPEATED_FIELD(options, stream, dims)
   WRITE_ENUM_FIELD(options, stream, data_type)
-  WRITE_FIELD(options, stream, name)
+  WRITE_FIELD_NULL(options, stream, name)
   WRITE_FIELD_LIMIT(options, stream, raw_data)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, external_data)
@@ -609,7 +609,7 @@ uint64_t AttributeProto::SerializeSize(utils::BinaryWriteStream &stream,
   SIZE_FIELD(size, options, stream, doc_string)
   SIZE_FIELD(size, options, stream, f)
   SIZE_FIELD(size, options, stream, i)
-  SIZE_FIELD(size, options, stream, s)
+  SIZE_FIELD_NULL(size, options, stream, s)
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, t)
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, sparse_tensor)
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, g)
@@ -629,7 +629,7 @@ void AttributeProto::SerializeToStream(utils::BinaryWriteStream &stream,
   WRITE_FIELD(options, stream, doc_string)
   WRITE_FIELD(options, stream, f)
   WRITE_FIELD(options, stream, i)
-  WRITE_FIELD(options, stream, s)
+  WRITE_FIELD_NULL(options, stream, s)
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, t)
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor)
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, g)
@@ -641,39 +641,40 @@ void AttributeProto::SerializeToStream(utils::BinaryWriteStream &stream,
   WRITE_REPEATED_FIELD(options, stream, graphs)
 }
 void AttributeProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
-    READ_BEGIN(options, stream, AttributeProto)                                            //
-    READ_FIELD(options, stream, name)                                                      //
-    READ_FIELD(options, stream, ref_attr_name)                                             //
-    READ_ENUM_FIELD(options, stream, type)                                                 //
-    READ_FIELD(options, stream, doc_string)                                                //
-    READ_FIELD(options, stream, f)                                                         //
-    READ_FIELD(options, stream, i)                                                         //
-    READ_FIELD(options, stream, s)                                                         //
-    READ_OPTIONAL_PROTO_FIELD(options, stream, t)                                          //
-    READ_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor)                              //
-    READ_OPTIONAL_PROTO_FIELD(options, stream, g)                                          //
-    READ_REPEATED_FIELD(options, stream, floats)                                           //
-    READ_REPEATED_FIELD(options, stream, ints)                                             //
-    READ_REPEATED_FIELD(options, stream, strings)                                          //
-    READ_REPEATED_FIELD(options, stream, tensors)                                          //
-    READ_REPEATED_FIELD(options, stream, sparse_tensors)                                   //
-    READ_REPEATED_FIELD(options, stream, graphs) READ_END(options, stream, AttributeProto) //
+    READ_BEGIN(options, stream, AttributeProto)               //
+    READ_FIELD(options, stream, name)                         //
+    READ_FIELD(options, stream, ref_attr_name)                //
+    READ_ENUM_FIELD(options, stream, type)                    //
+    READ_FIELD(options, stream, doc_string)                   //
+    READ_FIELD(options, stream, f)                            //
+    READ_FIELD(options, stream, i)                            //
+    READ_FIELD(options, stream, s)                            //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, t)             //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor) //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, g)             //
+    READ_REPEATED_FIELD(options, stream, floats)              //
+    READ_REPEATED_FIELD(options, stream, ints)                //
+    READ_REPEATED_FIELD(options, stream, strings)             //
+    READ_REPEATED_FIELD(options, stream, tensors)             //
+    READ_REPEATED_FIELD(options, stream, sparse_tensors)      //
+    READ_REPEATED_FIELD(options, stream, graphs)              //
+    READ_END(options, stream, AttributeProto)                 //
 } std::vector<std::string> AttributeProto::PrintToVectorString(utils::PrintOptions &options) const {
   switch (type_) {
   case AttributeType::UNDEFINED:
-    return {MakeString("{ ", name_.as_string(), ": UNDEFINED }")};
+    return {MakeString("{", name_.as_string(), ": UNDEFINED }")};
   case AttributeType::FLOAT:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(f))};
+    return {MakeString("{", name_.as_string(), ": ", has_f() ? MakeString(*f_) : "?", "}")};
   case AttributeType::INT:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(i))};
+    return {MakeString("{", name_.as_string(), ": ", has_i() ? MakeString(*i_) : "?", "}")};
   case AttributeType::STRING:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(s))};
+    return {MakeString("{", name_.as_string(), ": ", s_.as_string(), "}")};
   case AttributeType::FLOATS:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(floats))};
+    return {MakeString("{", name_.as_string(), ": ", write_as_string(options, floats_), "}")};
   case AttributeType::INTS:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ints))};
+    return {MakeString("{", name_.as_string(), ": ", write_as_string(options, ints_), "}")};
   case AttributeType::STRINGS:
-    return {write_as_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(strings))};
+    return {MakeString("{", name_.as_string(), ": ", write_as_string(options, strings_), "}")};
   default:
     return write_proto_into_vector_string(
         options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(ref_attr_name), NAME_EXIST_VALUE(doc_string),
@@ -694,7 +695,7 @@ uint64_t NodeProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeOpt
   SIZE_FIELD(size, options, stream, name)
   SIZE_FIELD(size, options, stream, op_type)
   SIZE_REPEATED_FIELD(size, options, stream, attribute)
-  SIZE_FIELD(size, options, stream, domain)
+  SIZE_FIELD_NULL(size, options, stream, domain)
   SIZE_FIELD(size, options, stream, overload)
   SIZE_FIELD(size, options, stream, doc_string)
   SIZE_REPEATED_FIELD(size, options, stream, metadata_props)
@@ -707,7 +708,7 @@ void NodeProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOpt
   WRITE_FIELD(options, stream, name)
   WRITE_FIELD(options, stream, op_type)
   WRITE_REPEATED_FIELD(options, stream, attribute)
-  WRITE_FIELD(options, stream, domain)
+  WRITE_FIELD_NULL(options, stream, domain)
   WRITE_FIELD(options, stream, overload)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, metadata_props)
@@ -798,7 +799,7 @@ uint64_t FunctionProto::SerializeSize(utils::BinaryWriteStream &stream,
   SIZE_REPEATED_FIELD(size, options, stream, node)
   SIZE_FIELD(size, options, stream, doc_string)
   SIZE_REPEATED_FIELD(size, options, stream, opset_import)
-  SIZE_FIELD(size, options, stream, domain)
+  SIZE_FIELD_NULL(size, options, stream, domain)
   SIZE_FIELD(size, options, stream, overload)
   SIZE_REPEATED_FIELD(size, options, stream, value_info)
   SIZE_REPEATED_FIELD(size, options, stream, metadata_props)
@@ -814,7 +815,7 @@ void FunctionProto::SerializeToStream(utils::BinaryWriteStream &stream,
   WRITE_REPEATED_FIELD(options, stream, node)
   WRITE_FIELD(options, stream, doc_string)
   WRITE_REPEATED_FIELD(options, stream, opset_import)
-  WRITE_FIELD(options, stream, domain)
+  WRITE_FIELD_NULL(options, stream, domain)
   WRITE_FIELD(options, stream, overload)
   WRITE_REPEATED_FIELD(options, stream, value_info)
   WRITE_REPEATED_FIELD(options, stream, metadata_props)

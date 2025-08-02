@@ -36,6 +36,7 @@ public:
   virtual void can_read(uint64_t len, const char *msg) = 0;
   virtual bool not_end() const = 0;
   virtual offset_t tell() const = 0;
+  virtual std::string tell_around() const = 0;
   virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
   virtual void skip_bytes(offset_t n_bytes) = 0;
   virtual void read_string_stream(StringStream &stream) = 0;
@@ -113,6 +114,7 @@ public:
   virtual void read_string_stream(StringStream &stream) override;
   virtual bool not_end() const override { return pos_ < size_; }
   virtual offset_t tell() const override { return static_cast<offset_t>(pos_); }
+  virtual std::string tell_around() const override;
   virtual inline int64_t size() const { return size_; }
   virtual bool is_locked() const { return false; }
   virtual void set_lock(bool) {}
@@ -178,6 +180,7 @@ public:
   virtual void read_string_stream(StringStream &stream) override;
   virtual bool not_end() const override;
   virtual offset_t tell() const override;
+  virtual std::string tell_around() const override;
   virtual bool is_open() const;
   virtual int64_t size() const override { return size_; }
   virtual inline bool is_locked() const { return lock_; }

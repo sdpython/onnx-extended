@@ -205,7 +205,7 @@ class TestOnnx2(ExtTestCase):
         p = onnx.TensorProto()
         p.name = "test"
         p.dims.extend([2])
-        p.int64_data.extend((4, 5))
+        p.int64_data.extend([4, 5])
         p.data_type = onnx.TensorProto.INT64
         s = p.SerializeToString()
 
@@ -219,6 +219,7 @@ class TestOnnx2(ExtTestCase):
         p0.ParseFromString(s2)
         s0 = p0.SerializeToString()
         self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p.int64_data), tuple(p2.int64_data))
         self.assertEqual(tuple(p0.int64_data), tuple(p2.int64_data))
         self.assertEqual(s, s0)
 
@@ -240,10 +241,11 @@ class TestOnnx2(ExtTestCase):
         p0.ParseFromString(s2)
         s0 = p0.SerializeToString()
         self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(tuple(p.uint64_data), tuple(p2.uint64_data))
         self.assertEqual(tuple(p0.uint64_data), tuple(p2.uint64_data))
         self.assertEqual(s, s0)
 
-    def test_tensor_proto_uint64_data_reverse(self):
+    def test_tensor_proto_uint64_data_reverse1(self):
         p = onnx2.TensorProto()
         p.name = "test"
         s = p.name
@@ -254,6 +256,39 @@ class TestOnnx2(ExtTestCase):
         s = p.SerializeToString()
         del p
         self.assertNotEmpty(s)
+        p = onnx2.TensorProto()
+        p.ParseFromString(s)
+        self.assertEqual(tuple(p.uint64_data), (4, 5))
+
+    def test_tensor_proto_uint64_data_reverse2(self):
+        p = onnx2.TensorProto()
+        p.name = "test"
+        s = p.name
+        self.assertEqual(s, "test")
+        p.dims.extend([2])
+        p.uint64_data.extend((4, 5))
+        p.data_type = onnx.TensorProto.UINT64
+        s = p.SerializeToString()
+        del p
+        self.assertNotEmpty(s)
+        px = onnx.TensorProto()
+        px.ParseFromString(s)
+        self.assertEqual(tuple(px.uint64_data), (4, 5))
+
+    def test_tensor_proto_uint64_data_reverse3(self):
+        p = onnx.TensorProto()
+        p.name = "test"
+        s = p.name
+        self.assertEqual(s, "test")
+        p.dims.extend([2])
+        p.uint64_data.extend([4, 5])
+        p.data_type = onnx.TensorProto.UINT64
+        s = p.SerializeToString()
+        del p
+        self.assertNotEmpty(s)
+        px = onnx2.TensorProto()
+        px.ParseFromString(s)
+        self.assertEqual(list(px.uint64_data), [4, 5])
 
     def test_tensor_proto_uint64_data_reverse_whole(self):
         p = onnx2.TensorProto()
@@ -350,6 +385,7 @@ class TestOnnx2(ExtTestCase):
         p0.ParseFromString(s2)
         s0 = p0.SerializeToString()
         self.assertEqual(tuple(p0.dims), tuple(p2.dims))
+        self.assertEqual(len(s), len(s0))
         self.assertEqual(s, s0)
 
     def test_tensor_annotation(self):
@@ -864,6 +900,229 @@ class TestOnnx2(ExtTestCase):
         self.assertIn("float_data: [5, 6, 7],", str(p0))
         self.assertFalse(p.has_sparse_tensor())
         self.assertFalse(p0.has_sparse_tensor())
+
+    def test_make_attribute_serialization_ints(self):
+        p = onnx.AttributeProto()
+        p.name = "axes"
+        p.type = onnx.AttributeProto.INTS
+        p.ints.extend([1])
+        self.assertEqual(list(p.ints), [1])
+
+        s = p.SerializeToString()
+        p2 = onnx2.AttributeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(list(p2.ints), [1])
+
+        s2 = p2.SerializeToString()
+        p0 = onnx.AttributeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(list(p0.ints), [1])
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_make_attribute_serialization_ints_reverse(self):
+        p = onnx2.AttributeProto()
+        p.name = "axes"
+        p.type = onnx2.AttributeProto.INTS
+        p.ints.extend([1])
+        self.assertEqual(list(p.ints), [1])
+
+        s = p.SerializeToString()
+        p2 = onnx.AttributeProto()
+        p2.ParseFromString(s)
+        self.assertEqual(p2.ints, [1])
+
+        s2 = p2.SerializeToString()
+        p0 = onnx2.AttributeProto()
+        p0.ParseFromString(s2)
+        self.assertEqual(list(p0.ints), [1])
+        self.assertEqual(p.SerializeToString(), p0.SerializeToString())
+
+    def test_make_constant_int(self):
+        for dt in [
+            onnx.TensorProto.INT32,
+            onnx.TensorProto.INT64,
+            onnx.TensorProto.UINT64,
+        ]:
+            with self.subTest(dt=dt):
+                t = onnx.TensorProto()
+                t.data_type = dt
+                t.dims.extend([1])
+                t.int64_data.extend([-1])
+
+                t2 = onnx2.TensorProto()
+                t2.data_type = dt
+                t2.dims.extend([1])
+                t2.int64_data.extend([-1])
+
+                node = oh.make_node(
+                    "Constant", [], ["AAA"], value=t, domain="M", name="NN"
+                )
+                node.attribute[0].doc_string = "DOC"
+                node.attribute[0].ref_attr_name = "REF"
+
+                nnn2 = oh2.make_node(
+                    "Constant", [], ["AAA"], value=t2, domain="M", name="NN"
+                )
+                nnn2.attribute[0].doc_string = "DOC"
+                nnn2.attribute[0].ref_attr_name = "REF"
+
+                s = node.SerializeToString()
+                snn2 = nnn2.SerializeToString()
+                onnx2.NodeProto().ParseFromString(snn2)
+
+                node2 = onnx2.NodeProto()
+                node2.ParseFromString(s)
+                self.assertEqual(node2.name, node.name)
+                self.assertEqual(list(node2.output), list(node.output))
+                self.assertEqual(node2.domain, node.domain)
+                self.assertEqual(len(node2.attribute), len(node.attribute))
+                a1 = node.attribute[0]
+                a2 = node2.attribute[0]
+                self.assertEqual(a1.name, a2.name)
+                self.assertEqual(a1.type, int(a2.type))
+                self.assertEqual(list(a1.t.dims), list(a2.t.dims))
+                self.assertEqual(list(a1.t.int64_data), list(a2.t.int64_data))
+                self.assertEqual(len(s), len(snn2))
+
+    def test_make_tensor_int(self):
+        for dt in [
+            onnx.TensorProto.INT32,
+            onnx.TensorProto.INT64,
+            onnx.TensorProto.UINT64,
+        ]:
+            with self.subTest(dt=dt):
+                t = onnx.TensorProto()
+                t.data_type = dt
+                t.dims.extend([5])
+                t.int64_data.extend([-1, 2, -3, 4, -5])
+
+                t2 = onnx2.TensorProto()
+                t2.data_type = dt
+                t2.dims.extend([5])
+                t2.int64_data.extend([-1, 2, -3, 4, -5])
+
+                s = t.SerializeToString()
+                snn2 = t2.SerializeToString()
+                read2 = onnx2.TensorProto()
+                read2.ParseFromString(s)
+                self.assertEqual(read2.name, t.name)
+                self.assertEqual(list(t.dims), list(read2.dims))
+                self.assertEqual(list(t.int64_data), list(read2.int64_data))
+                self.assertEqual(len(s), len(snn2))
+
+    def test_make_constant_float(self):
+        for dt in [onnx.TensorProto.FLOAT]:
+            with self.subTest(dt=dt):
+                t = onnx.TensorProto()
+                t.data_type = dt
+                t.dims.extend([5])
+                t.float_data.extend([-1.0, 2.0, -3.0, 4.0, -5.0])
+
+                t2 = onnx2.TensorProto()
+                t2.data_type = dt
+                t2.dims.extend([5])
+                t2.float_data.extend([-1.0, 2.0, -3.0, 4.0, -5.0])
+
+                node = oh.make_node(
+                    "Constant", [], ["AAA"], value=t, domain="M", name="NN"
+                )
+                node.attribute[0].doc_string = "DOC"
+                node.attribute[0].ref_attr_name = "REF"
+
+                nnn2 = oh2.make_node(
+                    "Constant", [], ["AAA"], value=t2, domain="M", name="NN"
+                )
+                nnn2.attribute[0].doc_string = "DOC"
+                nnn2.attribute[0].ref_attr_name = "REF"
+
+                s = node.SerializeToString()
+                snn2 = nnn2.SerializeToString()
+
+                node2 = onnx2.NodeProto()
+                node2.ParseFromString(s)
+                self.assertEqual(node2.name, node.name)
+                self.assertEqual(list(node2.output), list(node.output))
+                self.assertEqual(node2.domain, node.domain)
+                self.assertEqual(len(node2.attribute), len(node.attribute))
+                a1 = node.attribute[0]
+                a2 = node2.attribute[0]
+                self.assertEqual(a1.name, a2.name)
+                self.assertEqual(a1.type, int(a2.type))
+                self.assertEqual(list(a1.t.dims), list(a2.t.dims))
+                self.assertEqual(list(a1.t.float_data), list(a2.t.float_data))
+                self.assertEqual(len(s), len(snn2))
+
+    def test_make_constant_double(self):
+        for dt in [onnx.TensorProto.FLOAT, onnx.TensorProto.DOUBLE]:
+            with self.subTest(dt=dt):
+                t = onnx.TensorProto()
+                t.data_type = dt
+                t.dims.extend([1])
+                t.double_data.extend([-1.0])
+
+                t2 = onnx2.TensorProto()
+                t2.data_type = dt
+                t2.dims.extend([1])
+                t2.double_data.extend([-1.0])
+
+                node = oh.make_node(
+                    "Constant", [], ["AAA"], value=t, domain="M", name="NN"
+                )
+                node.attribute[0].doc_string = "DOC"
+                node.attribute[0].ref_attr_name = "REF"
+
+                nnn2 = oh2.make_node(
+                    "Constant", [], ["AAA"], value=t2, domain="M", name="NN"
+                )
+                nnn2.attribute[0].doc_string = "DOC"
+                nnn2.attribute[0].ref_attr_name = "REF"
+
+                s = node.SerializeToString()
+                snn2 = nnn2.SerializeToString()
+
+                node2 = onnx2.NodeProto()
+                node2.ParseFromString(s)
+                self.assertEqual(node2.name, node.name)
+                self.assertEqual(list(node2.output), list(node.output))
+                self.assertEqual(node2.domain, node.domain)
+                self.assertEqual(len(node2.attribute), len(node.attribute))
+                a1 = node.attribute[0]
+                a2 = node2.attribute[0]
+                self.assertEqual(a1.name, a2.name)
+                self.assertEqual(a1.type, int(a2.type))
+                self.assertEqual(list(a1.t.dims), list(a2.t.dims))
+                self.assertEqual(list(a1.t.double_data), list(a2.t.double_data))
+                self.assertEqual(len(s), len(snn2))
+
+    def test_make_node_attention(self):
+        node = oh.make_node(
+            "Attention",
+            ["A", "B", "C"],
+            ["D"],
+            kv_num_heads=3,
+            q_num_heads=3,
+            scale=0.01,
+            name="NAME",
+        )
+
+        for att in node.attribute:
+            s = att.SerializeToString()
+            a_ = onnx.AttributeProto()
+            a_.ParseFromString(s)
+            a2 = oh2.AttributeProto()
+            a2.ParseFromString(s)
+            s2 = a2.SerializeToString()
+            a3 = onnx.AttributeProto()
+            a3.ParseFromString(s2)
+
+        s = node.SerializeToString()
+        node_ = onnx.NodeProto()
+        node_.ParseFromString(s)
+        node2 = oh2.NodeProto()
+        node2.ParseFromString(s)
+        s2 = node2.SerializeToString()
+        node3 = onnx.NodeProto()
+        node3.ParseFromString(s2)
 
 
 if __name__ == "__main__":

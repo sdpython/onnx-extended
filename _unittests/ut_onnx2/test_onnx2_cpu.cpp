@@ -1,6 +1,7 @@
 #include "onnx_extended/onnx2/cpu/onnx2.h"
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
+#include <filesystem>
 #include <gtest/gtest.h>
 
 using namespace onnx2;
@@ -223,6 +224,264 @@ TEST(onnx2_string, RefString) {
   EXPECT_FALSE(a.empty());
   EXPECT_EQ(a, a);
   EXPECT_EQ(a, "iii");
+}
+
+TEST(onnx2_string, RefString_ConstructorFromConstCharPtr) {
+  const char *text = "hello world";
+  utils::RefString rs(text, 11);
+  EXPECT_EQ(rs.size(), 11);
+  EXPECT_EQ(rs.data(), text);
+  EXPECT_FALSE(rs.empty());
+  EXPECT_EQ(rs, "hello world");
+
+  utils::RefString empty_rs("", 0);
+  EXPECT_EQ(empty_rs.size(), 0);
+  EXPECT_TRUE(empty_rs.empty());
+  EXPECT_EQ(empty_rs, "");
+
+  utils::RefString null_rs(nullptr, 0);
+  EXPECT_EQ(null_rs.size(), 0);
+  EXPECT_TRUE(null_rs.empty());
+  EXPECT_EQ(null_rs.data(), nullptr);
+}
+
+TEST(onnx2_string, RefString_AssignmentVariations) {
+  utils::RefString source("source", 6);
+  utils::RefString target("target", 6);
+  EXPECT_EQ(target, "target");
+  target = source;
+  EXPECT_EQ(target, "source");
+  EXPECT_EQ(target.data(), source.data());
+  EXPECT_EQ(target.size(), source.size());
+
+  utils::RefString empty(nullptr, 0);
+  utils::RefString non_empty("data", 4);
+  non_empty = empty;
+  EXPECT_TRUE(non_empty.empty());
+  EXPECT_EQ(non_empty.size(), 0);
+  EXPECT_EQ(non_empty.data(), nullptr);
+}
+
+TEST(onnx2_string, String_ConstructorFromConstCharPtrVariations) {
+  utils::String s1("test string", 11);
+  EXPECT_EQ(s1.size(), 11);
+  EXPECT_EQ(s1, "test string");
+
+  utils::String s2("embedded\0null", 13);
+  EXPECT_EQ(s2.size(), 13);
+  EXPECT_EQ(s2[8], '\0');
+  EXPECT_EQ(s2[9], 'n');
+
+  utils::String s3("", 0);
+  EXPECT_EQ(s3.size(), 0);
+  EXPECT_TRUE(s3.empty());
+
+  utils::String s4(nullptr, 0);
+  EXPECT_EQ(s4.size(), 0);
+  EXPECT_TRUE(s4.empty());
+}
+
+TEST(onnx2_string, String_ConstructorFromStdString) {
+  std::string std_str = "hello std::string";
+  utils::String s1(std_str);
+  EXPECT_EQ(s1.size(), std_str.size());
+  EXPECT_EQ(s1, std_str);
+
+  std::string empty_str = "";
+  utils::String s2(empty_str);
+  EXPECT_EQ(s2.size(), 0);
+  EXPECT_TRUE(s2.empty());
+
+  std::string null_str(10, '\0');
+  utils::String s3(null_str);
+  // String loses the last character if it is a null terminator.
+  EXPECT_EQ(s3.size(), 9);
+  for (size_t i = 0; i < 9; i++) {
+    EXPECT_EQ(s3[i], '\0');
+  }
+}
+
+TEST(onnx2_string, String_ConstructorFromRefString) {
+  utils::RefString ref1("reference data", 14);
+  utils::String s1(ref1);
+  EXPECT_EQ(s1.size(), ref1.size());
+  EXPECT_EQ(s1, ref1);
+  EXPECT_NE(s1.data(), ref1.data());
+
+  utils::RefString ref2(nullptr, 0);
+  utils::String s2(ref2);
+  EXPECT_EQ(s2.size(), 0);
+  EXPECT_TRUE(s2.empty());
+
+  char data[5] = {'a', '\0', 'b', '\0', 'c'};
+  utils::RefString ref3(data, 5);
+  utils::String s3(ref3);
+  EXPECT_EQ(s3.size(), 5);
+  EXPECT_EQ(s3[0], 'a');
+  EXPECT_EQ(s3[1], '\0');
+  EXPECT_EQ(s3[2], 'b');
+  EXPECT_EQ(s3[3], '\0');
+  EXPECT_EQ(s3[4], 'c');
+}
+
+TEST(onnx2_string, String_CopyConstructor) {
+  utils::String original("original data", 13);
+  utils::String copy(original);
+  EXPECT_EQ(copy.size(), original.size());
+  EXPECT_EQ(copy, original);
+  EXPECT_NE(copy.data(), original.data());
+
+  original = "changed data";
+  EXPECT_EQ(copy, "original data");
+  EXPECT_NE(copy, original);
+
+  utils::String empty_original;
+  utils::String empty_copy(empty_original);
+  EXPECT_EQ(empty_copy.size(), 0);
+  EXPECT_TRUE(empty_copy.empty());
+}
+
+TEST(onnx2_string, String_MoveConstructor) {
+  utils::String original("move this data", 14);
+  const char *original_data = original.data();
+  utils::String moved(std::move(original));
+
+  EXPECT_EQ(moved.size(), 14);
+  EXPECT_EQ(moved, "move this data");
+  EXPECT_EQ(moved.data(), original_data);
+
+  EXPECT_TRUE(original.empty() || original.size() == 0);
+}
+
+TEST(onnx2_string, String_AssignmentOperators) {
+  utils::String s;
+
+  s = "1234567890123456789";
+  EXPECT_EQ(s.size(), 19);
+  EXPECT_EQ(s, "1234567890123456789");
+
+  utils::RefString ref("1234567890123456789012", 22);
+  s = ref;
+  EXPECT_EQ(s.size(), 22);
+  EXPECT_EQ(s, ref);
+  EXPECT_NE(s.data(), ref.data());
+
+  utils::String other("A234567890123456789", 19);
+  s = other;
+  EXPECT_EQ(s.size(), 19);
+  EXPECT_EQ(s, other);
+  EXPECT_NE(s.data(), other.data());
+
+  std::string std_str = "assigned from std::string";
+  s = std_str;
+  EXPECT_EQ(s.size(), std_str.size());
+  EXPECT_EQ(s, std_str);
+
+  s = s;
+  EXPECT_EQ(s, "assigned from std::string");
+}
+
+TEST(onnx2_string, String_SelfAssignmentSafety) {
+  utils::String s("12345678901234567890", 19);
+
+  s = s;
+  EXPECT_EQ(s.size(), 19);
+  EXPECT_EQ(s, "1234567890123456789");
+  EXPECT_EQ(s, "1234567890123456789");
+
+  utils::String *ptr = &s;
+  *ptr = *ptr;
+  EXPECT_EQ(*ptr, "1234567890123456789");
+}
+
+TEST(onnx2_string, RefString_EqualityEdgeCases) {
+  char data1[] = {'t', 'e', 's', 't', '\0', '!'};
+  char data2[] = {'t', 'e', 's', 't', '\0', '?'};
+
+  utils::RefString rs1(data1, 6);
+  utils::RefString rs2(data2, 6);
+  utils::RefString rs3(data1, 4);
+
+  EXPECT_NE(rs1, rs2);
+  EXPECT_NE(rs1, rs3);
+
+  utils::RefString null_rs(nullptr, 0);
+  utils::RefString empty_rs("", 0);
+
+  EXPECT_EQ(null_rs, empty_rs);
+  EXPECT_EQ(null_rs, nullptr);
+  EXPECT_EQ(null_rs, "");
+  EXPECT_NE(rs1, nullptr);
+  EXPECT_NE(rs1, "");
+}
+
+TEST(onnx2_string, String_EqualityEdgeCases) {
+  utils::String s1("test\0!", 6);
+  utils::String s2("test\0?", 6);
+  utils::String s3("test", 4);
+
+  EXPECT_NE(s1, s2);
+  EXPECT_NE(s1, s3);
+
+  utils::String empty;
+  EXPECT_TRUE(empty.empty());
+  EXPECT_EQ(empty, "");
+  EXPECT_EQ(empty, nullptr);
+  EXPECT_NE(s1, nullptr);
+  EXPECT_NE(s1, "");
+
+  utils::RefString rs("test", 4);
+  EXPECT_EQ(s3, rs);
+  EXPECT_NE(s1, rs);
+}
+
+TEST(onnx2_string, String_NullVersusSizeZero) {
+  utils::String null_string;
+  EXPECT_TRUE(null_string.empty());
+  EXPECT_EQ(null_string.size(), 0);
+  EXPECT_EQ(null_string.data(), nullptr);
+
+  utils::String empty_string("", 0);
+  EXPECT_TRUE(empty_string.empty());
+  EXPECT_EQ(empty_string.size(), 0);
+
+  EXPECT_EQ(null_string, empty_string);
+  EXPECT_EQ(null_string, "");
+  EXPECT_EQ(empty_string, "");
+}
+
+TEST(onnx2_string, RefString_AsStringEdgeCases) {
+  utils::RefString rs1("regular string", 13);
+  std::string s1 = rs1.as_string();
+  EXPECT_EQ(s1, "regular strin");
+
+  char data[] = {'t', 'e', 's', 't', '\0', '!'};
+  utils::RefString rs2(data, 6);
+  std::string s2 = rs2.as_string();
+  EXPECT_EQ(s2.size(), 6);
+  EXPECT_EQ(s2[4], '\0');
+
+  utils::RefString null_rs(nullptr, 0);
+  std::string s3 = null_rs.as_string();
+  EXPECT_TRUE(s3.empty());
+  EXPECT_EQ(s3, "");
+}
+
+TEST(onnx2_string, String_AsStringEdgeCases) {
+  utils::String s1("1234567890123", 13);
+  std::string std_s1 = s1.as_string();
+  EXPECT_EQ(std_s1, "1234567890123");
+
+  utils::String s2("test\0!", 6);
+  std::string std_s2 = s2.as_string();
+  EXPECT_EQ(std_s2.size(), 6);
+  EXPECT_EQ(std_s2[4], '\0');
+
+  // String vide
+  utils::String empty;
+  std::string std_s3 = empty.as_string();
+  EXPECT_TRUE(std_s3.empty());
+  EXPECT_EQ(std_s3, "");
 }
 
 TEST(onnx2_string, String) {
@@ -2199,11 +2458,10 @@ TEST(onnx2_string, AttributeProto) {
   bool foundValue = false;
 
   std::string serialized = utils::join_string(result, "\n");
-  if (serialized.find("name:") != std::string::npos &&
-      serialized.find("dropout_ratio") != std::string::npos) {
+  if (serialized.find("dropout_ratio") != std::string::npos) {
     foundName = true;
   }
-  if (serialized.find("f:") != std::string::npos && serialized.find("0.5") != std::string::npos) {
+  if (serialized.find(": 0.5") != std::string::npos) {
     foundValue = true;
   }
   EXPECT_TRUE(foundName);
@@ -3438,4 +3696,693 @@ TEST(onnx2_stream, FileStream_TensorProto) {
 
   // Clean up
   std::remove(temp_filename.c_str());
+}
+
+TEST(onnx2_proto, AttributeProto_TensorsAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("weights");
+  attribute.set_type(AttributeProto::AttributeType::TENSORS);
+
+  TensorProto &tensor1 = attribute.add_tensors();
+  tensor1.set_name("tensor1");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.ref_dims().push_back(2);
+  tensor1.ref_dims().push_back(3);
+  tensor1.ref_float_data().push_back(1.0f);
+  tensor1.ref_float_data().push_back(2.0f);
+  tensor1.ref_float_data().push_back(3.0f);
+  tensor1.ref_float_data().push_back(4.0f);
+  tensor1.ref_float_data().push_back(5.0f);
+  tensor1.ref_float_data().push_back(6.0f);
+
+  TensorProto &tensor2 = attribute.add_tensors();
+  tensor2.set_name("tensor2");
+  tensor2.set_data_type(TensorProto::DataType::INT32);
+  tensor2.ref_dims().push_back(2);
+  tensor2.ref_int32_data().push_back(10);
+  tensor2.ref_int32_data().push_back(20);
+
+  EXPECT_EQ(attribute.ref_name(), "weights");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::TENSORS);
+  EXPECT_EQ(attribute.ref_tensors().size(), 2);
+  EXPECT_EQ(attribute.ref_tensors()[0].ref_name(), "tensor1");
+  EXPECT_EQ(attribute.ref_tensors()[0].ref_float_data().size(), 6);
+  EXPECT_EQ(attribute.ref_tensors()[1].ref_name(), "tensor2");
+  EXPECT_EQ(attribute.ref_tensors()[1].ref_int32_data().size(), 2);
+}
+
+TEST(onnx2_proto, AttributeProto_GraphsAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("branches");
+  attribute.set_type(AttributeProto::AttributeType::GRAPHS);
+
+  GraphProto &graph1 = attribute.add_graphs();
+  graph1.set_name("if_branch");
+  NodeProto &node1 = graph1.add_node();
+  node1.set_name("add_node");
+  node1.set_op_type("Add");
+
+  GraphProto &graph2 = attribute.add_graphs();
+  graph2.set_name("else_branch");
+  NodeProto &node2 = graph2.add_node();
+  node2.set_name("mul_node");
+  node2.set_op_type("Mul");
+
+  EXPECT_EQ(attribute.ref_name(), "branches");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::GRAPHS);
+  EXPECT_EQ(attribute.ref_graphs().size(), 2);
+  EXPECT_EQ(attribute.ref_graphs()[0].ref_name(), "if_branch");
+  EXPECT_EQ(attribute.ref_graphs()[0].ref_node()[0].ref_op_type(), "Add");
+  EXPECT_EQ(attribute.ref_graphs()[1].ref_name(), "else_branch");
+  EXPECT_EQ(attribute.ref_graphs()[1].ref_node()[0].ref_op_type(), "Mul");
+}
+
+TEST(onnx2_proto, AttributeProto_DocString) {
+  AttributeProto attribute;
+  attribute.set_name("dropout_ratio");
+  attribute.set_type(AttributeProto::AttributeType::FLOAT);
+  attribute.set_f(0.5f);
+  attribute.set_doc_string("Controls the rate at which activations are dropped");
+
+  EXPECT_EQ(attribute.ref_name(), "dropout_ratio");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::FLOAT);
+  EXPECT_EQ(attribute.ref_f(), 0.5f);
+  EXPECT_EQ(attribute.ref_doc_string(), "Controls the rate at which activations are dropped");
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_INT) {
+  {
+    // Test INT attribute
+    AttributeProto int_attr;
+    int_attr.set_name("int_attr");
+    int_attr.set_type(AttributeProto::AttributeType::INT);
+    int_attr.set_i(42);
+
+    std::string serialized;
+    int_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "int_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::INT);
+    EXPECT_EQ(deserialized.ref_i(), 42);
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_FLOAT) {
+  {
+    // Test FLOAT attribute
+    AttributeProto float_attr;
+    float_attr.set_name("float_attr");
+    float_attr.set_type(AttributeProto::AttributeType::FLOAT);
+    float_attr.set_f(3.14f);
+
+    std::string serialized;
+    float_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "float_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::FLOAT);
+    EXPECT_FLOAT_EQ(deserialized.ref_f(), 3.14f);
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_STRING) {
+  {
+    // Test STRING attribute
+    AttributeProto string_attr;
+    string_attr.set_name("string_attr");
+    string_attr.set_type(AttributeProto::AttributeType::STRING);
+    string_attr.set_s("test_string");
+
+    std::string serialized;
+    string_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "string_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::STRING);
+    EXPECT_EQ(deserialized.ref_s(), "test_string");
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_INTS) {
+  {
+    // Test INTS attribute
+    AttributeProto ints_attr;
+    ints_attr.set_name("ints_attr");
+    ints_attr.set_type(AttributeProto::AttributeType::INTS);
+    ints_attr.ref_ints().push_back(1);
+    ints_attr.ref_ints().push_back(2);
+    ints_attr.ref_ints().push_back(3);
+
+    std::string serialized;
+    ints_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "ints_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::INTS);
+    EXPECT_EQ(deserialized.ref_ints().size(), 3);
+    EXPECT_EQ(deserialized.ref_ints()[0], 1);
+    EXPECT_EQ(deserialized.ref_ints()[1], 2);
+    EXPECT_EQ(deserialized.ref_ints()[2], 3);
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_FLOATS) {
+  {
+    // Test FLOATS attribute
+    AttributeProto floats_attr;
+    floats_attr.set_name("floats_attr");
+    floats_attr.set_type(AttributeProto::AttributeType::FLOATS);
+    floats_attr.ref_floats().push_back(1.1f);
+    floats_attr.ref_floats().push_back(2.2f);
+
+    std::string serialized;
+    floats_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "floats_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::FLOATS);
+    EXPECT_EQ(deserialized.ref_floats().size(), 2);
+    EXPECT_FLOAT_EQ(deserialized.ref_floats()[0], 1.1f);
+    EXPECT_FLOAT_EQ(deserialized.ref_floats()[1], 2.2f);
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_TENSOR) {
+  {
+    // Test TENSOR attribute
+    AttributeProto tensor_attr;
+    tensor_attr.set_name("tensor_attr");
+    tensor_attr.set_type(AttributeProto::AttributeType::TENSOR);
+    tensor_attr.ref_t().set_data_type(TensorProto::DataType::FLOAT);
+    tensor_attr.ref_t().add_dims() = 2;
+    tensor_attr.ref_t().add_dims() = 3;
+    tensor_attr.ref_t().ref_float_data().add() = 1.1f;
+    tensor_attr.ref_t().ref_float_data().add() = 2.2f;
+
+    std::string serialized;
+    tensor_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "tensor_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::TENSOR);
+    EXPECT_EQ(deserialized.ref_t().ref_data_type(), TensorProto::DataType::FLOAT);
+    EXPECT_EQ(deserialized.ref_t().ref_dims().size(), 2);
+    EXPECT_EQ(deserialized.ref_t().ref_dims()[0], 2);
+    EXPECT_EQ(deserialized.ref_t().ref_dims()[1], 3);
+    EXPECT_EQ(deserialized.ref_t().ref_float_data().size(), 2);
+    EXPECT_FLOAT_EQ(deserialized.ref_t().ref_float_data()[0], 1.1f);
+    EXPECT_FLOAT_EQ(deserialized.ref_t().ref_float_data()[1], 2.2f);
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_STRINGS) {
+  {
+    // Test STRINGS attribute
+    AttributeProto strings_attr;
+    strings_attr.set_name("strings_attr");
+    strings_attr.set_type(AttributeProto::AttributeType::STRINGS);
+    strings_attr.ref_strings().push_back(utils::String("test_string_1"));
+    strings_attr.ref_strings().push_back(utils::String("test_string_2"));
+
+    std::string serialized;
+    strings_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "strings_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::STRINGS);
+    EXPECT_EQ(deserialized.ref_strings().size(), 2);
+    EXPECT_EQ(deserialized.ref_strings()[0], "test_string_1");
+    EXPECT_EQ(deserialized.ref_strings()[1], "test_string_2");
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_AllTypes_GRAPH) {
+  {
+    // Test GRAPH attribute
+    AttributeProto graph_attr;
+    graph_attr.set_name("graph_attr");
+    graph_attr.set_type(AttributeProto::AttributeType::GRAPH);
+    graph_attr.ref_g().set_name("test_graph");
+
+    std::string serialized;
+    graph_attr.SerializeToString(serialized);
+
+    AttributeProto deserialized;
+    deserialized.ParseFromString(serialized);
+
+    EXPECT_EQ(deserialized.ref_name(), "graph_attr");
+    EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::GRAPH);
+    EXPECT_EQ(deserialized.ref_g().ref_name(), "test_graph");
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_PrintToVectorString_AllTypes) {
+  utils::PrintOptions options;
+
+  {
+    // Test INT attribute print
+    AttributeProto int_attr;
+    int_attr.set_name("int_attr");
+    int_attr.set_type(AttributeProto::AttributeType::INT);
+    int_attr.set_i(42);
+
+    std::vector<std::string> result = int_attr.PrintToVectorString(options);
+    std::string serialized = utils::join_string(result, "\n");
+
+    EXPECT_TRUE(serialized.find("int_attr: 42") != std::string::npos);
+  }
+
+  {
+    // Test INTS attribute print
+    AttributeProto ints_attr;
+    ints_attr.set_name("ints_attr");
+    ints_attr.set_type(AttributeProto::AttributeType::INTS);
+    ints_attr.ref_ints().push_back(1);
+    ints_attr.ref_ints().push_back(2);
+    ints_attr.ref_ints().push_back(3);
+
+    std::vector<std::string> result = ints_attr.PrintToVectorString(options);
+    std::string serialized = utils::join_string(result, "\n");
+
+    EXPECT_TRUE(serialized.find("ints_attr: [1, 2, 3]") != std::string::npos);
+  }
+
+  {
+    // Test FLOATS attribute print
+    AttributeProto floats_attr;
+    floats_attr.set_name("floats_attr");
+    floats_attr.set_type(AttributeProto::AttributeType::FLOATS);
+    floats_attr.ref_floats().push_back(1.1f);
+    floats_attr.ref_floats().push_back(2.2f);
+
+    std::vector<std::string> result = floats_attr.PrintToVectorString(options);
+    std::string serialized = utils::join_string(result, "\n");
+
+    EXPECT_TRUE(serialized.find("floats_attr: [1.1, 2.2]") != std::string::npos);
+  }
+}
+
+TEST(onnx2_proto, AttributeProto_EmptyCollectionAttributes) {
+  // Test empty INTS
+  AttributeProto ints_attr;
+  ints_attr.set_name("empty_ints");
+  ints_attr.set_type(AttributeProto::AttributeType::INTS);
+
+  EXPECT_EQ(ints_attr.ref_name(), "empty_ints");
+  EXPECT_EQ(ints_attr.ref_type(), AttributeProto::AttributeType::INTS);
+  EXPECT_EQ(ints_attr.ref_ints().size(), 0);
+
+  // Test empty FLOATS
+  AttributeProto floats_attr;
+  floats_attr.set_name("empty_floats");
+  floats_attr.set_type(AttributeProto::AttributeType::FLOATS);
+
+  EXPECT_EQ(floats_attr.ref_name(), "empty_floats");
+  EXPECT_EQ(floats_attr.ref_type(), AttributeProto::AttributeType::FLOATS);
+  EXPECT_EQ(floats_attr.ref_floats().size(), 0);
+
+  // Test empty STRINGS
+  AttributeProto strings_attr;
+  strings_attr.set_name("empty_strings");
+  strings_attr.set_type(AttributeProto::AttributeType::STRINGS);
+
+  EXPECT_EQ(strings_attr.ref_name(), "empty_strings");
+  EXPECT_EQ(strings_attr.ref_type(), AttributeProto::AttributeType::STRINGS);
+  EXPECT_EQ(strings_attr.ref_strings().size(), 0);
+
+  // Test empty TENSORS
+  AttributeProto tensors_attr;
+  tensors_attr.set_name("empty_tensors");
+  tensors_attr.set_type(AttributeProto::AttributeType::TENSORS);
+
+  EXPECT_EQ(tensors_attr.ref_name(), "empty_tensors");
+  EXPECT_EQ(tensors_attr.ref_type(), AttributeProto::AttributeType::TENSORS);
+  EXPECT_EQ(tensors_attr.ref_tensors().size(), 0);
+}
+
+TEST(onnx2_proto, AttributeProto_RefVersusAccessors) {
+  AttributeProto attr;
+  attr.set_name("test_attr");
+
+  // Test INT
+  attr.set_type(AttributeProto::AttributeType::INT);
+  attr.set_i(42);
+  EXPECT_EQ(attr.ref_i(), 42);
+  EXPECT_TRUE(attr.has_i());
+
+  // Test FLOAT
+  attr.set_type(AttributeProto::AttributeType::FLOAT);
+  attr.set_f(3.14f);
+  EXPECT_FLOAT_EQ(attr.ref_f(), 3.14f);
+  EXPECT_TRUE(attr.has_f());
+
+  // Test STRING
+  attr.set_type(AttributeProto::AttributeType::STRING);
+  attr.set_s("test_string");
+  EXPECT_EQ(attr.ref_s(), "test_string");
+  EXPECT_TRUE(attr.has_s());
+
+  // Test TENSOR
+  attr.set_type(AttributeProto::AttributeType::TENSOR);
+  TensorProto &tensor = attr.add_t();
+  tensor.set_name("tensor_name");
+  EXPECT_EQ(attr.ref_t().ref_name(), "tensor_name");
+  EXPECT_TRUE(attr.has_t());
+
+  // Test GRAPH
+  attr.set_type(AttributeProto::AttributeType::GRAPH);
+  GraphProto &graph = attr.add_g();
+  graph.set_name("graph_name");
+  EXPECT_EQ(attr.ref_g().ref_name(), "graph_name");
+  EXPECT_TRUE(attr.has_g());
+}
+
+// check size of AttributeProto serialization with the function returning the size
+
+TEST(onnx2_proto, SerializeSize_AttributeProto) {
+  AttributeProto attribute;
+  attribute.set_name("test_attribute");
+  attribute.set_type(AttributeProto::AttributeType::INT);
+  attribute.set_i(42);
+  attribute.set_doc_string("Test attribute documentation");
+
+  std::string serialized;
+  attribute.SerializeToString(serialized);
+  utils::StringWriteStream stream;
+  SerializeOptions options;
+  EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
+}
+
+TEST(onnx2_proto, SerializeSize_AttributeProto_EmptyStrings) {
+  AttributeProto attribute;
+  attribute.set_name("");
+  attribute.set_type(AttributeProto::AttributeType::STRING);
+  attribute.set_s("");
+  attribute.set_doc_string("");
+
+  std::string serialized;
+  attribute.SerializeToString(serialized);
+  utils::StringWriteStream stream;
+  SerializeOptions options;
+  EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
+}
+
+TEST(onnx2_proto, SerializeSize_AttributeProto_NullStrings) {
+  AttributeProto attribute;
+  // Do not set name, s, or doc_string to simulate null strings
+  attribute.set_type(AttributeProto::AttributeType::STRING);
+
+  std::string serialized;
+  attribute.SerializeToString(serialized);
+  utils::StringWriteStream stream;
+  SerializeOptions options;
+  EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
+}
+
+TEST(onnx2_proto, SerializeSize_String) {
+  utils::String test_string("hello world", 11);
+
+  std::string serialized;
+  utils::StringWriteStream write_stream;
+  write_stream.write_string(test_string);
+
+  utils::StringStream read_stream(write_stream.data(), write_stream.size());
+  utils::RefString read_string = read_stream.next_string();
+
+  EXPECT_EQ(write_stream.size(),
+            test_string.size() + write_stream.size_variant_uint64(test_string.size()));
+  EXPECT_EQ(read_string, test_string);
+}
+
+TEST(onnx2_proto, SerializeSize_EmptyString) {
+  utils::String empty_string("", 0);
+
+  utils::StringWriteStream write_stream;
+  write_stream.write_string(empty_string);
+
+  utils::StringStream read_stream(write_stream.data(), write_stream.size());
+  utils::RefString read_string = read_stream.next_string();
+
+  EXPECT_EQ(write_stream.size(), write_stream.size_variant_uint64(0));
+  EXPECT_EQ(read_string.size(), 0);
+  EXPECT_TRUE(read_string.empty());
+}
+
+TEST(onnx2_proto, SerializeSize_NullString) {
+  utils::String null_string;
+
+  utils::StringWriteStream write_stream;
+  write_stream.write_string(null_string);
+
+  utils::StringStream read_stream(write_stream.data(), write_stream.size());
+  utils::RefString read_string = read_stream.next_string();
+
+  EXPECT_EQ(write_stream.size(), write_stream.size_variant_uint64(0));
+  EXPECT_EQ(read_string.size(), 0);
+  EXPECT_TRUE(read_string.empty());
+}
+
+TEST(onnx2_proto, SerializeSize_StringWithNulls) {
+  std::vector<char> data = {'t', 'e', 's', 't', '\0', 'n', 'u', 'l', 'l'};
+  utils::String string_with_nulls(data.data(), data.size());
+
+  utils::StringWriteStream write_stream;
+  write_stream.write_string(string_with_nulls);
+
+  utils::StringStream read_stream(write_stream.data(), write_stream.size());
+  utils::RefString read_string = read_stream.next_string();
+
+  EXPECT_EQ(write_stream.size(),
+            string_with_nulls.size() + write_stream.size_variant_uint64(string_with_nulls.size()));
+  EXPECT_EQ(read_string.size(), string_with_nulls.size());
+}
+
+TEST(onnx2_proto, SerializeSize_AttributeProto_IntFloatTensors) {
+  AttributeProto attribute;
+  attribute.set_name("complex_attribute");
+  attribute.set_type(AttributeProto::AttributeType::TENSORS);
+
+  TensorProto &tensor1 = attribute.add_tensors();
+  tensor1.set_name("tensor1");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.ref_dims().push_back(2);
+  tensor1.ref_dims().push_back(3);
+  tensor1.ref_float_data().push_back(1.0f);
+  tensor1.ref_float_data().push_back(2.0f);
+
+  TensorProto &tensor2 = attribute.add_tensors();
+  tensor2.set_name("tensor2");
+  tensor2.set_data_type(TensorProto::DataType::INT32);
+  tensor2.ref_dims().push_back(2);
+  tensor2.ref_int32_data().push_back(10);
+  tensor2.ref_int32_data().push_back(20);
+
+  TensorProto &tensor3 = attribute.add_tensors();
+  tensor3.set_name("tensor3");
+  tensor3.set_data_type(TensorProto::DataType::INT64);
+  tensor3.ref_dims().push_back(1);
+  tensor3.ref_int64_data().push_back(10);
+
+  TensorProto &tensor4 = attribute.add_tensors();
+  tensor4.set_name("tensor4");
+  tensor4.set_data_type(TensorProto::DataType::INT32);
+  tensor4.ref_dims().push_back(1);
+  tensor4.ref_int32_data().push_back(10);
+
+  SerializeOptions options;
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor2.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor2.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor3.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor3.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor4.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor4.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    tensor1.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), tensor1.SerializeSize(stream, options));
+  }
+  {
+    std::string serialized;
+    utils::StringWriteStream stream;
+    attribute.SerializeToString(serialized);
+    EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
+  }
+}
+
+TEST(onnx2_proto, SerializeSize_ConsistencyAcrossTypes) {
+  // Test with NodeProto
+  NodeProto node;
+  node.set_name("test_node");
+  node.set_op_type("TestOp");
+  node.add_input() = "input";
+  node.add_output() = "output";
+
+  std::string node_serialized;
+  node.SerializeToString(node_serialized);
+  utils::StringWriteStream node_stream;
+  SerializeOptions options;
+  EXPECT_EQ(node_serialized.size(), node.SerializeSize(node_stream, options));
+
+  // Test with GraphProto
+  GraphProto graph;
+  graph.set_name("test_graph");
+  NodeProto &graph_node = graph.add_node();
+  graph_node.set_name("node_in_graph");
+
+  std::string graph_serialized;
+  graph.SerializeToString(graph_serialized);
+  utils::StringWriteStream graph_stream;
+  EXPECT_EQ(graph_serialized.size(), graph.SerializeSize(graph_stream, options));
+
+  // Test with ModelProto
+  ModelProto model;
+  model.set_ir_version(7);
+  model.set_producer_name("test_model");
+  GraphProto &model_graph = model.add_graph();
+  model_graph.set_name("graph_in_model");
+
+  std::string model_serialized;
+  model.SerializeToString(model_serialized);
+  utils::StringWriteStream model_stream;
+  EXPECT_EQ(model_serialized.size(), model.SerializeSize(model_stream, options));
+}
+
+TEST(onnx2_file, LoadOnnxFile_OldProtobuf) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_ai_onnx_ml_binarizer.onnx";
+
+  ModelProto model;
+  utils::FileStream stream(file_path.string());
+  onnx2::ParseOptions opts;
+  model.ParseFromStream(stream, opts);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(model.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("Binarizer"), std::string::npos);
+}
+
+TEST(onnx2_file, LoadOnnxFile_Expanded) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_softmax_example_expanded.onnx";
+
+  ModelProto model;
+  utils::FileStream stream(file_path.string());
+  onnx2::ParseOptions opts;
+  model.ParseFromStream(stream, opts);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(model.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("ReduceSum"), std::string::npos);
+}
+
+TEST(onnx2_file, LoadOnnxFile_Constant) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_softmax_example_expanded.Constant.onnx";
+
+  NodeProto node;
+  utils::FileStream stream(file_path.string());
+  onnx2::ParseOptions opts;
+  node.ParseFromStream(stream, opts);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(node.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("Constant"), std::string::npos);
+}
+
+TEST(onnx2_file, LoadOnnxFile_ConstantAsString) {
+  std::vector<uint8_t> data = {
+      18,  3,   65,  65, 65,  26,  2,   78, 78, 34,  8, 67, 111, 110, 115, 116, 97,  110, 116, 42,  39,
+      10,  5,   118, 97, 108, 117, 101, 42, 16, 8,   1, 16, 6,   58,  10,  255, 255, 255, 255, 255, 255,
+      255, 255, 255, 1,  106, 3,   68,  79, 67, 160, 1, 4,  170, 1,   3,   82,  69,  70,  58,  1,   77};
+  std::string data_str(data.begin(), data.end());
+  EXPECT_EQ(data_str.size(), data.size());
+  NodeProto node;
+  node.ParseFromString(data_str);
+
+  utils::PrintOptions pr;
+  std::string text = utils::join_string(node.PrintToVectorString(pr), "\n");
+  EXPECT_NE(text.find("Constant"), std::string::npos);
+}
+
+TEST(onnx2_proto, TensorProto_uint64) {
+  TensorProto tensor = TensorProto();
+  tensor.set_name("tensor");
+  tensor.set_data_type(TensorProto::DataType::UINT64);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_uint64_data().push_back(4);
+  tensor.ref_uint64_data().push_back(5);
+
+  SerializeOptions options;
+  std::string serialized;
+  tensor.SerializeToString(serialized);
+
+  TensorProto t2 = TensorProto();
+  ParseOptions parse_options;
+  t2.ParseFromString(serialized, parse_options);
+
+  EXPECT_EQ(t2.ref_name(), tensor.ref_name());
+  EXPECT_EQ(t2.ref_data_type(), tensor.ref_data_type());
+  EXPECT_EQ(t2.ref_dims().size(), tensor.ref_dims().size());
+  EXPECT_EQ(t2.ref_uint64_data().size(), tensor.ref_uint64_data().size());
+  EXPECT_EQ(t2.ref_uint64_data()[0], 4);
+  EXPECT_EQ(t2.ref_uint64_data()[1], 5);
+  utils::StringWriteStream stream;
+  EXPECT_EQ(serialized.size(), tensor.SerializeSize(stream, options));
+}
+
+TEST(onnx2_proto, AttributeProto_float) {
+  AttributeProto attribute = AttributeProto();
+  attribute.set_name("attribute");
+  attribute.set_type(AttributeProto::AttributeType::FLOAT);
+  attribute.set_f(0.01f);
+
+  SerializeOptions options;
+  std::string serialized;
+  attribute.SerializeToString(serialized);
+
+  AttributeProto t2 = AttributeProto();
+  ParseOptions parse_options;
+  t2.ParseFromString(serialized, parse_options);
+
+  EXPECT_EQ(t2.ref_name(), attribute.ref_name());
+  EXPECT_EQ(t2.ref_type(), attribute.ref_type());
+  EXPECT_EQ(t2.ref_f(), attribute.ref_f());
+  utils::StringWriteStream stream;
+  EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
 }

@@ -11,7 +11,6 @@ rm temp* -rf
 rm dump* -rf
 rm *.sarif
 rm *.svg
-rm dump_models -rf
 rm neural_coder_workspace -rf
 rm *.data
 rm .build_path.txt

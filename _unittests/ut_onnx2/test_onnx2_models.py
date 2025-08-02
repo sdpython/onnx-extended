@@ -9,8 +9,19 @@ from onnx_extended.ext_test_case import ExtTestCase
 class TestOnnx2Helper(ExtTestCase):
     def assertEqualModelProto(self, model1, model2):
         self.assertEqual(type(model1), type(model2))
+        search = 'domain: ""'
         s1 = model1.SerializeToString()
         s2 = model2.SerializeToString()
+        spl1 = str(model1).split(search)
+        spl2 = str(model2).split(search)
+        if len(spl1) != len(spl2) or s1 != s2:
+            n1 = self.get_dump_file("model1.onnx.txt")
+            with open(n1, "w") as f:
+                f.write(str(model1))
+            n2 = self.get_dump_file("model2.onnx.txt")
+            with open(n2, "w") as f:
+                f.write(str(model2))
+        self.assertEqual(len(spl1), len(spl2))
         self.assertEqual(s1, s2)
 
     @classmethod
