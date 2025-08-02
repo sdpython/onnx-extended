@@ -9,7 +9,10 @@ from onnx_extended.ext_test_case import ExtTestCase
 
 
 class TestOnnxVsOnnx2(ExtTestCase):
-    regs = [(re.compile("(adagrad|adam)"), "training")]
+    regs = [
+        (re.compile("(adagrad|adam)"), "training"),
+        (re.compile("(if_opt)"), "attribute with a TypeProto"),
+    ]
 
     @classmethod
     def filter_out(cls, model_name):
