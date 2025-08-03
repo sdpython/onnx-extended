@@ -604,6 +604,10 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("FLOAT4E2M1", onnx2::TensorProto::DataType::FLOAT4E2M1)
       .value("FLOAT8E8M0", onnx2::TensorProto::DataType::FLOAT8E8M0)
       .export_values();
+  py::enum_<onnx2::TensorProto::DataLocation>(cls_tensor_proto, "DataLocation", py::arithmetic())
+      .value("DEFAULT", onnx2::TensorProto::DataLocation::DEFAULT)
+      .value("EXTERNAL", onnx2::TensorProto::DataLocation::EXTERNAL)
+      .export_values();
   cls_tensor_proto.SHORTEN_CODE(TensorProto::DataType, UNDEFINED)
       .SHORTEN_CODE(TensorProto::DataType, FLOAT)
       .SHORTEN_CODE(TensorProto::DataType, UINT8)
@@ -643,6 +647,20 @@ PYBIND11_MODULE(_onnx2py, m) {
             }
           },
           onnx2::TensorProto::DOC_data_type)
+      .def_property(
+          "data_location",
+          [](const onnx2::TensorProto &self) -> onnx2::TensorProto::DataLocation {
+            return self.has_data_location() ? *self.data_location_
+                                            : onnx2::TensorProto::DataLocation::DEFAULT;
+          },
+          [](onnx2::TensorProto &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.data_location_ = static_cast<onnx2::TensorProto::DataLocation>(obj.cast<int>());
+            } else {
+              self.data_location_ = obj.cast<onnx2::TensorProto::DataLocation>();
+            }
+          },
+          onnx2::TensorProto::DOC_data_location)
       .PYFIELD_STR(TensorProto, name)
       .PYFIELD_STR(TensorProto, doc_string)
       .PYFIELD(TensorProto, external_data)
@@ -834,6 +852,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_OPTIONAL_PROTO(AttributeProto, t)
       .PYFIELD_OPTIONAL_PROTO(AttributeProto, sparse_tensor)
       .PYFIELD_OPTIONAL_PROTO(AttributeProto, g)
+      .PYFIELD_OPTIONAL_PROTO(AttributeProto, tp)
       .PYFIELD(AttributeProto, floats)
       .PYFIELD(AttributeProto, ints)
       .PYFIELD(AttributeProto, strings)

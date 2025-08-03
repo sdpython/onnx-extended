@@ -4386,3 +4386,221 @@ TEST(onnx2_proto, AttributeProto_float) {
   utils::StringWriteStream stream;
   EXPECT_EQ(serialized.size(), attribute.SerializeSize(stream, options));
 }
+
+//
+
+TEST(onnx2_proto, AttributeProto_TypeAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("input_type");
+  attribute.set_type(AttributeProto::AttributeType::TYPE_PROTO);
+
+  TypeProto &type = attribute.add_tp();
+  type.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &shape = type.ref_tensor_type().add_shape();
+  TensorShapeProto::Dimension &dim1 = shape.add_dim();
+  dim1.set_dim_value(3);
+  TensorShapeProto::Dimension &dim2 = shape.add_dim();
+  dim2.set_dim_param("N");
+
+  EXPECT_EQ(attribute.ref_name(), "input_type");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::TYPE_PROTO);
+  EXPECT_TRUE(attribute.has_tp());
+  EXPECT_TRUE(attribute.ref_tp().has_tensor_type());
+  EXPECT_EQ(attribute.ref_tp().ref_tensor_type().ref_elem_type(), 1);
+  EXPECT_TRUE(attribute.ref_tp().ref_tensor_type().has_shape());
+  EXPECT_EQ(attribute.ref_tp().ref_tensor_type().ref_shape().ref_dim().size(), 2);
+  EXPECT_EQ(attribute.ref_tp().ref_tensor_type().ref_shape().ref_dim()[0].ref_dim_value(), 3);
+  EXPECT_EQ(attribute.ref_tp().ref_tensor_type().ref_shape().ref_dim()[1].ref_dim_param(), "N");
+}
+
+TEST(onnx2_proto, AttributeProto_TypesAttribute) {
+  AttributeProto attribute;
+
+  attribute.set_name("output_types");
+  attribute.set_type(AttributeProto::AttributeType::TYPE_PROTO);
+
+  // Premier type
+  TypeProto &type1 = attribute.add_tp();
+  type1.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &shape1 = type1.ref_tensor_type().add_shape();
+  shape1.add_dim().set_dim_value(2);
+  shape1.add_dim().set_dim_value(3);
+
+  EXPECT_EQ(attribute.ref_name(), "output_types");
+  EXPECT_EQ(attribute.ref_type(), AttributeProto::AttributeType::TYPE_PROTO);
+  EXPECT_TRUE(attribute.ref_tp().has_tensor_type());
+  EXPECT_EQ(attribute.ref_tp().ref_tensor_type().ref_elem_type(), 1);
+  EXPECT_EQ(attribute.ref_tp().ref_tensor_type().ref_shape().ref_dim().size(), 2);
+  EXPECT_EQ(attribute.ref_tp().ref_tensor_type().ref_shape().ref_dim()[0].ref_dim_value(), 2);
+}
+
+TEST(onnx2_proto, AttributeProto_Serialization_TypeProto) {
+  AttributeProto type_attr;
+  type_attr.set_name("type_attr");
+  type_attr.set_type(AttributeProto::AttributeType::TYPE_PROTO);
+
+  TypeProto &type = type_attr.add_tp();
+  type.add_tensor_type().set_elem_type(1); // FLOAT
+  TensorShapeProto &shape = type.ref_tensor_type().add_shape();
+  shape.add_dim().set_dim_value(4);
+  shape.add_dim().set_dim_param("dynamic_dim");
+
+  std::string serialized;
+  type_attr.SerializeToString(serialized);
+
+  AttributeProto deserialized;
+  deserialized.ParseFromString(serialized);
+
+  EXPECT_EQ(deserialized.ref_name(), "type_attr");
+  EXPECT_EQ(deserialized.ref_type(), AttributeProto::AttributeType::TYPE_PROTO);
+  EXPECT_TRUE(deserialized.has_tp());
+  EXPECT_TRUE(deserialized.ref_tp().has_tensor_type());
+  EXPECT_EQ(deserialized.ref_tp().ref_tensor_type().ref_elem_type(), 1);
+  EXPECT_TRUE(deserialized.ref_tp().ref_tensor_type().has_shape());
+  EXPECT_EQ(deserialized.ref_tp().ref_tensor_type().ref_shape().ref_dim().size(), 2);
+  EXPECT_EQ(deserialized.ref_tp().ref_tensor_type().ref_shape().ref_dim()[0].ref_dim_value(), 4);
+  EXPECT_EQ(deserialized.ref_tp().ref_tensor_type().ref_shape().ref_dim()[1].ref_dim_param(),
+            "dynamic_dim");
+}
+
+//
+
+TEST(onnx2_proto, TensorProto_DataLocation) {
+  // Créer un TensorProto avec une localisation externe
+  TensorProto tensor;
+  tensor.set_name("external_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_dims().push_back(3);
+
+  // Par défaut, la localisation des données est ONNX2_DEFAULT
+  EXPECT_EQ(tensor.ref_data_location(), TensorProto::DataLocation::DEFAULT);
+
+  // Définir la localisation comme externe
+  tensor.set_data_location(TensorProto::DataLocation::EXTERNAL);
+  EXPECT_EQ(tensor.ref_data_location(), TensorProto::DataLocation::EXTERNAL);
+
+  // Sérialiser et désérialiser
+  std::string serialized;
+  tensor.SerializeToString(serialized);
+
+  TensorProto tensor2;
+  tensor2.ParseFromString(serialized);
+
+  // Vérifier que la localisation des données est préservée
+  EXPECT_EQ(tensor2.ref_data_location(), TensorProto::DataLocation::EXTERNAL);
+  EXPECT_EQ(tensor2.ref_name(), "external_tensor");
+  EXPECT_EQ(tensor2.ref_data_type(), TensorProto::DataType::FLOAT);
+  EXPECT_EQ(tensor2.ref_dims().size(), 2);
+
+  // Tester toutes les valeurs possibles de DataLocation
+  TensorProto tensor3;
+  tensor3.set_data_location(TensorProto::DataLocation::DEFAULT);
+  EXPECT_EQ(tensor3.ref_data_location(), TensorProto::DataLocation::DEFAULT);
+
+  tensor3.set_data_location(TensorProto::DataLocation::EXTERNAL);
+  EXPECT_EQ(tensor3.ref_data_location(), TensorProto::DataLocation::EXTERNAL);
+}
+
+TEST(onnx2_proto, TensorProto_ExternalData) {
+  // Créer un TensorProto avec données externes
+  TensorProto tensor;
+  tensor.set_name("external_data_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.set_data_location(TensorProto::DataLocation::EXTERNAL);
+
+  // Ajouter des informations sur les données externes
+  StringStringEntryProto &entry1 = tensor.add_external_data();
+  entry1.set_key("location");
+  entry1.set_value("weights.bin");
+
+  StringStringEntryProto &entry2 = tensor.add_external_data();
+  entry2.set_key("offset");
+  entry2.set_value("0");
+
+  StringStringEntryProto &entry3 = tensor.add_external_data();
+  entry3.set_key("length");
+  entry3.set_value("1024");
+
+  // Vérifier les entrées
+  EXPECT_EQ(tensor.ref_external_data().size(), 3);
+  EXPECT_EQ(tensor.ref_external_data()[0].ref_key(), "location");
+  EXPECT_EQ(tensor.ref_external_data()[0].ref_value(), "weights.bin");
+  EXPECT_EQ(tensor.ref_external_data()[1].ref_key(), "offset");
+  EXPECT_EQ(tensor.ref_external_data()[1].ref_value(), "0");
+  EXPECT_EQ(tensor.ref_external_data()[2].ref_key(), "length");
+  EXPECT_EQ(tensor.ref_external_data()[2].ref_value(), "1024");
+
+  // Sérialiser et désérialiser
+  std::string serialized;
+  tensor.SerializeToString(serialized);
+
+  TensorProto tensor2;
+  tensor2.ParseFromString(serialized);
+
+  // Vérifier que les informations externes sont préservées
+  EXPECT_EQ(tensor2.ref_data_location(), TensorProto::DataLocation::EXTERNAL);
+  EXPECT_EQ(tensor2.ref_external_data().size(), 3);
+  EXPECT_EQ(tensor2.ref_external_data()[0].ref_key(), "location");
+  EXPECT_EQ(tensor2.ref_external_data()[0].ref_value(), "weights.bin");
+}
+
+TEST(onnx2_proto, TensorProto_DataLocationPrintToVectorString) {
+  utils::PrintOptions options;
+  TensorProto tensor;
+  tensor.set_name("external_print_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.set_data_location(TensorProto::DataLocation::EXTERNAL);
+
+  StringStringEntryProto &entry = tensor.add_external_data();
+  entry.set_key("location");
+  entry.set_value("external_file.bin");
+
+  // Générer la représentation textuelle
+  std::vector<std::string> result = tensor.PrintToVectorString(options);
+  ASSERT_FALSE(result.empty());
+
+  // Vérifier que la sortie contient les informations de localisation des données
+  bool foundDataLocation = false;
+  bool foundExternalData = false;
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  if (serialized.find("data_location:") != std::string::npos &&
+      serialized.find(std::to_string(static_cast<int>(TensorProto::DataLocation::EXTERNAL))) !=
+          std::string::npos) {
+    foundDataLocation = true;
+  }
+
+  if (serialized.find("external_data") != std::string::npos &&
+      serialized.find("location") != std::string::npos &&
+      serialized.find("external_file.bin") != std::string::npos) {
+    foundExternalData = true;
+  }
+
+  EXPECT_TRUE(foundDataLocation);
+  EXPECT_TRUE(foundExternalData);
+}
+
+TEST(onnx2_proto, TensorProto_CopyFromWithDataLocation) {
+  TensorProto source;
+  source.set_name("source_external_tensor");
+  source.set_data_type(TensorProto::DataType::FLOAT);
+  source.set_data_location(TensorProto::DataLocation::EXTERNAL);
+
+  StringStringEntryProto &entry = source.add_external_data();
+  entry.set_key("location");
+  entry.set_value("source_file.bin");
+
+  // Copier les données vers une nouvelle instance
+  TensorProto target;
+  target.CopyFrom(source);
+
+  // Vérifier que toutes les propriétés liées à la localisation des données sont copiées
+  EXPECT_EQ(target.ref_name(), "source_external_tensor");
+  EXPECT_EQ(target.ref_data_location(), TensorProto::DataLocation::EXTERNAL);
+  EXPECT_EQ(target.ref_external_data().size(), 1);
+  EXPECT_EQ(target.ref_external_data()[0].ref_key(), "location");
+  EXPECT_EQ(target.ref_external_data()[0].ref_value(), "source_file.bin");
+}

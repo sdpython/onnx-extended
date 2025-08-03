@@ -70,7 +70,7 @@ jobs:
           pip install pytest-cov
           export PYTHONPATH=.
           export SKIP_UNSTABLE=1
-          pytest --cov=./onnx_extended/ --cov-report=xml --durations=10 --ignore-glob=**LONG*.py --ignore-glob=**notebook*.py --ignore _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py
+          UNITTEST_GOING=1 pytest --cov=./onnx_extended/ --cov-report=xml --durations=10 --ignore-glob=**LONG*.py --ignore-glob=**notebook*.py --ignore _unittests/ut_onnx2/test_backend_onnx_vs_onnx2.py
           export PYTHONPATH=
 
       - name: Test onnx2
@@ -96,7 +96,7 @@ jobs:
           cp CHANGELOGS* ./_doc
 
       - name: Documentation
-        run: python -m sphinx ./_doc ./dist/html -n -w doc.txt
+        run: UNITTEST_GOING=1 python -m sphinx ./_doc ./dist/html -n -w doc.txt
 
       - name: Summary
         run: cat doc.txt

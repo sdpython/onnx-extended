@@ -170,6 +170,39 @@ public:                                                                         
   _FIELD_OPTIONAL(type, name, order, doc)                                                              \
   inline bool has_oneof_##name() const { return has_##oneof(); }
 
+#define FIELD_OPTIONAL_ENUM(type, name, order, doc)                                                    \
+public:                                                                                                \
+  inline type &ref_##name() {                                                                          \
+    if (!has_##name()) {                                                                               \
+      add_##name();                                                                                    \
+    }                                                                                                  \
+    return *name##_;                                                                                   \
+  }                                                                                                    \
+  inline const type &ref_##name() const {                                                              \
+    EXT_ENFORCE(name##_.has_value(), "Optional enum field '", #name, "' has no value.");               \
+    return *name##_;                                                                                   \
+  }                                                                                                    \
+  inline const type *ptr_##name() const {                                                              \
+    return has_##name() ? &(*name##_) : static_cast<type *>(nullptr);                                  \
+  }                                                                                                    \
+  inline utils::OptionalEnumField<type> &name##_optional() { return name##_; }                         \
+  inline const utils::OptionalEnumField<type> &name##_optional() const {                               \
+    EXT_ENFORCE(name##_.has_value(), "Optional field '", #name, "' has no value.");                    \
+    return name##_;                                                                                    \
+  }                                                                                                    \
+  inline type &add_##name() {                                                                          \
+    name##_.set_empty_value();                                                                         \
+    return *name##_;                                                                                   \
+  }                                                                                                    \
+  inline void set_##name(const type &v) { name##_ = v; }                                               \
+  inline void reset_##name() { name##_.reset(); }                                                      \
+  inline bool has_##name() const { return name##_.has_value(); }                                       \
+  inline int order_##name() const { return order; }                                                    \
+  static inline constexpr const char *DOC_##name = doc;                                                \
+  static inline constexpr const char *_name_##name = #name;                                            \
+  utils::OptionalEnumField<type> name##_;                                                              \
+  using name##_t = type;
+
 namespace onnx2 {
 
 struct ParseOptions {
