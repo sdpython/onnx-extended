@@ -948,11 +948,13 @@ class TestOnnx2(ExtTestCase):
                 t.data_type = dt
                 t.dims.extend([1])
                 t.int64_data.extend([-1])
+                t.data_location = onnx.TensorProto.DataLocation.DEFAULT
 
                 t2 = onnx2.TensorProto()
                 t2.data_type = dt
                 t2.dims.extend([1])
                 t2.int64_data.extend([-1])
+                t2.data_location = onnx2.TensorProto.DataLocation.DEFAULT
 
                 node = oh.make_node(
                     "Constant", [], ["AAA"], value=t, domain="M", name="NN"
@@ -995,11 +997,13 @@ class TestOnnx2(ExtTestCase):
                 t.data_type = dt
                 t.dims.extend([5])
                 t.int64_data.extend([-1, 2, -3, 4, -5])
+                t.data_location = onnx.TensorProto.DataLocation.DEFAULT
 
                 t2 = onnx2.TensorProto()
                 t2.data_type = dt
                 t2.dims.extend([5])
                 t2.int64_data.extend([-1, 2, -3, 4, -5])
+                t2.data_location = onnx2.TensorProto.DataLocation.DEFAULT
 
                 s = t.SerializeToString()
                 snn2 = t2.SerializeToString()
@@ -1017,26 +1021,46 @@ class TestOnnx2(ExtTestCase):
                 t.data_type = dt
                 t.dims.extend([5])
                 t.float_data.extend([-1.0, 2.0, -3.0, 4.0, -5.0])
+                t.data_location = onnx.TensorProto.DataLocation.DEFAULT
 
                 t2 = onnx2.TensorProto()
                 t2.data_type = dt
                 t2.dims.extend([5])
                 t2.float_data.extend([-1.0, 2.0, -3.0, 4.0, -5.0])
+                t2.data_location = onnx2.TensorProto.DataLocation.DEFAULT
+                self.assertEqual(
+                    len(t.SerializeToString()), len(t2.SerializeToString())
+                )
+                self.assertEqual(
+                    sorted(t.SerializeToString()),
+                    sorted(t2.SerializeToString()),
+                )
 
                 node = oh.make_node(
-                    "Constant", [], ["AAA"], value=t, domain="M", name="NN"
+                    "Constant",
+                    [],
+                    ["AAA"],
+                    domain="M",
+                    name="NN",
+                    value=t,
                 )
                 node.attribute[0].doc_string = "DOC"
                 node.attribute[0].ref_attr_name = "REF"
 
                 nnn2 = oh2.make_node(
-                    "Constant", [], ["AAA"], value=t2, domain="M", name="NN"
+                    "Constant",
+                    [],
+                    ["AAA"],
+                    domain="M",
+                    name="NN",
+                    value=t2,
                 )
                 nnn2.attribute[0].doc_string = "DOC"
                 nnn2.attribute[0].ref_attr_name = "REF"
 
                 s = node.SerializeToString()
                 snn2 = nnn2.SerializeToString()
+                self.assertEqual(len(s), len(snn2))
 
                 node2 = onnx2.NodeProto()
                 node2.ParseFromString(s)
@@ -1059,11 +1083,17 @@ class TestOnnx2(ExtTestCase):
                 t.data_type = dt
                 t.dims.extend([1])
                 t.double_data.extend([-1.0])
+                t.data_location = onnx.TensorProto.DataLocation.DEFAULT
 
                 t2 = onnx2.TensorProto()
                 t2.data_type = dt
                 t2.dims.extend([1])
                 t2.double_data.extend([-1.0])
+                t2.data_location = onnx2.TensorProto.DataLocation.DEFAULT
+                self.assertEqual(
+                    sorted(t.SerializeToString()),
+                    sorted(t2.SerializeToString()),
+                )
 
                 node = oh.make_node(
                     "Constant", [], ["AAA"], value=t, domain="M", name="NN"
@@ -1076,6 +1106,11 @@ class TestOnnx2(ExtTestCase):
                 )
                 nnn2.attribute[0].doc_string = "DOC"
                 nnn2.attribute[0].ref_attr_name = "REF"
+
+                self.assertEqual(
+                    len(node.attribute[0].SerializeToString()),
+                    len(nnn2.attribute[0].SerializeToString()),
+                )
 
                 s = node.SerializeToString()
                 snn2 = nnn2.SerializeToString()
