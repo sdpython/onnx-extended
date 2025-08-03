@@ -294,5 +294,21 @@ std::string FileStream::tell_around() const {
   return ref.as_string();
 }
 
+FileStream::~FileStream() {
+  EXT_ENFORCE(blocks_.empty() && threads_.empty(),
+              "wait_for_delayed_block was not called and the data may not be fully loaded.");
+}
+
+void FileStream::delay_block(DelayedBlock &block) {
+
+}
+
+void FileStream::wait_for_delayed_block() {
+  for (auto &t : threads_)
+    t.join();
+  blocks_.clear();
+  threads_.clear();
+}
+
 } // namespace utils
 } // namespace onnx2

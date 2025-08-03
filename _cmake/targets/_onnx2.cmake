@@ -4,6 +4,7 @@
 message(STATUS "+ PYBIND11 onnx_extended.onnx2.cpu._onnx2py")
 
 add_library(lib_onnx2_cpp STATIC
+  ../onnx_extended/onnx2/cpu/thread_pool.cpp
   ../onnx_extended/onnx2/cpu/simple_string.cpp
   ../onnx_extended/onnx2/cpu/onnx2.cpp
   ../onnx_extended/onnx2/cpu/stream.cpp)
@@ -20,7 +21,8 @@ target_link_libraries(_onnx2py PRIVATE lib_onnx2_cpp common)
 
 add_executable(
   test_onnx2_cpp
-  ../_unittests/ut_onnx2/test_onnx2_cpu.cpp)
+  ../_unittests/ut_onnx2/test_onnx2_protos.cpp
+  ../_unittests/ut_onnx2/test_onnx2_threads.cpp)
 target_compile_definitions(test_onnx2_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
 target_include_directories(
   test_onnx2_cpp

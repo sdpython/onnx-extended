@@ -211,6 +211,8 @@ struct ParseOptions {
   bool skip_raw_data = false;
   /** if skip_raw_data is true, raw data will be read only if it is larger than the threshold */
   int64_t raw_data_threshold = 1024;
+  /** parallelizes the reading of the big blocks */
+  bool parallel = false;
 };
 
 struct SerializeOptions {

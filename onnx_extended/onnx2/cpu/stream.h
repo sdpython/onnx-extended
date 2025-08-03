@@ -28,6 +28,12 @@ struct FieldNumber {
   std::string string() const;
 };
 
+struct DelayedBlock {
+  uint64_t size;
+  uint8_t *data;
+  offset_t offset;
+};
+
 class BinaryStream {
 public:
   explicit inline BinaryStream() {}
@@ -52,6 +58,13 @@ public:
   virtual FieldNumber next_field();
   template <typename T> void next_packed_element(T &value) {
     value = *reinterpret_cast<const T *>(read_bytes(sizeof(T)));
+  }
+  // parallelization of big blocks.
+  virtual void delay_block(DelayedBlock &block) {
+    throw std::runtime_error("read_delayed_block is not implemented for this stream.");
+  }
+  virtual void wait_for_delayed_block() {
+    throw std::runtime_error("read_delayed_block is not implemented for this stream.");
   }
 };
 
@@ -168,6 +181,7 @@ private:
 class FileStream : public BinaryStream {
 public:
   explicit FileStream(const std::string &file_path);
+  virtual ~FileStream();
   virtual void can_read(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
   virtual const uint8_t *read_bytes(offset_t n_bytes) override;
@@ -186,12 +200,19 @@ public:
   virtual inline bool is_locked() const { return lock_; }
   virtual inline void set_lock(bool lock) { lock_ = lock; }
 
+  // parallelization of big blocks.
+  virtual void delay_block(DelayedBlock &block) override;
+  virtual void wait_for_delayed_block() override;
+
 private:
   bool lock_;
   std::string file_path_;
   std::ifstream file_stream_;
   int64_t size_;
   std::vector<uint8_t> buffer_;
+  // parallelization
+  std::vector<DelayedBlock> blocks_;
+  std::vector<std::thread> threads_;
 };
 
 } // namespace utils
