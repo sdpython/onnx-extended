@@ -109,6 +109,10 @@ sphinx_gallery_conf = {
     "gallery_dirs": "auto_examples",
 }
 
+if int(os.environ.get("UNITTEST_GOING", "0")):
+    sphinx_gallery_conf["ignore_pattern"] = ".*(plot_onnx2_time).*"
+
+
 epkg_dictionary = {
     "cmake": "https://cmake.org/",
     "CPUExecutionProvider": "https://onnxruntime.ai/docs/execution-providers/",
