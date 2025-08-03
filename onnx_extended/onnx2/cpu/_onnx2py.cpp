@@ -650,7 +650,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .def_property(
           "data_location",
           [](const onnx2::TensorProto &self) -> onnx2::TensorProto::DataLocation {
-            return self.data_location_;
+            return self.has_data_location() ? *self.data_location_
+                                            : onnx2::TensorProto::DataLocation::DEFAULT;
           },
           [](onnx2::TensorProto &self, py::object obj) {
             if (py::isinstance<py::int_>(obj)) {

@@ -3583,8 +3583,8 @@ TEST(onnx2_proto, TensorProto_SkipRawData) {
   options2.skip_raw_data = true;
   options2.raw_data_threshold = 0;
   tensor1.SerializeToString(serialized2, options2);
-  EXPECT_EQ(serialized1.size(), 41);
-  EXPECT_EQ(serialized2.size(), 23);
+  EXPECT_EQ(serialized1.size(), 39);
+  EXPECT_EQ(serialized2.size(), 21);
   EXPECT_EQ(serialized2.size(), tensor1.SerializeSize(st, options2));
 
   // Test avec skip_raw_data = false (comportement par d�faut)

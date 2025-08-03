@@ -364,7 +364,7 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opt
     READ_BEGIN(options, stream, TensorProto)             //
     READ_REPEATED_FIELD(options, stream, dims)           //
     READ_ENUM_FIELD(options, stream, data_type)          //
-    READ_ENUM_FIELD(options, stream, data_location)      //
+    READ_OPTIONAL_ENUM_FIELD(options, stream, data_location)      //
     READ_FIELD(options, stream, name)                    //
     READ_FIELD(options, stream, doc_string)              //
     READ_FIELD_LIMIT(options, stream, raw_data)          //
@@ -380,10 +380,11 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opt
 } std::vector<std::string> TensorProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(dims), NAME_EXIST_VALUE(data_type), NAME_EXIST_VALUE(data_location),
-      NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(segment), NAME_EXIST_VALUE(raw_data),
-      NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(external_data), NAME_EXIST_VALUE(metadata_props),
-      NAME_EXIST_VALUE(double_data), NAME_EXIST_VALUE(float_data), NAME_EXIST_VALUE(int32_data),
-      NAME_EXIST_VALUE(int64_data), NAME_EXIST_VALUE(uint64_data), NAME_EXIST_VALUE(string_data));
+      NAME_EXIST_VALUE(name),
+      NAME_EXIST_VALUE(segment), NAME_EXIST_VALUE(raw_data), NAME_EXIST_VALUE(doc_string),
+      NAME_EXIST_VALUE(external_data), NAME_EXIST_VALUE(metadata_props), NAME_EXIST_VALUE(double_data),
+      NAME_EXIST_VALUE(float_data), NAME_EXIST_VALUE(int32_data), NAME_EXIST_VALUE(int64_data),
+      NAME_EXIST_VALUE(uint64_data), NAME_EXIST_VALUE(string_data));
 }
 
 // SparseTensorProto

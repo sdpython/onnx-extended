@@ -164,6 +164,14 @@ void read_enum_field(utils::BinaryStream &stream, int wire_type, T &field, const
   field = static_cast<T>(stream.next_uint64());
 }
 
+template <typename T>
+void read_optional_enum_field(utils::BinaryStream &stream, int wire_type,
+                              utils::OptionalEnumField<T> &field, const char *name, ParseOptions &) {
+  EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name,
+              "' at position '", stream.tell_around(), "'");
+  field = static_cast<T>(stream.next_uint64());
+}
+
 // repeated fields
 
 template <typename T>

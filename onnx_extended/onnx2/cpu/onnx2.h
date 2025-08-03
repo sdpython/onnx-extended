@@ -214,10 +214,7 @@ FIELD_DEFAULT(int64_t, begin, 1, 0, "Segment start.")
 FIELD_DEFAULT(int64_t, end, 1, 0, "Segment end.")
 END_PROTO()
 
-inline TensorProto() {
-  data_type_ = DataType::UNDEFINED;
-  data_location_ = DataLocation::DEFAULT;
-}
+inline TensorProto() { data_type_ = DataType::UNDEFINED; }
 
 FIELD_REPEATED(uint64_t, dims, 1, "The shape of the tensor.")
 FIELD(DataType, data_type, 2,
@@ -292,11 +289,12 @@ FIELD_REPEATED(
     "Offset values SHOULD be multiples 4096 (page size) to enable mmap support. "
     "- length (optional) - number of bytes containing data. Integer stored as string. "
     "- checksum (optional) - SHA1 digest of file specified in under 'location' key.")
-FIELD(DataLocation, data_location, 14,
-      "Location of the data for this tensor. MUST be one of: - DEFAULT - data stored inside the "
-      "protobuf message. Data is stored in raw_data (if set) otherwise in type-specified field. "
-      "- EXTERNAL - data stored in an external location as described by external_data field. If "
-      "value not set, data is stored in raw_data (if set) otherwise in type-specified field.")
+FIELD_OPTIONAL_ENUM(
+    DataLocation, data_location, 14,
+    "Location of the data for this tensor. MUST be one of: - DEFAULT - data stored inside the "
+    "protobuf message. Data is stored in raw_data (if set) otherwise in type-specified field. "
+    "- EXTERNAL - data stored in an external location as described by external_data field. If "
+    "value not set, data is stored in raw_data (if set) otherwise in type-specified field.")
 FIELD_REPEATED(StringStringEntryProto, metadata_props, 16,
                "Named metadata values; keys should be distinct.")
 END_PROTO()

@@ -168,6 +168,13 @@
     DEBUG_PRINT("  - enum " #name)                                                                     \
   }
 
+#define READ_OPTIONAL_ENUM_FIELD(options, stream, name)                                                \
+  else if (static_cast<int>(field_number.field_number) == order_##name()) {                            \
+    DEBUG_PRINT("  + enum " #name)                                                                     \
+    read_optional_enum_field(stream, field_number.wire_type, name##_, #name, options);                 \
+    DEBUG_PRINT("  - enum " #name)                                                                     \
+  }
+
 #define READ_REPEATED_FIELD(options, stream, name)                                                     \
   else if (static_cast<int>(field_number.field_number) == order_##name()) {                            \
     DEBUG_PRINT("  + repeat " #name)                                                                   \

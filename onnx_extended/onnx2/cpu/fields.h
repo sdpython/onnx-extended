@@ -219,5 +219,24 @@ public:
   }
 };
 
+template <typename T> class OptionalEnumField {
+public:
+  explicit inline OptionalEnumField() {}
+  inline bool has_value() const { return value_.has_value(); }
+  inline void reset() { value_.reset(); }
+  inline const T &operator*() const { return *value_; }
+  inline T &operator*() { return *value_; }
+  inline bool operator==(const OptionalEnumField<T> &v) const { return value_ == v; }
+  inline bool operator==(const T &v) const { return value_ == v; }
+  inline OptionalEnumField<T> &operator=(const T &other) {
+    value_ = other;
+    return *this;
+  }
+  inline void set_empty_value() { value_ = static_cast<T>(0); }
+
+protected:
+  std::optional<T> value_;
+};
+
 } // namespace utils
 } // namespace onnx2
