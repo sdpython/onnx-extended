@@ -126,6 +126,7 @@
 
 #define READ_BEGIN(options, stream, cls)                                                               \
   DEBUG_PRINT("+ read begin " #cls)                                                                    \
+  bool wait_for_thread = options.parallel && !stream.parallelization_started();                        \
   while (stream.not_end()) {                                                                           \
     utils::FieldNumber field_number = stream.next_field();                                             \
     DEBUG_PRINT2("  = field number ", field_number.string().c_str())                                   \
@@ -137,6 +138,8 @@
   else {                                                                                               \
     EXT_THROW("unable to parse field_number=", field_number.string(), " in class ", #cls);             \
   }                                                                                                    \
+  if (wait_for_thread)                                                                                 \
+    stream.wait_for_delayed_block();                                                                   \
   }                                                                                                    \
   DEBUG_PRINT("+ read end " #cls)
 
@@ -147,10 +150,10 @@
     DEBUG_PRINT("  - field " #name)                                                                    \
   }
 
-#define READ_FIELD_LIMIT(options, stream, name)                                                        \
+#define READ_FIELD_LIMIT_PARALLEL(options, stream, name)                                               \
   else if (static_cast<int>(field_number.field_number) == order_##name()) {                            \
     DEBUG_PRINT("  + field " #name)                                                                    \
-    read_field_limit(stream, field_number.wire_type, name##_, #name, options);                         \
+    read_field_limit_parallel(stream, field_number.wire_type, name##_, #name, options);                \
     DEBUG_PRINT("  - field " #name)                                                                    \
   }
 

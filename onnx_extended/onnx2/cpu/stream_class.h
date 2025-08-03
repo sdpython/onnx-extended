@@ -213,6 +213,8 @@ struct ParseOptions {
   int64_t raw_data_threshold = 1024;
   /** parallelizes the reading of the big blocks */
   bool parallel = false;
+  /** number of threads to run in parallel if parallel is true, -1 for as many threads as the number of cores */
+  size_t num_threads = -1;
 };
 
 struct SerializeOptions {

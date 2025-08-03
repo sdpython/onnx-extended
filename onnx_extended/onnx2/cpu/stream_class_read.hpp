@@ -139,9 +139,9 @@ void read_field(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t>
   memcpy(field.data(), stream.read_bytes(len), len);
 }
 
-void read_field_limit(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t> &field,
-                      const char *name, ParseOptions &options) {
-  if (!options.skip_raw_data) {
+void read_field_limit_parallel(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t> &field,
+                               const char *name, ParseOptions &options) {
+  if (!options.skip_raw_data && !options.parallel) {
     read_field(stream, wire_type, field, name, options);
   } else {
     EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
@@ -149,7 +149,16 @@ void read_field_limit(utils::BinaryStream &stream, int wire_type, std::vector<ui
     uint64_t len = stream.next_uint64();
     if (static_cast<int64_t>(len) < options.raw_data_threshold) {
       field.resize(len);
-      memcpy(field.data(), stream.read_bytes(len), len);
+      if (options.parallel) {
+        utils::DelayedBlock block;
+        block.size = len;
+        block.data = field.data();
+        block.offset = stream.tell();
+        stream.delay_block(block, options.num_threads > 0 ? options.num_threads
+                                                          : std::thread::hardware_concurrency());
+      } else {
+        memcpy(field.data(), stream.read_bytes(len), len);
+      }
     } else {
       stream.skip_bytes(len);
     }

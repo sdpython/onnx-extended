@@ -367,7 +367,7 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opt
     READ_OPTIONAL_ENUM_FIELD(options, stream, data_location) //
     READ_FIELD(options, stream, name)                        //
     READ_FIELD(options, stream, doc_string)                  //
-    READ_FIELD_LIMIT(options, stream, raw_data)              //
+    READ_FIELD_LIMIT_PARALLEL(options, stream, raw_data)     //
     READ_REPEATED_FIELD(options, stream, external_data)      //
     READ_REPEATED_FIELD(options, stream, metadata_props)     //
     READ_REPEATED_FIELD(options, stream, double_data)        //

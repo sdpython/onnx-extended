@@ -294,21 +294,21 @@ std::string FileStream::tell_around() const {
   return ref.as_string();
 }
 
-FileStream::~FileStream() {
-  EXT_ENFORCE(blocks_.empty() && threads_.empty(),
-              "wait_for_delayed_block was not called and the data may not be fully loaded.");
+FileStream::~FileStream() {}
+
+void FileStream::delay_block(DelayedBlock &block, size_t n_threads) {
+  if (!thread_pool_.IsStarted()) {
+    thread_pool_.Start(n_threads);
+  }
+  blocks_.push_back(block);
+  thread_pool_.SubmitTask([this, block]() {
+    std::ifstream file_stream_(this->file_path_, std::ios::binary);
+    file_stream_.seekg(block.offset);
+    file_stream_.read(reinterpret_cast<char *>(block.data), block.size);
+  });
 }
 
-void FileStream::delay_block(DelayedBlock &block) {
-
-}
-
-void FileStream::wait_for_delayed_block() {
-  for (auto &t : threads_)
-    t.join();
-  blocks_.clear();
-  threads_.clear();
-}
+void FileStream::wait_for_delayed_block() { thread_pool_.Wait(); }
 
 } // namespace utils
 } // namespace onnx2

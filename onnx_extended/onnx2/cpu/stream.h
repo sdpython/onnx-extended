@@ -2,6 +2,7 @@
 
 #include "onnx_extended_helpers.h"
 #include "simple_string.h"
+#include "thread_pool.h"
 #include <cstddef>
 #include <fstream>
 #include <stdexcept>
@@ -60,7 +61,8 @@ public:
     value = *reinterpret_cast<const T *>(read_bytes(sizeof(T)));
   }
   // parallelization of big blocks.
-  virtual void delay_block(DelayedBlock &block) {
+  virtual bool parallelization_started() const { return false; }
+  virtual void delay_block(DelayedBlock &block, size_t n_threads) {
     throw std::runtime_error("read_delayed_block is not implemented for this stream.");
   }
   virtual void wait_for_delayed_block() {
@@ -201,7 +203,8 @@ public:
   virtual inline void set_lock(bool lock) { lock_ = lock; }
 
   // parallelization of big blocks.
-  virtual void delay_block(DelayedBlock &block) override;
+  virtual bool parallelization_started() const { return thread_pool_.IsStarted(); }
+  virtual void delay_block(DelayedBlock &block, size_t n_threads) override;
   virtual void wait_for_delayed_block() override;
 
 private:
@@ -212,7 +215,7 @@ private:
   std::vector<uint8_t> buffer_;
   // parallelization
   std::vector<DelayedBlock> blocks_;
-  std::vector<std::thread> threads_;
+  ThreadPool thread_pool_;
 };
 
 } // namespace utils

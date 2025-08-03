@@ -56,6 +56,7 @@ void ThreadPool::Wait() {
     if (worker.joinable())
       worker.join();
   }
+  workers.clear();
 }
 
 ThreadPool::~ThreadPool() { Wait(); }

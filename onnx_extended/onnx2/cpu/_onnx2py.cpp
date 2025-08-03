@@ -431,7 +431,12 @@ PYBIND11_MODULE(_onnx2py, m) {
                      "case  but the model structure is still available")
       .def_readwrite(
           "raw_data_threshold", &onnx2::ParseOptions::raw_data_threshold,
-          "if skip_raw_data is true, raw data will be read only if it is larger than the threshold");
+          "if skip_raw_data is true, raw data will be read only if it is larger than the threshold")
+      .def_readwrite("parallel", &onnx2::ParseOptions::parallel,
+                     "parallelizes the reading of the big blocks")
+      .def_readwrite("num_threads", &onnx2::ParseOptions::num_threads,
+                     "number of threads to run in parallel if parallel is true, -1 for as many threads "
+                     "as the number of cores");
 
   py::class_<onnx2::SerializeOptions>(m, "SerializeOptions", "Serializing options for proto classes")
       .def(py::init<>())

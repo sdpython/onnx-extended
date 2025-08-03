@@ -21,6 +21,7 @@ public:
   void SubmitTask(std::function<void()> job);
   void Wait();
   inline size_t GetThreadCount() const { return workers.size(); }
+  inline bool IsStarted() const { return !workers.empty(); }
 
 private:
   std::vector<std::thread> workers;
