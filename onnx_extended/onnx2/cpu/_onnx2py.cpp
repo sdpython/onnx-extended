@@ -34,7 +34,14 @@ namespace py = pybind11;
           [](onnx2::cls &self, const std::string &file_path, py::object options) {                     \
             onnx2::utils::FileStream stream(file_path);                                                \
             if (py::isinstance<onnx2::ParseOptions &>(options)) {                                      \
-              self.ParseFromStream(stream, options.cast<onnx2::ParseOptions &>());                     \
+              onnx2::ParseOptions &coptions = options.cast<onnx2::ParseOptions &>();                   \
+              if (coptions.parallel) {                                                                 \
+                stream.StartThreadPool(coptions.num_threads);                                          \
+              }                                                                                        \
+              self.ParseFromStream(stream, coptions);                                                  \
+              if (coptions.parallel) {                                                                 \
+                stream.WaitForDelayedBlock();                                                          \
+              }                                                                                        \
             } else {                                                                                   \
               onnx2::ParseOptions opts;                                                                \
               self.ParseFromStream(stream, opts);                                                      \
@@ -431,7 +438,12 @@ PYBIND11_MODULE(_onnx2py, m) {
                      "case  but the model structure is still available")
       .def_readwrite(
           "raw_data_threshold", &onnx2::ParseOptions::raw_data_threshold,
-          "if skip_raw_data is true, raw data will be read only if it is larger than the threshold");
+          "if skip_raw_data is true, raw data will be read only if it is larger than the threshold")
+      .def_readwrite("parallel", &onnx2::ParseOptions::parallel,
+                     "parallelizes the reading of the big blocks")
+      .def_readwrite("num_threads", &onnx2::ParseOptions::num_threads,
+                     "number of threads to run in parallel if parallel is true, -1 for as many threads "
+                     "as the number of cores");
 
   py::class_<onnx2::SerializeOptions>(m, "SerializeOptions", "Serializing options for proto classes")
       .def(py::init<>())

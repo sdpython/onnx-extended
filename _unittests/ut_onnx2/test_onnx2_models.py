@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 import onnx
 import onnx.helper as xoh
 import onnx_extended.onnx2.helper as xoh2
@@ -12,16 +13,17 @@ class TestOnnx2Helper(ExtTestCase):
         search = 'domain: ""'
         s1 = model1.SerializeToString()
         s2 = model2.SerializeToString()
-        spl1 = str(model1).split(search)
-        spl2 = str(model2).split(search)
-        if len(spl1) != len(spl2) or s1 != s2:
-            n1 = self.get_dump_file("model1.onnx.txt")
-            with open(n1, "w") as f:
-                f.write(str(model1))
-            n2 = self.get_dump_file("model2.onnx.txt")
-            with open(n2, "w") as f:
-                f.write(str(model2))
-        self.assertEqual(len(spl1), len(spl2))
+        if len(s1) < 100000:
+            spl1 = str(model1).split(search)
+            spl2 = str(model2).split(search)
+            if len(spl1) != len(spl2) or s1 != s2:
+                n1 = self.get_dump_file("model1.onnx.txt")
+                with open(n1, "w") as f:
+                    f.write(str(model1))
+                n2 = self.get_dump_file("model2.onnx.txt")
+                with open(n2, "w") as f:
+                    f.write(str(model2))
+            self.assertEqual(len(spl1), len(spl2))
         self.assertEqual(s1, s2)
 
     @classmethod
@@ -66,6 +68,57 @@ class TestOnnx2Helper(ExtTestCase):
         name = self.get_dump_file("test_model_gemm_onnx2_to_onnx.onnx")
         onnx.save(model, name)
         model3 = onnx.load(name)
+        self.assertEqualModelProto(model, model3)
+
+    def _get_model_with_initializers(self, oh, onh):
+        TFLOAT = oh.TensorProto.FLOAT
+        model = oh.make_model(
+            oh.make_graph(
+                [
+                    oh.make_node("Unsqueeze", ["X", "zero"], ["xu1"]),
+                    oh.make_node("Unsqueeze", ["xu1", "un"], ["xu2"]),
+                    oh.make_node("Reshape", ["xu2", "shape1"], ["xm1"]),
+                    oh.make_node("Reshape", ["Y", "shape2"], ["xm2c"]),
+                    oh.make_node("Cast", ["xm2c"], ["xm2"], to=1),
+                    oh.make_node("MatMul", ["xm1", "xm2"], ["xm"]),
+                    oh.make_node("Reshape", ["xm", "shape3"], ["Z"]),
+                ],
+                "dummy",
+                [oh.make_tensor_value_info("X", TFLOAT, [32, 128])],
+                [oh.make_tensor_value_info("Z", TFLOAT, [3, 5, 32, 64])],
+                [
+                    onh.from_array(
+                        np.random.rand(3, 5, 1280, 640).astype(np.float32), name="Y"
+                    ),
+                    onh.from_array(np.array([0], dtype=np.int64), name="zero"),
+                    onh.from_array(np.array([1], dtype=np.int64), name="un"),
+                    onh.from_array(
+                        np.array([1, 32, 128], dtype=np.int64), name="shape1"
+                    ),
+                    onh.from_array(
+                        np.array([15, 128, 64], dtype=np.int64), name="shape2"
+                    ),
+                    onh.from_array(
+                        np.array([3, 5, 32, 64], dtype=np.int64), name="shape3"
+                    ),
+                ],
+            ),
+            opset_imports=[oh.make_opsetid("", 18)],
+            ir_version=9,
+        )
+        return model
+
+    def test_parallelized_loading(self):
+        # saving with onnx
+        name = self.get_dump_file("test_parallelized_loading.onnx")
+        model = self._get_model_with_initializers(xoh, onnx.numpy_helper)
+        onnx.save(model, name)
+        # loading with onnx2
+        model2 = onnx2.load(name, parallel=True, num_threads=2)
+        self.assertEqual(len(model.graph.node), len(model2.graph.node))
+        name2 = self.get_dump_file("test_parallelized_loading.onnx")
+        onnx2.save(model2, name2)
+        model3 = onnx.load(name2)
         self.assertEqualModelProto(model, model3)
 
 

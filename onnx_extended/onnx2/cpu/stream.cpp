@@ -8,14 +8,22 @@
 namespace onnx2 {
 namespace utils {
 
+///////////////
+// BinaryStream
+///////////////
+
 std::string FieldNumber::string() const {
   return onnx_extended_helpers::MakeString("[field_number=", field_number, ", wire_type=", wire_type,
                                            "]");
 }
 
+BinaryStream::~BinaryStream() {
+  EXT_ENFORCE(limits_.empty(), "BinaryStream destructor called with non-empty limits stack.");
+}
+
 RefString BinaryStream::next_string() {
   uint64_t length = next_uint64();
-  this->can_read(length, "[StringStream::next_string]");
+  this->CanRead(length, "[StringStream::next_string]");
   return RefString(reinterpret_cast<const char *>(read_bytes(length)), static_cast<size_t>(length));
 }
 
@@ -45,7 +53,36 @@ FieldNumber BinaryStream::next_field() {
   return n;
 }
 
-void StringStream::can_read(uint64_t len, const char *msg) {
+void BinaryStream::ReadDelayedBlock(DelayedBlock &block) {
+  EXT_THROW("ReadDelayedBlock is not implemented for this stream.");
+}
+
+void BinaryStream::WaitForDelayedBlock() {
+  EXT_THROW("WaitForDelayedBlock is not implemented for this stream.");
+}
+
+void BinaryStream::StartThreadPool(size_t) {
+  EXT_THROW("StartThreadPool is not implemented for this stream.");
+}
+
+void BinaryStream::LimitToNext(uint64_t length) {
+  CanRead(length, "Too many bytes requested in LimitToNext.");
+  limits_.push_back(size());
+  LimitTo(tell() + length);
+}
+
+void BinaryStream::Restore() {
+  EXT_ENFORCE(!limits_.empty(), "Cannot restore, no limits set");
+  uint64_t last_limit = limits_.back();
+  LimitTo(last_limit);
+  limits_.pop_back();
+}
+
+///////////////
+// StringStream
+///////////////
+
+void StringStream::CanRead(uint64_t len, const char *msg) {
   EXT_ENFORCE(pos_ + static_cast<int64_t>(len) <= size_, msg, " unable to read ", len,
               " bytes, pos_=", pos_, ", size_=", size_);
 }
@@ -57,16 +94,6 @@ const uint8_t *StringStream::read_bytes(offset_t n_bytes) {
 }
 
 void StringStream::skip_bytes(offset_t n_bytes) { pos_ += n_bytes; }
-
-void StringStream::read_string_stream(StringStream &stream) {
-  uint64_t length = next_uint64();
-  can_read(length, "[StringStream::read_string_stream]");
-  const uint8_t *res = data_ + pos_;
-  pos_ += length;
-  stream.data_ = res;
-  stream.pos_ = 0;
-  stream.size_ = length;
-}
 
 uint64_t StringStream::next_uint64() {
   uint64_t result = 0;
@@ -90,6 +117,15 @@ std::string StringStream::tell_around() const {
   RefString ref(reinterpret_cast<const char *>(data_) + begin, end - begin);
   return ref.as_string();
 }
+
+void StringStream::LimitTo(uint64_t len) {
+  EXT_ENFORCE(limits_.size() > 0, "No limit was stored.");
+  size_ = len;
+}
+
+////////////////////
+// BinaryWriteStream
+////////////////////
 
 void BinaryWriteStream::write_variant_uint64(uint64_t value) {
   uint8_t v;
@@ -204,9 +240,9 @@ const uint8_t *StringWriteStream::data() const { return buffer_.data(); }
 void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t){
     EXT_THROW("This method cannot be called on this class (BorrowedWriteStream).")}
 
-////////
-// file
-////////
+//////////////////
+// FileWriteStream
+//////////////////
 
 FileWriteStream::FileWriteStream(const std::string &file_path)
     : BinaryWriteStream(), file_path_(file_path), file_stream_(file_path, std::ios::binary) {}
@@ -223,6 +259,10 @@ const uint8_t *FileWriteStream::data() const {
   EXT_THROW("This method cannot be called on this class (FileWriteStream).");
 }
 
+/////////////
+// FileStream
+/////////////
+
 FileStream::FileStream(const std::string &file_path)
     : lock_(false), file_path_(file_path), file_stream_(file_path, std::ios::binary) {
   if (!file_stream_.is_open()) {
@@ -236,13 +276,17 @@ FileStream::FileStream(const std::string &file_path)
 
 bool FileStream::is_open() const { return file_stream_.is_open(); }
 
-void FileStream::can_read(uint64_t len, const char *msg) {
+void FileStream::LimitTo(uint64_t len) {
+  EXT_ENFORCE(limits_.size() > 0, "No limit was stored.");
+  size_ = len;
+}
+
+void FileStream::CanRead(uint64_t len, const char *msg) {
   EXT_ENFORCE(static_cast<int64_t>(tell()) + static_cast<int64_t>(len) <= size_, msg,
               " unable to read ", len, " bytes, pos_=", tell(), ", size_=", size_);
 }
 
 uint64_t FileStream::next_uint64() {
-  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
   uint64_t result = 0;
   int shift = 0;
 
@@ -259,30 +303,15 @@ uint64_t FileStream::next_uint64() {
 }
 
 const uint8_t *FileStream::read_bytes(offset_t n_bytes) {
-  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
   if (n_bytes > static_cast<offset_t>(buffer_.size()))
     buffer_.resize(n_bytes);
   file_stream_.read(reinterpret_cast<char *>(buffer_.data()), n_bytes);
   return buffer_.data();
 }
 
-void FileStream::skip_bytes(offset_t n_bytes) {
-  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
-  file_stream_.seekg(n_bytes, std::ios::cur);
-}
+void FileStream::skip_bytes(offset_t n_bytes) { file_stream_.seekg(n_bytes, std::ios::cur); }
 
-void FileStream::read_string_stream(StringStream &stream) {
-  EXT_ENFORCE(!is_locked(), "Please unlock the stream before reading new data.");
-  uint64_t length = next_uint64();
-  can_read(length, "[FileStream::read_string_stream]");
-  read_bytes(length);
-  stream.data_ = buffer_.data();
-  stream.pos_ = 0;
-  stream.size_ = length;
-  set_lock(true);
-}
-
-bool FileStream::not_end() const { return static_cast<int64_t>(tell()) < size_; }
+bool FileStream::NotEnd() const { return static_cast<int64_t>(tell()) < size_; }
 
 offset_t FileStream::tell() const {
   return static_cast<offset_t>(const_cast<std::ifstream &>(file_stream_).tellg());
@@ -293,6 +322,23 @@ std::string FileStream::tell_around() const {
                 buffer_.size() < 10 ? buffer_.size() : 10);
   return ref.as_string();
 }
+
+FileStream::~FileStream() {}
+
+void FileStream::ReadDelayedBlock(DelayedBlock &block) {
+  EXT_ENFORCE(thread_pool_.IsStarted(), "Thread pool is not started, cannot read delayed block.");
+  blocks_.push_back(block);
+  thread_pool_.SubmitTask([this, block]() {
+    std::ifstream file_stream(this->file_path_, std::ios::binary);
+    file_stream.seekg(block.offset);
+    file_stream.read(reinterpret_cast<char *>(block.data), block.size);
+  });
+  file_stream_.seekg(block.size, std::ios::cur);
+}
+
+void FileStream::WaitForDelayedBlock() { thread_pool_.Wait(); }
+
+void FileStream::StartThreadPool(size_t n_threads) { thread_pool_.Start(n_threads); }
 
 } // namespace utils
 } // namespace onnx2

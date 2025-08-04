@@ -58,6 +58,8 @@ def load(
     skip_raw_data: bool = False,
     raw_data_threshold: int = 1024,
     load_external_data: bool = True,
+    parallel: bool = False,
+    num_threads: int = -1,
 ) -> ModelProto:
     """
     Loads a serialized ModelProto into memory.
@@ -70,6 +72,8 @@ def load(
         smaller than this size (in bytes)
     :param load_external_data: Whether to load the external data.
             Set to True if the data is under the same directory of the model.
+    :param parallel: parallelize the loading of the tensors
+    :param num_threads: number of threads to use, -1 means the number of cores
     :return: Loaded in-memory ModelProto.
     """
     assert isinstance(f, (str, bytes, Path)), f"Unexpected type {type(f)} for f."
@@ -82,10 +86,12 @@ def load(
         ".onnx"
     }, f"File name must have the extension .onnx to be loaded but f={f!r}"
     model = ModelProto()
-    if skip_raw_data:
+    if skip_raw_data or parallel:
         opts = ParseOptions()
         opts.skip_raw_data = skip_raw_data
         opts.raw_data_threshold = raw_data_threshold
+        opts.parallel = parallel
+        opts.num_threads = num_threads
         if isinstance(f, bytes):
             model.ParseFromString(f, opts)
         else:

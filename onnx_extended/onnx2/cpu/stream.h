@@ -2,6 +2,7 @@
 
 #include "onnx_extended_helpers.h"
 #include "simple_string.h"
+#include "thread_pool.h"
 #include <cstddef>
 #include <fstream>
 #include <stdexcept>
@@ -28,21 +29,25 @@ struct FieldNumber {
   std::string string() const;
 };
 
+struct DelayedBlock {
+  uint64_t size;
+  uint8_t *data;
+  offset_t offset;
+};
+
 class BinaryStream {
 public:
   explicit inline BinaryStream() {}
+  virtual ~BinaryStream();
   // to overwrite
   virtual uint64_t next_uint64() = 0;
-  virtual void can_read(uint64_t len, const char *msg) = 0;
-  virtual bool not_end() const = 0;
+  virtual void CanRead(uint64_t len, const char *msg) = 0;
+  virtual bool NotEnd() const = 0;
   virtual offset_t tell() const = 0;
   virtual std::string tell_around() const = 0;
   virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
   virtual void skip_bytes(offset_t n_bytes) = 0;
-  virtual void read_string_stream(StringStream &stream) = 0;
   virtual int64_t size() const = 0;
-  virtual bool is_locked() const = 0;
-  virtual void set_lock(bool gate) = 0;
   // defines from the previous ones
   virtual RefString next_string();
   virtual int64_t next_int64();
@@ -53,6 +58,21 @@ public:
   template <typename T> void next_packed_element(T &value) {
     value = *reinterpret_cast<const T *>(read_bytes(sizeof(T)));
   }
+  // Reading substream
+  virtual void LimitToNext(uint64_t len);
+  virtual void Restore();
+
+  // parallelization of big blocks.
+  virtual bool HasParallelizationStarted() const { return false; }
+  virtual void StartThreadPool(size_t n_threads);
+  virtual void ReadDelayedBlock(DelayedBlock &block);
+  virtual void WaitForDelayedBlock();
+
+protected:
+  virtual void LimitTo(uint64_t len) = 0;
+
+protected:
+  std::vector<uint64_t> limits_;
 };
 
 class StringWriteStream;
@@ -107,17 +127,17 @@ public:
   explicit inline StringStream() : BinaryStream(), pos_(0), size_(0), data_(nullptr) {}
   explicit inline StringStream(const uint8_t *data, int64_t size)
       : BinaryStream(), pos_(0), size_(size), data_(data) {}
-  virtual void can_read(uint64_t len, const char *msg) override;
+  virtual void CanRead(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
   virtual const uint8_t *read_bytes(offset_t n_bytes) override;
   virtual void skip_bytes(offset_t n_bytes) override;
-  virtual void read_string_stream(StringStream &stream) override;
-  virtual bool not_end() const override { return pos_ < size_; }
+  virtual bool NotEnd() const override { return pos_ < size_; }
   virtual offset_t tell() const override { return static_cast<offset_t>(pos_); }
   virtual std::string tell_around() const override;
   virtual inline int64_t size() const { return size_; }
-  virtual bool is_locked() const { return false; }
-  virtual void set_lock(bool) {}
+
+protected:
+  virtual void LimitTo(uint64_t len) override;
 
 protected:
   offset_t pos_;
@@ -168,7 +188,8 @@ private:
 class FileStream : public BinaryStream {
 public:
   explicit FileStream(const std::string &file_path);
-  virtual void can_read(uint64_t len, const char *msg) override;
+  virtual ~FileStream();
+  virtual void CanRead(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
   virtual const uint8_t *read_bytes(offset_t n_bytes) override;
   virtual void skip_bytes(offset_t n_bytes) override;
@@ -177,14 +198,20 @@ public:
    * buffer_ changes everytime new bytes are read from the file.
    * So unlock() must be called or this class raises an exception.
    */
-  virtual void read_string_stream(StringStream &stream) override;
-  virtual bool not_end() const override;
+  virtual bool NotEnd() const override;
   virtual offset_t tell() const override;
   virtual std::string tell_around() const override;
   virtual bool is_open() const;
   virtual int64_t size() const override { return size_; }
-  virtual inline bool is_locked() const { return lock_; }
-  virtual inline void set_lock(bool lock) { lock_ = lock; }
+
+  // parallelization of big blocks.
+  virtual bool HasParallelizationStarted() const { return thread_pool_.IsStarted(); }
+  virtual void StartThreadPool(size_t n_threads) override;
+  virtual void ReadDelayedBlock(DelayedBlock &block) override;
+  virtual void WaitForDelayedBlock() override;
+
+protected:
+  virtual void LimitTo(uint64_t len) override;
 
 private:
   bool lock_;
@@ -192,6 +219,9 @@ private:
   std::ifstream file_stream_;
   int64_t size_;
   std::vector<uint8_t> buffer_;
+  // parallelization
+  std::vector<DelayedBlock> blocks_;
+  ThreadPool thread_pool_;
 };
 
 } // namespace utils

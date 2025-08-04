@@ -126,7 +126,7 @@
 
 #define READ_BEGIN(options, stream, cls)                                                               \
   DEBUG_PRINT("+ read begin " #cls)                                                                    \
-  while (stream.not_end()) {                                                                           \
+  while (stream.NotEnd()) {                                                                            \
     utils::FieldNumber field_number = stream.next_field();                                             \
     DEBUG_PRINT2("  = field number ", field_number.string().c_str())                                   \
     if (field_number.field_number == 0) {                                                              \
@@ -147,10 +147,10 @@
     DEBUG_PRINT("  - field " #name)                                                                    \
   }
 
-#define READ_FIELD_LIMIT(options, stream, name)                                                        \
+#define READ_FIELD_LIMIT_PARALLEL(options, stream, name)                                               \
   else if (static_cast<int>(field_number.field_number) == order_##name()) {                            \
     DEBUG_PRINT("  + field " #name)                                                                    \
-    read_field_limit(stream, field_number.wire_type, name##_, #name, options);                         \
+    read_field_limit_parallel(stream, field_number.wire_type, name##_, #name, options);                \
     DEBUG_PRINT("  - field " #name)                                                                    \
   }
 
