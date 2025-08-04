@@ -7,8 +7,6 @@
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 
-typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_type;
-
 namespace cuda_example {
 
 void cublas_gemm(const Tensor *inputA, const Tensor *inputB, Tensor *outputD,

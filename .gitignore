@@ -19,6 +19,7 @@
 .hypothesis/*
 coverage.html/*
 dump_test/*
+_doc/examples/dump_test/*
 _cache/*
 _deps/*
 .vs/*

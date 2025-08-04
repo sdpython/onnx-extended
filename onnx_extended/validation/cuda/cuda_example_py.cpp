@@ -14,6 +14,12 @@ using namespace cuda_fpemu;
 
 #define py_array_uint8_t py::array_t<uint8_t, py::array::c_style | py::array::forcecast>
 
+class RandomCudaTensor {
+  public:
+    RandomCudaTensor(size_t size): tensor(nullptr, size) { tensor.rnd(); }
+    Tensor tensor;
+};
+
 PYBIND11_MODULE(cuda_example_py, m) {
   m.doc() =
 #if defined(__APPLE__)
@@ -161,4 +167,37 @@ PYBIND11_MODULE(cuda_example_py, m) {
 :return: forward pass
       )pbdoc");
 
+      py::class_<RandomCudaTensor>(m, "RandomCudaTensor")
+        .def(py::init<size_t>(), py::arg("size"));
+      
+      m.def("cublas_gemm", [] (
+        RandomCudaTensor& inputA,
+        RandomCudaTensor& inputB,
+        RandomCudaTensor& outputD,
+        int m, int n, int k, int lda, int ldb, int ldd,
+        bool transa,
+        bool transb
+      ) -> int {
+        
+        Tensor workspace("workspace", 1 << 20, CUDA_R_32F);
+        time_type begin, heuristic, end, end2;
+        int i_epilogue = CUBLASLT_EPILOGUE_DEFAULT;
+        int i_compute_type = CUBLAS_COMPUTE_32F_FAST_TF32;
+        int i_algo;
+        Tensor outputPreGelu("rnd");
+        cudaStream_t stream;
+        cudaStreamCreate(&stream);
+
+        cublas_gemm(
+                 &inputA, &inputB, &outputD,
+                 nullptr /* inputBias */,
+                 outputPreGelu, m,  n, k, lda, ldb, ldd,
+                 transa ? CUBLAS_OP_T : CUBLAS_OP_N, transb ? CUBLAS_OP_T : CUBLAS_OP_N,
+                 false, workspace.data.dptr, workspace.data.size,
+                 false, false, 0,
+                 CUBLAS_COMPUTE_32F_FAST_TF32, stream, begin,
+                 heuristic, end, end2, i_epilogue,
+                 i_compute_type, i_algo);
+        return i_algo;
+      });
 }
