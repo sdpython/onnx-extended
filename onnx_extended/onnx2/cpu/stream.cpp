@@ -65,7 +65,6 @@ void BinaryStream::StartThreadPool(size_t) {
   EXT_THROW("StartThreadPool is not implemented for this stream.");
 }
 
-
 void BinaryStream::LimitToNext(uint64_t length) {
   CanRead(length, "Too many bytes requested in LimitToNext.");
   limits_.push_back(size());
@@ -339,10 +338,7 @@ void FileStream::ReadDelayedBlock(DelayedBlock &block, size_t n_threads) {
 
 void FileStream::WaitForDelayedBlock() { thread_pool_.Wait(); }
 
-void FileStream::StartThreadPool(size_t n_threads) {
-  thread_pool_.Start(n_threads);
-}
-
+void FileStream::StartThreadPool(size_t n_threads) { thread_pool_.Start(n_threads); }
 
 } // namespace utils
 } // namespace onnx2
