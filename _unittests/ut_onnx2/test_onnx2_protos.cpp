@@ -736,18 +736,18 @@ TEST_F(onnx2_stream_2, ReadBytes) {
 }
 
 TEST_F(onnx2_stream_2, CanRead) {
-  stream.can_read(data.size(), "Test message");
+  stream.CanRead(data.size(), "Test message");
   stream.read_bytes(10);
-  stream.can_read(data.size() - 10, "Test message");
-  EXPECT_THROW(stream.can_read(data.size(), "Test message"), std::runtime_error);
+  stream.CanRead(data.size() - 10, "Test message");
+  EXPECT_THROW(stream.CanRead(data.size(), "Test message"), std::runtime_error);
 }
 
 TEST_F(onnx2_stream_2, NotEnd) {
-  EXPECT_TRUE(stream.not_end());
+  EXPECT_TRUE(stream.NotEnd());
   stream.read_bytes(data.size() - 1);
-  EXPECT_TRUE(stream.not_end());
+  EXPECT_TRUE(stream.NotEnd());
   stream.read_bytes(1);
-  EXPECT_FALSE(stream.not_end());
+  EXPECT_FALSE(stream.NotEnd());
 }
 
 TEST_F(onnx2_stream_2, Tell) {
@@ -833,11 +833,10 @@ TEST(onnx2_stream, NestedStringWriteStreams) {
   EXPECT_EQ(field.field_number, 15);
   EXPECT_EQ(field.wire_type, 2);
 
-  utils::StringStream innerReadStream;
-  readStream.read_string_stream(innerReadStream);
-
-  utils::RefString str = innerReadStream.next_string();
-  readStream.set_lock(false);
+  uint64_t length = readStream.next_uint64();
+  readStream.LimitToNext(length);
+  utils::RefString str = readStream.next_string();
+  readStream.Restore();
   EXPECT_EQ(str, "inner data");
 }
 
@@ -867,7 +866,7 @@ TEST(onnx2_stream, ErrorCases) {
   std::vector<uint8_t> smallData = {0x01, 0x02};
   utils::StringStream smallStream(smallData.data(), smallData.size());
 
-  EXPECT_THROW(smallStream.can_read(3, "Test message"), std::runtime_error);
+  EXPECT_THROW(smallStream.CanRead(3, "Test message"), std::runtime_error);
 }
 
 TEST(onnx2_proto, StringStringEntryProto_Basic) {
@@ -3627,7 +3626,7 @@ TEST(onnx2_stream, FileWriteStream) {
 
     utils::RefString str = readStream.next_string();
     EXPECT_EQ(str, "hello");
-    EXPECT_FALSE(readStream.not_end());
+    EXPECT_FALSE(readStream.NotEnd());
   }
 
   // Clean up

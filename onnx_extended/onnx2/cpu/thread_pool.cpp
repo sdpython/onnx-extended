@@ -3,12 +3,12 @@
 namespace onnx2 {
 namespace utils {
 
-ThreadPool::ThreadPool() {}
+ThreadPool::ThreadPool() { is_started = false; }
 
 void ThreadPool::Start(size_t num_threads) {
   EXT_ENFORCE(workers.size() == 0, "ThreadPool already started");
-  EXT_ENFORCE(num_threads > 0, "Number of threads must be greater than zero");
   stop = false;
+  is_started = true;
 
   for (size_t i = 0; i < num_threads; ++i) {
     workers.emplace_back(&ThreadPool::worker_thread, this);
@@ -20,7 +20,8 @@ void ThreadPool::SubmitTask(std::function<void()> job) {
     std::unique_lock<std::mutex> lock(queue_mutex);
     jobs.push(std::move(job));
   }
-  condition.notify_one();
+  if (!workers.empty())
+    condition.notify_one();
 }
 
 void ThreadPool::worker_thread() {
@@ -31,9 +32,9 @@ void ThreadPool::worker_thread() {
       std::unique_lock<std::mutex> lock(queue_mutex);
       condition.wait(lock, [this]() { return stop || !jobs.empty(); });
 
-      if (stop)
-        return;
       if (jobs.empty()) {
+        if (stop)
+          return;
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         continue;
       }
@@ -47,16 +48,27 @@ void ThreadPool::worker_thread() {
 }
 
 void ThreadPool::Wait() {
+  if (workers.empty()) {
+    // No workers so we manually run the jobs.
+    while (!jobs.empty()) {
+      std::function<void()> job = std::move(jobs.front());
+      jobs.pop();
+      job();
+    }
+  }
   while (jobs.size() > 0) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   stop = true;
-  condition.notify_all();
+  if (!workers.empty()) {
+    condition.notify_all();
+  }
   for (std::thread &worker : workers) {
     if (worker.joinable())
       worker.join();
   }
   workers.clear();
+  is_started = false;
 }
 
 ThreadPool::~ThreadPool() { Wait(); }

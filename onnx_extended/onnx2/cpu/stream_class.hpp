@@ -126,8 +126,7 @@
 
 #define READ_BEGIN(options, stream, cls)                                                               \
   DEBUG_PRINT("+ read begin " #cls)                                                                    \
-  bool wait_for_thread = options.parallel && !stream.parallelization_started();                        \
-  while (stream.not_end()) {                                                                           \
+  while (stream.NotEnd()) {                                                                            \
     utils::FieldNumber field_number = stream.next_field();                                             \
     DEBUG_PRINT2("  = field number ", field_number.string().c_str())                                   \
     if (field_number.field_number == 0) {                                                              \
@@ -138,8 +137,6 @@
   else {                                                                                               \
     EXT_THROW("unable to parse field_number=", field_number.string(), " in class ", #cls);             \
   }                                                                                                    \
-  if (wait_for_thread)                                                                                 \
-    stream.wait_for_delayed_block();                                                                   \
   }                                                                                                    \
   DEBUG_PRINT("+ read end " #cls)
 

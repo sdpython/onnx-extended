@@ -21,7 +21,7 @@ public:
   void SubmitTask(std::function<void()> job);
   void Wait();
   inline size_t GetThreadCount() const { return workers.size(); }
-  inline bool IsStarted() const { return !workers.empty(); }
+  inline bool IsStarted() const { return is_started; }
 
 private:
   std::vector<std::thread> workers;
@@ -30,6 +30,7 @@ private:
   std::mutex queue_mutex;
   std::condition_variable condition;
   std::atomic<bool> stop;
+  bool is_started;
 
   void worker_thread();
 };

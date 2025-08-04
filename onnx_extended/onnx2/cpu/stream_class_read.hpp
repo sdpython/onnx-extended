@@ -24,14 +24,20 @@ using namespace onnx_extended_helpers;
 namespace onnx2 {
 
 template <typename T>
+void read_next_field_in_shortended_stream(utils::BinaryStream &stream, const char *name,
+                                          ParseOptions &options, T &field) {
+  uint64_t length = stream.next_uint64();
+  stream.LimitToNext(length);
+  field.ParseFromStream(stream, options);
+  stream.Restore();
+}
+
+template <typename T>
 void read_field(utils::BinaryStream &stream, int wire_type, T &field, const char *name,
                 ParseOptions &options) {
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
               "' at position '", stream.tell_around(), "'");
-  utils::StringStream dim_buf;
-  stream.read_string_stream(dim_buf);
-  field.ParseFromStream(dim_buf, options);
-  stream.set_lock(false);
+  read_next_field_in_shortended_stream(stream, name, options, field);
 }
 
 template <typename T>
@@ -40,11 +46,8 @@ void read_optional_proto_field(utils::BinaryStream &stream, int wire_type,
                                ParseOptions &options) {
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
               "' at position '", stream.tell_around(), "'");
-  utils::StringStream dim_buf;
-  stream.read_string_stream(dim_buf);
   field.set_empty_value();
-  (*field).ParseFromStream(dim_buf, options);
-  stream.set_lock(false);
+  read_next_field_in_shortended_stream(stream, name, options, *field);
 }
 
 template <>
@@ -147,15 +150,15 @@ void read_field_limit_parallel(utils::BinaryStream &stream, int wire_type, std::
     EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
                 "' at position '", stream.tell_around(), "'");
     uint64_t len = stream.next_uint64();
-    if (static_cast<int64_t>(len) < options.raw_data_threshold) {
+    if (!options.skip_raw_data || static_cast<int64_t>(len) < options.raw_data_threshold) {
       field.resize(len);
       if (options.parallel) {
         utils::DelayedBlock block;
         block.size = len;
         block.data = field.data();
         block.offset = stream.tell();
-        stream.delay_block(block, options.num_threads > 0 ? options.num_threads
-                                                          : std::thread::hardware_concurrency());
+        stream.ReadDelayedBlock(block, options.num_threads > 0 ? options.num_threads
+                                                               : std::thread::hardware_concurrency());
       } else {
         memcpy(field.data(), stream.read_bytes(len), len);
       }
@@ -197,11 +200,8 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type,
               "' at position '", stream.tell_around(), "'");
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
               "' at position '", stream.tell_around(), "'");
-  utils::StringStream dim_buf;
-  stream.read_string_stream(dim_buf);
   T &elem = field.add();
-  elem.ParseFromStream(dim_buf, options);
-  stream.set_lock(false);
+  read_next_field_in_shortended_stream(stream, name, options, elem);
 }
 
 template <typename T>
@@ -210,12 +210,9 @@ void read_repeated_field(utils::BinaryStream &stream, int wire_type, std::vector
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field name '", name, "'");
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
               "' at position '", stream.tell_around(), "'");
-  utils::StringStream dim_buf;
-  stream.read_string_stream(dim_buf);
   T elem;
-  elem.ParseFromStream(dim_buf, options);
+  read_next_field_in_shortended_stream(stream, name, options, elem);
   field.emplace_back(elem);
-  stream.set_lock(false);
 }
 
 template <>
@@ -288,11 +285,13 @@ void read_repeated_field_packed_numerical_int(utils::BinaryStream &stream, int w
   DEBUG_PRINT2("    read packed", name);
   EXT_ENFORCE(wire_type == FIELD_FIXED_SIZE, "unexpected wire_type=", wire_type, " for field '", name,
               "' at position '", stream.tell_around(), "'");
-  utils::StringStream dim_buf;
-  stream.read_string_stream(dim_buf);
-  while (dim_buf.not_end()) {
-    field.push_back(static_cast<T>(dim_buf.next_uint64()));
+
+  uint64_t length = stream.next_uint64();
+  stream.LimitToNext(length);
+  while (stream.NotEnd()) {
+    field.push_back(static_cast<T>(stream.next_uint64()));
   }
+  stream.Restore();
 }
 
 template <typename T>
