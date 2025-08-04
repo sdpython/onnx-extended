@@ -230,6 +230,21 @@ uint64_t BinaryWriteStream::size_string_stream(const BorrowedWriteStream &stream
   return VarintSize(stream.size()) + stream.size();
 }
 
+void BinaryWriteStream::CacheSize(const void *ptr, uint64_t size) { size_cache_[ptr] = size; }
+
+bool BinaryWriteStream::GetCachedSize(const void *ptr, uint64_t &size) {
+  auto it = size_cache_.find(ptr);
+  if (it != size_cache_.end()) {
+    size = it->second;
+    return true;
+  }
+  return false;
+}
+
+////////////////////
+// StringWriteStream
+////////////////////
+
 void StringWriteStream::write_raw_bytes(const uint8_t *ptr, offset_t n_bytes) {
   buffer_.insert(buffer_.end(), ptr, ptr + n_bytes);
 }
@@ -237,8 +252,13 @@ void StringWriteStream::write_raw_bytes(const uint8_t *ptr, offset_t n_bytes) {
 int64_t StringWriteStream::size() const { return buffer_.size(); }
 const uint8_t *StringWriteStream::data() const { return buffer_.data(); }
 
-void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t){
-    EXT_THROW("This method cannot be called on this class (BorrowedWriteStream).")}
+//////////////////////
+// BorrowedWriteStream
+//////////////////////
+
+void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t) {
+  EXT_THROW("This method cannot be called on this class (BorrowedWriteStream).");
+}
 
 //////////////////
 // FileWriteStream

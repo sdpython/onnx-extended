@@ -15,30 +15,34 @@ using namespace onnx_extended_helpers;
 namespace onnx2 {
 
 template <typename T>
+void write_with_cache_size(utils::BinaryWriteStream &stream, const T &field,
+                           SerializeOptions &options) {
+  uint64_t size;
+  bool is_cached = stream.GetCachedSize(reinterpret_cast<const void *>(&field), size);
+  if (!is_cached) {
+    size = field.SerializeSize(stream, options);
+    stream.CacheSize(reinterpret_cast<const void *>(&field), size);
+  }
+  stream.write_variant_uint64(size);
+  uint64_t pos = stream.size();
+  field.SerializeToStream(stream, options);
+  EXT_ENFORCE(stream.size() - pos == size, "Serialized size (", stream.size() - pos,
+              ") size does not match the expected size (", size, ")");
+}
+
+template <typename T>
 void write_field(utils::BinaryWriteStream &stream, int order, const T &field,
                  SerializeOptions &options) {
-  // TODO: avoid copy
-  // If we could know the size of the field in advance (after it is serialized),
-  // we could avoid to serialize into a buffer and then write it (copy it in face)
-  // to the stream.
-  utils::StringWriteStream local;
-  field.SerializeToStream(local, options);
   stream.write_field_header(order, FIELD_FIXED_SIZE);
-  stream.write_string_stream(local);
+  write_with_cache_size(stream, field, options);
 }
 
 template <typename T>
 void write_optional_proto_field(utils::BinaryWriteStream &stream, int order,
                                 const utils::OptionalField<T> &field, SerializeOptions &options) {
   if (field.has_value()) {
-    // TODO: avoid copy
-    // If we could know the size of the field in advance (after it is serialized),
-    // we could avoid to serialize into a buffer and then write it (copy it in face)
-    // to the stream.
-    utils::StringWriteStream local;
-    (*field).SerializeToStream(local, options);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
-    stream.write_string_stream(local);
+    write_with_cache_size(stream, *field, options);
   }
 }
 
@@ -154,14 +158,8 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order,
                           SerializeOptions &options) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
   for (size_t i = 0; i < field.size(); ++i) {
-    // TODO: avoid copy
-    // If we could know the size of the field in advance (after it is serialized),
-    // we could avoid to serialize into a buffer and then write it (copy it in face)
-    // to the stream.
-    utils::StringWriteStream local;
-    field[i].SerializeToStream(local, options);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
-    stream.write_string_stream(local);
+    write_with_cache_size(stream, field[i], options);
   }
 }
 
@@ -170,14 +168,8 @@ void write_repeated_field(utils::BinaryWriteStream &stream, int order, const std
                           bool is_packed, SerializeOptions &options) {
   EXT_ENFORCE(!is_packed, "option is_packed is not implemented for field order ", order);
   for (const auto &d : field) {
-    // TODO: avoid copy
-    // If we could know the size of the field in advance (after it is serialized),
-    // we could avoid to serialize into a buffer and then write it (copy it in face)
-    // to the stream.
-    utils::StringWriteStream local;
-    d.SerializeToStream(local, options);
     stream.write_field_header(order, FIELD_FIXED_SIZE);
-    stream.write_string_stream(local);
+    write_with_cache_size(stream, d, options);
   }
 }
 
