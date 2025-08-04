@@ -241,6 +241,10 @@ bool BinaryWriteStream::GetCachedSize(const void *ptr, uint64_t &size) {
   return false;
 }
 
+void BinaryWriteStream::write_raw_bytes_in_second_stream(const uint8_t *ptr, offset_t n_bytes) {
+  EXT_THROW("This method was not overriden.");
+}
+
 ////////////////////
 // StringWriteStream
 ////////////////////
@@ -359,6 +363,15 @@ void FileStream::ReadDelayedBlock(DelayedBlock &block) {
 void FileStream::WaitForDelayedBlock() { thread_pool_.Wait(); }
 
 void FileStream::StartThreadPool(size_t n_threads) { thread_pool_.Start(n_threads); }
+
+//////////////////////
+// TwoFilesWriteStream
+//////////////////////
+
+void TwoFilesWriteStream::write_raw_bytes_in_second_stream(const uint8_t *ptr, offset_t n_bytes) {
+  position_cache_[ptr] = weights_stream_.size();
+  weights_stream_.write_raw_bytes(ptr, n_bytes);
+}
 
 } // namespace utils
 } // namespace onnx2

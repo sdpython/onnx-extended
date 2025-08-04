@@ -84,6 +84,7 @@ public:
   explicit inline BinaryWriteStream() {}
   // to overwrite
   virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) = 0;
+  virtual void write_raw_bytes_in_second_stream(const uint8_t *data, offset_t n_bytes);
   virtual int64_t size() const = 0;
   virtual const uint8_t *data() const = 0;
   // defined from the previous ones
@@ -114,6 +115,8 @@ public:
   virtual uint64_t size_string(const RefString &value);
   virtual uint64_t size_string_stream(const StringWriteStream &stream);
   virtual uint64_t size_string_stream(const BorrowedWriteStream &stream);
+  // weights
+  virtual bool ExternalWeights() const { return false; }
 
   // cache
   virtual void CacheSize(const void *ptr, uint64_t size);
@@ -229,6 +232,22 @@ private:
   // parallelization
   std::vector<DelayedBlock> blocks_;
   ThreadPool thread_pool_;
+};
+
+//////////////////////////////
+// Stream for external weights
+//////////////////////////////
+
+class TwoFilesWriteStream : public FileWriteStream {
+public:
+  inline TwoFilesWriteStream(const std::string &file_path, const std::string &weights_file)
+      : FileWriteStream(file_path), weights_stream_(weights_file) {}
+  virtual bool ExternalWeights() const { return true; }
+  virtual void write_raw_bytes_in_second_stream(const uint8_t *data, offset_t n_bytes);
+
+private:
+  FileWriteStream weights_stream_;
+  std::unordered_map<const void *, uint64_t> position_cache_;
 };
 
 } // namespace utils

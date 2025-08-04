@@ -12,13 +12,13 @@
 using namespace onnx2;
 using namespace onnx2::utils;
 
-TEST(ThreadPoolTests, CreateAndDestroy) {
+TEST(onnx2_threads, CreateAndDestroy) {
   ThreadPool pool;
   pool.Start(4);
   EXPECT_EQ(pool.GetThreadCount(), 4);
 }
 
-TEST(ThreadPoolTests, SubmitSingleTask) {
+TEST(onnx2_threads, SubmitSingleTask) {
   ThreadPool pool;
   pool.Start(2);
   int result = 0;
@@ -32,7 +32,7 @@ TEST(ThreadPoolTests, SubmitSingleTask) {
   EXPECT_EQ(result, 42);
 }
 
-TEST(ThreadPoolTests, SubmitMultipleTasks) {
+TEST(onnx2_threads, SubmitMultipleTasks) {
   ThreadPool pool;
   pool.Start(4);
   constexpr int num_tasks = 100;
@@ -44,7 +44,7 @@ TEST(ThreadPoolTests, SubmitMultipleTasks) {
   EXPECT_EQ(counter.load(), num_tasks);
 }
 
-TEST(ThreadPoolTests, ParallelExecution) {
+TEST(onnx2_threads, ParallelExecution) {
   // Utiliser plus de threads que les cœurs physiques pour tester la répartition
   ThreadPool pool;
   pool.Start(8);
@@ -76,7 +76,7 @@ TEST(ThreadPoolTests, ParallelExecution) {
   EXPECT_GT(unique_threads, 1);
 }
 
-TEST(ThreadPoolTests, ParallelModelProcessing0) {
+TEST(onnx2_threads, ParallelModelProcessing0) {
   ModelProto model;
   model.set_ir_version(7);
   model.set_producer_name("test_parallel_model");
@@ -119,7 +119,7 @@ TEST(ThreadPoolTests, ParallelModelProcessing0) {
   std::remove(temp_filename.c_str());
 }
 
-TEST(ThreadPoolTests, ParallelModelProcessing4) {
+TEST(onnx2_threads, ParallelModelProcessing4) {
   ModelProto model;
   model.set_ir_version(7);
   model.set_producer_name("test_parallel_model");
