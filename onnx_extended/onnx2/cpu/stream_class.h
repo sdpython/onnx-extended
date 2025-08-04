@@ -215,7 +215,7 @@ struct ParseOptions {
   bool parallel = false;
   /** number of threads to run in parallel if parallel is true, -1 for as many threads as the number of
    * cores */
-  size_t num_threads = -1;
+  int32_t num_threads = -1;
 };
 
 struct SerializeOptions {

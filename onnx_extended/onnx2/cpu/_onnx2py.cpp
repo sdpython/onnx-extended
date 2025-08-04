@@ -34,7 +34,14 @@ namespace py = pybind11;
           [](onnx2::cls &self, const std::string &file_path, py::object options) {                     \
             onnx2::utils::FileStream stream(file_path);                                                \
             if (py::isinstance<onnx2::ParseOptions &>(options)) {                                      \
-              self.ParseFromStream(stream, options.cast<onnx2::ParseOptions &>());                     \
+              onnx2::ParseOptions &coptions = options.cast<onnx2::ParseOptions &>();                   \
+              if (coptions.parallel) {                                                                 \
+                stream.StartThreadPool(coptions.num_threads);                                          \
+              }                                                                                        \
+              self.ParseFromStream(stream, coptions);                                                  \
+              if (coptions.parallel) {                                                                 \
+                stream.WaitForDelayedBlock();                                                          \
+              }                                                                                        \
             } else {                                                                                   \
               onnx2::ParseOptions opts;                                                                \
               self.ParseFromStream(stream, opts);                                                      \

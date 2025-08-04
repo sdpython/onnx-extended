@@ -53,7 +53,7 @@ FieldNumber BinaryStream::next_field() {
   return n;
 }
 
-void BinaryStream::ReadDelayedBlock(DelayedBlock &block, size_t n_threads) {
+void BinaryStream::ReadDelayedBlock(DelayedBlock &block) {
   EXT_THROW("ReadDelayedBlock is not implemented for this stream.");
 }
 
@@ -325,7 +325,7 @@ std::string FileStream::tell_around() const {
 
 FileStream::~FileStream() {}
 
-void FileStream::ReadDelayedBlock(DelayedBlock &block, size_t n_threads) {
+void FileStream::ReadDelayedBlock(DelayedBlock &block) {
   EXT_ENFORCE(thread_pool_.IsStarted(), "Thread pool is not started, cannot read delayed block.");
   blocks_.push_back(block);
   thread_pool_.SubmitTask([this, block]() {

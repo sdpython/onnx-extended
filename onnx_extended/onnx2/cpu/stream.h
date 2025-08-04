@@ -65,7 +65,7 @@ public:
   // parallelization of big blocks.
   virtual bool HasParallelizationStarted() const { return false; }
   virtual void StartThreadPool(size_t n_threads);
-  virtual void ReadDelayedBlock(DelayedBlock &block, size_t n_threads);
+  virtual void ReadDelayedBlock(DelayedBlock &block);
   virtual void WaitForDelayedBlock();
 
 protected:
@@ -207,7 +207,7 @@ public:
   // parallelization of big blocks.
   virtual bool HasParallelizationStarted() const { return thread_pool_.IsStarted(); }
   virtual void StartThreadPool(size_t n_threads) override;
-  virtual void ReadDelayedBlock(DelayedBlock &block, size_t n_threads) override;
+  virtual void ReadDelayedBlock(DelayedBlock &block) override;
   virtual void WaitForDelayedBlock() override;
 
 protected:

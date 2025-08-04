@@ -82,6 +82,20 @@ onx, times = measure(lambda: onnx.load(full_name))
 print(times)
 
 # %%
+# Let's do it with onnx2 but the loading of the tensors is parallelized.
+
+print(
+    f"Load time with onnx2 and 4 threads, "
+    f"it has {len(onx2.graph.initializer)} initializers"
+)
+onx2, times = measure(lambda: onnx2.load(full_name, parallel=True, num_threads=4))
+print(times)
+
+# %%
+# It looks much faster.
+
+
+# %%
 # Measure the saving time
 # +++++++++++++++++++++++
 #

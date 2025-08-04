@@ -157,8 +157,7 @@ void read_field_limit_parallel(utils::BinaryStream &stream, int wire_type, std::
         block.size = len;
         block.data = field.data();
         block.offset = stream.tell();
-        stream.ReadDelayedBlock(block, options.num_threads > 0 ? options.num_threads
-                                                               : std::thread::hardware_concurrency());
+        stream.ReadDelayedBlock(block);
       } else {
         memcpy(field.data(), stream.read_bytes(len), len);
       }

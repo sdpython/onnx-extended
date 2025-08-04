@@ -17,7 +17,7 @@ class ThreadPool {
 public:
   ThreadPool();
   ~ThreadPool();
-  void Start(size_t num_threads);
+  void Start(int32_t num_threads);
   void SubmitTask(std::function<void()> job);
   void Wait();
   inline size_t GetThreadCount() const { return workers.size(); }
