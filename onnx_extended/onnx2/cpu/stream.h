@@ -114,6 +114,13 @@ public:
   virtual uint64_t size_string(const RefString &value);
   virtual uint64_t size_string_stream(const StringWriteStream &stream);
   virtual uint64_t size_string_stream(const BorrowedWriteStream &stream);
+
+  // cache
+  virtual void CacheSize(const void *ptr, uint64_t size);
+  virtual bool GetCachedSize(const void *ptr, uint64_t &size);
+
+protected:
+  std::unordered_map<const void *, uint64_t> size_cache_;
 };
 
 ///////////
