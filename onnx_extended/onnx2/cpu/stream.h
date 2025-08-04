@@ -119,8 +119,8 @@ public:
   virtual void CacheSize(const void *ptr, uint64_t size);
   virtual bool GetCachedSize(const void *ptr, uint64_t &size);
 
-  protected:
-  std::unordered_map<const void*, uint64_t> size_cache_;
+protected:
+  std::unordered_map<const void *, uint64_t> size_cache_;
 };
 
 ///////////
