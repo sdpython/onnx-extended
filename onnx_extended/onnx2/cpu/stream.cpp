@@ -17,9 +17,11 @@ std::string FieldNumber::string() const {
                                            "]");
 }
 
-BinaryStream::~BinaryStream() {
+void BinaryStream::_check() {
   EXT_ENFORCE(limits_.empty(), "BinaryStream destructor called with non-empty limits stack.");
 }
+
+BinaryStream::~BinaryStream() { _check(); }
 
 RefString BinaryStream::next_string() {
   uint64_t length = next_uint64();
@@ -53,7 +55,7 @@ FieldNumber BinaryStream::next_field() {
   return n;
 }
 
-void BinaryStream::ReadDelayedBlock(DelayedBlock &block) {
+void BinaryStream::ReadDelayedBlock(DelayedBlock &) {
   EXT_THROW("ReadDelayedBlock is not implemented for this stream.");
 }
 
@@ -241,7 +243,7 @@ bool BinaryWriteStream::GetCachedSize(const void *ptr, uint64_t &size) {
   return false;
 }
 
-void BinaryWriteStream::write_raw_bytes_in_second_stream(const uint8_t *ptr, offset_t n_bytes) {
+void BinaryWriteStream::write_raw_bytes_in_second_stream(const uint8_t *, offset_t) {
   EXT_THROW("This method was not overriden.");
 }
 

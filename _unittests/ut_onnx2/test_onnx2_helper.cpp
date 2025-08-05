@@ -269,7 +269,8 @@ TEST(onnx2_helper, SerializeModelProtoToStream) {
 
   SerializeOptions options;
   options.raw_data_threshold = 2;
-  utils::TwoFilesWriteStream stream("SerializeModelProtoToStream.onnx", "SerializeModelProtoToStream.data");
+  utils::TwoFilesWriteStream stream("SerializeModelProtoToStream.onnx",
+                                    "SerializeModelProtoToStream.data");
 
   SerializeModelProtoToStream(model, stream, options);
 }

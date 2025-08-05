@@ -7,9 +7,9 @@ bool IteratorTensorProto::next() {
     // loops over nodes
     bool break_loop = false;
     if (pos.graph->ref_node().size() > 0) {
-      while (pos.node_index < pos.graph->ref_node().size()) {
+      while (pos.node_index < static_cast<int>(pos.graph->ref_node().size())) {
         NodeProto *node = &(pos.graph->ref_node()[pos.node_index]);
-        while (pos.attr_index < node->ref_attribute().size()) {
+        while (pos.attr_index < static_cast<int>(node->ref_attribute().size())) {
           AttributeProto &att = node->ref_attribute()[pos.attr_index];
           if (att.has_t()) {
             tp_ = &(att.ref_t());
@@ -38,7 +38,7 @@ bool IteratorTensorProto::next() {
       continue;
     // loop over initializers
     if (pos.graph->ref_initializer().size() > 0) {
-      if (pos.node_initializer_index < pos.graph->ref_initializer().size()) {
+      if (pos.node_initializer_index < static_cast<int64_t>(pos.graph->ref_initializer().size())) {
         tp_ = &(pos.graph->ref_initializer()[pos.node_initializer_index]);
         ++pos.node_initializer_index;
         return true;

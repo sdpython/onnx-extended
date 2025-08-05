@@ -113,7 +113,7 @@ uint64_t size_field(utils::BinaryWriteStream &stream, int order, const std::vect
 uint64_t size_field_limit(utils::BinaryWriteStream &stream, int order,
                           const std::vector<uint8_t> &field, SerializeOptions &options) {
   if (!options.skip_raw_data || field.size() < static_cast<size_t>(options.raw_data_threshold)) {
-    if (stream.ExternalWeights() && field.size() >= options.raw_data_threshold) {
+    if (stream.ExternalWeights() && static_cast<int64_t>(field.size()) >= options.raw_data_threshold) {
       return 0;
     } else {
       return size_field(stream, order, field, options);

@@ -28,4 +28,5 @@ rm _doc/examples/*.opt.onnx
 rm _doc/examples/*.dynamo.onnx
 rm _doc/examples/*.script.onnx
 rm _doc/examples/dump_models -rf
+rm _doc/examples/dump_test/ -rf
 rm _doc/sg_execution*

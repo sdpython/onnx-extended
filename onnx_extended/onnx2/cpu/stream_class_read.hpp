@@ -24,7 +24,7 @@ using namespace onnx_extended_helpers;
 namespace onnx2 {
 
 template <typename T>
-void read_next_field_in_shortended_stream(utils::BinaryStream &stream, const char *name,
+void read_next_field_in_shortended_stream(utils::BinaryStream &stream, const char *,
                                           ParseOptions &options, T &field) {
   uint64_t length = stream.next_uint64();
   stream.LimitToNext(length);

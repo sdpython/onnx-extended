@@ -70,8 +70,7 @@ public:
 
 protected:
   virtual void LimitTo(uint64_t len) = 0;
-
-protected:
+  virtual void _check();
   std::vector<uint64_t> limits_;
 };
 
