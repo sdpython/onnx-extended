@@ -95,6 +95,10 @@ void SerializeModelProtoToStream(ModelProto &model, utils::BinaryWriteStream &st
     parent_path = parent_path.parent_path();
     std::filesystem::path weight_path = two_stream.weights_file_path();
     weight_path = std::filesystem::relative(weight_path, parent_path);
+    if (weight_path.empty()) {
+      // If the relative path is empty, it means the weight file is in the same directory as the model.
+      weight_path = two_stream.weights_file_path();
+    }
     PopulateExternalData(model, options.raw_data_threshold, weight_path.string());
   }
   model.SerializeToStream(stream, options);
