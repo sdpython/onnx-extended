@@ -358,7 +358,8 @@ void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeO
       } else if (entry.ref_key() == "size") {
         int64_t size = entry.ref_value().toint64();
         EXT_ENFORCE(size == static_cast<int64_t>(ref_raw_data().size()), "Size mismatch ", size,
-                    " != ", ref_raw_data().size(), " name='", ref_name().as_string(), "'");
+                    " != ", static_cast<int64_t>(ref_raw_data().size()), " name='",
+                    ref_name().as_string(), "'");
         checked += 2;
       } else if (entry.ref_key() == "offset") {
         int64_t offset = entry.ref_value().toint64();
