@@ -80,7 +80,7 @@ void ThreadPool::Clear() {
   workers.clear();
   while (!jobs.empty()) {
     jobs.pop();
-  } 
+  }
 }
 
 } // namespace utils
