@@ -84,10 +84,10 @@ namespace py = pybind11;
                     : new onnx2::utils::TwoFilesWriteStream(file_path, external_data_file);            \
             if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
               SerializeProtoToStream(self, *stream, options.cast<onnx2::SerializeOptions &>(),         \
-                                     external_data_file);                                              \
+                                     !external_data_file.empty());                                     \
             } else {                                                                                   \
               onnx2::SerializeOptions opts;                                                            \
-              SerializeProtoToStream(self, *stream, opts, external_data_file);                         \
+              SerializeProtoToStream(self, *stream, opts, !external_data_file.empty());                \
             }                                                                                          \
             delete stream;                                                                             \
           },                                                                                           \
