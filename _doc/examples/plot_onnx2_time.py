@@ -101,7 +101,7 @@ print(times)
 
 # %%
 # Let's load it with :epkg:`onnxruntime`.
-import onnxruntime
+import onnxruntime  # noqa: E402
 
 so = onnxruntime.SessionOptions()
 so.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
