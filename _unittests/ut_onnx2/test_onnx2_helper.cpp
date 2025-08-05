@@ -274,3 +274,24 @@ TEST(onnx2_helper, SerializeModelProtoToStream) {
 
   SerializeModelProtoToStream(model, stream, options);
 }
+
+TEST(onnx2_file, SaveWithExternalData) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_writing_external_weights.original.onnx";
+  if (!std::filesystem::exists(file_path)) {
+    GTEST_SKIP() << "File not found: " << file_path.string();
+  }
+
+  ModelProto model;
+  utils::FileStream stream(file_path.string());
+  onnx2::ParseOptions opts;
+  model.ParseFromStream(stream, opts);
+
+  std::string serialized = "test_onnx2_file_save_with_external_data.onnx";
+  std::string weights = "test_onnx2_file_save_with_external_data.data";
+  utils::TwoFilesWriteStream wstream(serialized, weights);
+  SerializeOptions wopts;
+  SerializeProtoToStream(model, wstream, wopts);
+}

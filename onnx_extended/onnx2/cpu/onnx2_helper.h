@@ -61,7 +61,7 @@ void SerializeModelProtoToStream(ModelProto &model, utils::BinaryWriteStream &st
 template <>
 inline void SerializeProtoToStream(ModelProto &model, utils::BinaryWriteStream &stream,
                                    SerializeOptions &options, bool clear_external_data) {
-  SerializeProtoToStream(model, stream, options, clear_external_data);
+  SerializeModelProtoToStream(model, stream, options, clear_external_data);
 }
 
 } // namespace onnx2
