@@ -81,6 +81,7 @@ class FileStream;
 class BinaryWriteStream {
 public:
   explicit inline BinaryWriteStream() {}
+  virtual ~BinaryWriteStream() {}
   // to overwrite
   virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) = 0;
   virtual void write_raw_bytes_in_second_stream(const uint8_t *data, offset_t n_bytes);

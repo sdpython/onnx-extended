@@ -1,4 +1,5 @@
 #include "onnx2_helper.h"
+#include <filesystem>
 
 namespace onnx2 {
 bool IteratorTensorProto::next() {
@@ -90,7 +91,11 @@ void SerializeModelProtoToStream(ModelProto &model, utils::BinaryWriteStream &st
                                  SerializeOptions &options, bool clear_external_data) {
   if (stream.ExternalWeights()) {
     utils::TwoFilesWriteStream &two_stream = dynamic_cast<utils::TwoFilesWriteStream &>(stream);
-    PopulateExternalData(model, options.raw_data_threshold, two_stream.weights_file_path());
+    std::filesystem::path parent_path = two_stream.file_path();
+    parent_path = parent_path.parent_path();
+    std::filesystem::path weight_path = two_stream.weights_file_path();
+    weight_path = std::filesystem::relative(weight_path, parent_path);
+    PopulateExternalData(model, options.raw_data_threshold, weight_path.string());
   }
   model.SerializeToStream(stream, options);
   if (stream.ExternalWeights() && clear_external_data)

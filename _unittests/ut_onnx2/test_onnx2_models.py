@@ -88,7 +88,7 @@ class TestOnnx2Helper(ExtTestCase):
                 [oh.make_tensor_value_info("Z", TFLOAT, [3, 5, 32, 64])],
                 [
                     onh.from_array(
-                        np.random.rand(3, 5, 1280, 640).astype(np.float32), name="Y"
+                        np.random.rand(3, 5, 128, 64).astype(np.float32), name="Y"
                     ),
                     onh.from_array(np.array([0], dtype=np.int64), name="zero"),
                     onh.from_array(np.array([1], dtype=np.int64), name="un"),
@@ -120,6 +120,20 @@ class TestOnnx2Helper(ExtTestCase):
         onnx2.save(model2, name2)
         model3 = onnx.load(name2)
         self.assertEqualModelProto(model, model3)
+
+    def test_writing_external_weights(self):
+        nameo = self.get_dump_file("test_writing_external_weights.original.onnx")
+        name = self.get_dump_file("test_writing_external_weights.onnx")
+        weights = self.get_dump_file("test_writing_external_weights.data")
+        model = self._get_model_with_initializers(xoh, onnx.numpy_helper)
+        proto = onnx2.ModelProto()
+        s = model.SerializeToString()
+        with open(nameo, "wb") as f:
+            f.write(s)
+        proto.ParseFromString(s)
+        proto.SerializeToFile(name, external_data_file=weights)
+        reload = onnx.load(name)
+        self.assertEqual(len(reload.graph.initializer), len(model.graph.initializer))
 
 
 if __name__ == "__main__":

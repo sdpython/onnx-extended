@@ -46,9 +46,10 @@ private:
  * If external weights is triggered, the model is modified to add external data.
  */
 template <typename T>
-inline void SerializeProtoToStream(T &model, utils::BinaryWriteStream &stream,
-                                   SerializeOptions &options, bool clear_external_data = true) {
-  EXT_THROW("SerializeProtoToStream is not implemented for type ", typeid(T).name());
+inline void SerializeProtoToStream(T &, utils::BinaryWriteStream &, SerializeOptions &,
+                                   bool clear_external_data = true) {
+  EXT_THROW("SerializeProtoToStream is not implemented for type ", typeid(T).name(),
+            ", clear_external_data=", clear_external_data);
 }
 
 /**

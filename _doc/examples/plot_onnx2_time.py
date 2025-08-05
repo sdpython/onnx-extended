@@ -18,9 +18,14 @@ onnx_file = (
     "microsoft_Phi-4-mini-reasoning-onnx-dynamo-ir.onnx"
 )
 if not os.path.exists(onnx_file):
+    print("Creates the model, starts with importing transformers...")
+    import torch  # noqa: F401
+    import transformers  # noqa: F401
+
+    print("Imports onnx-diagnostic...")
     from onnx_diagnostic.torch_models.validate import validate_model
 
-    print("Creates the model...")
+    print("Starts creating the model...")
 
     validate_model(
         "microsoft/Phi-4-mini-reasoning",
@@ -110,4 +115,37 @@ print(times)
 
 print("Save time with onnx.")
 _, times = measure(lambda: onnx.save(onx, full_name))
+print(times)
+
+# %%
+# Measure the saving time with external weights
+# +++++++++++++++++++++++++++++++++++++++++++++
+#
+# Let's do it with onnx2.
+
+full_name = "dump_test/microsoft_Phi-4-mini-reasoning.ext.onnx"
+full_weight = "dump_test/microsoft_Phi-4-mini-reasoning.ext.data"
+
+print("Save time with onnx2 and external weights.")
+_, times = measure(lambda: onnx2.save(onx2, full_name, location=full_weight))
+print(times)
+
+# %%
+# Then with onnx. We can only do that once,
+# the function modifies the model inplace to add information
+# about external data. The second run does not follow the same steps.
+
+print("Save time with onnx and external weights.")
+full_weight += ".2"
+_, times = measure(
+    lambda: onnx.save(
+        onx,
+        full_name,
+        location=os.path.split(full_weight)[-1],
+        save_as_external_data=True,
+        all_tensors_to_one_file=True,
+    ),
+    N=1,
+)
+
 print(times)

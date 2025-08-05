@@ -354,9 +354,6 @@ void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeO
       const StringStringEntryProto &entry = ref_external_data()[i];
       if (entry.ref_key() == "location") {
         EXT_ENFORCE(!entry.ref_value().empty(), "External data location must not be empty.");
-        EXT_ENFORCE(entry.ref_value() == two_stream.weights_file_path(), "File mismatch '",
-                    entry.ref_value().as_string(), "' != '", two_stream.weights_file_path(), "' name='",
-                    ref_name().as_string(), "'");
         checked += 1;
       } else if (entry.ref_key() == "size") {
         int64_t size = entry.ref_value().toint64();

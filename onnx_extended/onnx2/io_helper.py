@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from . import ModelProto, ParseOptions
+from . import ModelProto, ParseOptions, SerializeOptions
 
 
 def save(
@@ -48,9 +48,14 @@ def save(
     assert isinstance(f, (str, Path)), f"Unexpected type {type(f)} for f."
     assert format == "protobuf", f"Unsupported format={format!r}"
     assert (
-        not save_as_external_data
-    ), f"save_as_external_data={save_as_external_data} is not implemented yet"
-    proto.SerializeToFile(str(f))
+        all_tensors_to_one_file
+    ), f"all_tensors_to_one_file={all_tensors_to_one_file} is not implemented"
+    if save_as_external_data or location:
+        opts = SerializeOptions()
+        opts.raw_data_threshold = size_threshold
+        proto.SerializeToFile(str(f), opts, str(location))
+    else:
+        proto.SerializeToFile(str(f))
 
 
 def load(
