@@ -84,6 +84,15 @@ void BinaryStream::Restore() {
 // StringStream
 ///////////////
 
+void StringStream::Setup(const uint8_t *data, int64_t size) {
+  EXT_ENFORCE(!thread_pool_.IsStarted(), "ThreadPool is still running.");
+  pos_ = 0;
+  size_ = size;
+  data_ = data;
+  thread_pool_.Clear();
+  blocks_.clear();
+}
+
 void StringStream::CanRead(uint64_t len, const char *msg) {
   EXT_ENFORCE(pos_ + static_cast<int64_t>(len) <= size_, msg, " unable to read ", len,
               " bytes, pos_=", pos_, ", size_=", size_);
@@ -124,6 +133,18 @@ void StringStream::LimitTo(uint64_t len) {
   EXT_ENFORCE(limits_.size() > 0, "No limit was stored.");
   size_ = len;
 }
+
+void StringStream::ReadDelayedBlock(DelayedBlock &block) {
+  EXT_ENFORCE(thread_pool_.IsStarted(), "Thread pool is not started, cannot read delayed block.");
+  blocks_.push_back(block);
+  thread_pool_.SubmitTask(
+      [this, block]() { memcpy(block.data, this->data_ + block.offset, block.size); });
+  pos_ += block.size;
+}
+
+void StringStream::WaitForDelayedBlock() { thread_pool_.Wait(); }
+
+void StringStream::StartThreadPool(size_t n_threads) { thread_pool_.Start(n_threads); }
 
 ////////////////////
 // BinaryWriteStream

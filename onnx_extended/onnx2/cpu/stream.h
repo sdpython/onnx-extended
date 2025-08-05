@@ -137,6 +137,7 @@ public:
   explicit inline StringStream() : BinaryStream(), pos_(0), size_(0), data_(nullptr) {}
   explicit inline StringStream(const uint8_t *data, int64_t size)
       : BinaryStream(), pos_(0), size_(size), data_(data) {}
+  void Setup(const uint8_t *data, int64_t size);
   virtual void CanRead(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
   virtual const uint8_t *read_bytes(offset_t n_bytes) override;
@@ -144,7 +145,13 @@ public:
   virtual bool NotEnd() const override { return pos_ < size_; }
   virtual offset_t tell() const override { return static_cast<offset_t>(pos_); }
   virtual std::string tell_around() const override;
-  virtual inline int64_t size() const { return size_; }
+  virtual inline int64_t size() const override { return size_; }
+
+  // parallelization of big blocks.
+  virtual bool HasParallelizationStarted() const override { return thread_pool_.IsStarted(); }
+  virtual void StartThreadPool(size_t n_threads) override;
+  virtual void ReadDelayedBlock(DelayedBlock &block) override;
+  virtual void WaitForDelayedBlock() override;
 
 protected:
   virtual void LimitTo(uint64_t len) override;
@@ -153,6 +160,11 @@ protected:
   offset_t pos_;
   offset_t size_;
   const uint8_t *data_;
+
+private:
+  // parallelization
+  std::vector<DelayedBlock> blocks_;
+  ThreadPool thread_pool_;
 };
 
 class StringWriteStream : public BinaryWriteStream {
@@ -217,7 +229,7 @@ public:
   virtual int64_t size() const override { return size_; }
 
   // parallelization of big blocks.
-  virtual bool HasParallelizationStarted() const { return thread_pool_.IsStarted(); }
+  virtual bool HasParallelizationStarted() const override { return thread_pool_.IsStarted(); }
   virtual void StartThreadPool(size_t n_threads) override;
   virtual void ReadDelayedBlock(DelayedBlock &block) override;
   virtual void WaitForDelayedBlock() override;

@@ -686,7 +686,7 @@ protected:
             // string "hello"
             'h', 'e', 'l', 'l', 'o'};
 
-    stream = utils::StringStream(data.data(), data.size());
+    stream.Setup(data.data(), data.size());
   }
 
   std::vector<uint8_t> data;

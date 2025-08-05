@@ -22,6 +22,7 @@ public:
   void Wait();
   inline size_t GetThreadCount() const { return workers.size(); }
   inline bool IsStarted() const { return is_started; }
+  void Clear();
 
 private:
   std::vector<std::thread> workers;
