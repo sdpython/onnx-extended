@@ -614,6 +614,22 @@ TEST(onnx2_proto, serialization_StringStringEntryProto) {
   EXPECT_EQ(serie, serie2);
 }
 
+TEST(onnx2_proto, serialization_StringStringEntryProto_Twice) {
+  StringStringEntryProto proto;
+  proto.set_key("key_");
+  proto.set_value("value_");
+  EXPECT_EQ(proto.ref_key(), "key_");
+  EXPECT_EQ(proto.ref_value(), "value_");
+  proto.set_key("key__");
+  proto.set_value("value__");
+  EXPECT_EQ(proto.ref_key(), "key__");
+  EXPECT_EQ(proto.ref_value(), "value__");
+  proto.ref_key() = "key___";
+  proto.ref_value() = "value___";
+  EXPECT_EQ(proto.ref_key(), "key___");
+  EXPECT_EQ(proto.ref_value(), "value___");
+}
+
 TEST(onnx2_proto, TensorShapeProto1) {
   TensorShapeProto shape;
   TensorShapeProto::Dimension &dim = shape.add_dim();

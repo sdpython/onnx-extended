@@ -1,4 +1,5 @@
 #include "onnx2.h"
+#include "onnx2_helper.h"
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -75,16 +76,24 @@ namespace py = pybind11;
           py::arg("options") = py::none(), "Serializes this instance into a sequence of bytes.")       \
       .def(                                                                                            \
           "SerializeToFile",                                                                           \
-          [](onnx2::cls &self, const std::string &file_path, py::object options) {                     \
-            onnx2::utils::FileWriteStream stream(file_path);                                           \
+          [](onnx2::cls &self, const std::string &file_path, py::object options,                       \
+             std::string &external_data_file) {                                                        \
+            onnx2::utils::BinaryWriteStream *stream =                                                  \
+                external_data_file.empty()                                                             \
+                    ? new onnx2::utils::FileWriteStream(file_path)                                     \
+                    : new onnx2::utils::TwoFilesWriteStream(file_path, external_data_file);            \
             if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
-              self.SerializeToStream(stream, options.cast<onnx2::SerializeOptions &>());               \
+              SerializeProtoToStream(self, *stream, options.cast<onnx2::SerializeOptions &>(),         \
+                                     external_data_file);                                              \
             } else {                                                                                   \
               onnx2::SerializeOptions opts;                                                            \
-              self.SerializeToStream(stream, opts);                                                    \
+              SerializeProtoToStream(self, *stream, opts, external_data_file);                         \
             }                                                                                          \
+            delete stream;                                                                             \
           },                                                                                           \
-          py::arg("name"), py::arg("options") = py::none(), "Serializes this instance into a file.")   \
+          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",        \
+          "Serializes this instance into a file. If ``external_data_size`` is not empty, big weights " \
+          "are stored in this (depending on ``options.raw_data_threshold``.")                          \
       .def(                                                                                            \
           "__str__",                                                                                   \
           [](onnx2::cls &self) -> std::string {                                                        \

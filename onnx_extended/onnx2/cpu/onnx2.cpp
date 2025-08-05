@@ -345,6 +345,38 @@ uint64_t TensorProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeO
   return size;
 }
 void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOptions &options) const {
+  // Validation for external data.
+  if (has_data_location() && ref_data_location() == DataLocation::EXTERNAL &&
+      stream.ExternalWeights()) {
+    utils::TwoFilesWriteStream &two_stream = dynamic_cast<utils::TwoFilesWriteStream &>(stream);
+    int checked = 0;
+    for (size_t i = 0; i < ref_external_data().size(); ++i) {
+      const StringStringEntryProto &entry = ref_external_data()[i];
+      if (entry.ref_key() == "location") {
+        EXT_ENFORCE(!entry.ref_value().empty(), "External data location must not be empty.");
+        EXT_ENFORCE(entry.ref_value() == two_stream.weights_file_path(), "File mismatch '",
+                    entry.ref_value().as_string(), "' != '", two_stream.weights_file_path(), "' name='",
+                    ref_name().as_string(), "'");
+        checked += 1;
+      } else if (entry.ref_key() == "size") {
+        int64_t size = entry.ref_value().toint64();
+        EXT_ENFORCE(size == ref_raw_data().size(), "Size mismatch ", size,
+                    " != ", ref_raw_data().size(), " name='", ref_name().as_string(), "'");
+        checked += 2;
+      } else if (entry.ref_key() == "offset") {
+        int64_t offset = entry.ref_value().toint64();
+        EXT_ENFORCE(offset == two_stream.weights_size(), "Offset mismatch ", offset,
+                    " != ", two_stream.weights_size(), " name ='",
+                    ref_name().as_string(), "'");
+        checked += 4;
+      }
+    }
+    EXT_ENFORCE(checked == 7,
+                "External data is not fully specified. 'location', 'size', and 'offset' "
+                "must be present in external_data, name='",
+                ref_name().as_string(), "'");
+    // TODO Checks sparse initializer as well.
+  }
   WRITE_REPEATED_FIELD(options, stream, dims)
   WRITE_ENUM_FIELD(options, stream, data_type)
   WRITE_ENUM_FIELD(options, stream, data_location)

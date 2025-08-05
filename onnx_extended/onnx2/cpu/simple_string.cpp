@@ -48,6 +48,8 @@ std::string RefString::as_string(bool quote) const {
   return quote ? std::string("\"") + s + std::string("\"") : s;
 }
 
+int64_t RefString::toint64() const { return std::stoll(as_string()); }
+
 void String::set(const char *ptr, size_t size) {
   if (size == SIZE_MAX) {
     if (ptr == nullptr) {

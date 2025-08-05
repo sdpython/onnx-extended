@@ -189,6 +189,7 @@ public:
   virtual void write_raw_bytes(const uint8_t *data, offset_t n_bytes) override;
   virtual int64_t size() const override;
   virtual const uint8_t *data() const override;
+  inline const std::string &file_path() const { return file_path_; }
 
 private:
   std::string file_path_;
@@ -244,6 +245,8 @@ public:
       : FileWriteStream(file_path), weights_stream_(weights_file) {}
   virtual bool ExternalWeights() const { return true; }
   virtual void write_raw_bytes_in_second_stream(const uint8_t *data, offset_t n_bytes);
+  inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
+  inline int64_t weights_size() const { return weights_stream_.size(); }
 
 private:
   FileWriteStream weights_stream_;
