@@ -271,15 +271,16 @@ void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t) {
 //////////////////
 
 FileWriteStream::FileWriteStream(const std::string &file_path)
-    : BinaryWriteStream(), file_path_(file_path), file_stream_(file_path, std::ios::binary) {}
+    : BinaryWriteStream(), file_path_(file_path), file_stream_(file_path, std::ios::binary) {
+  written_bytes_ = 0;
+}
 
 void FileWriteStream::write_raw_bytes(const uint8_t *data, offset_t n_bytes) {
   file_stream_.write(reinterpret_cast<const char *>(data), n_bytes);
+  written_bytes_ += static_cast<uint64_t>(n_bytes);
 }
 
-int64_t FileWriteStream::size() const {
-  return static_cast<int64_t>(const_cast<std::ofstream &>(file_stream_).tellp());
-}
+int64_t FileWriteStream::size() const { return static_cast<int64_t>(written_bytes_); }
 
 const uint8_t *FileWriteStream::data() const {
   EXT_THROW("This method cannot be called on this class (FileWriteStream).");
@@ -369,6 +370,9 @@ void FileStream::StartThreadPool(size_t n_threads) { thread_pool_.Start(n_thread
 //////////////////////
 // TwoFilesWriteStream
 //////////////////////
+
+TwoFilesWriteStream::TwoFilesWriteStream(const std::string &file_path, const std::string &weights_file)
+    : FileWriteStream(file_path), weights_stream_(weights_file) {}
 
 void TwoFilesWriteStream::write_raw_bytes_in_second_stream(const uint8_t *ptr, offset_t n_bytes) {
   position_cache_[ptr] = weights_stream_.size();

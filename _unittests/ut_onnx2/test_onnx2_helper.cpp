@@ -289,9 +289,106 @@ TEST(onnx2_file, SaveWithExternalData) {
   onnx2::ParseOptions opts;
   model.ParseFromStream(stream, opts);
 
-  std::string serialized = "test_onnx2_file_save_with_external_data.onnx";
-  std::string weights = "test_onnx2_file_save_with_external_data.data";
-  utils::TwoFilesWriteStream wstream(serialized, weights);
-  SerializeOptions wopts;
-  SerializeProtoToStream(model, wstream, wopts);
+  auto serialized = source_dir / "test_onnx2_file_save_with_external_data.onnx";
+  auto weights = source_dir / "test_onnx2_file_save_with_external_data.data";
+  {
+    utils::TwoFilesWriteStream wstream(serialized.string(), weights.string());
+    SerializeOptions wopts;
+    SerializeProtoToStream(model, wstream, wopts);
+  }
+  auto size = std::filesystem::file_size(serialized);
+  auto weights_size = std::filesystem::file_size(weights);
+  EXPECT_GT(weights_size, 1000);
+  EXPECT_GT(size, 10);
+
+  std::remove(serialized.string().c_str());
+  std::remove(weights.string().c_str());
+}
+
+TEST(onnx2_file, FileStream_ModelProto) {
+  ModelProto model;
+
+  GraphProto &graph = model.add_graph();
+  graph.set_name("test_graph");
+
+  TensorProto &weights = graph.add_initializer();
+  weights.set_name("weights");
+  weights.set_data_type(TensorProto::DataType::FLOAT);
+  weights.ref_dims().push_back(1);
+  weights.ref_dims().push_back(1);
+  weights.ref_raw_data().push_back(1);
+  weights.ref_raw_data().push_back(1);
+  weights.ref_raw_data().push_back(1);
+  weights.ref_raw_data().push_back(1);
+
+  NodeProto &node = graph.add_node();
+  node.set_name("test_node");
+  node.set_op_type("Add");
+  AttributeProto &attr = node.add_attribute();
+  attr.set_name("bias");
+  TensorProto &biasw = attr.ref_t();
+  biasw.set_name("biasw");
+  biasw.set_data_type(TensorProto::DataType::FLOAT);
+  biasw.ref_dims().push_back(1);
+  biasw.ref_dims().push_back(1);
+  biasw.ref_raw_data().push_back(2);
+  biasw.ref_raw_data().push_back(2);
+  biasw.ref_raw_data().push_back(2);
+  biasw.ref_raw_data().push_back(2);
+
+  NodeProto &nodeg = graph.add_node();
+  nodeg.set_name("test_graph");
+  nodeg.set_op_type("If");
+  AttributeProto &attrg = nodeg.add_attribute();
+  attrg.set_name("bias");
+  GraphProto &nested = attrg.add_g();
+
+  TensorProto &weights2 = nested.add_initializer();
+  weights2.set_name("weights2");
+  weights2.set_data_type(TensorProto::DataType::FLOAT);
+  weights2.ref_dims().push_back(1);
+  weights2.ref_dims().push_back(1);
+  weights2.ref_raw_data().push_back(3);
+  weights2.ref_raw_data().push_back(3);
+  weights2.ref_raw_data().push_back(3);
+  weights2.ref_raw_data().push_back(3);
+
+  NodeProto &node2 = nested.add_node();
+  node2.set_name("test_node");
+  node2.set_op_type("Add");
+  AttributeProto &attr2 = node2.add_attribute();
+  attr2.set_name("bias");
+  TensorProto &biasw2 = attr2.ref_t();
+  biasw.set_name("biasw2");
+  biasw2.set_data_type(TensorProto::DataType::FLOAT);
+  biasw2.ref_dims().push_back(1);
+  biasw2.ref_dims().push_back(1);
+  biasw2.ref_raw_data().push_back(4);
+  biasw2.ref_raw_data().push_back(4);
+  biasw2.ref_raw_data().push_back(4);
+  biasw2.ref_raw_data().push_back(4);
+
+  std::string temp_filename = "test_tensor_file_stream.tmp";
+  std::string temp_filename2 = "test_tensor_file_stream2.tmp";
+  std::string temp_weights = "test_tensor_file_stream3.tmp";
+
+  {
+    utils::TwoFilesWriteStream wstream(temp_filename2, temp_weights);
+    SerializeOptions wopts;
+    SerializeProtoToStream(model, wstream, wopts);
+  }
+
+  {
+    utils::FileWriteStream wstream(temp_filename);
+    SerializeOptions wopts;
+    SerializeProtoToStream(model, wstream, wopts);
+  }
+
+  auto size = std::filesystem::file_size(temp_filename);
+  auto size2 = std::filesystem::file_size(temp_filename2);
+  EXPECT_EQ(size, size2);
+
+  std::remove(temp_filename.c_str());
+  std::remove(temp_filename2.c_str());
+  std::remove(temp_weights.c_str());
 }

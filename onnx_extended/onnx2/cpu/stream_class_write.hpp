@@ -27,7 +27,7 @@ void write_with_cache_size(utils::BinaryWriteStream &stream, const T &field,
   uint64_t pos = stream.size();
   field.SerializeToStream(stream, options);
   EXT_ENFORCE(stream.size() - pos == size, "Serialized size (", stream.size() - pos,
-              ") size does not match the expected size (", size, ")");
+              ") size does not match the expected size (", size, ") for type ", typeid(T).name(), ".");
 }
 
 template <typename T>
