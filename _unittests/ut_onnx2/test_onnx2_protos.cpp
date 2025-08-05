@@ -1,4 +1,5 @@
 #include "onnx_extended/onnx2/cpu/onnx2.h"
+#include "onnx_extended/onnx2/cpu/onnx2_helper.h"
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
 #include <filesystem>
@@ -614,6 +615,22 @@ TEST(onnx2_proto, serialization_StringStringEntryProto) {
   EXPECT_EQ(serie, serie2);
 }
 
+TEST(onnx2_proto, serialization_StringStringEntryProto_Twice) {
+  StringStringEntryProto proto;
+  proto.set_key("key_");
+  proto.set_value("value_");
+  EXPECT_EQ(proto.ref_key(), "key_");
+  EXPECT_EQ(proto.ref_value(), "value_");
+  proto.set_key("key__");
+  proto.set_value("value__");
+  EXPECT_EQ(proto.ref_key(), "key__");
+  EXPECT_EQ(proto.ref_value(), "value__");
+  proto.ref_key() = "key___";
+  proto.ref_value() = "value___";
+  EXPECT_EQ(proto.ref_key(), "key___");
+  EXPECT_EQ(proto.ref_value(), "value___");
+}
+
 TEST(onnx2_proto, TensorShapeProto1) {
   TensorShapeProto shape;
   TensorShapeProto::Dimension &dim = shape.add_dim();
@@ -669,7 +686,7 @@ protected:
             // string "hello"
             'h', 'e', 'l', 'l', 'o'};
 
-    stream = utils::StringStream(data.data(), data.size());
+    stream.Setup(data.data(), data.size());
   }
 
   std::vector<uint8_t> data;

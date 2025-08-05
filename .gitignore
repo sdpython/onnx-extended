@@ -55,6 +55,7 @@ _doc/_static/require.js
 _doc/_static/viz.js
 _unittests/ut__main/*.png
 _unittests/test_constants.h
+_unittests/ut_onnx2/data/*original*onnx
 onnx_extended/_config.py
 onnx_extended/validation/cython/*.c
 onnx_extended/validation/cython/*.cpp

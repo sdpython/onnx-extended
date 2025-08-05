@@ -75,5 +75,13 @@ void ThreadPool::Wait() {
 
 ThreadPool::~ThreadPool() { Wait(); }
 
+void ThreadPool::Clear() {
+  EXT_ENFORCE(!IsStarted(), "Cannot clear the pool if threads are still running.");
+  workers.clear();
+  while (!jobs.empty()) {
+    jobs.pop();
+  }
+}
+
 } // namespace utils
 } // namespace onnx2

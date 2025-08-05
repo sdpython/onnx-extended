@@ -37,6 +37,7 @@ public:
   bool operator!=(const std::string &other) const;
   bool operator!=(const char *other) const;
   std::string as_string(bool quote = false) const;
+  int64_t toint64() const;
 };
 
 class String {
@@ -80,6 +81,7 @@ public:
   bool operator!=(const RefString &other) const;
   bool operator!=(const char *other) const;
   std::string as_string(bool quote = false) const;
+  inline int64_t toint64() const { return RefString(ptr_, size_).toint64(); }
 
 private:
   void set(const char *ptr, size_t size);

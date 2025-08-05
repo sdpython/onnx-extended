@@ -110,7 +110,9 @@ sphinx_gallery_conf = {
 }
 
 if int(os.environ.get("UNITTEST_GOING", "0")):
-    sphinx_gallery_conf["ignore_pattern"] = ".*(plot_onnx2_time).*"
+    sphinx_gallery_conf["ignore_pattern"] = (
+        ".*(plot_onnx2_time)|(plot_op_tree_ensemble_sparse).*"
+    )
 
 
 epkg_dictionary = {

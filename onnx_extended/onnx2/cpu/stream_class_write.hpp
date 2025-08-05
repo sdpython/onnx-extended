@@ -27,7 +27,7 @@ void write_with_cache_size(utils::BinaryWriteStream &stream, const T &field,
   uint64_t pos = stream.size();
   field.SerializeToStream(stream, options);
   EXT_ENFORCE(stream.size() - pos == size, "Serialized size (", stream.size() - pos,
-              ") size does not match the expected size (", size, ")");
+              ") size does not match the expected size (", size, ") for type ", typeid(T).name(), ".");
 }
 
 template <typename T>
@@ -133,7 +133,11 @@ void write_field(utils::BinaryWriteStream &stream, int order, const std::vector<
 void write_field_limit(utils::BinaryWriteStream &stream, int order, const std::vector<uint8_t> &field,
                        SerializeOptions &options) {
   if (!options.skip_raw_data || field.size() < static_cast<size_t>(options.raw_data_threshold)) {
-    write_field(stream, order, field, options);
+    if (stream.ExternalWeights() && static_cast<int64_t>(field.size()) >= options.raw_data_threshold) {
+      stream.write_raw_bytes_in_second_stream(field.data(), field.size());
+    } else {
+      write_field(stream, order, field, options);
+    }
   }
 }
 

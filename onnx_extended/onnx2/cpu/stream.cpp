@@ -17,9 +17,11 @@ std::string FieldNumber::string() const {
                                            "]");
 }
 
-BinaryStream::~BinaryStream() {
+void BinaryStream::_check() {
   EXT_ENFORCE(limits_.empty(), "BinaryStream destructor called with non-empty limits stack.");
 }
+
+BinaryStream::~BinaryStream() { _check(); }
 
 RefString BinaryStream::next_string() {
   uint64_t length = next_uint64();
@@ -53,7 +55,7 @@ FieldNumber BinaryStream::next_field() {
   return n;
 }
 
-void BinaryStream::ReadDelayedBlock(DelayedBlock &block) {
+void BinaryStream::ReadDelayedBlock(DelayedBlock &) {
   EXT_THROW("ReadDelayedBlock is not implemented for this stream.");
 }
 
@@ -81,6 +83,15 @@ void BinaryStream::Restore() {
 ///////////////
 // StringStream
 ///////////////
+
+void StringStream::Setup(const uint8_t *data, int64_t size) {
+  EXT_ENFORCE(!thread_pool_.IsStarted(), "ThreadPool is still running.");
+  pos_ = 0;
+  size_ = size;
+  data_ = data;
+  thread_pool_.Clear();
+  blocks_.clear();
+}
 
 void StringStream::CanRead(uint64_t len, const char *msg) {
   EXT_ENFORCE(pos_ + static_cast<int64_t>(len) <= size_, msg, " unable to read ", len,
@@ -122,6 +133,18 @@ void StringStream::LimitTo(uint64_t len) {
   EXT_ENFORCE(limits_.size() > 0, "No limit was stored.");
   size_ = len;
 }
+
+void StringStream::ReadDelayedBlock(DelayedBlock &block) {
+  EXT_ENFORCE(thread_pool_.IsStarted(), "Thread pool is not started, cannot read delayed block.");
+  blocks_.push_back(block);
+  thread_pool_.SubmitTask(
+      [this, block]() { memcpy(block.data, this->data_ + block.offset, block.size); });
+  pos_ += block.size;
+}
+
+void StringStream::WaitForDelayedBlock() { thread_pool_.Wait(); }
+
+void StringStream::StartThreadPool(size_t n_threads) { thread_pool_.Start(n_threads); }
 
 ////////////////////
 // BinaryWriteStream
@@ -241,6 +264,10 @@ bool BinaryWriteStream::GetCachedSize(const void *ptr, uint64_t &size) {
   return false;
 }
 
+void BinaryWriteStream::write_raw_bytes_in_second_stream(const uint8_t *, offset_t) {
+  EXT_THROW("This method was not overriden.");
+}
+
 ////////////////////
 // StringWriteStream
 ////////////////////
@@ -265,15 +292,16 @@ void BorrowedWriteStream::write_raw_bytes(const uint8_t *, offset_t) {
 //////////////////
 
 FileWriteStream::FileWriteStream(const std::string &file_path)
-    : BinaryWriteStream(), file_path_(file_path), file_stream_(file_path, std::ios::binary) {}
+    : BinaryWriteStream(), file_path_(file_path), file_stream_(file_path, std::ios::binary) {
+  written_bytes_ = 0;
+}
 
 void FileWriteStream::write_raw_bytes(const uint8_t *data, offset_t n_bytes) {
   file_stream_.write(reinterpret_cast<const char *>(data), n_bytes);
+  written_bytes_ += static_cast<uint64_t>(n_bytes);
 }
 
-int64_t FileWriteStream::size() const {
-  return static_cast<int64_t>(const_cast<std::ofstream &>(file_stream_).tellp());
-}
+int64_t FileWriteStream::size() const { return static_cast<int64_t>(written_bytes_); }
 
 const uint8_t *FileWriteStream::data() const {
   EXT_THROW("This method cannot be called on this class (FileWriteStream).");
@@ -359,6 +387,18 @@ void FileStream::ReadDelayedBlock(DelayedBlock &block) {
 void FileStream::WaitForDelayedBlock() { thread_pool_.Wait(); }
 
 void FileStream::StartThreadPool(size_t n_threads) { thread_pool_.Start(n_threads); }
+
+//////////////////////
+// TwoFilesWriteStream
+//////////////////////
+
+TwoFilesWriteStream::TwoFilesWriteStream(const std::string &file_path, const std::string &weights_file)
+    : FileWriteStream(file_path), weights_stream_(weights_file) {}
+
+void TwoFilesWriteStream::write_raw_bytes_in_second_stream(const uint8_t *ptr, offset_t n_bytes) {
+  position_cache_[ptr] = weights_stream_.size();
+  weights_stream_.write_raw_bytes(ptr, n_bytes);
+}
 
 } // namespace utils
 } // namespace onnx2

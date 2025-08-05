@@ -33,7 +33,11 @@
   void cls::ParseFromString(const std::string &raw, ParseOptions &opts) {                              \
     const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                                \
     onnx2::utils::StringStream st(ptr, raw.size());                                                    \
+    if (opts.parallel)                                                                                 \
+      st.StartThreadPool(opts.num_threads);                                                            \
     ParseFromStream(st, opts);                                                                         \
+    if (opts.parallel)                                                                                 \
+      st.WaitForDelayedBlock();                                                                        \
   }                                                                                                    \
   void cls::SerializeToString(std::string &out) const {                                                \
     SerializeOptions opts;                                                                             \

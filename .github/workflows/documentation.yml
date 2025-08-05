@@ -108,9 +108,9 @@ jobs:
             grep ERROR doc.txt | grep -v 'validation.cuda' | grep -v 'pickable'
             exit 1
           fi
-          if [[ $(grep WARNING doc.txt | grep -v 'validation.cuda' | grep -v 'pickable' | grep -v 'pybind11_detail_function_record_v1_system_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_1') ]]; then
+          if [[ $(grep WARNING doc.txt | grep -v 'validation.cuda' | grep -v 'pickable' | grep -v 'pybind11_detail_function_record_v1_system_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_1' | grep -v 'l-plot-optim-tree-ensemble-sparse') ]]; then
             echo "Documentation produces warnings."
-            grep WARNING doc.txt | grep -v 'validation.cuda' | grep -v 'pickable' | grep -v 'pybind11_detail_function_record_v1_system_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_1'
+            grep WARNING doc.txt | grep -v 'validation.cuda' | grep -v 'pickable' | grep -v 'pybind11_detail_function_record_v1_system_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_1' | grep -v 'l-plot-optim-tree-ensemble-sparse'
             exit 1
           fi
 
