@@ -166,7 +166,7 @@ class TestOnnx2Helper(ExtTestCase):
         onnx.save(
             model, name, save_as_external_data=True, location=os.path.split(weights)[-1]
         )
-        location  =[init.data_location for init in model.graph.initializer]
+        location = [init.data_location for init in model.graph.initializer]
         self.assertEqual(location, [0, 1, 0, 1, 0, 0, 0])
         proto2 = onnx2.ModelProto()
         proto2.ParseFromFile(name, external_data_file=weights)
