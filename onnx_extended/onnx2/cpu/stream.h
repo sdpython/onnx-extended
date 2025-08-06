@@ -274,7 +274,7 @@ public:
   virtual void read_bytes_from_weights_stream(offset_t n_bytes,
                                               uint8_t *pre_allocated_buffer = nullptr);
   inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
-  inline const uint64_t weights_tell() const { return weights_stream_.tell(); }
+  inline uint64_t weights_tell() const { return weights_stream_.tell(); }
   virtual int64_t weights_size() const { return weights_stream_.size(); }
 
 private:

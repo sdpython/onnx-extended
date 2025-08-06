@@ -43,13 +43,13 @@ namespace py = pybind11;
               if (coptions.parallel) {                                                                 \
                 stream->StartThreadPool(coptions.num_threads);                                         \
               }                                                                                        \
-              self.ParseFromStream(*stream, coptions);                                                 \
+              onnx2::ParseProtoFromStream(self, *stream, coptions);                                    \
               if (coptions.parallel) {                                                                 \
                 stream->WaitForDelayedBlock();                                                         \
               }                                                                                        \
             } else {                                                                                   \
               onnx2::ParseOptions opts;                                                                \
-              self.ParseFromStream(*stream, opts);                                                     \
+              onnx2::ParseProtoFromStream(self, *stream, opts);                                        \
             }                                                                                          \
             delete stream;                                                                             \
           },                                                                                           \

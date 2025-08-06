@@ -422,8 +422,8 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opt
         size = entry.ref_value().toint64();
       } else if (entry.ref_key() == "offset") {
         offset = entry.ref_value().toint64();
-        EXT_ENFORCE(offset == two_stream.weights_tell(), "Offset mismatch ", offset,
-                    " != ", two_stream.weights_tell(), " name ='", ref_name().as_string(), "'");
+        EXT_ENFORCE(offset == static_cast<int64_t>(two_stream.weights_tell()), "Offset mismatch ",
+                    offset, " != ", two_stream.weights_tell(), " name ='", ref_name().as_string(), "'");
       }
     }
     EXT_ENFORCE(offset >= 0 && size > 0, "External data offset and size must be specified, name='",

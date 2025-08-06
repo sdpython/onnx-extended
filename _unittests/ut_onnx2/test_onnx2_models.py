@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import onnx
 import onnx.helper as xoh
+import onnx.numpy_helper as xonh
 import onnx_extended.onnx2.helper as xoh2
 import onnx_extended.onnx2 as onnx2
 from onnx_extended.ext_test_case import ExtTestCase
@@ -159,9 +160,10 @@ class TestOnnx2Helper(ExtTestCase):
 
     def test_writing_external_weights_read_from_onnx(self):
         model = self._get_model_with_initializers(xoh, onnx.numpy_helper)
+        expected = [xonh.to_array(i) for i in model.graph.initializer]
         name = self.get_dump_file("test_writing_external_weights_read_from_onnx.onnx")
         weights = self.get_dump_file(
-            "test_writing_external_weights_read_from_onnx.data"
+            "test_writing_external_weights_read_from_onnx.data", clean=True
         )
         onnx.save(
             model, name, save_as_external_data=True, location=os.path.split(weights)[-1]
@@ -171,6 +173,16 @@ class TestOnnx2Helper(ExtTestCase):
         proto2 = onnx2.ModelProto()
         proto2.ParseFromFile(name, external_data_file=weights)
         self.assertEqual(len(proto2.graph.initializer), len(model.graph.initializer))
+
+        def tweak(i):
+            t = onnx.TensorProto()
+            t.ParseFromString(i.SerializeToString())
+            return t
+
+        got = [xonh.to_array(tweak(i)) for i in proto2.graph.initializer]
+        self.assertEqual(len(expected), len(got))
+        for a, b in zip(expected, got):
+            self.assertEqualArray(a, b)
 
 
 if __name__ == "__main__":
