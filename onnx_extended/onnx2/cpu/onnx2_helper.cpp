@@ -68,7 +68,7 @@ void PopulateExternalData(ModelProto &model, size_t threshold,
       off.set_key("offset");
       off.set_value(onnx_extended_helpers::MakeString(offset));
       StringStringEntryProto &size = it->add_external_data();
-      size.set_key("size");
+      size.set_key("length");
       size.set_value(std::to_string(it->ref_raw_data().size()));
       offset += it->ref_raw_data().size();
     }
@@ -102,6 +102,24 @@ void SerializeModelProtoToStream(ModelProto &model, utils::BinaryWriteStream &st
     PopulateExternalData(model, options.raw_data_threshold, weight_path.string());
   }
   model.SerializeToStream(stream, options);
+  if (stream.ExternalWeights() && clear_external_data)
+    ClearExternalData(model);
+}
+
+void ParseModelProtoFromStream(ModelProto &model, utils::BinaryStream &stream, ParseOptions &options,
+                               bool clear_external_data) {
+  if (stream.ExternalWeights()) {
+    utils::TwoFilesStream &two_stream = dynamic_cast<utils::TwoFilesStream &>(stream);
+    std::filesystem::path parent_path = two_stream.file_path();
+    parent_path = parent_path.parent_path();
+    std::filesystem::path weight_path = two_stream.weights_file_path();
+    weight_path = std::filesystem::relative(weight_path, parent_path);
+    if (weight_path.empty()) {
+      // If the relative path is empty, it means the weight file is in the same directory as the model.
+      weight_path = two_stream.weights_file_path();
+    }
+  }
+  model.ParseFromStream(stream, options);
   if (stream.ExternalWeights() && clear_external_data)
     ClearExternalData(model);
 }

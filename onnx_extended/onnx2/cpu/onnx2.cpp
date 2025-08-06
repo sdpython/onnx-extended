@@ -355,7 +355,7 @@ void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeO
       if (entry.ref_key() == "location") {
         EXT_ENFORCE(!entry.ref_value().empty(), "External data location must not be empty.");
         checked += 1;
-      } else if (entry.ref_key() == "size") {
+      } else if (entry.ref_key() == "size" || entry.ref_key() == "length") {
         int64_t size = entry.ref_value().toint64();
         EXT_ENFORCE(size == static_cast<int64_t>(ref_raw_data().size()), "Size mismatch ", size,
                     " != ", static_cast<int64_t>(ref_raw_data().size()), " name='",
@@ -389,24 +389,50 @@ void TensorProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeO
   WRITE_REPEATED_FIELD(options, stream, uint64_data)
   WRITE_REPEATED_FIELD(options, stream, string_data)
 }
-void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
-    READ_BEGIN(options, stream, TensorProto)                 //
-    READ_REPEATED_FIELD(options, stream, dims)               //
-    READ_ENUM_FIELD(options, stream, data_type)              //
-    READ_OPTIONAL_ENUM_FIELD(options, stream, data_location) //
-    READ_FIELD(options, stream, name)                        //
-    READ_FIELD(options, stream, doc_string)                  //
-    READ_FIELD_LIMIT_PARALLEL(options, stream, raw_data)     //
-    READ_REPEATED_FIELD(options, stream, external_data)      //
-    READ_REPEATED_FIELD(options, stream, metadata_props)     //
-    READ_REPEATED_FIELD(options, stream, double_data)        //
-    READ_REPEATED_FIELD(options, stream, float_data)         //
-    READ_REPEATED_FIELD(options, stream, int32_data)         //
-    READ_REPEATED_FIELD(options, stream, int64_data)         //
-    READ_REPEATED_FIELD(options, stream, uint64_data)        //
-    READ_REPEATED_FIELD(options, stream, string_data)        //
-    READ_END(options, stream, TensorProto)                   //
-} std::vector<std::string> TensorProto::PrintToVectorString(utils::PrintOptions &options) const {
+void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options) {
+  READ_BEGIN(options, stream, TensorProto)                 //
+  READ_REPEATED_FIELD(options, stream, dims)               //
+  READ_ENUM_FIELD(options, stream, data_type)              //
+  READ_OPTIONAL_ENUM_FIELD(options, stream, data_location) //
+  READ_FIELD(options, stream, name)                        //
+  READ_FIELD(options, stream, doc_string)                  //
+  READ_FIELD_LIMIT_PARALLEL(options, stream, raw_data)     //
+  READ_REPEATED_FIELD(options, stream, external_data)      //
+  READ_REPEATED_FIELD(options, stream, metadata_props)     //
+  READ_REPEATED_FIELD(options, stream, double_data)        //
+  READ_REPEATED_FIELD(options, stream, float_data)         //
+  READ_REPEATED_FIELD(options, stream, int32_data)         //
+  READ_REPEATED_FIELD(options, stream, int64_data)         //
+  READ_REPEATED_FIELD(options, stream, uint64_data)        //
+  READ_REPEATED_FIELD(options, stream, string_data)        //
+  READ_END(options, stream, TensorProto)                   //
+                                         // After the reading, we need to check the data location.
+  if (has_data_location() && ref_data_location() == DataLocation::EXTERNAL &&
+      stream.ExternalWeights()) {
+    utils::TwoFilesStream &two_stream = dynamic_cast<utils::TwoFilesStream &>(stream);
+    offset_t offset = -1; // two_stream.second_tell();
+    int64_t size = -1;
+
+    for (size_t i = 0; i < ref_external_data().size(); ++i) {
+      const StringStringEntryProto &entry = ref_external_data()[i];
+      if (entry.ref_key() == "location") {
+        EXT_ENFORCE(!entry.ref_value().empty(), "External data location must not be empty.");
+        // Should check the value with the location of the second stream?
+      } else if (entry.ref_key() == "length" || entry.ref_key() == "size") {
+        size = entry.ref_value().toint64();
+      } else if (entry.ref_key() == "offset") {
+        offset = entry.ref_value().toint64();
+        EXT_ENFORCE(offset == static_cast<int64_t>(two_stream.weights_tell()), "Offset mismatch ",
+                    offset, " != ", two_stream.weights_tell(), " name ='", ref_name().as_string(), "'");
+      }
+    }
+    EXT_ENFORCE(offset >= 0 && size > 0, "External data offset and size must be specified, name='",
+                ref_name().as_string(), "'");
+    ref_raw_data().resize(size);
+    two_stream.read_bytes_from_weights_stream(size, ref_raw_data().data());
+  }
+}
+std::vector<std::string> TensorProto::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(
       options, NAME_EXIST_VALUE(dims), NAME_EXIST_VALUE(data_type), NAME_EXIST_VALUE(data_location),
       NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(segment), NAME_EXIST_VALUE(raw_data),

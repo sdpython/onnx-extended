@@ -139,7 +139,7 @@ void read_field(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t>
               "' at position '", stream.tell_around(), "'");
   uint64_t len = stream.next_uint64();
   field.resize(len);
-  memcpy(field.data(), stream.read_bytes(len), len);
+  stream.read_bytes(len, field.data());
 }
 
 void read_field_limit_parallel(utils::BinaryStream &stream, int wire_type, std::vector<uint8_t> &field,
@@ -159,7 +159,7 @@ void read_field_limit_parallel(utils::BinaryStream &stream, int wire_type, std::
         block.offset = stream.tell();
         stream.ReadDelayedBlock(block);
       } else {
-        memcpy(field.data(), stream.read_bytes(len), len);
+        stream.read_bytes(len, field.data());
       }
     } else {
       stream.skip_bytes(len);

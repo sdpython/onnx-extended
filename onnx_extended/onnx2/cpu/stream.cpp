@@ -24,6 +24,7 @@ void BinaryStream::_check() {
 BinaryStream::~BinaryStream() { _check(); }
 
 RefString BinaryStream::next_string() {
+  // Depending on the stream implementation, the string may be disappear after reading another item.
   uint64_t length = next_uint64();
   this->CanRead(length, "[StringStream::next_string]");
   return RefString(reinterpret_cast<const char *>(read_bytes(length)), static_cast<size_t>(length));
@@ -41,10 +42,16 @@ int32_t BinaryStream::next_int32() {
   return static_cast<int32_t>(value);
 }
 
-float BinaryStream::next_float() { return *reinterpret_cast<const float *>(read_bytes(sizeof(float))); }
+float BinaryStream::next_float() {
+  float value;
+  read_bytes(sizeof(float), reinterpret_cast<uint8_t *>(&value));
+  return value;
+}
 
 double BinaryStream::next_double() {
-  return *reinterpret_cast<const double *>(read_bytes(sizeof(double)));
+  double value;
+  read_bytes(sizeof(double), reinterpret_cast<uint8_t *>(&value));
+  return value;
 }
 
 FieldNumber BinaryStream::next_field() {
@@ -98,10 +105,16 @@ void StringStream::CanRead(uint64_t len, const char *msg) {
               " bytes, pos_=", pos_, ", size_=", size_);
 }
 
-const uint8_t *StringStream::read_bytes(offset_t n_bytes) {
-  const uint8_t *res = data_ + pos_;
-  pos_ += n_bytes;
-  return res;
+const uint8_t *StringStream::read_bytes(offset_t n_bytes, uint8_t *pre_allocated_buffer) {
+  if (pre_allocated_buffer != nullptr) {
+    memcpy(pre_allocated_buffer, data_ + pos_, n_bytes);
+    pos_ += n_bytes;
+    return pre_allocated_buffer;
+  } else {
+    const uint8_t *res = data_ + pos_;
+    pos_ += n_bytes;
+    return res;
+  }
 }
 
 void StringStream::skip_bytes(offset_t n_bytes) { pos_ += n_bytes; }
@@ -338,8 +351,9 @@ uint64_t FileStream::next_uint64() {
   uint64_t result = 0;
   int shift = 0;
 
+  uint8_t byte;
   for (int i = 0; i < 10; ++i) {
-    uint8_t byte = read_bytes(1)[0];
+    read_bytes(1, &byte);
     result |= static_cast<uint64_t>(byte & 0x7F) << shift;
 
     if ((byte & 0x80) == 0)
@@ -350,7 +364,11 @@ uint64_t FileStream::next_uint64() {
   EXT_THROW("[FileStream::next_uint64] unable to read an int64 at pos=", tell(), ", size=", size_);
 }
 
-const uint8_t *FileStream::read_bytes(offset_t n_bytes) {
+const uint8_t *FileStream::read_bytes(offset_t n_bytes, uint8_t *pre_allocated_buffer) {
+  if (pre_allocated_buffer) {
+    file_stream_.read(reinterpret_cast<char *>(pre_allocated_buffer), n_bytes);
+    return pre_allocated_buffer;
+  }
   if (n_bytes > static_cast<offset_t>(buffer_.size()))
     buffer_.resize(n_bytes);
   file_stream_.read(reinterpret_cast<char *>(buffer_.data()), n_bytes);
@@ -398,6 +416,13 @@ TwoFilesWriteStream::TwoFilesWriteStream(const std::string &file_path, const std
 void TwoFilesWriteStream::write_raw_bytes_in_second_stream(const uint8_t *ptr, offset_t n_bytes) {
   position_cache_[ptr] = weights_stream_.size();
   weights_stream_.write_raw_bytes(ptr, n_bytes);
+}
+
+TwoFilesStream::TwoFilesStream(const std::string &file_path, const std::string &weights_file)
+    : FileStream(file_path), weights_stream_(weights_file) {}
+
+void TwoFilesStream::read_bytes_from_weights_stream(offset_t n_bytes, uint8_t *pre_allocated_buffer) {
+  weights_stream_.read_bytes(n_bytes, pre_allocated_buffer);
 }
 
 } // namespace utils
