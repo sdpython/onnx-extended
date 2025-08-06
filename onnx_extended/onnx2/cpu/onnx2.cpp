@@ -429,7 +429,16 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opt
     EXT_ENFORCE(offset >= 0 && size > 0, "External data offset and size must be specified, name='",
                 ref_name().as_string(), "'");
     ref_raw_data().resize(size);
-    two_stream.read_bytes_from_weights_stream(size, ref_raw_data().data());
+    if (options.parallel) {
+      utils::DelayedBlock block;
+      block.size = size;
+      block.data = ref_raw_data().data();
+      block.offset = two_stream.weights_tell();
+      block.stream_id = 1; // The second stream is the weights stream.
+      two_stream.ReadDelayedBlock(block);    
+    } else {
+      two_stream.read_bytes_from_weights_stream(size, ref_raw_data().data());
+    }
   }
 }
 std::vector<std::string> TensorProto::PrintToVectorString(utils::PrintOptions &options) const {

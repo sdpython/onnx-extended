@@ -33,6 +33,7 @@ struct DelayedBlock {
   uint64_t size;
   uint8_t *data;
   offset_t offset;
+  uint8_t stream_id = 0; // this is used to identify the substream the data should be coming from
 };
 
 class BinaryStream {
@@ -162,7 +163,7 @@ protected:
   offset_t size_;
   const uint8_t *data_;
 
-private:
+protected:
   // parallelization
   std::vector<DelayedBlock> blocks_;
   ThreadPool thread_pool_;
@@ -175,7 +176,8 @@ public:
   virtual int64_t size() const override;
   virtual const uint8_t *data() const override;
 
-private:
+protected:
+protected:
   std::vector<uint8_t> buffer_;
 };
 
@@ -187,7 +189,7 @@ public:
   virtual int64_t size() const override { return size_; }
   virtual const uint8_t *data() const override { return data_; }
 
-private:
+protected:
   const uint8_t *data_;
   int64_t size_;
 };
@@ -204,13 +206,17 @@ public:
   virtual const uint8_t *data() const override;
   inline const std::string &file_path() const { return file_path_; }
 
-private:
+protected:
   std::string file_path_;
   std::ofstream file_stream_;
   uint64_t written_bytes_;
 };
 
+class TwoFilesStream;
+
 class FileStream : public BinaryStream {
+  friend class TwoFilesStream;
+
 public:
   explicit FileStream(const std::string &file_path);
   virtual ~FileStream();
@@ -239,7 +245,7 @@ public:
 protected:
   virtual void LimitTo(uint64_t len) override;
 
-private:
+protected:
   bool lock_;
   std::string file_path_;
   std::ifstream file_stream_;
@@ -257,12 +263,12 @@ private:
 class TwoFilesWriteStream : public FileWriteStream {
 public:
   explicit TwoFilesWriteStream(const std::string &file_path, const std::string &weights_file);
+  inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
   virtual bool ExternalWeights() const override { return true; }
   virtual void write_raw_bytes_in_second_stream(const uint8_t *data, offset_t n_bytes);
-  inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
   virtual int64_t weights_size() const { return weights_stream_.size(); }
 
-private:
+protected:
   FileWriteStream weights_stream_;
   std::unordered_map<const void *, uint64_t> position_cache_;
 };
@@ -270,14 +276,15 @@ private:
 class TwoFilesStream : public FileStream {
 public:
   explicit TwoFilesStream(const std::string &file_path, const std::string &weights_file);
+  inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
+  inline uint64_t weights_tell() const { return weights_stream_.tell(); }
   virtual bool ExternalWeights() const override { return true; }
   virtual void read_bytes_from_weights_stream(offset_t n_bytes,
                                               uint8_t *pre_allocated_buffer = nullptr);
-  inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
-  inline uint64_t weights_tell() const { return weights_stream_.tell(); }
+  virtual void ReadDelayedBlock(DelayedBlock &block) override;
   virtual int64_t weights_size() const { return weights_stream_.size(); }
 
-private:
+protected:
   FileStream weights_stream_;
   std::unordered_map<const void *, uint64_t> position_cache_;
 };

@@ -271,11 +271,10 @@ TEST(onnx2_helper, SerializeModelProtoToStream) {
   options.raw_data_threshold = 2;
   utils::TwoFilesWriteStream stream("SerializeModelProtoToStream.onnx",
                                     "SerializeModelProtoToStream.data");
-
   SerializeModelProtoToStream(model, stream, options);
 }
 
-TEST(onnx2_file, SaveWithExternalData) {
+TEST(onnx2_external_ressource, SaveWithExternalData) {
   namespace fs = std::filesystem;
   fs::path source_path = __FILE__;
   fs::path source_dir = source_path.parent_path();
@@ -294,6 +293,7 @@ TEST(onnx2_file, SaveWithExternalData) {
   {
     utils::TwoFilesWriteStream wstream(serialized.string(), weights.string());
     SerializeOptions wopts;
+    wopts.raw_data_threshold = 2;
     SerializeProtoToStream(model, wstream, wopts);
   }
   auto size = std::filesystem::file_size(serialized);
@@ -375,6 +375,7 @@ TEST(onnx2_file, FileStream_ModelProto_Write) {
   {
     utils::TwoFilesWriteStream wstream(temp_filename2, temp_weights);
     SerializeOptions wopts;
+    wopts.raw_data_threshold = 1000000;
     SerializeProtoToStream(model, wstream, wopts);
   }
 
@@ -462,6 +463,7 @@ TEST(onnx2_file, FileStream_ModelProto_WriteRead) {
   {
     utils::TwoFilesWriteStream wstream(temp_filename, temp_weights);
     SerializeOptions wopts;
+    wopts.raw_data_threshold = 2;
     SerializeProtoToStream(model, wstream, wopts);
   }
 
@@ -484,7 +486,7 @@ TEST(onnx2_file, FileStream_ModelProto_WriteRead) {
   std::remove(temp_weights.c_str());
 }
 
-TEST(onnx2_file, LoadWithExternalData) {
+TEST(onnx2_external_ressource, LoadWithExternalData) {
   namespace fs = std::filesystem;
   fs::path source_path = __FILE__;
   fs::path source_dir = source_path.parent_path();
