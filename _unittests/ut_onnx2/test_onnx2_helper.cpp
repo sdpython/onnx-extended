@@ -483,3 +483,29 @@ TEST(onnx2_file, FileStream_ModelProto_WriteRead) {
   std::remove(temp_filename.c_str());
   std::remove(temp_weights.c_str());
 }
+
+TEST(onnx2_file, LoadWithExternalData) {
+  namespace fs = std::filesystem;
+  fs::path source_path = __FILE__;
+  fs::path source_dir = source_path.parent_path();
+  fs::path file_path = source_dir / "data" / "test_writing_external_weights_read_from_onnx.onnx";
+  fs::path weights_path = source_dir / "data" / "test_writing_external_weights_read_from_onnx.data";
+  if (!std::filesystem::exists(file_path) || !std::filesystem::exists(weights_path)) {
+    GTEST_SKIP() << "File not found: " << file_path.string() << " or " << weights_path.string();
+  }
+
+  ModelProto model;
+  utils::TwoFilesStream stream(file_path.string(), weights_path.string());
+  onnx2::ParseOptions opts;
+  model.ParseFromStream(stream, opts);
+  EXPECT_EQ(model.ref_graph().ref_initializer().size(), 6);
+  IteratorTensorProto it(&model.ref_graph());
+  int big = 0;
+  while (it.next()) {
+    if (it->ref_dims().size() > 1) {
+      EXPECT_TRUE(it->ref_raw_data().size() > 1024);
+      ++big;
+    }
+  }
+  EXPECT_EQ(big, 1);
+}
