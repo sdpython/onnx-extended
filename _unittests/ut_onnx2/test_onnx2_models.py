@@ -79,6 +79,7 @@ class TestOnnx2Helper(ExtTestCase):
                     oh.make_node("Unsqueeze", ["X", "zero"], ["xu1"]),
                     oh.make_node("Unsqueeze", ["xu1", "un"], ["xu2"]),
                     oh.make_node("Reshape", ["xu2", "shape1"], ["xm1"]),
+                    oh.make_node("Add", ["Y1", "Y2"], ["Y"]),
                     oh.make_node("Reshape", ["Y", "shape2"], ["xm2c"]),
                     oh.make_node("Cast", ["xm2c"], ["xm2"], to=1),
                     oh.make_node("MatMul", ["xm1", "xm2"], ["xm"]),
@@ -88,11 +89,14 @@ class TestOnnx2Helper(ExtTestCase):
                 [oh.make_tensor_value_info("X", TFLOAT, [32, 128])],
                 [oh.make_tensor_value_info("Z", TFLOAT, [3, 5, 32, 64])],
                 [
-                    onh.from_array(
-                        np.random.rand(3, 5, 128, 64).astype(np.float32), name="Y"
-                    ),
                     onh.from_array(np.array([0], dtype=np.int64), name="zero"),
+                    onh.from_array(
+                        np.random.rand(3, 5, 128, 64).astype(np.float32), name="Y1"
+                    ),
                     onh.from_array(np.array([1], dtype=np.int64), name="un"),
+                    onh.from_array(
+                        np.random.rand(3, 5, 128, 64).astype(np.float32), name="Y2"
+                    ),
                     onh.from_array(
                         np.array([1, 32, 128], dtype=np.int64), name="shape1"
                     ),
@@ -162,6 +166,8 @@ class TestOnnx2Helper(ExtTestCase):
         onnx.save(
             model, name, save_as_external_data=True, location=os.path.split(weights)[-1]
         )
+        location  =[init.data_location for init in model.graph.initializer]
+        self.assertEqual(location, [0, 1, 0, 1, 0, 0, 0])
         proto2 = onnx2.ModelProto()
         proto2.ParseFromFile(name, external_data_file=weights)
         self.assertEqual(len(proto2.graph.initializer), len(model.graph.initializer))
