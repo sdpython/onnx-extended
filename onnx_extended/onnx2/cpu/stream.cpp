@@ -149,6 +149,8 @@ void StringStream::LimitTo(uint64_t len) {
 
 void StringStream::ReadDelayedBlock(DelayedBlock &block) {
   EXT_ENFORCE(thread_pool_.IsStarted(), "Thread pool is not started, cannot read delayed block.");
+  EXT_ENFORCE(block.stream_id == 0,
+              "Only one stream is allowed to read delayed blocks, but stream_id=", block.stream_id);
   blocks_.push_back(block);
   thread_pool_.SubmitTask(
       [this, block]() { memcpy(block.data, this->data_ + block.offset, block.size); });
@@ -393,6 +395,8 @@ FileStream::~FileStream() {}
 
 void FileStream::ReadDelayedBlock(DelayedBlock &block) {
   EXT_ENFORCE(thread_pool_.IsStarted(), "Thread pool is not started, cannot read delayed block.");
+  EXT_ENFORCE(block.stream_id == 0,
+              "Only one stream is allowed to read delayed blocks, but stream_id=", block.stream_id);
   blocks_.push_back(block);
   thread_pool_.SubmitTask([this, block]() {
     std::ifstream file_stream(this->file_path_, std::ios::binary);
@@ -423,6 +427,28 @@ TwoFilesStream::TwoFilesStream(const std::string &file_path, const std::string &
 
 void TwoFilesStream::read_bytes_from_weights_stream(offset_t n_bytes, uint8_t *pre_allocated_buffer) {
   weights_stream_.read_bytes(n_bytes, pre_allocated_buffer);
+}
+
+void TwoFilesStream::ReadDelayedBlock(DelayedBlock &block) {
+  EXT_ENFORCE(thread_pool_.IsStarted(), "Thread pool is not started, cannot read delayed block.");
+  EXT_ENFORCE(block.stream_id == 0 || block.stream_id == 1,
+              "Only two streams are allowed to read delayed blocks, but stream_id=", block.stream_id);
+  blocks_.push_back(block);
+  if (block.stream_id == 0) {
+    thread_pool_.SubmitTask([this, block]() {
+      std::ifstream file_stream(this->file_path(), std::ios::binary);
+      file_stream.seekg(block.offset);
+      file_stream.read(reinterpret_cast<char *>(block.data), block.size);
+    });
+    file_stream_.seekg(block.size, std::ios::cur);
+  } else {
+    thread_pool_.SubmitTask([this, block]() {
+      std::ifstream file_stream(this->weights_file_path(), std::ios::binary);
+      weights_stream_.file_stream_.seekg(block.offset);
+      weights_stream_.file_stream_.read(reinterpret_cast<char *>(block.data), block.size);
+    });
+    weights_stream_.file_stream_.seekg(block.size, std::ios::cur);
+  }
 }
 
 } // namespace utils
