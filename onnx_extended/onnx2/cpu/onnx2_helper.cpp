@@ -106,8 +106,8 @@ void SerializeModelProtoToStream(ModelProto &model, utils::BinaryWriteStream &st
     ClearExternalData(model);
 }
 
-void ParseModelProtoFromStream(ModelProto &model, utils::BinaryStream &stream,
-                               ParseOptions &options, bool clear_external_data) {
+void ParseModelProtoFromStream(ModelProto &model, utils::BinaryStream &stream, ParseOptions &options,
+                               bool clear_external_data) {
   if (stream.ExternalWeights()) {
     utils::TwoFilesStream &two_stream = dynamic_cast<utils::TwoFilesStream &>(stream);
     std::filesystem::path parent_path = two_stream.file_path();

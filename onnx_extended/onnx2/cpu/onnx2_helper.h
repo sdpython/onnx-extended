@@ -79,7 +79,7 @@ inline void SerializeProtoToStream(ModelProto &model, utils::BinaryWriteStream &
  */
 template <typename T>
 inline void ParseProtoFromStream(T &, utils::BinaryStream &, ParseOptions &,
-                                  bool clear_external_data = true) {
+                                 bool clear_external_data = true) {
   EXT_THROW("ParseProtoFromStream is not implemented for type ", typeid(T).name(),
             ", clear_external_data=", clear_external_data);
 }
@@ -88,15 +88,13 @@ inline void ParseProtoFromStream(T &, utils::BinaryStream &, ParseOptions &,
  * The function saves the ONNX model to a binary stream.
  * If external weights is triggered, the model is modified to add external data.
  */
-void ParseModelProtoFromStream(ModelProto &model, utils::BinaryStream &stream,
-                               ParseOptions &options, bool clear_external_data = true);
+void ParseModelProtoFromStream(ModelProto &model, utils::BinaryStream &stream, ParseOptions &options,
+                               bool clear_external_data = true);
 
 template <>
-inline void ParseProtoFromStream(ModelProto &model, utils::BinaryStream &stream,
-                                 ParseOptions &options, bool clear_external_data) {
+inline void ParseProtoFromStream(ModelProto &model, utils::BinaryStream &stream, ParseOptions &options,
+                                 bool clear_external_data) {
   ParseModelProtoFromStream(model, stream, options, clear_external_data);
 }
-
-
 
 } // namespace onnx2
