@@ -498,7 +498,7 @@ TEST(onnx2_file, LoadWithExternalData) {
   utils::TwoFilesStream stream(file_path.string(), weights_path.string());
   onnx2::ParseOptions opts;
   model.ParseFromStream(stream, opts);
-  EXPECT_EQ(model.ref_graph().ref_initializer().size(), 6);
+  EXPECT_EQ(model.ref_graph().ref_initializer().size(), 7);
   IteratorTensorProto it(&model.ref_graph());
   int big = 0;
   while (it.next()) {
@@ -507,5 +507,5 @@ TEST(onnx2_file, LoadWithExternalData) {
       ++big;
     }
   }
-  EXPECT_EQ(big, 1);
+  EXPECT_EQ(big, 2);
 }
