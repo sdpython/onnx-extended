@@ -39,13 +39,14 @@ class BinaryStream {
 public:
   explicit inline BinaryStream() {}
   virtual ~BinaryStream();
+  virtual bool ExternalWeights() const { return false; }
   // to overwrite
   virtual uint64_t next_uint64() = 0;
   virtual void CanRead(uint64_t len, const char *msg) = 0;
   virtual bool NotEnd() const = 0;
   virtual offset_t tell() const = 0;
   virtual std::string tell_around() const = 0;
-  virtual const uint8_t *read_bytes(offset_t n_bytes) = 0;
+  virtual const uint8_t *read_bytes(offset_t n_bytes, uint8_t *pre_allocated_buffer = nullptr) = 0;
   virtual void skip_bytes(offset_t n_bytes) = 0;
   virtual int64_t size() const = 0;
   // defines from the previous ones
@@ -140,7 +141,7 @@ public:
   void Setup(const uint8_t *data, int64_t size);
   virtual void CanRead(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
-  virtual const uint8_t *read_bytes(offset_t n_bytes) override;
+  virtual const uint8_t *read_bytes(offset_t n_bytes, uint8_t *pre_allocated_buffer = nullptr) override;
   virtual void skip_bytes(offset_t n_bytes) override;
   virtual bool NotEnd() const override { return pos_ < size_; }
   virtual offset_t tell() const override { return static_cast<offset_t>(pos_); }
@@ -213,9 +214,10 @@ class FileStream : public BinaryStream {
 public:
   explicit FileStream(const std::string &file_path);
   virtual ~FileStream();
+  inline const std::string &file_path() const { return file_path_; }
   virtual void CanRead(uint64_t len, const char *msg) override;
   virtual uint64_t next_uint64() override;
-  virtual const uint8_t *read_bytes(offset_t n_bytes) override;
+  virtual const uint8_t *read_bytes(offset_t n_bytes, uint8_t *pre_allocated_buffer = nullptr) override;
   virtual void skip_bytes(offset_t n_bytes) override;
   /**
    * This is a dangerous zone. StreamStream points to the buffer_.data().
@@ -255,13 +257,28 @@ private:
 class TwoFilesWriteStream : public FileWriteStream {
 public:
   explicit TwoFilesWriteStream(const std::string &file_path, const std::string &weights_file);
-  virtual bool ExternalWeights() const { return true; }
+  virtual bool ExternalWeights() const override { return true; }
   virtual void write_raw_bytes_in_second_stream(const uint8_t *data, offset_t n_bytes);
   inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
   virtual int64_t weights_size() const { return weights_stream_.size(); }
 
 private:
   FileWriteStream weights_stream_;
+  std::unordered_map<const void *, uint64_t> position_cache_;
+};
+
+class TwoFilesStream : public FileStream {
+public:
+  explicit TwoFilesStream(const std::string &file_path, const std::string &weights_file);
+  virtual bool ExternalWeights() const override { return true; }
+  virtual void read_bytes_from_weights_stream(offset_t n_bytes,
+                                              uint8_t *pre_allocated_buffer = nullptr);
+  inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
+  inline const uint64_t weights_tell() const { return weights_stream_.tell(); }
+  virtual int64_t weights_size() const { return weights_stream_.size(); }
+
+private:
+  FileStream weights_stream_;
   std::unordered_map<const void *, uint64_t> position_cache_;
 };
 

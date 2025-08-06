@@ -106,4 +106,22 @@ void SerializeModelProtoToStream(ModelProto &model, utils::BinaryWriteStream &st
     ClearExternalData(model);
 }
 
+void ParseModelProtoFromStream(ModelProto &model, utils::BinaryStream &stream,
+                               ParseOptions &options, bool clear_external_data) {
+  if (stream.ExternalWeights()) {
+    utils::TwoFilesStream &two_stream = dynamic_cast<utils::TwoFilesStream &>(stream);
+    std::filesystem::path parent_path = two_stream.file_path();
+    parent_path = parent_path.parent_path();
+    std::filesystem::path weight_path = two_stream.weights_file_path();
+    weight_path = std::filesystem::relative(weight_path, parent_path);
+    if (weight_path.empty()) {
+      // If the relative path is empty, it means the weight file is in the same directory as the model.
+      weight_path = two_stream.weights_file_path();
+    }
+  }
+  model.ParseFromStream(stream, options);
+  if (stream.ExternalWeights() && clear_external_data)
+    ClearExternalData(model);
+}
+
 } // namespace onnx2
