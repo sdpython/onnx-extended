@@ -439,6 +439,7 @@ void TensorProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opt
     } else {
       two_stream.read_bytes_from_weights_stream(size, ref_raw_data().data());
     }
+    two_stream.read_bytes_from_weights_stream(size, ref_raw_data().data());
   }
 }
 std::vector<std::string> TensorProto::PrintToVectorString(utils::PrintOptions &options) const {
