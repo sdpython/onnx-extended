@@ -32,23 +32,28 @@ namespace py = pybind11;
       "Parses a sequence of bytes to fill this instance.")                                             \
       .def(                                                                                            \
           "ParseFromFile",                                                                             \
-          [](onnx2::cls &self, const std::string &file_path, py::object options) {                     \
-            onnx2::utils::FileStream stream(file_path);                                                \
+          [](onnx2::cls &self, const std::string &file_path, py::object options,                       \
+             const std::string &external_data_file) {                                                  \
+            onnx2::utils::FileStream *stream =                                                         \
+                external_data_file.empty()                                                             \
+                    ? new onnx2::utils::FileStream(file_path)                                          \
+                    : new onnx2::utils::TwoFilesStream(file_path, external_data_file);                 \
             if (py::isinstance<onnx2::ParseOptions &>(options)) {                                      \
               onnx2::ParseOptions &coptions = options.cast<onnx2::ParseOptions &>();                   \
               if (coptions.parallel) {                                                                 \
-                stream.StartThreadPool(coptions.num_threads);                                          \
+                stream->StartThreadPool(coptions.num_threads);                                         \
               }                                                                                        \
-              self.ParseFromStream(stream, coptions);                                                  \
+              self.ParseFromStream(*stream, coptions);                                                 \
               if (coptions.parallel) {                                                                 \
-                stream.WaitForDelayedBlock();                                                          \
+                stream->WaitForDelayedBlock();                                                         \
               }                                                                                        \
             } else {                                                                                   \
               onnx2::ParseOptions opts;                                                                \
-              self.ParseFromStream(stream, opts);                                                      \
+              self.ParseFromStream(*stream, opts);                                                     \
             }                                                                                          \
+            delete stream;                                                                             \
           },                                                                                           \
-          py::arg("name"), py::arg("options") = py::none(),                                            \
+          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",        \
           "Parses a binary file to fill this instance.")                                               \
       .def(                                                                                            \
           "SerializeSize",                                                                             \
