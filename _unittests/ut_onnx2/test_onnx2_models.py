@@ -1,3 +1,4 @@
+import os
 import unittest
 import numpy as np
 import onnx
@@ -121,7 +122,7 @@ class TestOnnx2Helper(ExtTestCase):
         model3 = onnx.load(name2)
         self.assertEqualModelProto(model, model3)
 
-    def test_writing_external_weights(self):
+    def test_writing_external_weights_write(self):
         nameo = self.get_dump_file("test_writing_external_weights.original.onnx")
         name = self.get_dump_file("test_writing_external_weights.onnx")
         weights = self.get_dump_file("test_writing_external_weights.data")
@@ -134,6 +135,36 @@ class TestOnnx2Helper(ExtTestCase):
         proto.SerializeToFile(name, external_data_file=weights)
         reload = onnx.load(name)
         self.assertEqual(len(reload.graph.initializer), len(model.graph.initializer))
+
+    def test_writing_external_weights_read(self):
+        nameo = self.get_dump_file("test_writing_external_weights.original.onnx")
+        name = self.get_dump_file("test_writing_external_weights.onnx")
+        weights = self.get_dump_file("test_writing_external_weights.data")
+        model = self._get_model_with_initializers(xoh, onnx.numpy_helper)
+        proto = onnx2.ModelProto()
+        s = model.SerializeToString()
+        with open(nameo, "wb") as f:
+            f.write(s)
+        proto.ParseFromString(s)
+        proto.SerializeToFile(name, external_data_file=weights)
+        reload = onnx.load(name)
+        self.assertEqual(len(reload.graph.initializer), len(model.graph.initializer))
+        proto2 = onnx2.ModelProto()
+        proto2.ParseFromFile(name, external_data_file=weights)
+        self.assertEqual(len(proto2.graph.initializer), len(model.graph.initializer))
+
+    def test_writing_external_weights_read_from_onnx(self):
+        model = self._get_model_with_initializers(xoh, onnx.numpy_helper)
+        name = self.get_dump_file("test_writing_external_weights_read_from_onnx.onnx")
+        weights = self.get_dump_file(
+            "test_writing_external_weights_read_from_onnx.data"
+        )
+        onnx.save(
+            model, name, save_as_external_data=True, location=os.path.split(weights)[-1]
+        )
+        proto2 = onnx2.ModelProto()
+        proto2.ParseFromFile(name, external_data_file=weights)
+        self.assertEqual(len(proto2.graph.initializer), len(model.graph.initializer))
 
 
 if __name__ == "__main__":
