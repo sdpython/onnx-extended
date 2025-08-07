@@ -5,135 +5,37 @@
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+using namespace onnx2;
 
 #define PYDEFINE_PROTO(m, cls)                                                                         \
-  py::class_<onnx2::cls, onnx2::Message>(m, #cls, onnx2::cls::DOC).def(py::init<>())
+  py::class_<cls, Message> py_##cls(m, #cls, cls::DOC);                                                \
+  py_##cls.def(py::init<>())
 
 #define PYDEFINE_SUBPROTO(m, cls, subname)                                                             \
-  py::class_<onnx2::cls::subname, onnx2::Message>(m, #subname, onnx2::cls::subname::DOC)               \
-      .def(py::init<>())
+  py::class_<cls::subname, Message> py_sub_##cls##subname(m, #subname, cls::subname::DOC);             \
+  py_sub_##cls##subname.def(py::init<>())
 
-#define PYDEFINE_PROTO_WITH_SUBTYPES(m, cls, name)                                                     \
-  py::class_<onnx2::cls, onnx2::Message> name(m, #cls, onnx2::cls::DOC);                               \
-  name.def(py::init<>());
+#define PYDEFINE_PROTO_WITH_SUBTYPES(m, cls)                                                           \
+  py::class_<cls, Message> py_##cls(m, #cls, cls::DOC);                                                \
+  py_##cls.def(py::init<>());
 
-#define PYADD_PROTO_SERIALIZATION(cls)                                                                 \
-  def(                                                                                                 \
-      "ParseFromString",                                                                               \
-      [](onnx2::cls &self, py::bytes data, py::object options) {                                       \
-        std::string raw = data.cast<std::string>();                                                    \
-        if (py::isinstance<onnx2::ParseOptions &>(options)) {                                          \
-          self.ParseFromString(raw, options.cast<onnx2::ParseOptions &>());                            \
-        } else {                                                                                       \
-          self.ParseFromString(raw);                                                                   \
-        }                                                                                              \
-      },                                                                                               \
-      py::arg("data"), py::arg("options") = py::none(),                                                \
-      "Parses a sequence of bytes to fill this instance.")                                             \
-      .def(                                                                                            \
-          "ParseFromFile",                                                                             \
-          [](onnx2::cls &self, const std::string &file_path, py::object options,                       \
-             const std::string &external_data_file) {                                                  \
-            onnx2::utils::FileStream *stream =                                                         \
-                external_data_file.empty()                                                             \
-                    ? new onnx2::utils::FileStream(file_path)                                          \
-                    : new onnx2::utils::TwoFilesStream(file_path, external_data_file);                 \
-            if (py::isinstance<onnx2::ParseOptions &>(options)) {                                      \
-              onnx2::ParseOptions &coptions = options.cast<onnx2::ParseOptions &>();                   \
-              if (coptions.parallel) {                                                                 \
-                stream->StartThreadPool(coptions.num_threads);                                         \
-              }                                                                                        \
-              onnx2::ParseProtoFromStream(self, *stream, coptions);                                    \
-              if (coptions.parallel) {                                                                 \
-                stream->WaitForDelayedBlock();                                                         \
-              }                                                                                        \
-            } else {                                                                                   \
-              onnx2::ParseOptions opts;                                                                \
-              onnx2::ParseProtoFromStream(self, *stream, opts);                                        \
-            }                                                                                          \
-            delete stream;                                                                             \
-          },                                                                                           \
-          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",        \
-          "Parses a binary file to fill this instance.")                                               \
-      .def(                                                                                            \
-          "SerializeSize",                                                                             \
-          [](onnx2::cls &self, py::object options) -> uint64_t {                                       \
-            if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
-              onnx2::utils::StringWriteStream out;                                                     \
-              return self.SerializeSize(out, options.cast<onnx2::SerializeOptions &>());               \
-            } else {                                                                                   \
-              return self.SerializeSize();                                                             \
-            }                                                                                          \
-          },                                                                                           \
-          py::arg("options") = py::none(), "Returns the size once serialized without serializing.")    \
-      .def(                                                                                            \
-          "SerializeToString",                                                                         \
-          [](onnx2::cls &self, py::object options) {                                                   \
-            std::string out;                                                                           \
-            if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
-              self.SerializeToString(out, options.cast<onnx2::SerializeOptions &>());                  \
-            } else {                                                                                   \
-              onnx2::SerializeOptions opts;                                                            \
-              self.SerializeToString(out, opts);                                                       \
-            }                                                                                          \
-            return py::bytes(out);                                                                     \
-          },                                                                                           \
-          py::arg("options") = py::none(), "Serializes this instance into a sequence of bytes.")       \
-      .def(                                                                                            \
-          "SerializeToFile",                                                                           \
-          [](onnx2::cls &self, const std::string &file_path, py::object options,                       \
-             std::string &external_data_file) {                                                        \
-            onnx2::utils::BinaryWriteStream *stream =                                                  \
-                external_data_file.empty()                                                             \
-                    ? new onnx2::utils::FileWriteStream(file_path)                                     \
-                    : new onnx2::utils::TwoFilesWriteStream(file_path, external_data_file);            \
-            if (py::isinstance<onnx2::SerializeOptions &>(options)) {                                  \
-              SerializeProtoToStream(self, *stream, options.cast<onnx2::SerializeOptions &>(),         \
-                                     !external_data_file.empty());                                     \
-            } else {                                                                                   \
-              onnx2::SerializeOptions opts;                                                            \
-              SerializeProtoToStream(self, *stream, opts, !external_data_file.empty());                \
-            }                                                                                          \
-            delete stream;                                                                             \
-          },                                                                                           \
-          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",        \
-          "Serializes this instance into a file. If ``external_data_size`` is not empty, big weights " \
-          "are stored in this (depending on ``options.raw_data_threshold``.")                          \
-      .def(                                                                                            \
-          "__str__",                                                                                   \
-          [](onnx2::cls &self) -> std::string {                                                        \
-            onnx2::utils::PrintOptions opts;                                                           \
-            std::vector<std::string> rows = self.PrintToVectorString(opts);                            \
-            return onnx2::utils::join_string(rows);                                                    \
-          },                                                                                           \
-          "Creates a printable string for this class.")                                                \
-      .def(                                                                                            \
-          "CopyFrom", [](onnx2::cls &self, const onnx2::cls &src) { self.CopyFrom(src); },             \
-          "Copies one instance into this one.")                                                        \
-      .def(                                                                                            \
-          "__eq__",                                                                                    \
-          [](const onnx2::cls &self, const onnx2::cls &other) -> bool {                                \
-            onnx2::SerializeOptions opts1, opts2;                                                      \
-            std::string s1;                                                                            \
-            self.SerializeToString(s1, opts1);                                                         \
-            std::string s2;                                                                            \
-            other.SerializeToString(s2, opts2);                                                        \
-            return s1 == s2;                                                                           \
-          },                                                                                           \
-          py::arg("other"), "Compares the serialized strings.")
+#define _PYADD_PROTO_SERIALIZATION(cls, name_inst) pyadd_proto_serialization(name_inst);
+
+#define PYADD_PROTO_SERIALIZATION(cls) _PYADD_PROTO_SERIALIZATION(cls, py_##cls)
+#define PYADD_SUBPROTO_SERIALIZATION(cls, sub) _PYADD_PROTO_SERIALIZATION(cls::sub, py_sub_##cls##sub)
 
 #define PYFIELD(cls, name)                                                                             \
-  def_readwrite(#name, &onnx2::cls::name##_, onnx2::cls::DOC_##name)                                   \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
+  def_readwrite(#name, &cls::name##_, cls::DOC_##name)                                                 \
+      .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value.")
 
 #define PYFIELD_STR(cls, name)                                                                         \
   def_property(                                                                                        \
       #name,                                                                                           \
-      [](const onnx2::cls &self) -> std::string {                                                      \
+      [](const cls &self) -> std::string {                                                             \
         std::string s = self.ref_##name().as_string();                                                 \
         return s;                                                                                      \
       },                                                                                               \
-      [](onnx2::cls &self, py::object obj) {                                                           \
+      [](cls &self, py::object obj) {                                                                  \
         if (py::isinstance<py::str>(obj)) {                                                            \
           std::string st = obj.cast<std::string>();                                                    \
           self.set_##name(st);                                                                         \
@@ -141,20 +43,20 @@ namespace py = pybind11;
           std::string st = obj.cast<py::bytes>();                                                      \
           self.set_##name(st);                                                                         \
         } else {                                                                                       \
-          self.set_##name(obj.cast<onnx2::cls::name##_t &>());                                         \
+          self.set_##name(obj.cast<cls::name##_t &>());                                                \
         }                                                                                              \
       },                                                                                               \
-      onnx2::cls::DOC_##name)                                                                          \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
+      cls::DOC_##name)                                                                                 \
+      .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
 
 #define PYFIELD_STR_AS_BYTES(cls, name)                                                                \
   def_property(                                                                                        \
       #name,                                                                                           \
-      [](const onnx2::cls &self) -> py::bytes {                                                        \
+      [](const cls &self) -> py::bytes {                                                               \
         std::string s = py::bytes(self.ref_##name().as_string());                                      \
         return s;                                                                                      \
       },                                                                                               \
-      [](onnx2::cls &self, py::object obj) {                                                           \
+      [](cls &self, py::object obj) {                                                                  \
         if (py::isinstance<py::str>(obj)) {                                                            \
           std::string st = obj.cast<std::string>();                                                    \
           self.set_##name(st);                                                                         \
@@ -162,21 +64,21 @@ namespace py = pybind11;
           std::string st = obj.cast<py::bytes>();                                                      \
           self.set_##name(st);                                                                         \
         } else {                                                                                       \
-          self.set_##name(obj.cast<onnx2::cls::name##_t &>());                                         \
+          self.set_##name(obj.cast<cls::name##_t &>());                                                \
         }                                                                                              \
       },                                                                                               \
-      onnx2::cls::DOC_##name)                                                                          \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value")
+      cls::DOC_##name)                                                                                 \
+      .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
 
 #define _PYFIELD_OPTIONAL_CTYPE(cls, name, ctype)                                                      \
   def_property(                                                                                        \
       #name,                                                                                           \
-      [](onnx2::cls &self) -> py::object {                                                             \
+      [](cls &self) -> py::object {                                                                    \
         if (!self.has_##name())                                                                        \
           return py::none();                                                                           \
         return py::cast(self.ref_##name(), py::return_value_policy::reference);                        \
       },                                                                                               \
-      [](onnx2::cls &self, py::object obj) {                                                           \
+      [](cls &self, py::object obj) {                                                                  \
         if (obj.is_none()) {                                                                           \
           self.reset_##name();                                                                         \
         } else if (py::isinstance<py::ctype##_>(obj)) {                                                \
@@ -185,8 +87,8 @@ namespace py = pybind11;
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'.");         \
         }                                                                                              \
       },                                                                                               \
-      onnx2::cls::DOC_##name)                                                                          \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")
+      cls::DOC_##name)                                                                                 \
+      .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value.")
 
 #define PYFIELD_OPTIONAL_INT(cls, name) _PYFIELD_OPTIONAL_CTYPE(cls, name, int)
 #define PYFIELD_OPTIONAL_FLOAT(cls, name) _PYFIELD_OPTIONAL_CTYPE(cls, name, float)
@@ -194,7 +96,7 @@ namespace py = pybind11;
 #define PYFIELD_OPTIONAL_PROTO(cls, name)                                                              \
   def_property(                                                                                        \
       #name,                                                                                           \
-      [](onnx2::cls &self) -> py::object {                                                             \
+      [](cls &self) -> py::object {                                                                    \
         if (!self.name##_.has_value()) {                                                               \
           if (self.has_oneof_##name())                                                                 \
             return py::none();                                                                         \
@@ -202,53 +104,156 @@ namespace py = pybind11;
         }                                                                                              \
         return py::cast(*self.name##_, py::return_value_policy::reference);                            \
       },                                                                                               \
-      [](onnx2::cls &self, py::object obj) {                                                           \
+      [](cls &self, py::object obj) {                                                                  \
         if (obj.is_none()) {                                                                           \
           self.name##_.reset();                                                                        \
-        } else if (py::isinstance<onnx2::cls::name##_t>(obj)) {                                        \
-          self.name##_ = obj.cast<onnx2::cls::name##_t &>();                                           \
+        } else if (py::isinstance<cls::name##_t>(obj)) {                                               \
+          self.name##_ = obj.cast<cls::name##_t &>();                                                  \
         } else {                                                                                       \
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'.");         \
         }                                                                                              \
       },                                                                                               \
-      onnx2::cls::DOC_##name)                                                                          \
-      .def("has_" #name, &onnx2::cls::has_##name, "Tells if '" #name "' has a value.")                 \
+      cls::DOC_##name)                                                                                 \
+      .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value.")                        \
       .def(                                                                                            \
-          "add_" #name, [](onnx2::cls & self) -> onnx2::cls::name##_t & {                              \
+          "add_" #name, [](cls & self) -> cls::name##_t & {                                            \
             self.name##_.set_empty_value();                                                            \
             return *self.name##_;                                                                      \
           },                                                                                           \
           py::return_value_policy::reference, "Sets an empty value.")
 
 #define SHORTEN_CODE(cls, dtype)                                                                       \
-  def_property_readonly_static(#dtype,                                                                 \
-                               [](py::object) -> int { return static_cast<int>(onnx2::cls::dtype); })
+  def_property_readonly_static(#dtype, [](py::object) -> int { return static_cast<int>(cls::dtype); })
 
 #define DECLARE_REPEATED_FIELD(T, inst_name)                                                           \
-  py::class_<onnx2::utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);
+  py::class_<utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);
 
 #define DECLARE_REPEATED_FIELD_PROTO(T, inst_name)                                                     \
-  py::class_<onnx2::utils::RepeatedField<onnx2::T>> inst_name(m, "RepeatedField" #T,                   \
-                                                              "RepeatedField" #T);                     \
-  py::class_<onnx2::utils::RepeatedProtoField<onnx2::T>> inst_name##_proto(m, "RepeatedProtoField" #T, \
-                                                                           "RepeatedProtoField" #T);
+  py::class_<utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);            \
+  py::class_<utils::RepeatedProtoField<T>> inst_name##_proto(m, "RepeatedProtoField" #T,               \
+                                                             "RepeatedProtoField" #T);
 
 #define DECLARE_REPEATED_FIELD_SUBPROTO(cls, T, inst_name)                                             \
-  py::class_<onnx2::utils::RepeatedField<onnx2::cls::T>> inst_name(m, "RepeatedField" #cls #T,         \
-                                                                   "RepeatedField" #cls #T);           \
-  py::class_<onnx2::utils::RepeatedProtoField<onnx2::cls::T>> inst_name##_proto(                       \
-      m, "RepeatedProtoField" #cls #T, "RepeatedProtoField" #cls #T);
+  py::class_<utils::RepeatedField<cls::T>> inst_name(m, "RepeatedField" #cls #T,                       \
+                                                     "RepeatedField" #cls #T);                         \
+  py::class_<utils::RepeatedProtoField<cls::T>> inst_name##_proto(m, "RepeatedProtoField" #cls #T,     \
+                                                                  "RepeatedProtoField" #cls #T);
 
-template <typename T>
-void define_repeated_field_type(py::class_<onnx2::utils::RepeatedField<T>> &pycls) {
+template <typename cls> void pyadd_proto_serialization(py::class_<cls, Message> &name_inst) {
+  name_inst
+      .def(
+          "ParseFromString",
+          [](cls &self, py::bytes data, py::object options) {
+            std::string raw = data.cast<std::string>();
+            if (py::isinstance<ParseOptions &>(options)) {
+              self.ParseFromString(raw, options.cast<ParseOptions &>());
+            } else {
+              self.ParseFromString(raw);
+            }
+          },
+          py::arg("data"), py::arg("options") = py::none(),
+          "Parses a sequence of bytes to fill this instance.")
+      .def(
+          "ParseFromFile",
+          [](cls &self, const std::string &file_path, py::object options,
+             const std::string &external_data_file) {
+            utils::FileStream *stream = external_data_file.empty()
+                                            ? new utils::FileStream(file_path)
+                                            : new utils::TwoFilesStream(file_path, external_data_file);
+            if (py::isinstance<ParseOptions &>(options)) {
+              ParseOptions &coptions = options.cast<ParseOptions &>();
+              if (coptions.parallel) {
+                stream->StartThreadPool(coptions.num_threads);
+              }
+              ParseProtoFromStream(self, *stream, coptions);
+              if (coptions.parallel) {
+                stream->WaitForDelayedBlock();
+              }
+            } else {
+              ParseOptions opts;
+              ParseProtoFromStream(self, *stream, opts);
+            }
+            delete stream;
+          },
+          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",
+          "Parses a binary file to fill this instance.")
+      .def(
+          "SerializeSize",
+          [](cls &self, py::object options) -> uint64_t {
+            if (py::isinstance<SerializeOptions &>(options)) {
+              utils::StringWriteStream out;
+              return self.SerializeSize(out, options.cast<SerializeOptions &>());
+            } else {
+              return self.SerializeSize();
+            }
+          },
+          py::arg("options") = py::none(), "Returns the size once serialized without serializing.")
+      .def(
+          "SerializeToString",
+          [](cls &self, py::object options) {
+            std::string out;
+            if (py::isinstance<SerializeOptions &>(options)) {
+              self.SerializeToString(out, options.cast<SerializeOptions &>());
+            } else {
+              SerializeOptions opts;
+              self.SerializeToString(out, opts);
+            }
+            return py::bytes(out);
+          },
+          py::arg("options") = py::none(), "Serializes this instance into a sequence of bytes.")
+      .def(
+          "SerializeToFile",
+          [](cls &self, const std::string &file_path, py::object options,
+             std::string &external_data_file) {
+            utils::BinaryWriteStream *stream =
+                external_data_file.empty()
+                    ? new utils::FileWriteStream(file_path)
+                    : new utils::TwoFilesWriteStream(file_path, external_data_file);
+            if (py::isinstance<SerializeOptions &>(options)) {
+              SerializeProtoToStream(self, *stream, options.cast<SerializeOptions &>(),
+                                     !external_data_file.empty());
+            } else {
+              SerializeOptions opts;
+              SerializeProtoToStream(self, *stream, opts, !external_data_file.empty());
+            }
+            delete stream;
+          },
+          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",
+          "Serializes this instance into a file. If ``external_data_size`` is not empty, big weights "
+          "are stored in this (depending on ``options.raw_data_threshold``.")
+      .def(
+          "__str__",
+          [](cls &self) -> std::string {
+            utils::PrintOptions opts;
+            std::vector<std::string> rows = self.PrintToVectorString(opts);
+            return utils::join_string(rows);
+          },
+          "Creates a printable string for this class.")
+      .def(
+          "CopyFrom", [](cls &self, const cls &src) { self.CopyFrom(src); },
+          "Copies one instance into this one.")
+      .def(
+          "__eq__",
+          [](const cls &self, const cls &other) -> bool {
+            SerializeOptions opts1, opts2;
+            std::string s1;
+            self.SerializeToString(s1, opts1);
+            std::string s2;
+            other.SerializeToString(s2, opts2);
+            return s1 == s2;
+          },
+          py::arg("other"), "Compares the serialized strings.");
+}
+
+template <typename T> void define_repeated_field_type(py::class_<utils::RepeatedField<T>> &pycls) {
   pycls.def(py::init<>())
-      .def("add", &onnx2::utils::RepeatedField<T>::add, py::return_value_policy::reference,
+      .def("add", &utils::RepeatedField<T>::add, py::return_value_policy::reference,
            "Adds an empty element.")
-      .def("clear", &onnx2::utils::RepeatedField<T>::clear, "Removes every element.")
-      .def("__len__", &onnx2::utils::RepeatedField<T>::size, "Returns the number of elements.")
+      .def("clear", &utils::RepeatedField<T>::clear, "Removes every element.")
+      .def("__len__", &utils::RepeatedField<T>::size, "Returns the number of elements.")
       .def(
           "__getitem__",
-          [](onnx2::utils::RepeatedField<T> &self, int index) -> T & {
+          [](utils::RepeatedField<T> &self, int index) -> T & {
             if (index < 0)
               index += static_cast<int>(self.size());
             EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
@@ -259,7 +264,7 @@ void define_repeated_field_type(py::class_<onnx2::utils::RepeatedField<T>> &pycl
           "Returns the element at position index.")
       .def(
           "__delitem__",
-          [](onnx2::utils::RepeatedField<T> &self, py::slice slice) {
+          [](utils::RepeatedField<T> &self, py::slice slice) {
             size_t start, stop, step, slicelength;
             if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
               self.remove_range(start, stop, step);
@@ -268,23 +273,21 @@ void define_repeated_field_type(py::class_<onnx2::utils::RepeatedField<T>> &pycl
           "Removes elements.")
       .def(
           "__iter__",
-          [](onnx2::utils::RepeatedField<T> &self) {
-            return py::make_iterator(self.begin(), self.end());
-          },
+          [](utils::RepeatedField<T> &self) { return py::make_iterator(self.begin(), self.end()); },
           py::keep_alive<0, 1>(), "Iterates over the elements.");
 }
 
 template <typename T>
-void define_repeated_field_type_extend(py::class_<onnx2::utils::RepeatedField<T>> &pycls) {
+void define_repeated_field_type_extend(py::class_<utils::RepeatedField<T>> &pycls) {
   pycls
       .def(
-          "append", [](onnx2::utils::RepeatedField<T> &self, T v) { self.push_back(v); },
-          py::arg("item"), "Append one element to the list of values.")
+          "append", [](utils::RepeatedField<T> &self, T v) { self.push_back(v); }, py::arg("item"),
+          "Append one element to the list of values.")
       .def(
           "extend",
-          [](onnx2::utils::RepeatedField<T> &self, py::iterable iterable) {
-            if (py::isinstance<onnx2::utils::RepeatedField<T>>(iterable)) {
-              self.extend(iterable.cast<onnx2::utils::RepeatedField<T> &>());
+          [](utils::RepeatedField<T> &self, py::iterable iterable) {
+            if (py::isinstance<utils::RepeatedField<T>>(iterable)) {
+              self.extend(iterable.cast<utils::RepeatedField<T> &>());
             } else {
               self.extend(iterable.cast<std::vector<T>>());
             }
@@ -293,27 +296,24 @@ void define_repeated_field_type_extend(py::class_<onnx2::utils::RepeatedField<T>
 }
 
 template <>
-void define_repeated_field_type_extend(
-    py::class_<onnx2::utils::RepeatedField<onnx2::utils::String>> &pycls) {
+void define_repeated_field_type_extend(py::class_<utils::RepeatedField<utils::String>> &pycls) {
   pycls
       .def(
           "append",
-          [](onnx2::utils::RepeatedField<onnx2::utils::String> &self, const onnx2::utils::String &v) {
-            self.push_back(v);
-          },
+          [](utils::RepeatedField<utils::String> &self, const utils::String &v) { self.push_back(v); },
           py::arg("item"), "Append one element to the list of values.")
       .def(
           "extend",
-          [](onnx2::utils::RepeatedField<onnx2::utils::String> &self, py::iterable iterable) {
-            if (py::isinstance<onnx2::utils::RepeatedField<onnx2::utils::String>>(iterable)) {
-              self.extend(iterable.cast<onnx2::utils::RepeatedField<onnx2::utils::String> &>());
+          [](utils::RepeatedField<utils::String> &self, py::iterable iterable) {
+            if (py::isinstance<utils::RepeatedField<utils::String>>(iterable)) {
+              self.extend(iterable.cast<utils::RepeatedField<utils::String> &>());
             } else {
-              std::vector<onnx2::utils::String> values;
+              std::vector<utils::String> values;
               for (auto it : iterable) {
-                if (py::isinstance<onnx2::utils::String>(it)) {
-                  values.push_back(it.cast<onnx2::utils::String &>());
+                if (py::isinstance<utils::String>(it)) {
+                  values.push_back(it.cast<utils::String &>());
                 } else {
-                  values.emplace_back(onnx2::utils::String(it.cast<std::string>()));
+                  values.emplace_back(utils::String(it.cast<std::string>()));
                 }
               }
               self.extend(values);
@@ -323,18 +323,18 @@ void define_repeated_field_type_extend(
 }
 
 template <typename T>
-void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedField<T>> &pycls,
-                                      py::class_<onnx2::utils::RepeatedProtoField<T>> &pycls_proto) {
+void define_repeated_field_type_proto(py::class_<utils::RepeatedField<T>> &pycls,
+                                      py::class_<utils::RepeatedProtoField<T>> &pycls_proto) {
   define_repeated_field_type(pycls);
   pycls
       .def(
-          "append", [](onnx2::utils::RepeatedField<T> &self, const T &v) { self.push_back(v); },
+          "append", [](utils::RepeatedField<T> &self, const T &v) { self.push_back(v); },
           py::arg("item"), "Append one element to the list of values.")
       .def(
           "extend",
-          [](onnx2::utils::RepeatedField<T> &self, py::iterable iterable) {
-            if (py::isinstance<onnx2::utils::RepeatedField<T>>(iterable)) {
-              self.extend(iterable.cast<onnx2::utils::RepeatedField<T> &>());
+          [](utils::RepeatedField<T> &self, py::iterable iterable) {
+            if (py::isinstance<utils::RepeatedField<T>>(iterable)) {
+              self.extend(iterable.cast<utils::RepeatedField<T> &>());
             } else {
               py::list els = iterable.cast<py::list>();
               for (auto it : els) {
@@ -350,13 +350,13 @@ void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedField<T>>
           },
           py::arg("sequence"), "Extends the list of values.");
   pycls_proto.def(py::init<>())
-      .def("add", &onnx2::utils::RepeatedProtoField<T>::add, py::return_value_policy::reference,
+      .def("add", &utils::RepeatedProtoField<T>::add, py::return_value_policy::reference,
            "Adds an empty element.")
-      .def("clear", &onnx2::utils::RepeatedProtoField<T>::clear, "Removes every element.")
-      .def("__len__", &onnx2::utils::RepeatedProtoField<T>::size, "Returns the number of elements.")
+      .def("clear", &utils::RepeatedProtoField<T>::clear, "Removes every element.")
+      .def("__len__", &utils::RepeatedProtoField<T>::size, "Returns the number of elements.")
       .def(
           "__getitem__",
-          [](onnx2::utils::RepeatedProtoField<T> &self, int index) -> T & {
+          [](utils::RepeatedProtoField<T> &self, int index) -> T & {
             if (index < 0)
               index += static_cast<int>(self.size());
             EXT_ENFORCE(index >= 0 && index < static_cast<int>(self.size()), "index=", index,
@@ -367,7 +367,7 @@ void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedField<T>>
           "Returns the element at position index.")
       .def(
           "__delitem__",
-          [](onnx2::utils::RepeatedProtoField<T> &self, py::slice slice) {
+          [](utils::RepeatedProtoField<T> &self, py::slice slice) {
             size_t start, stop, step, slicelength;
             if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
               self.remove_range(start, stop, step);
@@ -376,13 +376,13 @@ void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedField<T>>
           "Removes elements.")
       .def(
           "__iter__",
-          [](onnx2::utils::RepeatedProtoField<T> &self) {
+          [](utils::RepeatedProtoField<T> &self) {
             return py::make_iterator(self.begin(), self.end());
           },
           py::keep_alive<0, 1>(), "Iterates over the elements.")
       .def(
           "__eq__",
-          [](onnx2::utils::RepeatedField<T> &self, py::list &obj) -> bool {
+          [](utils::RepeatedField<T> &self, py::list &obj) -> bool {
             if (self.size() != obj.size())
               return false;
             for (size_t i = 0; i < self.size(); ++i) {
@@ -398,13 +398,13 @@ void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedField<T>>
           },
           "Compares the container to a list of objects.")
       .def(
-          "append", [](onnx2::utils::RepeatedProtoField<T> &self, const T &v) { self.push_back(v); },
+          "append", [](utils::RepeatedProtoField<T> &self, const T &v) { self.push_back(v); },
           py::arg("item"), "Append one element to the list of values.")
       .def(
           "extend",
-          [](onnx2::utils::RepeatedProtoField<T> &self, py::iterable iterable) {
-            if (py::isinstance<onnx2::utils::RepeatedProtoField<T>>(iterable)) {
-              self.extend(iterable.cast<onnx2::utils::RepeatedProtoField<T> &>());
+          [](utils::RepeatedProtoField<T> &self, py::iterable iterable) {
+            if (py::isinstance<utils::RepeatedProtoField<T>>(iterable)) {
+              self.extend(iterable.cast<utils::RepeatedProtoField<T> &>());
             } else {
               py::list els = iterable.cast<py::list>();
               for (auto it : els) {
@@ -424,9 +424,9 @@ void define_repeated_field_type_proto(py::class_<onnx2::utils::RepeatedField<T>>
 PYBIND11_MODULE(_onnx2py, m) {
   m.doc() =
 #if defined(__APPLE__)
-      "onnx from python without protobuf"
+      "onnx from python without protobuf but using the same format"
 #else
-      R"pbdoc(onnx from python without protobuf)pbdoc"
+      R"pbdoc(onnx from python without protobuf but using the same format)pbdoc"
 #endif
       ;
 
@@ -435,7 +435,7 @@ PYBIND11_MODULE(_onnx2py, m) {
       [](py::bytes data) -> py::tuple {
         std::string raw = data;
         const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
-        onnx2::utils::StringStream st(ptr, raw.size());
+        utils::StringStream st(ptr, raw.size());
         int64_t value = st.next_int64();
         return py::make_tuple(value, st.tell());
       },
@@ -445,55 +445,53 @@ PYBIND11_MODULE(_onnx2py, m) {
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
 
-  py::class_<onnx2::ParseOptions>(m, "ParseOptions", "Parsing options for proto classes")
+  py::class_<ParseOptions>(m, "ParseOptions", "Parsing options for proto classes")
       .def(py::init<>())
-      .def_readwrite("skip_raw_data", &onnx2::ParseOptions::skip_raw_data,
+      .def_readwrite("skip_raw_data", &ParseOptions::skip_raw_data,
                      "if true, raw data will not be read but skipped, tensors are not valid in that "
                      "case  but the model structure is still available")
       .def_readwrite(
-          "raw_data_threshold", &onnx2::ParseOptions::raw_data_threshold,
+          "raw_data_threshold", &ParseOptions::raw_data_threshold,
           "if skip_raw_data is true, raw data will be read only if it is larger than the threshold")
-      .def_readwrite("parallel", &onnx2::ParseOptions::parallel,
-                     "parallelizes the reading of the big blocks")
-      .def_readwrite("num_threads", &onnx2::ParseOptions::num_threads,
+      .def_readwrite("parallel", &ParseOptions::parallel, "parallelizes the reading of the big blocks")
+      .def_readwrite("num_threads", &ParseOptions::num_threads,
                      "number of threads to run in parallel if parallel is true, -1 for as many threads "
                      "as the number of cores");
 
-  py::class_<onnx2::SerializeOptions>(m, "SerializeOptions", "Serializing options for proto classes")
+  py::class_<SerializeOptions>(m, "SerializeOptions", "Serializing options for proto classes")
       .def(py::init<>())
-      .def_readwrite("skip_raw_data", &onnx2::SerializeOptions::skip_raw_data,
+      .def_readwrite("skip_raw_data", &SerializeOptions::skip_raw_data,
                      "if true, raw data will not be written but skipped, tensors are not valid in that "
                      "case  but the model structure is still available")
       .def_readwrite(
-          "raw_data_threshold", &onnx2::SerializeOptions::raw_data_threshold,
+          "raw_data_threshold", &SerializeOptions::raw_data_threshold,
           "if skip_raw_data is true, raw data will be written only if it is larger than the threshold");
 
-  py::class_<onnx2::utils::PrintOptions>(m, "PrintOptions", "Printing options for proto classes")
+  py::class_<utils::PrintOptions>(m, "PrintOptions", "Printing options for proto classes")
       .def(py::init<>())
-      .def_readwrite("skip_raw_data", &onnx2::utils::PrintOptions::skip_raw_data,
+      .def_readwrite("skip_raw_data", &utils::PrintOptions::skip_raw_data,
                      "if true, raw data will not be printed but skipped, tensors are not valid in that "
                      "case  but the model structure is still available")
       .def_readwrite(
-          "raw_data_threshold", &onnx2::utils::PrintOptions::raw_data_threshold,
+          "raw_data_threshold", &utils::PrintOptions::raw_data_threshold,
           "if skip_raw_data is true, raw data will be printed only if it is larger than the threshold");
 
-  py::class_<onnx2::utils::String>(m, "String", "Simplified string with no final null character.")
+  py::class_<utils::String>(m, "String", "Simplified string with no final null character.")
       .def(py::init<std::string>())
       .def(
-          "__str__", [](const onnx2::utils::String &self) -> std::string { return self.as_string(); },
+          "__str__", [](const utils::String &self) -> std::string { return self.as_string(); },
           "Converts this instance into a python string.")
       .def(
           "__repr__",
-          [](const onnx2::utils::String &self) -> std::string {
+          [](const utils::String &self) -> std::string {
             return std::string("'") + self.as_string() + std::string("'");
           },
           "Represention with surrounding quotes.")
       .def(
-          "__len__", [](const onnx2::utils::String &self) -> int { return self.size(); },
+          "__len__", [](const utils::String &self) -> int { return self.size(); },
           "Returns the length of the string.")
       .def(
-          "__eq__",
-          [](const onnx2::utils::String &self, const std::string &s) -> int { return self == s; },
+          "__eq__", [](const utils::String &self, const std::string &s) -> int { return self == s; },
           "Compares two strings.");
 
   DECLARE_REPEATED_FIELD(int64_t, rep_int64_t);
@@ -516,63 +514,62 @@ PYBIND11_MODULE(_onnx2py, m) {
   define_repeated_field_type(rep_double);
   define_repeated_field_type_extend(rep_double);
 
-  py::class_<onnx2::utils::RepeatedField<onnx2::utils::String>> rep_string(m, "RepeatedFieldString",
-                                                                           "RepeatedFieldString");
+  py::class_<utils::RepeatedField<utils::String>> rep_string(m, "RepeatedFieldString",
+                                                             "RepeatedFieldString");
   define_repeated_field_type(rep_string);
   define_repeated_field_type_extend(rep_string);
 
-  py::enum_<onnx2::OperatorStatus>(m, "OperatorStatus", py::arithmetic())
-      .value("EXPERIMENTAL", onnx2::OperatorStatus::EXPERIMENTAL)
-      .value("STABLE", onnx2::OperatorStatus::STABLE)
+  py::enum_<OperatorStatus>(m, "OperatorStatus", py::arithmetic())
+      .value("EXPERIMENTAL", OperatorStatus::EXPERIMENTAL)
+      .value("STABLE", OperatorStatus::STABLE)
       .export_values();
 
-  py::class_<onnx2::Message>(m, "Message", "Message, base class for all onnx2 classes")
-      .def(py::init<>());
+  py::class_<Message>(m, "Message", "Message, base class for all onnx2 classes").def(py::init<>());
 
   PYDEFINE_PROTO(m, StringStringEntryProto)
       .PYFIELD_STR(StringStringEntryProto, key)
-      .PYFIELD_STR(StringStringEntryProto, value)
-      .PYADD_PROTO_SERIALIZATION(StringStringEntryProto);
+      .PYFIELD_STR(StringStringEntryProto, value);
+  PYADD_PROTO_SERIALIZATION(StringStringEntryProto);
   DECLARE_REPEATED_FIELD_PROTO(StringStringEntryProto, rep_ssentry);
   define_repeated_field_type_proto(rep_ssentry, rep_ssentry_proto);
 
   PYDEFINE_PROTO(m, OperatorSetIdProto)
       .PYFIELD_STR(OperatorSetIdProto, domain)
-      .PYFIELD(OperatorSetIdProto, version)
-      .PYADD_PROTO_SERIALIZATION(OperatorSetIdProto);
+      .PYFIELD(OperatorSetIdProto, version);
+  PYADD_PROTO_SERIALIZATION(OperatorSetIdProto);
   DECLARE_REPEATED_FIELD_PROTO(OperatorSetIdProto, rep_osp);
   define_repeated_field_type_proto(rep_osp, rep_osp_proto);
 
   PYDEFINE_PROTO(m, TensorAnnotation)
       .PYFIELD_STR(TensorAnnotation, tensor_name)
-      .PYFIELD(TensorAnnotation, quant_parameter_tensor_names)
-      .PYADD_PROTO_SERIALIZATION(TensorAnnotation);
+      .PYFIELD(TensorAnnotation, quant_parameter_tensor_names);
+  PYADD_PROTO_SERIALIZATION(TensorAnnotation);
 
   PYDEFINE_PROTO(m, IntIntListEntryProto)
       .PYFIELD(IntIntListEntryProto, key)
-      .PYFIELD(IntIntListEntryProto, value)
-      .PYADD_PROTO_SERIALIZATION(IntIntListEntryProto);
+      .PYFIELD(IntIntListEntryProto, value);
+  PYADD_PROTO_SERIALIZATION(IntIntListEntryProto);
   DECLARE_REPEATED_FIELD_PROTO(IntIntListEntryProto, rep_iil);
   define_repeated_field_type_proto(rep_iil, rep_iil_proto);
 
   PYDEFINE_PROTO(m, DeviceConfigurationProto)
       .PYFIELD_STR(DeviceConfigurationProto, name)
       .PYFIELD(DeviceConfigurationProto, num_devices)
-      .PYFIELD(DeviceConfigurationProto, device)
-      .PYADD_PROTO_SERIALIZATION(DeviceConfigurationProto);
+      .PYFIELD(DeviceConfigurationProto, device);
+  PYADD_PROTO_SERIALIZATION(DeviceConfigurationProto);
 
   PYDEFINE_PROTO(m, SimpleShardedDimProto)
       .PYFIELD_OPTIONAL_INT(SimpleShardedDimProto, dim_value)
       .PYFIELD_STR(SimpleShardedDimProto, dim_param)
-      .PYFIELD(SimpleShardedDimProto, num_shards)
-      .PYADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
+      .PYFIELD(SimpleShardedDimProto, num_shards);
+  PYADD_PROTO_SERIALIZATION(SimpleShardedDimProto);
   DECLARE_REPEATED_FIELD_PROTO(SimpleShardedDimProto, rep_ssdp);
   define_repeated_field_type_proto(rep_ssdp, rep_ssdp_proto);
 
   PYDEFINE_PROTO(m, ShardedDimProto)
       .PYFIELD(ShardedDimProto, axis)
-      .PYFIELD(ShardedDimProto, simple_sharding)
-      .PYADD_PROTO_SERIALIZATION(ShardedDimProto);
+      .PYFIELD(ShardedDimProto, simple_sharding);
+  PYADD_PROTO_SERIALIZATION(ShardedDimProto);
   DECLARE_REPEATED_FIELD_PROTO(ShardedDimProto, rep_sdp);
   define_repeated_field_type_proto(rep_sdp, rep_sdp_proto);
 
@@ -580,61 +577,62 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(ShardingSpecProto, tensor_name)
       .PYFIELD(ShardingSpecProto, device)
       .PYFIELD(ShardingSpecProto, index_to_device_group_map)
-      .PYFIELD(ShardingSpecProto, sharded_dim)
-      .PYADD_PROTO_SERIALIZATION(ShardingSpecProto);
+      .PYFIELD(ShardingSpecProto, sharded_dim);
+  PYADD_PROTO_SERIALIZATION(ShardingSpecProto);
   DECLARE_REPEATED_FIELD_PROTO(ShardingSpecProto, rep_ssp);
   define_repeated_field_type_proto(rep_ssp, rep_ssp_proto);
 
   PYDEFINE_PROTO(m, NodeDeviceConfigurationProto)
       .PYFIELD_STR(NodeDeviceConfigurationProto, configuration_id)
       .PYFIELD(NodeDeviceConfigurationProto, sharding_spec)
-      .PYFIELD_OPTIONAL_INT(NodeDeviceConfigurationProto, pipeline_stage)
-      .PYADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
+      .PYFIELD_OPTIONAL_INT(NodeDeviceConfigurationProto, pipeline_stage);
+  PYADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
 
-  PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorShapeProto, cls_tensor_shape_proto);
-  PYDEFINE_SUBPROTO(cls_tensor_shape_proto, TensorShapeProto, Dimension)
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorShapeProto);
+  PYDEFINE_SUBPROTO(py_TensorShapeProto, TensorShapeProto, Dimension)
       .PYFIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
       .PYFIELD_STR(TensorShapeProto::Dimension, dim_param)
-      .PYFIELD_STR(TensorShapeProto::Dimension, denotation)
-      .PYADD_PROTO_SERIALIZATION(TensorShapeProto::Dimension);
+      .PYFIELD_STR(TensorShapeProto::Dimension, denotation);
+  PYADD_SUBPROTO_SERIALIZATION(TensorShapeProto, Dimension);
   DECLARE_REPEATED_FIELD_SUBPROTO(TensorShapeProto, Dimension, rep_tspd);
   define_repeated_field_type_proto(rep_tspd, rep_tspd_proto);
-  cls_tensor_shape_proto.PYFIELD(TensorShapeProto, dim).PYADD_PROTO_SERIALIZATION(TensorShapeProto);
+  py_TensorShapeProto.PYFIELD(TensorShapeProto, dim);
+  PYADD_PROTO_SERIALIZATION(TensorShapeProto);
 
-  PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorProto, cls_tensor_proto);
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorProto);
 
-  py::enum_<onnx2::TensorProto::DataType>(cls_tensor_proto, "DataType", py::arithmetic())
-      .value("UNDEFINED", onnx2::TensorProto::DataType::UNDEFINED)
-      .value("FLOAT", onnx2::TensorProto::DataType::FLOAT)
-      .value("UINT8", onnx2::TensorProto::DataType::UINT8)
-      .value("INT8", onnx2::TensorProto::DataType::INT8)
-      .value("UINT16", onnx2::TensorProto::DataType::UINT16)
-      .value("INT16", onnx2::TensorProto::DataType::INT16)
-      .value("INT32", onnx2::TensorProto::DataType::INT32)
-      .value("INT64", onnx2::TensorProto::DataType::INT64)
-      .value("STRING", onnx2::TensorProto::DataType::STRING)
-      .value("BOOL", onnx2::TensorProto::DataType::BOOL)
-      .value("FLOAT16", onnx2::TensorProto::DataType::FLOAT16)
-      .value("DOUBLE", onnx2::TensorProto::DataType::DOUBLE)
-      .value("UINT32", onnx2::TensorProto::DataType::UINT32)
-      .value("UINT64", onnx2::TensorProto::DataType::UINT64)
-      .value("COMPLEX64", onnx2::TensorProto::DataType::COMPLEX64)
-      .value("COMPLEX128", onnx2::TensorProto::DataType::COMPLEX128)
-      .value("BFLOAT16", onnx2::TensorProto::DataType::BFLOAT16)
-      .value("FLOAT8E4M3FN", onnx2::TensorProto::DataType::FLOAT8E4M3FN)
-      .value("FLOAT8E4M3FNUZ", onnx2::TensorProto::DataType::FLOAT8E4M3FNUZ)
-      .value("FLOAT8E5M2", onnx2::TensorProto::DataType::FLOAT8E5M2)
-      .value("FLOAT8E5M2FNUZ", onnx2::TensorProto::DataType::FLOAT8E5M2FNUZ)
-      .value("UINT4", onnx2::TensorProto::DataType::UINT4)
-      .value("INT4", onnx2::TensorProto::DataType::INT4)
-      .value("FLOAT4E2M1", onnx2::TensorProto::DataType::FLOAT4E2M1)
-      .value("FLOAT8E8M0", onnx2::TensorProto::DataType::FLOAT8E8M0)
+  py::enum_<TensorProto::DataType>(py_TensorProto, "DataType", py::arithmetic())
+      .value("UNDEFINED", TensorProto::DataType::UNDEFINED)
+      .value("FLOAT", TensorProto::DataType::FLOAT)
+      .value("UINT8", TensorProto::DataType::UINT8)
+      .value("INT8", TensorProto::DataType::INT8)
+      .value("UINT16", TensorProto::DataType::UINT16)
+      .value("INT16", TensorProto::DataType::INT16)
+      .value("INT32", TensorProto::DataType::INT32)
+      .value("INT64", TensorProto::DataType::INT64)
+      .value("STRING", TensorProto::DataType::STRING)
+      .value("BOOL", TensorProto::DataType::BOOL)
+      .value("FLOAT16", TensorProto::DataType::FLOAT16)
+      .value("DOUBLE", TensorProto::DataType::DOUBLE)
+      .value("UINT32", TensorProto::DataType::UINT32)
+      .value("UINT64", TensorProto::DataType::UINT64)
+      .value("COMPLEX64", TensorProto::DataType::COMPLEX64)
+      .value("COMPLEX128", TensorProto::DataType::COMPLEX128)
+      .value("BFLOAT16", TensorProto::DataType::BFLOAT16)
+      .value("FLOAT8E4M3FN", TensorProto::DataType::FLOAT8E4M3FN)
+      .value("FLOAT8E4M3FNUZ", TensorProto::DataType::FLOAT8E4M3FNUZ)
+      .value("FLOAT8E5M2", TensorProto::DataType::FLOAT8E5M2)
+      .value("FLOAT8E5M2FNUZ", TensorProto::DataType::FLOAT8E5M2FNUZ)
+      .value("UINT4", TensorProto::DataType::UINT4)
+      .value("INT4", TensorProto::DataType::INT4)
+      .value("FLOAT4E2M1", TensorProto::DataType::FLOAT4E2M1)
+      .value("FLOAT8E8M0", TensorProto::DataType::FLOAT8E8M0)
       .export_values();
-  py::enum_<onnx2::TensorProto::DataLocation>(cls_tensor_proto, "DataLocation", py::arithmetic())
-      .value("DEFAULT", onnx2::TensorProto::DataLocation::DEFAULT)
-      .value("EXTERNAL", onnx2::TensorProto::DataLocation::EXTERNAL)
+  py::enum_<TensorProto::DataLocation>(py_TensorProto, "DataLocation", py::arithmetic())
+      .value("DEFAULT", TensorProto::DataLocation::DEFAULT)
+      .value("EXTERNAL", TensorProto::DataLocation::EXTERNAL)
       .export_values();
-  cls_tensor_proto.SHORTEN_CODE(TensorProto::DataType, UNDEFINED)
+  py_TensorProto.SHORTEN_CODE(TensorProto::DataType, UNDEFINED)
       .SHORTEN_CODE(TensorProto::DataType, FLOAT)
       .SHORTEN_CODE(TensorProto::DataType, UINT8)
       .SHORTEN_CODE(TensorProto::DataType, INT8)
@@ -661,32 +659,28 @@ PYBIND11_MODULE(_onnx2py, m) {
       .SHORTEN_CODE(TensorProto::DataType, FLOAT8E8M0)
       .PYFIELD(TensorProto, dims)
       .def_property(
-          "data_type",
-          [](const onnx2::TensorProto &self) -> onnx2::TensorProto::DataType {
-            return self.data_type_;
-          },
-          [](onnx2::TensorProto &self, py::object obj) {
+          "data_type", [](const TensorProto &self) -> TensorProto::DataType { return self.data_type_; },
+          [](TensorProto &self, py::object obj) {
             if (py::isinstance<py::int_>(obj)) {
-              self.data_type_ = static_cast<onnx2::TensorProto::DataType>(obj.cast<int>());
+              self.data_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
             } else {
-              self.data_type_ = obj.cast<onnx2::TensorProto::DataType>();
+              self.data_type_ = obj.cast<TensorProto::DataType>();
             }
           },
-          onnx2::TensorProto::DOC_data_type)
+          TensorProto::DOC_data_type)
       .def_property(
           "data_location",
-          [](const onnx2::TensorProto &self) -> onnx2::TensorProto::DataLocation {
-            return self.has_data_location() ? *self.data_location_
-                                            : onnx2::TensorProto::DataLocation::DEFAULT;
+          [](const TensorProto &self) -> TensorProto::DataLocation {
+            return self.has_data_location() ? *self.data_location_ : TensorProto::DataLocation::DEFAULT;
           },
-          [](onnx2::TensorProto &self, py::object obj) {
+          [](TensorProto &self, py::object obj) {
             if (py::isinstance<py::int_>(obj)) {
-              self.data_location_ = static_cast<onnx2::TensorProto::DataLocation>(obj.cast<int>());
+              self.data_location_ = static_cast<TensorProto::DataLocation>(obj.cast<int>());
             } else {
-              self.data_location_ = obj.cast<onnx2::TensorProto::DataLocation>();
+              self.data_location_ = obj.cast<TensorProto::DataLocation>();
             }
           },
-          onnx2::TensorProto::DOC_data_location)
+          TensorProto::DOC_data_location)
       .PYFIELD_STR(TensorProto, name)
       .PYFIELD_STR(TensorProto, doc_string)
       .PYFIELD(TensorProto, external_data)
@@ -699,14 +693,14 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(TensorProto, uint64_data)
       .def_property(
           "string_data",
-          [](const onnx2::TensorProto &self) -> py::list {
+          [](const TensorProto &self) -> py::list {
             py::list result;
             for (const auto &s : self.string_data_) {
               result.append(py::bytes(std::string(s.data(), s.size())));
             }
             return result;
           },
-          [](onnx2::TensorProto &self, py::list data) {
+          [](TensorProto &self, py::list data) {
             self.string_data_.reserve(py::len(data));
 
             for (const auto &item : data) {
@@ -719,99 +713,99 @@ PYBIND11_MODULE(_onnx2py, m) {
               }
             }
           },
-          onnx2::TensorProto::DOC_string_data)
+          TensorProto::DOC_string_data)
       .def_property(
           "raw_data",
-          [](const onnx2::TensorProto &self) -> py::bytes {
+          [](const TensorProto &self) -> py::bytes {
             return py::bytes(reinterpret_cast<const char *>(self.raw_data_.data()),
                              self.raw_data_.size());
           },
-          [](onnx2::TensorProto &self, py::bytes data) {
+          [](TensorProto &self, py::bytes data) {
             std::string raw = data;
             const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
             self.raw_data_.resize(raw.size());
             memcpy(self.raw_data_.data(), ptr, raw.size());
           },
-          onnx2::TensorProto::DOC_raw_data)
-      .PYADD_PROTO_SERIALIZATION(TensorProto);
+          TensorProto::DOC_raw_data);
+  PYADD_PROTO_SERIALIZATION(TensorProto);
   DECLARE_REPEATED_FIELD_PROTO(TensorProto, rep_tp);
   define_repeated_field_type_proto(rep_tp, rep_tp_proto);
 
   PYDEFINE_PROTO(m, SparseTensorProto)
       .PYFIELD(SparseTensorProto, values)
       .PYFIELD(SparseTensorProto, indices)
-      .PYFIELD(SparseTensorProto, dims)
-      .PYADD_PROTO_SERIALIZATION(SparseTensorProto);
+      .PYFIELD(SparseTensorProto, dims);
+  PYADD_PROTO_SERIALIZATION(SparseTensorProto);
   DECLARE_REPEATED_FIELD_PROTO(SparseTensorProto, rep_tsp);
   define_repeated_field_type_proto(rep_tsp, rep_tsp_proto);
 
-  PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto, cls_type_proto);
-  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Tensor)
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto);
+  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Tensor)
       .PYFIELD_OPTIONAL_INT(TypeProto::Tensor, elem_type)
-      .PYFIELD_OPTIONAL_PROTO(TypeProto::Tensor, shape)
-      .PYADD_PROTO_SERIALIZATION(TypeProto::Tensor);
-  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, SparseTensor)
+      .PYFIELD_OPTIONAL_PROTO(TypeProto::Tensor, shape);
+  PYADD_SUBPROTO_SERIALIZATION(TypeProto, Tensor);
+  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, SparseTensor)
       .PYFIELD_OPTIONAL_INT(TypeProto::SparseTensor, elem_type)
-      .PYFIELD_OPTIONAL_PROTO(TypeProto::SparseTensor, shape)
-      .PYADD_PROTO_SERIALIZATION(TypeProto::SparseTensor);
-  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Sequence)
-      .PYFIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type)
-      .PYADD_PROTO_SERIALIZATION(TypeProto::Sequence);
-  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Optional)
-      .PYFIELD_OPTIONAL_PROTO(TypeProto::Optional, elem_type)
-      .PYADD_PROTO_SERIALIZATION(TypeProto::Optional);
-  PYDEFINE_SUBPROTO(cls_type_proto, TypeProto, Map)
+      .PYFIELD_OPTIONAL_PROTO(TypeProto::SparseTensor, shape);
+  PYADD_SUBPROTO_SERIALIZATION(TypeProto, SparseTensor);
+  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Sequence)
+      .PYFIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type);
+  PYADD_SUBPROTO_SERIALIZATION(TypeProto, Sequence);
+  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Optional)
+      .PYFIELD_OPTIONAL_PROTO(TypeProto::Optional, elem_type);
+  PYADD_SUBPROTO_SERIALIZATION(TypeProto, Optional);
+  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Map)
       .PYFIELD(TypeProto::Map, key_type)
-      .PYFIELD_OPTIONAL_PROTO(TypeProto::Map, value_type)
-      .PYADD_PROTO_SERIALIZATION(TypeProto::Map);
-  cls_type_proto.PYFIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
+      .PYFIELD_OPTIONAL_PROTO(TypeProto::Map, value_type);
+  PYADD_SUBPROTO_SERIALIZATION(TypeProto, Map);
+  py_TypeProto.PYFIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, sequence_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, map_type)
       .PYFIELD_STR(TypeProto, denotation)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, sparse_tensor_type)
-      .PYFIELD_OPTIONAL_PROTO(TypeProto, optional_type)
-      .PYADD_PROTO_SERIALIZATION(TypeProto);
+      .PYFIELD_OPTIONAL_PROTO(TypeProto, optional_type);
+  PYADD_PROTO_SERIALIZATION(TypeProto);
 
   PYDEFINE_PROTO(m, ValueInfoProto)
       .PYFIELD_STR(ValueInfoProto, name)
       .PYFIELD_OPTIONAL_PROTO(ValueInfoProto, type)
       .PYFIELD_STR(ValueInfoProto, doc_string)
-      .PYFIELD(ValueInfoProto, metadata_props)
-      .PYADD_PROTO_SERIALIZATION(ValueInfoProto);
+      .PYFIELD(ValueInfoProto, metadata_props);
+  PYADD_PROTO_SERIALIZATION(ValueInfoProto);
   DECLARE_REPEATED_FIELD_PROTO(ValueInfoProto, rep_vip);
   define_repeated_field_type_proto(rep_vip, rep_vip_proto);
 
-  PYDEFINE_PROTO_WITH_SUBTYPES(m, AttributeProto, cls_attribute_proto);
-  py::enum_<onnx2::AttributeProto::AttributeType> attribute_type(cls_attribute_proto, "AttributeType",
-                                                                 py::arithmetic());
-  attribute_type.value("UNDEFINED", onnx2::AttributeProto::AttributeType::UNDEFINED)
-      .value("FLOAT", onnx2::AttributeProto::AttributeType::FLOAT)
-      .value("INT", onnx2::AttributeProto::AttributeType::INT)
-      .value("STRING", onnx2::AttributeProto::AttributeType::STRING)
-      .value("GRAPH", onnx2::AttributeProto::AttributeType::GRAPH)
-      .value("SPARSE_TENSOR", onnx2::AttributeProto::AttributeType::SPARSE_TENSOR)
-      .value("FLOATS", onnx2::AttributeProto::AttributeType::FLOATS)
-      .value("INTS", onnx2::AttributeProto::AttributeType::INTS)
-      .value("STRINGS", onnx2::AttributeProto::AttributeType::STRINGS)
-      .value("GRAPHS", onnx2::AttributeProto::AttributeType::GRAPHS)
-      .value("SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS)
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, AttributeProto);
+  py::enum_<AttributeProto::AttributeType> attribute_type(py_AttributeProto, "AttributeType",
+                                                          py::arithmetic());
+  attribute_type.value("UNDEFINED", AttributeProto::AttributeType::UNDEFINED)
+      .value("FLOAT", AttributeProto::AttributeType::FLOAT)
+      .value("INT", AttributeProto::AttributeType::INT)
+      .value("STRING", AttributeProto::AttributeType::STRING)
+      .value("GRAPH", AttributeProto::AttributeType::GRAPH)
+      .value("SPARSE_TENSOR", AttributeProto::AttributeType::SPARSE_TENSOR)
+      .value("FLOATS", AttributeProto::AttributeType::FLOATS)
+      .value("INTS", AttributeProto::AttributeType::INTS)
+      .value("STRINGS", AttributeProto::AttributeType::STRINGS)
+      .value("GRAPHS", AttributeProto::AttributeType::GRAPHS)
+      .value("SPARSE_TENSORS", AttributeProto::AttributeType::SPARSE_TENSORS)
       .export_values();
   attribute_type
       .def_static(
           "items",
           []() {
-            return std::vector<std::pair<std::string, onnx2::AttributeProto::AttributeType>>{
-                {"UNDEFINED", onnx2::AttributeProto::AttributeType::UNDEFINED},
-                {"FLOAT", onnx2::AttributeProto::AttributeType::FLOAT},
-                {"INT", onnx2::AttributeProto::AttributeType::INT},
-                {"STRING", onnx2::AttributeProto::AttributeType::STRING},
-                {"GRAPH", onnx2::AttributeProto::AttributeType::GRAPH},
-                {"SPARSE_TENSOR", onnx2::AttributeProto::AttributeType::SPARSE_TENSOR},
-                {"FLOATS", onnx2::AttributeProto::AttributeType::FLOATS},
-                {"INTS", onnx2::AttributeProto::AttributeType::INTS},
-                {"STRINGS", onnx2::AttributeProto::AttributeType::STRINGS},
-                {"GRAPHS", onnx2::AttributeProto::AttributeType::GRAPHS},
-                {"SPARSE_TENSORS", onnx2::AttributeProto::AttributeType::SPARSE_TENSORS},
+            return std::vector<std::pair<std::string, AttributeProto::AttributeType>>{
+                {"UNDEFINED", AttributeProto::AttributeType::UNDEFINED},
+                {"FLOAT", AttributeProto::AttributeType::FLOAT},
+                {"INT", AttributeProto::AttributeType::INT},
+                {"STRING", AttributeProto::AttributeType::STRING},
+                {"GRAPH", AttributeProto::AttributeType::GRAPH},
+                {"SPARSE_TENSOR", AttributeProto::AttributeType::SPARSE_TENSOR},
+                {"FLOATS", AttributeProto::AttributeType::FLOATS},
+                {"INTS", AttributeProto::AttributeType::INTS},
+                {"STRINGS", AttributeProto::AttributeType::STRINGS},
+                {"GRAPHS", AttributeProto::AttributeType::GRAPHS},
+                {"SPARSE_TENSORS", AttributeProto::AttributeType::SPARSE_TENSORS},
             };
           },
           "Returns the list of (name, type).")
@@ -827,23 +821,23 @@ PYBIND11_MODULE(_onnx2py, m) {
       .def_static(
           "values",
           []() {
-            return std::vector<onnx2::AttributeProto::AttributeType>{
-                onnx2::AttributeProto::AttributeType::UNDEFINED,
-                onnx2::AttributeProto::AttributeType::FLOAT,
-                onnx2::AttributeProto::AttributeType::INT,
-                onnx2::AttributeProto::AttributeType::STRING,
-                onnx2::AttributeProto::AttributeType::GRAPH,
-                onnx2::AttributeProto::AttributeType::SPARSE_TENSOR,
-                onnx2::AttributeProto::AttributeType::FLOATS,
-                onnx2::AttributeProto::AttributeType::INTS,
-                onnx2::AttributeProto::AttributeType::STRINGS,
-                onnx2::AttributeProto::AttributeType::GRAPHS,
-                onnx2::AttributeProto::AttributeType::SPARSE_TENSORS,
+            return std::vector<AttributeProto::AttributeType>{
+                AttributeProto::AttributeType::UNDEFINED,
+                AttributeProto::AttributeType::FLOAT,
+                AttributeProto::AttributeType::INT,
+                AttributeProto::AttributeType::STRING,
+                AttributeProto::AttributeType::GRAPH,
+                AttributeProto::AttributeType::SPARSE_TENSOR,
+                AttributeProto::AttributeType::FLOATS,
+                AttributeProto::AttributeType::INTS,
+                AttributeProto::AttributeType::STRINGS,
+                AttributeProto::AttributeType::GRAPHS,
+                AttributeProto::AttributeType::SPARSE_TENSORS,
             };
           },
           "Returns the list of types.");
 
-  cls_attribute_proto.SHORTEN_CODE(AttributeProto::AttributeType, UNDEFINED)
+  py_AttributeProto.SHORTEN_CODE(AttributeProto::AttributeType, UNDEFINED)
       .SHORTEN_CODE(AttributeProto::AttributeType, FLOAT)
       .SHORTEN_CODE(AttributeProto::AttributeType, INT)
       .SHORTEN_CODE(AttributeProto::AttributeType, STRING)
@@ -861,17 +855,15 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(AttributeProto, doc_string)
       .def_property(
           "type",
-          [](const onnx2::AttributeProto &self) -> onnx2::AttributeProto::AttributeType {
-            return self.type_;
-          },
-          [](onnx2::AttributeProto &self, py::object obj) {
+          [](const AttributeProto &self) -> AttributeProto::AttributeType { return self.type_; },
+          [](AttributeProto &self, py::object obj) {
             if (py::isinstance<py::int_>(obj)) {
-              self.type_ = static_cast<onnx2::AttributeProto::AttributeType>(obj.cast<int>());
+              self.type_ = static_cast<AttributeProto::AttributeType>(obj.cast<int>());
             } else {
-              self.type_ = obj.cast<onnx2::AttributeProto::AttributeType>();
+              self.type_ = obj.cast<AttributeProto::AttributeType>();
             }
           },
-          onnx2::AttributeProto::DOC_type)
+          AttributeProto::DOC_type)
       .PYFIELD_OPTIONAL_FLOAT(AttributeProto, f)
       .PYFIELD_OPTIONAL_INT(AttributeProto, i)
       .PYFIELD_STR_AS_BYTES(AttributeProto, s)
@@ -884,8 +876,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(AttributeProto, strings)
       .PYFIELD(AttributeProto, tensors)
       .PYFIELD(AttributeProto, sparse_tensors)
-      .PYFIELD(AttributeProto, graphs)
-      .PYADD_PROTO_SERIALIZATION(AttributeProto);
+      .PYFIELD(AttributeProto, graphs);
+  PYADD_PROTO_SERIALIZATION(AttributeProto);
   DECLARE_REPEATED_FIELD_PROTO(AttributeProto, rep_ap);
   define_repeated_field_type_proto(rep_ap, rep_ap_proto);
 
@@ -899,8 +891,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(NodeProto, attribute)
       .PYFIELD_STR(NodeProto, doc_string)
       .PYFIELD(NodeProto, metadata_props)
-      .PYFIELD(NodeProto, device_configurations)
-      .PYADD_PROTO_SERIALIZATION(NodeProto);
+      .PYFIELD(NodeProto, device_configurations);
+  PYADD_PROTO_SERIALIZATION(NodeProto);
   DECLARE_REPEATED_FIELD_PROTO(NodeProto, rep_node);
   define_repeated_field_type_proto(rep_node, rep_node_proto);
 
@@ -914,8 +906,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(GraphProto, output)
       .PYFIELD(GraphProto, value_info)
       .PYFIELD(GraphProto, quantization_annotation)
-      .PYFIELD(GraphProto, metadata_props)
-      .PYADD_PROTO_SERIALIZATION(GraphProto);
+      .PYFIELD(GraphProto, metadata_props);
+  PYADD_PROTO_SERIALIZATION(GraphProto);
   DECLARE_REPEATED_FIELD_PROTO(GraphProto, rep_graph);
   define_repeated_field_type_proto(rep_graph, rep_graph_proto);
 
@@ -929,8 +921,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(FunctionProto, doc_string)
       .PYFIELD(FunctionProto, opset_import)
       .PYFIELD(FunctionProto, value_info)
-      .PYFIELD(FunctionProto, metadata_props)
-      .PYADD_PROTO_SERIALIZATION(FunctionProto);
+      .PYFIELD(FunctionProto, metadata_props);
+  PYADD_PROTO_SERIALIZATION(FunctionProto);
   DECLARE_REPEATED_FIELD_PROTO(FunctionProto, rep_function);
   define_repeated_field_type_proto(rep_function, rep_function_proto);
 
@@ -945,6 +937,6 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_OPTIONAL_INT(ModelProto, ir_version)
       .PYFIELD(ModelProto, metadata_props)
       .PYFIELD(ModelProto, functions)
-      .PYFIELD(ModelProto, configuration)
-      .PYADD_PROTO_SERIALIZATION(ModelProto);
+      .PYFIELD(ModelProto, configuration);
+  PYADD_PROTO_SERIALIZATION(ModelProto);
 }
