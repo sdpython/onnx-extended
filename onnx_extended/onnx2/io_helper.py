@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 from . import ModelProto, ParseOptions, SerializeOptions
 
 
@@ -62,9 +63,10 @@ def load(
     f: str | Path,
     skip_raw_data: bool = False,
     raw_data_threshold: int = 1024,
-    load_external_data: bool = True,
+    load_external_data: Optional[bool] = None,
     parallel: bool = False,
     num_threads: int = -1,
+    location: str = "",
 ) -> ModelProto:
     """
     Loads a serialized ModelProto into memory.
@@ -79,12 +81,20 @@ def load(
             Set to True if the data is under the same directory of the model.
     :param parallel: parallelize the loading of the tensors
     :param num_threads: number of threads to use, -1 means the number of cores
+    :param location: location of the external weights
+        (can be different from the value stored in the main model),
+        it must be specified if `load_external_data` is True
     :return: Loaded in-memory ModelProto.
     """
     assert isinstance(f, (str, bytes, Path)), f"Unexpected type {type(f)} for f."
+    if load_external_data is None:
+        load_external_data = bool(location)
     assert (
-        load_external_data
-    ), f"load_external_data={load_external_data} is not implemented yet"
+        not load_external_data or location
+    ), f"'external_data_file' must be specified if load_external_data={location}"
+    assert (
+        not location or load_external_data
+    ), f"'load_external_data' must be True if location={location!r}"
     if isinstance(f, Path):
         f = str(f)
     assert not isinstance(f, str) or os.path.splitext(f)[-1] in {
@@ -99,11 +109,15 @@ def load(
         opts.num_threads = num_threads
         if isinstance(f, bytes):
             model.ParseFromString(f, opts)
+        elif location:
+            model.ParseFromFile(f, opts, external_data_file=location)
         else:
             model.ParseFromFile(f, opts)
     else:
         if isinstance(f, bytes):
             model.ParseFromString(f)
+        elif location:
+            model.ParseFromFile(f, external_data_file=location)
         else:
             model.ParseFromFile(f)
     return model
