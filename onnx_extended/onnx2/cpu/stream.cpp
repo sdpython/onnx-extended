@@ -26,7 +26,7 @@ BinaryStream::~BinaryStream() { _check(); }
 RefString BinaryStream::next_string() {
   // Depending on the stream implementation, the string may be disappear after reading another item.
   uint64_t length = next_uint64();
-  this->CanRead(length, "[StringStream::next_string]");
+  this->CanRead(length, "[BinaryStream::next_string]");
   return RefString(reinterpret_cast<const char *>(read_bytes(length)), static_cast<size_t>(length));
 }
 
@@ -279,10 +279,6 @@ bool BinaryWriteStream::GetCachedSize(const void *ptr, uint64_t &size) {
   return false;
 }
 
-void BinaryWriteStream::write_raw_bytes_in_second_stream(const uint8_t *, offset_t) {
-  EXT_THROW("This method was not overriden.");
-}
-
 ////////////////////
 // StringWriteStream
 ////////////////////
@@ -440,6 +436,9 @@ void TwoFilesStream::ReadDelayedBlock(DelayedBlock &block) {
   blocks_.push_back(block);
   if (block.stream_id == 0) {
     thread_pool_.SubmitTask([this, block]() {
+      EXT_ENFORCE(block.offset < static_cast<offset_t>(size()),
+                  "Offset for weights stream is out of bounds: ", block.offset,
+                  " >= ", static_cast<offset_t>(size()));
       std::ifstream file_stream(this->file_path(), std::ios::binary);
       file_stream.seekg(block.offset);
       file_stream.read(reinterpret_cast<char *>(block.data), block.size);
@@ -447,9 +446,12 @@ void TwoFilesStream::ReadDelayedBlock(DelayedBlock &block) {
     file_stream_.seekg(block.size, std::ios::cur);
   } else {
     thread_pool_.SubmitTask([this, block]() {
+      EXT_ENFORCE(block.offset < static_cast<offset_t>(weights_stream_.size()),
+                  "Offset for weights stream is out of bounds: ", block.offset,
+                  " >= ", weights_stream_.size());
       std::ifstream file_stream(this->weights_file_path(), std::ios::binary);
-      weights_stream_.file_stream_.seekg(block.offset);
-      weights_stream_.file_stream_.read(reinterpret_cast<char *>(block.data), block.size);
+      file_stream.seekg(block.offset);
+      file_stream.read(reinterpret_cast<char *>(block.data), block.size);
     });
     weights_stream_.file_stream_.seekg(block.size, std::ios::cur);
   }

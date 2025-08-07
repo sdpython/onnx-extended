@@ -392,7 +392,7 @@ class ExtTestCase(unittest.TestCase):
         if folder and not os.path.exists(folder):
             os.mkdir(folder)
         res = os.path.join(folder, name)
-        if os.path.exists(res):
+        if clean and os.path.exists(res):
             os.remove(res)
         return res
 
