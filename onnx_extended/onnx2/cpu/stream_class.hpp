@@ -13,41 +13,15 @@
 #define NAME_EXIST_VALUE(name) name_exist_value(_name_##name, has_##name(), ptr_##name())
 
 #define IMPLEMENT_PROTO(cls)                                                                           \
-  void cls::CopyFrom(const cls &proto) {                                                               \
-    utils::StringWriteStream stream;                                                                   \
-    SerializeOptions opts;                                                                             \
-    proto.SerializeToStream(stream, opts);                                                             \
-    utils::StringStream read_stream(stream.data(), stream.size());                                     \
-    ParseOptions ropts;                                                                                \
-    ParseFromStream(read_stream, ropts);                                                               \
-  }                                                                                                    \
-  uint64_t cls::SerializeSize() const {                                                                \
-    SerializeOptions opts;                                                                             \
-    utils::StringWriteStream stream;                                                                   \
-    return SerializeSize(stream, opts);                                                                \
-  }                                                                                                    \
-  void cls::ParseFromString(const std::string &raw) {                                                  \
-    ParseOptions opts;                                                                                 \
-    ParseFromString(raw, opts);                                                                        \
-  }                                                                                                    \
+  void cls::CopyFrom(const cls &proto) { _CopyFrom(*this, proto); }                                    \
+  uint64_t cls::SerializeSize() const { return _SerializeSize(*this); }                                \
+  void cls::ParseFromString(const std::string &raw) { _ParseFromString(*this, raw); }                  \
   void cls::ParseFromString(const std::string &raw, ParseOptions &opts) {                              \
-    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());                                \
-    onnx2::utils::StringStream st(ptr, raw.size());                                                    \
-    if (opts.parallel)                                                                                 \
-      st.StartThreadPool(opts.num_threads);                                                            \
-    ParseFromStream(st, opts);                                                                         \
-    if (opts.parallel)                                                                                 \
-      st.WaitForDelayedBlock();                                                                        \
+    _ParseFromString(*this, raw, opts);                                                                \
   }                                                                                                    \
-  void cls::SerializeToString(std::string &out) const {                                                \
-    SerializeOptions opts;                                                                             \
-    SerializeToString(out, opts);                                                                      \
-  }                                                                                                    \
+  void cls::SerializeToString(std::string &out) const { _SerializeToString(*this, out); }              \
   void cls::SerializeToString(std::string &out, SerializeOptions &opts) const {                        \
-    onnx2::utils::StringWriteStream buf;                                                               \
-    auto &opts_ref = opts;                                                                             \
-    SerializeToStream(buf, opts_ref);                                                                  \
-    out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());                         \
+    _SerializeToString(*this, out, opts);                                                              \
   }
 
 ///////////////////////
@@ -188,4 +162,48 @@
 
 using namespace onnx_extended_helpers;
 
-namespace onnx2 {} // namespace onnx2
+namespace onnx2 {
+
+template <typename cls> void _CopyFrom(cls &self, const cls &proto) {
+  utils::StringWriteStream stream;
+  SerializeOptions opts;
+  proto.SerializeToStream(stream, opts);
+  utils::StringStream read_stream(stream.data(), stream.size());
+  ParseOptions ropts;
+  self.ParseFromStream(read_stream, ropts);
+}
+
+template <typename cls> uint64_t _SerializeSize(cls &self) {
+  SerializeOptions opts;
+  utils::StringWriteStream stream;
+  return self.SerializeSize(stream, opts);
+}
+
+template <typename cls> void _ParseFromString(cls &self, const std::string &raw) {
+  ParseOptions opts;
+  self.ParseFromString(raw, opts);
+}
+
+template <typename cls> void _ParseFromString(cls &self, const std::string &raw, ParseOptions &opts) {
+  const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
+  onnx2::utils::StringStream st(ptr, raw.size());
+  if (opts.parallel)
+    st.StartThreadPool(opts.num_threads);
+  self.ParseFromStream(st, opts);
+  if (opts.parallel)
+    st.WaitForDelayedBlock();
+}
+
+template <typename cls> void _SerializeToString(cls &self, std::string &out) {
+  SerializeOptions opts;
+  self.SerializeToString(out, opts);
+}
+
+template <typename cls> void _SerializeToString(cls &self, std::string &out, SerializeOptions &opts) {
+  onnx2::utils::StringWriteStream buf;
+  auto &opts_ref = opts;
+  self.SerializeToStream(buf, opts_ref);
+  out = std::string(reinterpret_cast<const char *>(buf.data()), buf.size());
+}
+
+} // namespace onnx2
