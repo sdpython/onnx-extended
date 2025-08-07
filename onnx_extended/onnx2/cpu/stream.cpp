@@ -26,7 +26,7 @@ BinaryStream::~BinaryStream() { _check(); }
 RefString BinaryStream::next_string() {
   // Depending on the stream implementation, the string may be disappear after reading another item.
   uint64_t length = next_uint64();
-  this->CanRead(length, "[StringStream::next_string]");
+  this->CanRead(length, "[BinaryStream::next_string]");
   return RefString(reinterpret_cast<const char *>(read_bytes(length)), static_cast<size_t>(length));
 }
 
