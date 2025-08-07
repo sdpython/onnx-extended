@@ -207,8 +207,7 @@ print(times)
 # Plots
 # +++++
 
-df = pandas.DataFrame(data).set_index("name")
-df.sort_index()
+df = pandas.DataFrame(data).sort_values("name").set_index("name")
 print(df)
 
 # %%
