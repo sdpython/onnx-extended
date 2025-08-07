@@ -436,6 +436,9 @@ void TwoFilesStream::ReadDelayedBlock(DelayedBlock &block) {
   blocks_.push_back(block);
   if (block.stream_id == 0) {
     thread_pool_.SubmitTask([this, block]() {
+      EXT_ENFORCE(block.offset < static_cast<offset_t>(size()),
+                  "Offset for weights stream is out of bounds: ", block.offset,
+                  " >= ", static_cast<offset_t>(size()));
       std::ifstream file_stream(this->file_path(), std::ios::binary);
       file_stream.seekg(block.offset);
       file_stream.read(reinterpret_cast<char *>(block.data), block.size);
@@ -443,9 +446,12 @@ void TwoFilesStream::ReadDelayedBlock(DelayedBlock &block) {
     file_stream_.seekg(block.size, std::ios::cur);
   } else {
     thread_pool_.SubmitTask([this, block]() {
+      EXT_ENFORCE(block.offset < static_cast<offset_t>(weights_stream_.size()),
+                  "Offset for weights stream is out of bounds: ", block.offset,
+                  " >= ", weights_stream_.size());
       std::ifstream file_stream(this->weights_file_path(), std::ios::binary);
-      weights_stream_.file_stream_.seekg(block.offset);
-      weights_stream_.file_stream_.read(reinterpret_cast<char *>(block.data), block.size);
+      file_stream.seekg(block.offset);
+      file_stream.read(reinterpret_cast<char *>(block.data), block.size);
     });
     weights_stream_.file_stream_.seekg(block.size, std::ios::cur);
   }
