@@ -184,6 +184,20 @@ class TestOnnx2Helper(ExtTestCase):
         for a, b in zip(expected, got):
             self.assertEqualArray(a, b)
 
+    def test_loading_external_weights(self):
+        name = self.get_dump_file("test_loading_external_weights.onnx")
+        weights = self.get_dump_file("test_loading_external_weights.data")
+        model = self._get_model_with_initializers(xoh, onnx.numpy_helper)
+        onnx.save(
+            model, name, location=os.path.split(weights)[-1], save_as_external_data=True
+        )
+        proto = onnx2.load(name, location=weights)
+        self.assertEqual(len(proto.graph.initializer), len(model.graph.initializer))
+        proto_name = self.get_dump_file("test_loading_external_weights.2.onnx")
+        onnx2.save(proto, proto_name)
+        restored = onnx.load(proto_name)
+        self.assertEqual(len(restored.graph.initializer), len(model.graph.initializer))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

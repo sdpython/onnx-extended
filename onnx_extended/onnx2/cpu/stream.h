@@ -279,8 +279,8 @@ public:
   inline const std::string &weights_file_path() const { return weights_stream_.file_path(); }
   inline uint64_t weights_tell() const { return weights_stream_.tell(); }
   virtual bool ExternalWeights() const override { return true; }
-  virtual void read_bytes_from_weights_stream(offset_t n_bytes,
-                                              uint8_t *pre_allocated_buffer = nullptr);
+  virtual void read_bytes_from_weights_stream(offset_t n_bytes, uint8_t *pre_allocated_buffer = nullptr,
+                                              offset_t offset = -1);
   virtual void ReadDelayedBlock(DelayedBlock &block) override;
   virtual int64_t weights_size() const { return weights_stream_.size(); }
 

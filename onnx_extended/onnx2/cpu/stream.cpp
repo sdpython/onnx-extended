@@ -425,7 +425,11 @@ void TwoFilesWriteStream::write_raw_bytes_in_second_stream(const uint8_t *ptr, o
 TwoFilesStream::TwoFilesStream(const std::string &file_path, const std::string &weights_file)
     : FileStream(file_path), weights_stream_(weights_file) {}
 
-void TwoFilesStream::read_bytes_from_weights_stream(offset_t n_bytes, uint8_t *pre_allocated_buffer) {
+void TwoFilesStream::read_bytes_from_weights_stream(offset_t n_bytes, uint8_t *pre_allocated_buffer,
+                                                    offset_t offset) {
+  if (offset >= 0) {
+    weights_stream_.file_stream_.seekg(offset);
+  }
   weights_stream_.read_bytes(n_bytes, pre_allocated_buffer);
 }
 
