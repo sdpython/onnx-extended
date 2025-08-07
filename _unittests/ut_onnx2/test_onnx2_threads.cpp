@@ -275,7 +275,7 @@ TEST(onnx2_threads, ParallelModelProcessing4_FileExternalData) {
   {
     utils::TwoFilesWriteStream wstream(temp_filename, temp_weights);
     SerializeOptions wopts;
-    wopts.raw_data_threshold = 2;   
+    wopts.raw_data_threshold = 2;
     SerializeProtoToStream(model, wstream, wopts);
   }
 
