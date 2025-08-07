@@ -46,7 +46,7 @@ TEST(onnx2_threads, SubmitMultipleTasks) {
 }
 
 TEST(onnx2_threads, ParallelExecution) {
-  // Utiliser plus de threads que les cœurs physiques pour tester la répartition
+  // Utiliser plus de threads que les cï¿½urs physiques pour tester la rï¿½partition
   ThreadPool pool;
   pool.Start(8);
 
@@ -271,6 +271,13 @@ TEST(onnx2_threads, ParallelModelProcessing4_FileExternalData) {
 
   std::string temp_filename = "test_tensor_file_stream_read.tmp";
   std::string temp_weights = "test_tensor_file_stream_read.weight.tmp";
+
+  {
+    utils::TwoFilesWriteStream wstream(temp_filename, temp_weights);
+    SerializeOptions wopts;
+    wopts.raw_data_threshold = 2;
+    SerializeProtoToStream(model, wstream, wopts);
+  }
 
   ModelProto model2;
   {
