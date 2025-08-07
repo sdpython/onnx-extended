@@ -4,6 +4,8 @@
 Measures loading, saving time for an onnx model in python
 =========================================================
 
+The script creates an ONNX model and measures the time to load and save it
+with onnx and onnx2. This only compares the python bindings.
 """
 
 import os
@@ -214,7 +216,8 @@ print(df)
 # Visually.
 
 ax = df[["avg"]].plot.barh(
-    title="onnx VS onnx2 for load/save (s)\nthe lower, "
+    title=f"size={size / 2**20:1.3f} Mb\n"
+    "onnx VS onnx2 for load/save (s)\nthe lower, "
     "the better\next = external data\nx4 = 4 threads"
 )
 ax.figure.tight_layout()
