@@ -213,6 +213,9 @@ print(df)
 # %%
 # Visually.
 
-ax = df[["avg"]].plot.barh(title="onnx VS onnx2 for load/save")
+ax = df[["avg"]].plot.barh(
+    title="onnx VS onnx2 for load/save (s)\nthe lower, "
+    "the better\next = external data\nx4 = 4 threads"
+)
 ax.figure.tight_layout()
 ax.figure.savefig("plot_onnx2_time.png")
