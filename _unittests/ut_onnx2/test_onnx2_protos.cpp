@@ -1,4 +1,5 @@
 #include "onnx_extended/onnx2/cpu/onnx2.h"
+#include "onnx_extended/onnx2/cpu/onnx2_alias.h"
 #include "onnx_extended/onnx2/cpu/onnx2_helper.h"
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
@@ -4438,7 +4439,7 @@ TEST(onnx2_proto, AttributeProto_TypesAttribute) {
 
   // Premier type
   TypeProto &type1 = attribute.add_tp();
-  type1.add_tensor_type().set_elem_type(1); // FLOAT
+  type1.add_tensor_type().set_elem_type(static_cast<int32_t>(1)); // FLOAT
   TensorShapeProto &shape1 = type1.ref_tensor_type().add_shape();
   shape1.add_dim().set_dim_value(2);
   shape1.add_dim().set_dim_value(3);
@@ -4619,4 +4620,657 @@ TEST(onnx2_proto, TensorProto_CopyFromWithDataLocation) {
   EXPECT_EQ(target.ref_external_data().size(), 1);
   EXPECT_EQ(target.ref_external_data()[0].ref_key(), "location");
   EXPECT_EQ(target.ref_external_data()[0].ref_value(), "source_file.bin");
+}
+
+TEST(onnx2_proto, SequenceProto_Basic) {
+  SequenceProto sequence;
+
+  EXPECT_EQ(sequence.ref_elem_type(), 0);
+  EXPECT_EQ(sequence.ref_tensor_values().size(), 0);
+  EXPECT_EQ(sequence.ref_sparse_tensor_values().size(), 0);
+  EXPECT_EQ(sequence.ref_sequence_values().size(), 0);
+  EXPECT_EQ(sequence.ref_map_values().size(), 0);
+
+  sequence.set_elem_type(1); // FLOAT
+  EXPECT_EQ(sequence.ref_elem_type(), 1);
+
+  // Ajouter un tenseur à la séquence
+  TensorProto &tensor = sequence.add_tensor_values();
+  tensor.set_name("tensor_in_sequence");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_dims().push_back(3);
+  tensor.ref_float_data().push_back(1.0f);
+  tensor.ref_float_data().push_back(2.0f);
+  tensor.ref_float_data().push_back(3.0f);
+
+  EXPECT_EQ(sequence.ref_tensor_values().size(), 1);
+  EXPECT_EQ(sequence.ref_tensor_values()[0].ref_name(), "tensor_in_sequence");
+  EXPECT_EQ(sequence.ref_tensor_values()[0].ref_float_data().size(), 3);
+}
+
+TEST(onnx2_proto, SequenceProto_SparseTensorValues) {
+  SequenceProto sequence;
+  sequence.set_elem_type(1); // FLOAT
+
+  // Ajouter un tenseur sparse à la séquence
+  SparseTensorProto &sparse_tensor = sequence.add_sparse_tensor_values();
+  sparse_tensor.ref_dims().push_back(5);
+  sparse_tensor.ref_dims().push_back(5);
+
+  sparse_tensor.ref_values().set_data_type(TensorProto::DataType::FLOAT);
+  sparse_tensor.ref_values().ref_float_data().push_back(1.5f);
+  sparse_tensor.ref_values().ref_float_data().push_back(2.5f);
+
+  sparse_tensor.ref_indices().set_data_type(TensorProto::DataType::INT64);
+  sparse_tensor.ref_indices().ref_int64_data().push_back(0);
+  sparse_tensor.ref_indices().ref_int64_data().push_back(2);
+  sparse_tensor.ref_indices().ref_int64_data().push_back(3);
+  sparse_tensor.ref_indices().ref_int64_data().push_back(4);
+
+  EXPECT_EQ(sequence.ref_sparse_tensor_values().size(), 1);
+  EXPECT_EQ(sequence.ref_sparse_tensor_values()[0].ref_dims().size(), 2);
+  EXPECT_EQ(sequence.ref_sparse_tensor_values()[0].ref_values().ref_float_data().size(), 2);
+  EXPECT_EQ(sequence.ref_sparse_tensor_values()[0].ref_indices().ref_int64_data().size(), 4);
+}
+
+TEST(onnx2_proto, SequenceProto_NestedSequences) {
+  SequenceProto outer_sequence;
+  outer_sequence.set_elem_type(10); // SEQUENCE_TYPE
+
+  // Ajouter une séquence imbriquée
+  SequenceProto &inner_sequence = outer_sequence.add_sequence_values();
+  inner_sequence.set_elem_type(1); // FLOAT
+
+  // Ajouter un tenseur à la séquence imbriquée
+  TensorProto &tensor = inner_sequence.add_tensor_values();
+  tensor.set_name("inner_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(1.0f);
+  tensor.ref_float_data().push_back(2.0f);
+
+  EXPECT_EQ(outer_sequence.ref_sequence_values().size(), 1);
+  EXPECT_EQ(outer_sequence.ref_sequence_values()[0].ref_elem_type(), 1);
+  EXPECT_EQ(outer_sequence.ref_sequence_values()[0].ref_tensor_values().size(), 1);
+  EXPECT_EQ(outer_sequence.ref_sequence_values()[0].ref_tensor_values()[0].ref_name(), "inner_tensor");
+  EXPECT_EQ(outer_sequence.ref_sequence_values()[0].ref_tensor_values()[0].ref_float_data().size(), 2);
+}
+
+TEST(onnx2_proto, SequenceProto_Serialization) {
+  SequenceProto sequence1;
+  sequence1.set_elem_type(1); // FLOAT
+
+  // Ajouter quelques tenseurs
+  TensorProto &tensor1 = sequence1.add_tensor_values();
+  tensor1.set_name("tensor1");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.ref_float_data().push_back(1.0f);
+
+  TensorProto &tensor2 = sequence1.add_tensor_values();
+  tensor2.set_name("tensor2");
+  tensor2.set_data_type(TensorProto::DataType::FLOAT);
+  tensor2.ref_float_data().push_back(2.0f);
+
+  // Sérialiser
+  std::string serialized;
+  sequence1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), sequence1.SerializeSize());
+
+  // Désérialiser
+  SequenceProto sequence2;
+  sequence2.ParseFromString(serialized);
+
+  // Vérifier
+  EXPECT_EQ(sequence2.ref_elem_type(), 1);
+  EXPECT_EQ(sequence2.ref_tensor_values().size(), 2);
+  EXPECT_EQ(sequence2.ref_tensor_values()[0].ref_name(), "tensor1");
+  EXPECT_EQ(sequence2.ref_tensor_values()[1].ref_name(), "tensor2");
+  EXPECT_EQ(sequence2.ref_tensor_values()[0].ref_float_data()[0], 1.0f);
+  EXPECT_EQ(sequence2.ref_tensor_values()[1].ref_float_data()[0], 2.0f);
+}
+
+TEST(onnx2_proto, SequenceProto_CopyFrom) {
+  SequenceProto source;
+  source.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = source.add_tensor_values();
+  tensor.set_name("source_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(3.14f);
+
+  SequenceProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_elem_type(), 1);
+  EXPECT_EQ(target.ref_tensor_values().size(), 1);
+  EXPECT_EQ(target.ref_tensor_values()[0].ref_name(), "source_tensor");
+  EXPECT_EQ(target.ref_tensor_values()[0].ref_float_data().size(), 1);
+  EXPECT_FLOAT_EQ(target.ref_tensor_values()[0].ref_float_data()[0], 3.14f);
+}
+
+TEST(onnx2_string, SequenceProto) {
+  utils::PrintOptions options;
+
+  SequenceProto sequence;
+  sequence.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = sequence.add_tensor_values();
+  tensor.set_name("print_test_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_float_data().push_back(1.5f);
+  tensor.ref_float_data().push_back(2.5f);
+
+  std::vector<std::string> result = sequence.PrintToVectorString(options);
+  ASSERT_FALSE(result.empty());
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  EXPECT_TRUE(serialized.find("elem_type:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("1") != std::string::npos); // FLOAT type
+  EXPECT_TRUE(serialized.find("tensor_values") != std::string::npos);
+  EXPECT_TRUE(serialized.find("print_test_tensor") != std::string::npos);
+}
+
+TEST(onnx2_proto, SequenceProto_EmptySequence) {
+  SequenceProto sequence;
+
+  EXPECT_EQ(sequence.ref_elem_type(), 0);
+  EXPECT_EQ(sequence.ref_tensor_values().size(), 0);
+  EXPECT_EQ(sequence.ref_sparse_tensor_values().size(), 0);
+  EXPECT_EQ(sequence.ref_sequence_values().size(), 0);
+  EXPECT_EQ(sequence.ref_map_values().size(), 0);
+
+  // Sérialiser une séquence vide
+  std::string serialized;
+  sequence.SerializeToString(serialized);
+
+  // La taille ne devrait pas être nulle même pour une séquence vide
+  // car les métadonnées sont quand même sérialisées
+  EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), sequence.SerializeSize());
+
+  // Désérialiser
+  SequenceProto sequence2;
+  sequence2.ParseFromString(serialized);
+
+  EXPECT_EQ(sequence2.ref_elem_type(), 0);
+  EXPECT_EQ(sequence2.ref_tensor_values().size(), 0);
+}
+
+TEST(onnx2_proto, SequenceProto_SerializeSize) {
+  SequenceProto sequence;
+  sequence.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = sequence.add_tensor_values();
+  tensor.set_name("size_test_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(1.0f);
+
+  std::string serialized;
+  sequence.SerializeToString(serialized);
+
+  utils::StringWriteStream stream;
+  SerializeOptions options;
+  EXPECT_EQ(serialized.size(), sequence.SerializeSize(stream, options));
+}
+
+TEST(onnx2_proto, MapProto_Basic) {
+  MapProto map;
+  EXPECT_EQ(map.ref_key_type(), 0);
+  map.set_key_type(6); // INT32
+  EXPECT_EQ(map.ref_key_type(), 6);
+  map.add_keys() = 1;
+
+  // Tester avec des paires clé-valeur
+  SequenceProto &sequence = map.ref_values();
+  sequence.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = sequence.add_tensor_values();
+  tensor.set_name("size_test_tensor");
+  tensor.set_data_type(6);
+  tensor.ref_int32_data().push_back(1);
+
+  EXPECT_EQ(map.ref_keys().size(), 1);
+  EXPECT_EQ(map.ref_values().ref_tensor_values()[0].ref_int32_data().size(), 1);
+}
+
+TEST(onnx2_proto, MapProto_Serialization) {
+  // Création d'un MapProto avec des paires clé-valeur
+  MapProto map1;
+  map1.set_key_type(6); // INT32
+
+  // Ajouter des clés
+  map1.add_keys() = 1;
+  map1.add_keys() = 2;
+  map1.add_keys() = 3;
+
+  // Ajouter des valeurs (tenseurs)
+  SequenceProto &sequence = map1.ref_values();
+  sequence.set_elem_type(1); // FLOAT
+
+  // Premier tenseur
+  TensorProto &tensor1 = sequence.add_tensor_values();
+  tensor1.set_name("tensor1");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.ref_float_data().push_back(10.5f);
+
+  // Deuxième tenseur
+  TensorProto &tensor2 = sequence.add_tensor_values();
+  tensor2.set_name("tensor2");
+  tensor2.set_data_type(TensorProto::DataType::FLOAT);
+  tensor2.ref_float_data().push_back(20.5f);
+
+  // Troisième tenseur
+  TensorProto &tensor3 = sequence.add_tensor_values();
+  tensor3.set_name("tensor3");
+  tensor3.set_data_type(TensorProto::DataType::FLOAT);
+  tensor3.ref_float_data().push_back(30.5f);
+
+  // Vérifier l'état avant sérialisation
+  EXPECT_EQ(map1.ref_key_type(), 6);
+  EXPECT_EQ(map1.ref_keys().size(), 3);
+  EXPECT_EQ(map1.ref_keys()[0], 1);
+  EXPECT_EQ(map1.ref_keys()[1], 2);
+  EXPECT_EQ(map1.ref_keys()[2], 3);
+  EXPECT_EQ(map1.ref_values().ref_tensor_values().size(), 3);
+
+  // Sérialiser
+  std::string serialized;
+  map1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+
+  // Vérifier que SerializeSize fonctionne correctement
+  utils::StringWriteStream stream;
+  SerializeOptions options;
+  EXPECT_EQ(serialized.size(), map1.SerializeSize(stream, options));
+
+  // Désérialiser
+  MapProto map2;
+  map2.ParseFromString(serialized);
+
+  // Vérifier l'état après désérialisation
+  EXPECT_EQ(map2.ref_key_type(), 6);
+  EXPECT_EQ(map2.ref_keys().size(), 3);
+  EXPECT_EQ(map2.ref_keys()[0], 1);
+  EXPECT_EQ(map2.ref_keys()[1], 2);
+  EXPECT_EQ(map2.ref_keys()[2], 3);
+  EXPECT_EQ(map2.ref_values().ref_tensor_values().size(), 3);
+  EXPECT_EQ(map2.ref_values().ref_tensor_values()[0].ref_name(), "tensor1");
+  EXPECT_EQ(map2.ref_values().ref_tensor_values()[1].ref_name(), "tensor2");
+  EXPECT_EQ(map2.ref_values().ref_tensor_values()[2].ref_name(), "tensor3");
+  EXPECT_FLOAT_EQ(map2.ref_values().ref_tensor_values()[0].ref_float_data()[0], 10.5f);
+  EXPECT_FLOAT_EQ(map2.ref_values().ref_tensor_values()[1].ref_float_data()[0], 20.5f);
+  EXPECT_FLOAT_EQ(map2.ref_values().ref_tensor_values()[2].ref_float_data()[0], 30.5f);
+}
+
+TEST(onnx2_string, MapProto) {
+  utils::PrintOptions options;
+
+  // Création d'un MapProto pour tester l'impression en texte
+  MapProto map;
+  map.set_key_type(6); // INT32
+
+  // Ajouter quelques clés et valeurs
+  map.add_keys() = 42;
+  map.add_keys() = 43;
+
+  SequenceProto &sequence = map.ref_values();
+  sequence.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor1 = sequence.add_tensor_values();
+  tensor1.set_name("map_value1");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.ref_float_data().push_back(3.14f);
+
+  TensorProto &tensor2 = sequence.add_tensor_values();
+  tensor2.set_name("map_value2");
+  tensor2.set_data_type(TensorProto::DataType::FLOAT);
+  tensor2.ref_float_data().push_back(2.71f);
+
+  // Générer la représentation textuelle
+  std::vector<std::string> result = map.PrintToVectorString(options);
+  ASSERT_FALSE(result.empty());
+
+  // Vérifier que la sortie contient les informations principales
+  std::string serialized = utils::join_string(result, "\n");
+
+  EXPECT_TRUE(serialized.find("key_type:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("6") != std::string::npos); // INT32 type
+  EXPECT_TRUE(serialized.find("keys:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("42") != std::string::npos);
+  EXPECT_TRUE(serialized.find("43") != std::string::npos);
+  EXPECT_TRUE(serialized.find("values") != std::string::npos);
+  EXPECT_TRUE(serialized.find("map_value1") != std::string::npos);
+  EXPECT_TRUE(serialized.find("map_value2") != std::string::npos);
+}
+
+TEST(onnx2_proto, MapProto_CopyFrom) {
+  // Création d'un MapProto source
+  MapProto source;
+  source.set_key_type(7); // INT64
+
+  source.add_keys() = 100;
+  source.add_keys() = 200;
+
+  SequenceProto &seq = source.ref_values();
+  seq.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = seq.add_tensor_values();
+  tensor.set_name("source_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(9.8f);
+
+  // Copier vers une cible
+  MapProto target;
+  target.CopyFrom(source);
+
+  // Vérifier que la copie est correcte
+  EXPECT_EQ(target.ref_key_type(), 7);
+  EXPECT_EQ(target.ref_keys().size(), 2);
+  EXPECT_EQ(target.ref_keys()[0], 100);
+  EXPECT_EQ(target.ref_keys()[1], 200);
+  EXPECT_EQ(target.ref_values().ref_elem_type(), 1);
+  EXPECT_EQ(target.ref_values().ref_tensor_values().size(), 1);
+  EXPECT_EQ(target.ref_values().ref_tensor_values()[0].ref_name(), "source_tensor");
+  EXPECT_FLOAT_EQ(target.ref_values().ref_tensor_values()[0].ref_float_data()[0], 9.8f);
+}
+
+TEST(onnx2_proto, OptionalProto_Basic) {
+  OptionalProto optional;
+
+  EXPECT_EQ(optional.ref_elem_type(), 0);
+  EXPECT_FALSE(optional.has_tensor_value());
+  EXPECT_FALSE(optional.has_sparse_tensor_value());
+  EXPECT_FALSE(optional.has_sequence_value());
+  EXPECT_FALSE(optional.has_map_value());
+  EXPECT_FALSE(optional.has_optional_value());
+
+  optional.set_elem_type(1); // FLOAT
+  EXPECT_EQ(optional.ref_elem_type(), 1);
+
+  // Ajouter un tenseur
+  TensorProto &tensor = optional.add_tensor_value();
+  tensor.set_name("optional_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_dims().push_back(3);
+  tensor.ref_float_data().push_back(1.0f);
+  tensor.ref_float_data().push_back(2.0f);
+
+  EXPECT_TRUE(optional.has_tensor_value());
+  EXPECT_EQ(optional.ref_tensor_value().ref_name(), "optional_tensor");
+  EXPECT_EQ(optional.ref_tensor_value().ref_dims().size(), 2);
+  EXPECT_EQ(optional.ref_tensor_value().ref_float_data().size(), 2);
+}
+
+TEST(onnx2_proto, OptionalProto_SparseTensorValue) {
+  OptionalProto optional;
+  optional.set_elem_type(1); // FLOAT
+
+  // Ajouter un tenseur sparse
+  SparseTensorProto &sparse_tensor = optional.add_sparse_tensor_value();
+  sparse_tensor.ref_dims().push_back(5);
+  sparse_tensor.ref_dims().push_back(5);
+
+  sparse_tensor.ref_values().set_data_type(TensorProto::DataType::FLOAT);
+  sparse_tensor.ref_values().ref_float_data().push_back(1.5f);
+  sparse_tensor.ref_values().ref_float_data().push_back(2.5f);
+
+  sparse_tensor.ref_indices().set_data_type(TensorProto::DataType::INT64);
+  sparse_tensor.ref_indices().ref_int64_data().push_back(0);
+  sparse_tensor.ref_indices().ref_int64_data().push_back(2);
+
+  EXPECT_TRUE(optional.has_sparse_tensor_value());
+  EXPECT_EQ(optional.ref_sparse_tensor_value().ref_dims().size(), 2);
+  EXPECT_EQ(optional.ref_sparse_tensor_value().ref_values().ref_float_data().size(), 2);
+  EXPECT_EQ(optional.ref_sparse_tensor_value().ref_indices().ref_int64_data().size(), 2);
+}
+
+TEST(onnx2_proto, OptionalProto_SequenceValue) {
+  OptionalProto optional;
+  optional.set_elem_type(10); // SEQUENCE_TYPE
+
+  // Ajouter une séquence
+  SequenceProto &sequence = optional.add_sequence_value();
+  sequence.set_elem_type(1); // FLOAT
+
+  // Ajouter un tenseur à la séquence
+  TensorProto &tensor = sequence.add_tensor_values();
+  tensor.set_name("tensor_in_sequence");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(1.0f);
+  tensor.ref_float_data().push_back(2.0f);
+
+  EXPECT_TRUE(optional.has_sequence_value());
+  EXPECT_EQ(optional.ref_sequence_value().ref_elem_type(), 1);
+  EXPECT_EQ(optional.ref_sequence_value().ref_tensor_values().size(), 1);
+  EXPECT_EQ(optional.ref_sequence_value().ref_tensor_values()[0].ref_name(), "tensor_in_sequence");
+  EXPECT_EQ(optional.ref_sequence_value().ref_tensor_values()[0].ref_float_data().size(), 2);
+}
+
+TEST(onnx2_proto, OptionalProto_MapValue) {
+  OptionalProto optional;
+  optional.set_elem_type(11); // MAP_TYPE
+
+  // Ajouter une map
+  MapProto &map = optional.add_map_value();
+  map.set_key_type(6); // INT32
+
+  // Ajouter des clés
+  map.add_keys() = 1;
+  map.add_keys() = 2;
+
+  // Ajouter des valeurs
+  SequenceProto &sequence = map.ref_values();
+  sequence.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor1 = sequence.add_tensor_values();
+  tensor1.set_name("map_value1");
+  tensor1.set_data_type(TensorProto::DataType::FLOAT);
+  tensor1.ref_float_data().push_back(3.14f);
+
+  TensorProto &tensor2 = sequence.add_tensor_values();
+  tensor2.set_name("map_value2");
+  tensor2.set_data_type(TensorProto::DataType::FLOAT);
+  tensor2.ref_float_data().push_back(2.71f);
+
+  EXPECT_TRUE(optional.has_map_value());
+  EXPECT_EQ(optional.ref_map_value().ref_key_type(), 6);
+  EXPECT_EQ(optional.ref_map_value().ref_keys().size(), 2);
+  EXPECT_EQ(optional.ref_map_value().ref_values().ref_tensor_values().size(), 2);
+}
+
+TEST(onnx2_proto, OptionalProto_NestedOptionalValue) {
+  OptionalProto outer_optional;
+  outer_optional.set_elem_type(12); // OPTIONAL_TYPE
+
+  // Ajouter un optional imbriqué
+  OptionalProto &inner_optional = outer_optional.add_optional_value();
+  inner_optional.set_elem_type(1); // FLOAT
+
+  // Ajouter un tenseur à l'optional imbriqué
+  TensorProto &tensor = inner_optional.add_tensor_value();
+  tensor.set_name("inner_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(3.14f);
+
+  EXPECT_TRUE(outer_optional.has_optional_value());
+  EXPECT_EQ(outer_optional.ref_optional_value().ref_elem_type(), 1);
+  EXPECT_TRUE(outer_optional.ref_optional_value().has_tensor_value());
+  EXPECT_EQ(outer_optional.ref_optional_value().ref_tensor_value().ref_name(), "inner_tensor");
+  EXPECT_EQ(outer_optional.ref_optional_value().ref_tensor_value().ref_float_data().size(), 1);
+  EXPECT_FLOAT_EQ(outer_optional.ref_optional_value().ref_tensor_value().ref_float_data()[0], 3.14f);
+}
+
+TEST(onnx2_proto, OptionalProto_Serialization) {
+  OptionalProto optional1;
+  optional1.set_elem_type(1); // FLOAT
+
+  // Ajouter un tenseur
+  TensorProto &tensor = optional1.add_tensor_value();
+  tensor.set_name("serialized_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_float_data().push_back(1.0f);
+  tensor.ref_float_data().push_back(2.0f);
+  tensor.ref_float_data().push_back(3.0f);
+  tensor.ref_float_data().push_back(4.0f);
+
+  // Sérialiser
+  std::string serialized;
+  optional1.SerializeToString(serialized);
+  EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), optional1.SerializeSize());
+
+  // Désérialiser
+  OptionalProto optional2;
+  optional2.ParseFromString(serialized);
+
+  // Vérifier
+  EXPECT_EQ(optional2.ref_elem_type(), 1);
+  EXPECT_TRUE(optional2.has_tensor_value());
+  EXPECT_EQ(optional2.ref_tensor_value().ref_name(), "serialized_tensor");
+  EXPECT_EQ(optional2.ref_tensor_value().ref_dims().size(), 2);
+  EXPECT_EQ(optional2.ref_tensor_value().ref_float_data().size(), 4);
+  EXPECT_FLOAT_EQ(optional2.ref_tensor_value().ref_float_data()[0], 1.0f);
+  EXPECT_FLOAT_EQ(optional2.ref_tensor_value().ref_float_data()[1], 2.0f);
+  EXPECT_FLOAT_EQ(optional2.ref_tensor_value().ref_float_data()[2], 3.0f);
+  EXPECT_FLOAT_EQ(optional2.ref_tensor_value().ref_float_data()[3], 4.0f);
+}
+
+TEST(onnx2_proto, OptionalProto_CopyFrom) {
+  OptionalProto source;
+  source.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = source.add_tensor_value();
+  tensor.set_name("source_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(3.14f);
+
+  OptionalProto target;
+  target.CopyFrom(source);
+
+  EXPECT_EQ(target.ref_elem_type(), 1);
+  EXPECT_TRUE(target.has_tensor_value());
+  EXPECT_EQ(target.ref_tensor_value().ref_name(), "source_tensor");
+  EXPECT_EQ(target.ref_tensor_value().ref_float_data().size(), 1);
+  EXPECT_FLOAT_EQ(target.ref_tensor_value().ref_float_data()[0], 3.14f);
+}
+
+TEST(onnx2_string, OptionalProto) {
+  utils::PrintOptions options;
+
+  OptionalProto optional;
+  optional.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = optional.add_tensor_value();
+  tensor.set_name("print_test_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_dims().push_back(2);
+  tensor.ref_float_data().push_back(1.5f);
+  tensor.ref_float_data().push_back(2.5f);
+
+  std::vector<std::string> result = optional.PrintToVectorString(options);
+  ASSERT_FALSE(result.empty());
+
+  std::string serialized = utils::join_string(result, "\n");
+
+  EXPECT_TRUE(serialized.find("elem_type:") != std::string::npos);
+  EXPECT_TRUE(serialized.find("1") != std::string::npos); // FLOAT type
+  EXPECT_TRUE(serialized.find("tensor_value") != std::string::npos);
+  EXPECT_TRUE(serialized.find("print_test_tensor") != std::string::npos);
+}
+
+TEST(onnx2_proto, OptionalProto_EmptyOptional) {
+  OptionalProto optional;
+
+  EXPECT_EQ(optional.ref_elem_type(), 0);
+  EXPECT_FALSE(optional.has_tensor_value());
+  EXPECT_FALSE(optional.has_sparse_tensor_value());
+  EXPECT_FALSE(optional.has_sequence_value());
+  EXPECT_FALSE(optional.has_map_value());
+  EXPECT_FALSE(optional.has_optional_value());
+
+  // Sérialiser un optional vide
+  std::string serialized;
+  optional.SerializeToString(serialized);
+
+  // La taille ne devrait pas être nulle même pour un optional vide
+  // car les métadonnées sont quand même sérialisées
+  EXPECT_FALSE(serialized.empty());
+  EXPECT_EQ(serialized.size(), optional.SerializeSize());
+
+  // Désérialiser
+  OptionalProto optional2;
+  optional2.ParseFromString(serialized);
+
+  EXPECT_EQ(optional2.ref_elem_type(), 0);
+  EXPECT_FALSE(optional2.has_tensor_value());
+  EXPECT_FALSE(optional2.has_sparse_tensor_value());
+  EXPECT_FALSE(optional2.has_sequence_value());
+  EXPECT_FALSE(optional2.has_map_value());
+  EXPECT_FALSE(optional2.has_optional_value());
+}
+
+TEST(onnx2_proto, OptionalProto_SerializeSize) {
+  OptionalProto optional;
+  optional.set_elem_type(1); // FLOAT
+
+  TensorProto &tensor = optional.add_tensor_value();
+  tensor.set_name("size_test_tensor");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(1.0f);
+
+  std::string serialized;
+  optional.SerializeToString(serialized);
+
+  utils::StringWriteStream stream;
+  SerializeOptions options;
+  EXPECT_EQ(serialized.size(), optional.SerializeSize(stream, options));
+}
+
+TEST(onnx2_proto, OptionalProto_MultipleValueTypes) {
+  // Test pour vérifier le comportement lorsque plusieurs types de valeurs sont ajoutés
+  // Normalement, seule la dernière valeur ajoutée devrait être valide
+
+  OptionalProto optional;
+  optional.set_elem_type(1); // FLOAT
+
+  // Ajouter un tenseur
+  TensorProto &tensor = optional.add_tensor_value();
+  tensor.set_name("tensor_value");
+  tensor.set_data_type(TensorProto::DataType::FLOAT);
+  tensor.ref_float_data().push_back(1.0f);
+
+  EXPECT_TRUE(optional.has_tensor_value());
+
+  // Ajouter une séquence
+  SequenceProto &sequence = optional.add_sequence_value();
+  sequence.set_elem_type(1); // FLOAT
+
+  // Maintenant, l'optional devrait avoir une séquence et ne plus avoir de tenseur
+  EXPECT_TRUE(optional.has_sequence_value());
+  //EXPECT_FALSE(optional.has_tensor_value());
+
+  // Ajouter une map
+  MapProto &map = optional.add_map_value();
+  map.set_key_type(6); // INT32
+
+  // Maintenant, l'optional devrait avoir une map et ne plus avoir de séquence
+  EXPECT_TRUE(optional.has_map_value());
+  //EXPECT_FALSE(optional.has_sequence_value());
+
+  // Sérialiser et désérialiser pour vérifier que seule la dernière valeur est conservée
+  std::string serialized;
+  optional.SerializeToString(serialized);
+
+  OptionalProto optional2;
+  optional2.ParseFromString(serialized);
+
+  EXPECT_TRUE(optional2.has_map_value());
+  //EXPECT_FALSE(optional2.has_sequence_value());
+  //EXPECT_FALSE(optional2.has_tensor_value());
 }

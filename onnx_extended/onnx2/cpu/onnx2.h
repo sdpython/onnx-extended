@@ -151,7 +151,7 @@ END_PROTO()
 // TensorProto
 
 BEGIN_PROTO_NOINIT(TensorProto, "Defines a tensor and its content.")
-enum class DataType : int32_t {
+enum DataType : int32_t {
   UNDEFINED = 0,
   // Basic types.
   FLOAT = 1,  // float
@@ -205,7 +205,7 @@ enum class DataType : int32_t {
   // Future extensions go here.
 };
 
-enum DataLocation { DEFAULT = 0, EXTERNAL = 1 };
+enum DataLocation : int32_t { DEFAULT = 0, EXTERNAL = 1 };
 
 BEGIN_PROTO(Segment,
             "For very large tensors, we may want to store them in chunks, in which case the following "
@@ -213,8 +213,6 @@ BEGIN_PROTO(Segment,
 FIELD_DEFAULT(int64_t, begin, 1, 0, "Segment start.")
 FIELD_DEFAULT(int64_t, end, 1, 0, "Segment end.")
 END_PROTO()
-
-inline TensorProto() { data_type_ = DataType::UNDEFINED; }
 
 FIELD_REPEATED(uint64_t, dims, 1, "The shape of the tensor.")
 FIELD(DataType, data_type, 2,
@@ -297,6 +295,8 @@ FIELD_OPTIONAL_ENUM(
     "value not set, data is stored in raw_data (if set) otherwise in type-specified field.")
 FIELD_REPEATED(StringStringEntryProto, metadata_props, 16,
                "Named metadata values; keys should be distinct.")
+inline TensorProto() { data_type_ = DataType::UNDEFINED; }
+inline void set_data_type(int v) { data_type_ = static_cast<DataType>(v); }
 END_PROTO()
 
 // SparseTensorProto
@@ -324,19 +324,19 @@ END_PROTO()
 BEGIN_PROTO_NOINIT(TypeProto, "Defines a type, it can be a tensor type (element type and "
                               "shape), a sequence of the same element type, ...")
 BEGIN_PROTO(Tensor, "Defines a tensor type (element type, shape).")
-FIELD_OPTIONAL(int32_t, elem_type, 1,
-               "This field MUST NOT have the value of UNDEFINED. This field MUST have a valid "
-               "TensorProto.DataType value. This field MUST be present for this version of the IR.")
+FIELD_OPTIONAL_ENUM(
+    TensorProto::DataType, elem_type, 1,
+    "This field MUST NOT have the value of UNDEFINED. This field MUST have a valid "
+    "TensorProto.DataType value. This field MUST be present for this version of the IR.")
 FIELD_OPTIONAL(TensorShapeProto, shape, 2, "The shape.")
+inline void set_elem_type(int v) { elem_type_ = static_cast<TensorProto::DataType>(v); }
 END_PROTO()
 
 BEGIN_PROTO(SparseTensor, "Defines a sparse tensor type (element type, shape)")
-FIELD_OPTIONAL(
-    int32_t, elem_type, 1,
-    "This field MUST NOT have the value of UNDEFINThis field MUST NOT have the value of "
-    "UNDEFINED. This field MUST have a valid TensorProto.DataType value. This field MUST be "
-    "present for this version of the IR.ED. This field MUST have a valid TensorProto.DataType "
-    "value. This field MUST be present for this version of the IR.")
+FIELD_OPTIONAL_ENUM(
+    TensorProto::DataType, elem_type, 1,
+    "This field MUST NOT have the value of UNDEFINED. This field MUST have a valid "
+    "TensorProto.DataType value. This field MUST be present for this version of the IR.")
 FIELD_OPTIONAL(TensorShapeProto, shape, 2, "The shape.")
 END_PROTO()
 
@@ -378,8 +378,6 @@ inline bool has_type() const {
 }
 END_PROTO()
 
-using TensorProto_DataType = TensorProto::DataType;
-
 // ValueInfoProto
 
 BEGIN_PROTO(ValueInfoProto,
@@ -401,7 +399,7 @@ BEGIN_PROTO_NOINIT(AttributeProto,
                    "tensor values, or repeated float, integer, string, graph, and tensor values. An "
                    "AttributeProto MUST contain the name field, and *only one* of the following "
                    "content fields, effectively enforcing a C/C++ union equivalent.")
-enum class AttributeType : int32_t {
+enum AttributeType : int32_t {
   UNDEFINED = 0,
   FLOAT = 1,
   INT = 2,
@@ -592,6 +590,129 @@ FIELD_REPEATED_PROTO(
 FIELD_REPEATED(DeviceConfigurationProto, configuration, 26,
                "Describes different target configurations for a multi-device use case. A model MAY "
                "describe multiple multi-device configurations for execution.")
+END_PROTO()
+
+// SequenceProto
+
+class MapProto;
+class OptionalProto;
+
+BEGIN_PROTO_NOINIT(SequenceProto,
+                   "Defines a dense, ordered, collection of elements that are of homogeneous types. "
+                   "Sequences can be made out of tensors, maps, or sequences. "
+                   "If a sequence is made out of tensors, the tensors must have the same element "
+                   "type (i.e. int32). In some cases, the tensors in a sequence can have different "
+                   "shapes.  Whether the tensors can have different shapes or not depends on the "
+                   "type/shape associated with the corresponding `ValueInfo`. For example, "
+                   "`Sequence<Tensor<float, [M,N]>` means that all tensors have same shape. However, "
+                   "`Sequence<Tensor<float, [omitted,omitted]>` means they can have different "
+                   "shapes (all of rank 2), where `omitted` means the corresponding dimension has "
+                   "no symbolic/constant value. Finally, `Sequence<Tensor<float, omitted>>` means "
+                   "that the different tensors can have different ranks, when the `shape` itself "
+                   "is omitted from the tensor-type. For a more complete description")
+enum DataType : int32_t {
+  UNDEFINED = 0,
+  TENSOR = 1,
+  SPARSE_TENSOR = 2,
+  SEQUENCE = 3,
+  MAP = 4,
+  OPTIONAL = 5
+};
+FIELD_STR(name, 1, "An optional identifier for this sequence.");
+FIELD(DataType, elem_type, 2,
+      "The type of the elements in the sequence. The type of each element MUST match the elem_type "
+      "specified. This field MUST be present for this version of the IR.")
+FIELD_REPEATED_PROTO(TensorProto, tensor_values, 3,
+                     "For TensorProto values. "
+                     "When this field is present, the elem_type field MUST be TENSOR. ")
+FIELD_REPEATED_PROTO(SparseTensorProto, sparse_tensor_values, 4,
+                     "For SparseTensorProto values. "
+                     "When this field is present, the elem_type field MUST be SPARSE_TENSOR. ")
+FIELD_REPEATED_PROTO(SequenceProto, sequence_values, 5,
+                     "For SequenceProto values. "
+                     "When this field is present, the elem_type field MUST be SEQUENCE. ")
+FIELD_REPEATED_PROTO(MapProto, map_values, 6,
+                     "For MapProto values. "
+                     "When this field is present, the elem_type field MUST be MAP. ")
+FIELD_REPEATED_PROTO(OptionalProto, optional_values, 7,
+                     "For Optional values. "
+                     "When this field is present, the elem_type field MUST be OPTIONAL. ")
+inline SequenceProto() { elem_type_ = DataType::UNDEFINED; }
+inline void set_elem_type(int t) { set_elem_type(static_cast<DataType>(t)); }
+END_PROTO()
+
+// MapProto
+
+BEGIN_PROTO_NOINIT(
+    MapProto, "Specifies an associative table, defined by keys and values. MapProto is formed with a "
+              "repeated field of keys (of type INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, "
+              "UINT64, or STRING) and values (of type TENSOR, SPARSE_TENSOR, SEQUENCE, or MAP). Key "
+              "types and value types have to remain the same throughout the instantiation of the "
+              "MapProto.")
+
+FIELD_STR(name, 1, "An optional identifier for this map.")
+FIELD(TensorProto::DataType, key_type, 2,
+      "The data type of the key. "
+      "This field MUST have a valid TensorProto.DataType value of "
+      "INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, or STRING")
+FIELD_REPEATED(int64_t, keys, 3,
+               "Every element of keys has to be one of the following data types "
+               "INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, or STRING. "
+               "The integer cases are represented by the repeated int64 field keys below.")
+FIELD_REPEATED(utils::String, string_keys, 4,
+               "If keys are strings, they are represented by the repeated bytes field "
+               "string_keys below.")
+FIELD(SequenceProto, values, 5,
+      "MapProto values are represented in a SequenceProto of the same length as the "
+      "repeated keys field and have to be one of the following data types "
+      "TENSOR, SPARSE_TENSOR, MAP, SEQUENCE.")
+inline MapProto() { key_type_ = TensorProto::DataType::UNDEFINED; }
+inline void set_key_type(int t) { set_key_type(static_cast<TensorProto::DataType>(t)); }
+END_PROTO()
+
+// OptionalProto
+
+BEGIN_PROTO_NOINIT(OptionalProto,
+                   "A container that may or may not hold a value. The value, if present, may be a "
+                   "Tensor, Sparse Tensor, Sequence, Map, or another Optional. An absent value is "
+                   "semantically different from a present value that contains an empty tensor, "
+                   "sequence, or map. For example, an absent optional tensor means the absence of "
+                   "the tensor itself, whereas a present optional tensor that contains an empty "
+                   "tensor means the tensor is present but it has no elements.")
+enum DataType : int32_t {
+  UNDEFINED = 0,
+  TENSOR = 1,
+  SPARSE_TENSOR = 2,
+  SEQUENCE = 3,
+  MAP = 4,
+  OPTIONAL = 5
+};
+FIELD_STR(name, 1, "An optional identifier for this optional.");
+FIELD(DataType, elem_type, 2,
+      "The data type of the element, identifies if the OptionalProto value is Tensor, Sparse "
+      "Tensor, Sequence, Map, or Optional. The type of the optional value MUST match the "
+      "elem_type specified. This field MUST have a valid OptionalProto.DataType value.")
+FIELD_OPTIONAL_ONEOF(TensorProto, tensor_value, 3, value,
+                     "For TensorProto value. "
+                     "When this field is present, the elem_type field MUST be TENSOR.")
+FIELD_OPTIONAL_ONEOF(SparseTensorProto, sparse_tensor_value, 4, value,
+                     "For SparseTensorProto value. "
+                     "When this field is present, the elem_type field MUST be SPARSE_TENSOR.")
+FIELD_OPTIONAL_ONEOF(
+    SequenceProto, sequence_value, 5, value,
+    "For SequenceProto value. When this field is present, the elem_type field MUST be SEQUENCE.")
+FIELD_OPTIONAL_ONEOF(MapProto, map_value, 6, value,
+                     "For MapProto value. "
+                     "When this field is present, the elem_type field MUST be MAP.")
+FIELD_OPTIONAL_ONEOF(OptionalProto, optional_value, 7, value,
+                     "For OptionalProto value, allowing optional to be of itself (completeness) "
+                     "When this field is present, the elem_type field MUST be OPTIONAL.")
+inline OptionalProto() { elem_type_ = DataType::UNDEFINED; }
+inline bool has_value() const {
+  return has_tensor_value() || has_sequence_value() || has_map_value() || has_sparse_tensor_value() ||
+         has_optional_value();
+}
+inline void set_elem_type(int t) { set_elem_type(static_cast<DataType>(t)); }
 END_PROTO()
 
 } // namespace onnx2

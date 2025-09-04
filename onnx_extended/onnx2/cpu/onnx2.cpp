@@ -482,20 +482,20 @@ IMPLEMENT_PROTO(TypeProto::Tensor)
 uint64_t TypeProto::Tensor::SerializeSize(utils::BinaryWriteStream &stream,
                                           SerializeOptions &options) const {
   uint64_t size = 0;
-  SIZE_FIELD(size, options, stream, elem_type)
+  SIZE_ENUM_FIELD(size, options, stream, elem_type)
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, shape)
   return size;
 }
 void TypeProto::Tensor::SerializeToStream(utils::BinaryWriteStream &stream,
                                           SerializeOptions &options) const {
-  WRITE_FIELD(options, stream, elem_type)
+  WRITE_ENUM_FIELD(options, stream, elem_type)
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, shape)
 }
 void TypeProto::Tensor::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
-    READ_BEGIN(options, stream, TypeProto::Tensor)    //
-    READ_FIELD(options, stream, elem_type)            //
-    READ_OPTIONAL_PROTO_FIELD(options, stream, shape) //
-    READ_END(options, stream, TypeProto::Tensor)      //
+    READ_BEGIN(options, stream, TypeProto::Tensor)       //
+    READ_OPTIONAL_ENUM_FIELD(options, stream, elem_type) //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, shape)    //
+    READ_END(options, stream, TypeProto::Tensor)         //
 } std::vector<std::string> TypeProto::Tensor::PrintToVectorString(utils::PrintOptions &options) const {
   return write_proto_into_vector_string(options, NAME_EXIST_VALUE(elem_type), NAME_EXIST_VALUE(shape));
 }
@@ -506,18 +506,18 @@ IMPLEMENT_PROTO(TypeProto::SparseTensor)
 uint64_t TypeProto::SparseTensor::SerializeSize(utils::BinaryWriteStream &stream,
                                                 SerializeOptions &options) const {
   uint64_t size = 0;
-  SIZE_FIELD(size, options, stream, elem_type)
+  SIZE_ENUM_FIELD(size, options, stream, elem_type)
   SIZE_OPTIONAL_PROTO_FIELD(size, options, stream, shape)
   return size;
 }
 void TypeProto::SparseTensor::SerializeToStream(utils::BinaryWriteStream &stream,
                                                 SerializeOptions &options) const {
-  WRITE_FIELD(options, stream, elem_type)
+  WRITE_ENUM_FIELD(options, stream, elem_type)
   WRITE_OPTIONAL_PROTO_FIELD(options, stream, shape)
 }
 void TypeProto::SparseTensor::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
     READ_BEGIN(options, stream, TypeProto::SparseTensor) //
-    READ_FIELD(options, stream, elem_type)               //
+    READ_OPTIONAL_ENUM_FIELD(options, stream, elem_type) //
     READ_OPTIONAL_PROTO_FIELD(options, stream, shape)    //
     READ_END(options, stream, TypeProto::SparseTensor)   //
 } std::vector<std::string> TypeProto::SparseTensor::PrintToVectorString(utils::PrintOptions &options)
@@ -963,6 +963,123 @@ void ModelProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &opti
       NAME_EXIST_VALUE(producer_name), NAME_EXIST_VALUE(producer_version), NAME_EXIST_VALUE(domain),
       NAME_EXIST_VALUE(model_version), NAME_EXIST_VALUE(doc_string), NAME_EXIST_VALUE(graph),
       NAME_EXIST_VALUE(metadata_props), NAME_EXIST_VALUE(functions), NAME_EXIST_VALUE(configuration));
+}
+
+// SequenceProto
+
+IMPLEMENT_PROTO(SequenceProto)
+uint64_t SequenceProto::SerializeSize(utils::BinaryWriteStream &stream,
+                                      SerializeOptions &options) const {
+  uint64_t size = 0;
+  SIZE_FIELD(size, options, stream, name)
+  SIZE_ENUM_FIELD(size, options, stream, elem_type)
+  SIZE_REPEATED_FIELD(size, options, stream, tensor_values)
+  SIZE_REPEATED_FIELD(size, options, stream, sparse_tensor_values)
+  SIZE_REPEATED_FIELD(size, options, stream, sequence_values)
+  SIZE_REPEATED_FIELD(size, options, stream, map_values)
+  SIZE_REPEATED_FIELD(size, options, stream, optional_values)
+  return size;
+}
+void SequenceProto::SerializeToStream(utils::BinaryWriteStream &stream,
+                                      SerializeOptions &options) const {
+  WRITE_FIELD(options, stream, name)
+  WRITE_ENUM_FIELD(options, stream, elem_type)
+  WRITE_REPEATED_FIELD(options, stream, tensor_values)
+  WRITE_REPEATED_FIELD(options, stream, sparse_tensor_values)
+  WRITE_REPEATED_FIELD(options, stream, sequence_values)
+  WRITE_REPEATED_FIELD(options, stream, map_values)
+  WRITE_REPEATED_FIELD(options, stream, optional_values)
+}
+void SequenceProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
+    READ_BEGIN(options, stream, SequenceProto)                 //
+    READ_FIELD(options, stream, name)                          //
+    READ_ENUM_FIELD(options, stream, elem_type)                //
+    READ_REPEATED_FIELD(options, stream, tensor_values)        //
+    READ_REPEATED_FIELD(options, stream, sparse_tensor_values) //
+    READ_REPEATED_FIELD(options, stream, sequence_values)      //
+    READ_REPEATED_FIELD(options, stream, map_values)           //
+    READ_REPEATED_FIELD(options, stream, optional_values)      //
+    READ_END(options, stream, SequenceProto)                   // NOLINT
+} std::vector<std::string> SequenceProto::PrintToVectorString(utils::PrintOptions &options) const {
+  return write_proto_into_vector_string(
+      options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(elem_type), NAME_EXIST_VALUE(tensor_values),
+      NAME_EXIST_VALUE(sparse_tensor_values), NAME_EXIST_VALUE(sequence_values),
+      NAME_EXIST_VALUE(map_values), NAME_EXIST_VALUE(optional_values));
+}
+
+// MapProto
+
+IMPLEMENT_PROTO(MapProto)
+uint64_t MapProto::SerializeSize(utils::BinaryWriteStream &stream, SerializeOptions &options) const {
+  uint64_t size = 0;
+  SIZE_FIELD(size, options, stream, name)
+  SIZE_ENUM_FIELD(size, options, stream, key_type)
+  SIZE_REPEATED_FIELD(size, options, stream, keys)
+  SIZE_REPEATED_FIELD(size, options, stream, string_keys)
+  SIZE_FIELD(size, options, stream, values)
+  return size;
+}
+void MapProto::SerializeToStream(utils::BinaryWriteStream &stream, SerializeOptions &options) const {
+  WRITE_FIELD(options, stream, name)
+  WRITE_ENUM_FIELD(options, stream, key_type)
+  WRITE_REPEATED_FIELD(options, stream, keys)
+  WRITE_REPEATED_FIELD(options, stream, string_keys)
+  WRITE_FIELD(options, stream, values)
+}
+void MapProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
+    READ_BEGIN(options, stream, MapProto)             //
+    READ_FIELD(options, stream, name)                 //
+    READ_ENUM_FIELD(options, stream, key_type)        //
+    READ_REPEATED_FIELD(options, stream, keys)        //
+    READ_REPEATED_FIELD(options, stream, string_keys) //
+    READ_FIELD(options, stream, values)               //
+    READ_END(options, stream, MapProto)               // NOLINT
+} std::vector<std::string> MapProto::PrintToVectorString(utils::PrintOptions &options) const {
+  return write_proto_into_vector_string(options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(key_type),
+                                        NAME_EXIST_VALUE(keys), NAME_EXIST_VALUE(string_keys),
+                                        NAME_EXIST_VALUE(values));
+}
+
+// OptionalProto
+
+IMPLEMENT_PROTO(OptionalProto)
+uint64_t OptionalProto::SerializeSize(utils::BinaryWriteStream &stream,
+                                      SerializeOptions &options) const {
+  uint64_t size = 0;
+  SIZE_FIELD(size, options, stream, name)
+  SIZE_ENUM_FIELD(size, options, stream, elem_type)
+  SIZE_FIELD(size, options, stream, tensor_value)
+  SIZE_FIELD(size, options, stream, sparse_tensor_value)
+  SIZE_FIELD(size, options, stream, sequence_value)
+  SIZE_FIELD(size, options, stream, map_value)
+  SIZE_FIELD(size, options, stream, optional_value)
+  return size;
+}
+void OptionalProto::SerializeToStream(utils::BinaryWriteStream &stream,
+                                      SerializeOptions &options) const {
+  WRITE_FIELD(options, stream, name)           //
+  WRITE_ENUM_FIELD(options, stream, elem_type) //
+  WRITE_OPTIONAL_PROTO_FIELD(options, stream, tensor_value)
+  WRITE_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor_value)
+  WRITE_OPTIONAL_PROTO_FIELD(options, stream, sequence_value)
+  WRITE_OPTIONAL_PROTO_FIELD(options, stream, map_value)
+  WRITE_OPTIONAL_PROTO_FIELD(options, stream, optional_value)
+}
+void OptionalProto::ParseFromStream(utils::BinaryStream &stream, ParseOptions &options){
+    READ_BEGIN(options, stream, OptionalProto)                      //
+    READ_FIELD(options, stream, name)                               //
+    READ_ENUM_FIELD(options, stream, elem_type)                     //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, tensor_value)        //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, sparse_tensor_value) //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, sequence_value)      //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, map_value)           //
+    READ_OPTIONAL_PROTO_FIELD(options, stream, optional_value)      //
+    READ_END(options, stream, OptionalProto)                        // NOLINT
+} std::vector<std::string> OptionalProto::PrintToVectorString(utils::PrintOptions &options) const {
+  return write_proto_into_vector_string(
+      options, NAME_EXIST_VALUE(name), NAME_EXIST_VALUE(elem_type), NAME_EXIST_VALUE(tensor_value),
+      NAME_EXIST_VALUE(sparse_tensor_value), NAME_EXIST_VALUE(sequence_value),
+      NAME_EXIST_VALUE(map_value), NAME_EXIST_VALUE(optional_value));
 }
 
 } // namespace onnx2
