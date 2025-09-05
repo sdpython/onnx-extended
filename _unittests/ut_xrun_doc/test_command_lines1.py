@@ -6,7 +6,6 @@ from io import StringIO
 import numpy as np
 from onnx import TensorProto, load
 from onnx.checker import check_model
-from onnx.defs import onnx_opset_version
 from onnx.helper import (
     make_graph,
     make_model,
@@ -25,7 +24,6 @@ from onnx_extended._command_lines_parser import (
     get_parser_external,
     get_parser_print,
     get_parser_protoc,
-    get_parser_quantize,
     get_parser_select,
     main,
 )
@@ -82,13 +80,6 @@ class TestCommandLines1(ExtTestCase):
             get_parser_print().print_help()
         text = st.getvalue()
         self.assertIn("print", text)
-
-    def test_parser_quantize(self):
-        st = StringIO()
-        with redirect_stdout(st):
-            get_parser_quantize().print_help()
-        text = st.getvalue()
-        self.assertIn("quantize", text)
 
     def test_parse(self):
         checks_str = [
@@ -287,148 +278,6 @@ class TestCommandLines1(ExtTestCase):
         )
         check_model(onnx_model)
         return onnx_model
-
-    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
-    def test_command_quantize_model(self):
-        onnx_model = self._get_model_32()
-        with tempfile.TemporaryDirectory() as fold:
-            model_file = os.path.join(fold, "model.onnx")
-            with open(model_file, "wb") as f:
-                f.write(onnx_model.SerializeToString())
-            model_out = os.path.join(fold, "out.onnx")
-
-            st = StringIO()
-            with redirect_stdout(st):
-                args = ["quantize", "-i", model_file, "-o", model_out, "-k", "fp8"]
-                main(args)
-            text = st.getvalue()
-            self.assertEqual(text, "")
-            self.assertExists(model_out)
-            with open(model_out, "rb") as f:
-                content = load(f)
-            types = [n.op_type for n in content.graph.node]
-            self.assertEqual(
-                types,
-                [
-                    "DynamicQuantizeLinear",
-                    "Constant",
-                    "Constant",
-                    "GemmFloat8",
-                ],
-            )
-
-    @unittest.skipIf(onnx_opset_version() < 20, reason="onnx not recent enough")
-    def test_command_quantize_model_optimize(self):
-        onnx_model = self._get_model_32()
-        with tempfile.TemporaryDirectory() as fold:
-            model_file = os.path.join(fold, "model.onnx")
-            with open(model_file, "wb") as f:
-                f.write(onnx_model.SerializeToString())
-            model_out = os.path.join(fold, "out.onnx")
-
-            st = StringIO()
-            with redirect_stdout(st):
-                args = [
-                    "quantize",
-                    "-i",
-                    model_file,
-                    "-o",
-                    model_out,
-                    "-k",
-                    "fp8",
-                    "-p",
-                    "optimize",
-                ]
-                main(args)
-            text = st.getvalue()
-            self.assertEqual(text, "")
-            self.assertExists(model_out)
-            with open(model_out, "rb") as f:
-                content = load(f)
-            types = [n.op_type for n in content.graph.node]
-            self.assertEqual(
-                types,
-                [
-                    "DynamicQuantizeLinearE4M3FN",
-                    "Constant",
-                    "Constant",
-                    "GemmFloat8",
-                ],
-            )
-
-    def test_command_quantize_model_local(self):
-        onnx_model = self._get_model_32()
-        with tempfile.TemporaryDirectory() as fold:
-            model_file = os.path.join(fold, "model.onnx")
-            with open(model_file, "wb") as f:
-                f.write(onnx_model.SerializeToString())
-            model_out = os.path.join(fold, "out.onnx")
-
-            st = StringIO()
-            with redirect_stdout(st):
-                args = [
-                    "quantize",
-                    "-i",
-                    model_file,
-                    "-o",
-                    model_out,
-                    "-k",
-                    "fp8",
-                ]
-                main(args)
-            text = st.getvalue()
-            self.assertEqual(text, "")
-            self.assertExists(model_out)
-            with open(model_out, "rb") as f:
-                content = load(f)
-            types = [n.op_type for n in content.graph.node]
-            self.assertEqual(
-                types,
-                [
-                    "DynamicQuantizeLinear",
-                    "Constant",
-                    "Constant",
-                    "GemmFloat8",
-                ],
-            )
-            types = set(n.domain for n in content.graph.node)
-            self.assertEqual(
-                types,
-                {"", "com.microsoft", "local.quant.domain"},
-            )
-
-    def test_command_quantize_cast_convert(self):
-        onnx_model = self._get_model_32()
-        with tempfile.TemporaryDirectory() as fold:
-            model_file = os.path.join(fold, "model.onnx")
-            with open(model_file, "wb") as f:
-                f.write(onnx_model.SerializeToString())
-            model_out = os.path.join(fold, "out.onnx")
-
-            st = StringIO()
-            with redirect_stdout(st):
-                args = [
-                    "quantize",
-                    "-i",
-                    model_file,
-                    "-o",
-                    model_out,
-                    "-k",
-                    "fp16",
-                    "-e",
-                    "fuzzy,logi",
-                ]
-                main(args)
-            text = st.getvalue()
-            self.assertEqual(text, "")
-            self.assertExists(model_out)
-            with open(model_out, "rb") as f:
-                content = load(f)
-            types = [n.op_type for n in content.graph.node]
-            self.assertEqual(types, ["Constant", "MatMul"])
-            types = set(n.domain for n in content.graph.node)
-            self.assertEqual(types, {""})
-            self.assertIn("data_type: 10", str(content))
 
     def test_command_select(self):
         X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None])

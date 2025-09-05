@@ -23,7 +23,6 @@ def get_main_parser() -> ArgumentParser:
             "merge",
             "plot",
             "print",
-            "quantize",
             "select",
             "stat",
             "store",
@@ -42,7 +41,6 @@ def get_main_parser() -> ArgumentParser:
         'print'     prints out a model or a protobuf file on the standard output,
         'plot'      plots a graph like a profiling,
         'protoc'    parse a proto definition and produces a C++ script
-        'quantize'  quantizes an onnx model in simple ways,
         'select'    selects a subgraph inside a bigger models,
         'stat'      produces statistics on the graph (initializer, tree ensemble),
         'store'     executes a model with class CReferenceEvaluator and stores every
@@ -197,97 +195,6 @@ def get_parser_print() -> ArgumentParser:
     return parser
 
 
-def get_parser_quantize() -> ArgumentParser:
-    parser = ArgumentParser(
-        prog="quantize",
-        description=dedent(
-            """
-        Quantizes a model in simple ways.
-        """
-        ),
-        epilog="The implementation quantization are mostly experimental. "
-        "Once finalized, the functionality might move to another package.",
-    )
-    parser.add_argument(
-        "-i",
-        "--input",
-        type=str,
-        required=True,
-        help="onnx model or protobuf file to print",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        required=True,
-        help="output model to write",
-    )
-    parser.add_argument(
-        "-k",
-        "--kind",
-        choices=["fp8", "fp16"],
-        required=True,
-        help="Kind of quantization to do. 'fp8' "
-        "quantizes weights to float 8 e4m3fn whenever possible. "
-        "It replaces MatMul by Transpose + DynamicQuantizeLinear + GemmFloat8. "
-        "'fp16' casts all float weights to float 16, it does the same for "
-        "inputs and outputs. It changes all operators Cast when they "
-        "cast into float 32.",
-    )
-    parser.add_argument(
-        "-s",
-        "--scenario",
-        choices=["onnxruntime", "onnx-extended"],
-        required=False,
-        default="onnxruntime",
-        help="Possible versions for fp8 quantization. "
-        "'onnxruntime' uses operators implemented by onnxruntime, "
-        "'onnx-extended' uses experimental operators from this package.",
-    )
-    parser.add_argument(
-        "-e",
-        "--early-stop",
-        required=False,
-        help="stops after N modifications",
-    )
-    parser.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        help="do not stop if an exception is raised",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="enable logging, can be repeated",
-    )
-    parser.add_argument(
-        "-t",
-        "--transpose",
-        default=2,
-        help="which input(s) to transpose, 1 for the first one, "
-        "2 for the second, 3 for both, 0 for None",
-    )
-    parser.add_argument(
-        "-x",
-        "--exclude",
-        type=str,
-        help="to avoid quantizing nodes if their names belongs "
-        "to that list (comma separated)",
-    )
-    parser.add_argument(
-        "-p",
-        "--options",
-        type=str,
-        default="NONE",
-        help="options to use for quantization, NONE (default) or OPTIMIZE, "
-        "several values can be passed separated by a comma",
-    )
-    return parser
-
-
 def get_parser_select() -> ArgumentParser:
     parser = ArgumentParser(
         prog="select",
@@ -418,44 +325,6 @@ def _process_exceptions(text: Optional[str]) -> List[Dict[str, str]]:
         return []
     names = text.split(",")
     return [dict(name=n) for n in names]
-
-
-def _process_options(text: Optional[str]) -> "QuantizeOptions":  # noqa: F821
-    from .tools.graph import QuantizeOptions
-
-    if text is None:
-        return QuantizeOptions.NONE
-    names = text.split(",")
-    value = QuantizeOptions.NONE
-    for name in names:
-        name = name.upper()
-        assert hasattr(
-            QuantizeOptions, name
-        ), f"Unable to parse option name among {dir(QuantizeOptions)}."
-        value |= getattr(QuantizeOptions, name)
-
-    return value
-
-
-def _cmd_quantize(argv: List[Any]):
-    from ._command_lines import cmd_quantize
-
-    parser = get_parser_quantize()
-    args = parser.parse_args(argv[1:])
-    processed_exceptions = _process_exceptions(args.exclude)
-    processed_options = _process_options(args.options)
-    cmd_quantize(
-        model=args.input,
-        output=args.output,
-        verbose=args.verbose,
-        scenario=args.scenario,
-        kind=args.kind,
-        early_stop=args.early_stop,
-        quiet=args.quiet,
-        index_transpose=args.transpose,
-        exceptions=processed_exceptions,
-        options=processed_options,
-    )
 
 
 def _cmd_select(argv: List[Any]):
@@ -953,7 +822,6 @@ def main(argv: Optional[List[Any]] = None):
         plot=_cmd_plot,
         print=_cmd_print,
         protoc=_cmd_protoc,
-        quantize=_cmd_quantize,
         select=_cmd_select,
         stat=_cmd_stat,
         store=_cmd_store,
@@ -976,7 +844,6 @@ def main(argv: Optional[List[Any]] = None):
                 plot=get_parser_plot,
                 protoc=get_parser_protoc,
                 print=get_parser_print,
-                quantize=get_parser_quantize,
                 select=get_parser_select,
                 stat=get_parser_stat,
                 store=get_parser_store,
