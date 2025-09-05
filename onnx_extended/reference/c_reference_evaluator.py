@@ -47,6 +47,8 @@ def from_array_extended(tensor: np.ndarray, name: Optional[str] = None) -> Tenso
             dt_to = np.uint16  # type: ignore[assignment]
         else:
             return from_array(tensor, name)
+    else:
+        return from_array(tensor, name)
 
     t = from_array(tensor.astype(dt_to), name)
     t.data_type = to
