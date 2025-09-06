@@ -1048,10 +1048,10 @@ PYBIND11_MODULE(_onnx2py, m) {
             }
           },
           OptionalProto::DOC_elem_type)
-      .PYFIELD(OptionalProto, tensor_value)
-      .PYFIELD(OptionalProto, sparse_tensor_value)
-      .PYFIELD(OptionalProto, sequence_value)
-      .PYFIELD(OptionalProto, map_value)
-      .PYFIELD(OptionalProto, optional_value);
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, tensor_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, sparse_tensor_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, sequence_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, map_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, optional_value);
   PYADD_PROTO_SERIALIZATION(OptionalProto);
 }
