@@ -151,7 +151,15 @@ class TestCReferenceEvaluatorSave(ExtTestCase):
 
             backend = create_reference_backend(new_cls, path_to_test=root)
             backend.exclude("cuda")
-            self.assertEqual(len(backend.run()[0]), 2)
+            try:
+                res = backend.run()
+            except Exception as e:
+                if "is till opset" in str(e):
+                    raise unittest.SkipTest(
+                        "onnxruntime does not handle an opset"
+                    ) from e
+                raise
+            self.assertEqual(len(res[0]), 2)
 
     def _get_loop_model(self) -> ModelProto:
         return helper.make_model(
