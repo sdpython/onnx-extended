@@ -9,9 +9,12 @@ from .cpu._onnx2py import (
     AttributeProto,
     FunctionProto,
     GraphProto,
+    MapProto,
     ModelProto,
     NodeProto,
     OperatorSetIdProto,
+    OptionalProto,
+    SequenceProto,
     SparseTensorProto,
     StringStringEntryProto,
     TensorProto,
@@ -847,3 +850,96 @@ def make_model(
     if producer_version:
         model.producer_version = producer_version
     return model
+
+
+def make_optional(
+    name: str,
+    elem_type: OptionalProto.DataType,
+    value,
+) -> OptionalProto:
+    """Make an Optional with specified value arguments."""
+    optional = OptionalProto()
+    optional.name = name
+    optional.elem_type = elem_type
+
+    if elem_type == OptionalProto.UNDEFINED:
+        return optional
+    attribute = None
+    if elem_type == OptionalProto.TENSOR:
+        attribute = optional.tensor_value
+    elif elem_type == OptionalProto.SPARSE_TENSOR:
+        attribute = optional.sparse_tensor_value
+    elif elem_type == OptionalProto.SEQUENCE:
+        attribute = optional.sequence_value
+    elif elem_type == OptionalProto.MAP:
+        attribute = optional.map_value
+    elif elem_type == OptionalProto.OPTIONAL:
+        attribute = optional.optional_value
+    else:
+        raise TypeError("The element type in the input optional is not supported.")
+
+    assert value is not None
+    attribute.CopyFrom(value)  # type: ignore[arg-type]
+    return optional
+
+
+def make_sequence(
+    name: str,
+    elem_type: SequenceProto.DataType,
+    values: Sequence[Any],
+) -> SequenceProto:
+    """Make a Sequence with specified value arguments."""
+    sequence = SequenceProto()
+    sequence.name = name
+    sequence.elem_type = elem_type
+
+    if elem_type == SequenceProto.UNDEFINED:
+        return sequence
+
+    attribute = None
+    if elem_type == SequenceProto.TENSOR:
+        attribute = sequence.tensor_values
+    elif elem_type == SequenceProto.SPARSE_TENSOR:
+        attribute = sequence.sparse_tensor_values
+    elif elem_type == SequenceProto.SEQUENCE:
+        attribute = sequence.sequence_values
+    elif elem_type == SequenceProto.MAP:
+        attribute = sequence.map_values
+    elif elem_type == OptionalProto.OPTIONAL:
+        attribute = sequence.optional_values
+    else:
+        raise TypeError("The element type in the input sequence is not supported.")
+
+    attribute.extend(values)
+    return sequence
+
+
+def make_map(
+    name: str, key_type: int, keys: list[Any], values: SequenceProto
+) -> MapProto:
+    """Make a Map with specified key-value pair arguments.
+
+    Criteria for conversion:
+    - Keys and Values must have the same number of elements
+    - Every key in keys must be of the same type
+    - Every value in values must be of the same type
+    """
+    map_proto = MapProto()
+    valid_key_int_types = {
+        TensorProto.INT8,
+        TensorProto.INT16,
+        TensorProto.INT32,
+        TensorProto.INT64,
+        TensorProto.UINT8,
+        TensorProto.UINT16,
+        TensorProto.UINT32,
+        TensorProto.UINT64,
+    }
+    map_proto.name = name
+    map_proto.key_type = key_type
+    if key_type == TensorProto.STRING:
+        map_proto.string_keys.extend(keys)
+    elif key_type in valid_key_int_types:
+        map_proto.keys.extend(keys)
+    map_proto.values.CopyFrom(values)
+    return map_proto

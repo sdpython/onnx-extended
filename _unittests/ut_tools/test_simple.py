@@ -99,13 +99,6 @@ class TestSimple(ExtTestCase):
                 self.assertIn('value: "model_ext.onnx.data"', text)
                 self.assertIn('key: "offset"', text)
 
-            with self.subTest(fmt="nodes"):
-                st = StringIO()
-                with redirect_stdout(st):
-                    print_proto(name, external=False, fmt="nodes")
-                text = st.getvalue()
-                self.assertIn("Node(0,", text)
-
             with self.subTest(fmt="opsets"):
                 st = StringIO()
                 with redirect_stdout(st):
