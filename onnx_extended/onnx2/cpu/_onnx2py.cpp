@@ -1052,6 +1052,19 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_OPTIONAL_PROTO(OptionalProto, sparse_tensor_value)
       .PYFIELD_OPTIONAL_PROTO(OptionalProto, sequence_value)
       .PYFIELD_OPTIONAL_PROTO(OptionalProto, map_value)
-      .PYFIELD_OPTIONAL_PROTO(OptionalProto, optional_value);
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, optional_value)
+      .def("HasField", [](const OptionalProto &self, const std::string &field_name) {
+        if (self.has_tensor_value() && field_name == "tensor_value")
+          return true;
+        if (self.has_sparse_tensor_value() && field_name == "sparse_tensor_value")
+          return true;
+        if (self.has_sequence_value() && field_name == "sequence_value")
+          return true;
+        if (self.has_map_value() && field_name == "map_value")
+          return true;
+        if (self.has_optional_value() && field_name == "optional_value")
+          return true;
+        return false;
+      });
   PYADD_PROTO_SERIALIZATION(OptionalProto);
 }
