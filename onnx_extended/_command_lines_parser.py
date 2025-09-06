@@ -178,7 +178,7 @@ def get_parser_print() -> ArgumentParser:
     parser.add_argument(
         "-f",
         "--format",
-        choices=["raw", "nodes", "opsets"],
+        choices=["raw", "opsets"],
         default="raw",
         help="format to use to display the graph, 'raw' means the json-like format, "
         "'nodes' shows all the nodes, input and outputs in the main graph, "

@@ -300,14 +300,6 @@ def print_proto(proto: str, fmt: str = "raw", external: bool = True):
     print(f"Type: {type(proto_loaded)}")
     if fmt == "raw":
         print(proto_loaded)
-    elif fmt == "nodes":
-        from .tools.graph.onnx_graph_struct import Graph
-
-        if proto_loaded is None:
-            raise ValueError(f"Unable to load {proto!r}.")
-        graph = Graph(proto_loaded)
-        for node in graph:
-            print(str(node).replace("<parent>, ", ""))
     elif fmt == "opsets":
         print(f"IR_VERSION={proto_loaded.ir_version}")
         opsets = proto_loaded.opset_import
