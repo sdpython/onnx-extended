@@ -13,11 +13,6 @@ QuantizeOptions
 .. autoclass:: onnx_extended.tools.graph.QuantizeOptions
     :members:
 
-quantize_float8
-===============
-
-.. autofunction:: onnx_extended.tools.graph.quantize_float8
-
 TransformResults
 ================
 
