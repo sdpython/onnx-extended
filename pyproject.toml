@@ -209,7 +209,6 @@ disable_error_code = ["arg-type", "attr-defined", "var-annotated", "assignment",
 module = [
     "onnx_extended.reference.c_ops.*",
     "onnx_extended.reference.c_custom_ops.*",
-    "onnx_extended.tools.graph.onnx_custom_ops",
 ]
 disable_error_code = ["assignment", "operator", "call-overload", "no-redef", "attr-defined"]
 
@@ -255,28 +254,6 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = ["onnx_extended.tools.einsum.einsum_impl_ext"]
 disable_error_code = ["assignment", "union-attr"]
-
-[[tool.mypy.overrides]]
-module = [
-    "onnx_extended.tools.graph.onnx_graph_struct",
-    "onnx_extended.tools.graph.onnx_graph_transformer",
-]
-disable_error_code = [
-    "attr-defined",
-    "arg-type",
-    "list-item",
-    "union-attr",
-    "var-annotated",
-    "index",
-    "assignment",
-    "operator",
-    "call-overload",
-    "return-value",
-    "no-redef",
-    "valid-type",
-    "misc",
-    "annotation-unchecked",
-]
 
 [[tool.mypy.overrides]]
 module = ["onnx_extended.tools.js_profile"]
