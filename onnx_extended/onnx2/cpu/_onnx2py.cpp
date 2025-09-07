@@ -19,6 +19,10 @@ using namespace onnx2;
   py::class_<cls, Message> py_##cls(m, #cls, cls::DOC);                                                \
   py_##cls.def(py::init<>());
 
+#define PYDEFINE_PROTO_WITH_SUBTYPES2(m, cls, subcls)                                                  \
+  py::class_<cls::subcls, Message> py_sub_##cls##subcls(py_##cls, #subcls, cls::subcls::DOC);          \
+  py_sub_##cls##subcls.def(py::init<>());
+
 #define _PYADD_PROTO_SERIALIZATION(cls, name_inst) pyadd_proto_serialization(name_inst);
 
 #define PYADD_PROTO_SERIALIZATION(cls) _PYADD_PROTO_SERIALIZATION(cls, py_##cls)
@@ -740,13 +744,39 @@ PYBIND11_MODULE(_onnx2py, m) {
   define_repeated_field_type_proto(rep_tsp, rep_tsp_proto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto);
-  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Tensor)
-      .PYFIELD_OPTIONAL_INT(TypeProto::Tensor, elem_type)
+
+  PYDEFINE_PROTO_WITH_SUBTYPES2(m, TypeProto, Tensor);
+  py_sub_TypeProtoTensor
+      .def_property(
+          "elem_type",
+          [](const TypeProto::Tensor &self) -> TensorProto::DataType { return *self.elem_type_; },
+          [](TypeProto::Tensor &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.elem_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
+            } else {
+              self.elem_type_ = obj.cast<TensorProto::DataType>();
+            }
+          },
+          TypeProto::Tensor::DOC_elem_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Tensor, shape);
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, Tensor);
-  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, SparseTensor)
-      .PYFIELD_OPTIONAL_INT(TypeProto::SparseTensor, elem_type)
+
+  PYDEFINE_PROTO_WITH_SUBTYPES2(m, TypeProto, SparseTensor);
+  py_sub_TypeProtoSparseTensor
+      .def_property(
+          "elem_type",
+          [](const TypeProto::SparseTensor &self) -> TensorProto::DataType { return *self.elem_type_; },
+          [](TypeProto::SparseTensor &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.elem_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
+            } else {
+              self.elem_type_ = obj.cast<TensorProto::DataType>();
+            }
+          },
+          TypeProto::SparseTensor::DOC_elem_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::SparseTensor, shape);
+  PYADD_SUBPROTO_SERIALIZATION(TypeProto, SparseTensor);
+
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, SparseTensor);
   PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Sequence)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type);
@@ -939,4 +969,102 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(ModelProto, functions)
       .PYFIELD(ModelProto, configuration);
   PYADD_PROTO_SERIALIZATION(ModelProto);
+
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, SequenceProto);
+  py::enum_<SequenceProto::DataType>(py_SequenceProto, "DataType", py::arithmetic())
+      .value("UNDEFINED", SequenceProto::DataType::UNDEFINED)
+      .value("TENSOR", SequenceProto::DataType::TENSOR)
+      .value("SPARSE_TENSOR", SequenceProto::DataType::SPARSE_TENSOR)
+      .value("SEQUENCE", SequenceProto::DataType::SEQUENCE)
+      .value("MAP", SequenceProto::DataType::MAP)
+      .value("OPTIONAL", SequenceProto::DataType::OPTIONAL)
+      .export_values();
+  py_SequenceProto.SHORTEN_CODE(SequenceProto::DataType, UNDEFINED)
+      .SHORTEN_CODE(SequenceProto::DataType, TENSOR)
+      .SHORTEN_CODE(SequenceProto::DataType, SPARSE_TENSOR)
+      .SHORTEN_CODE(SequenceProto::DataType, SEQUENCE)
+      .SHORTEN_CODE(SequenceProto::DataType, MAP)
+      .SHORTEN_CODE(SequenceProto::DataType, OPTIONAL);
+  py_SequenceProto.PYFIELD_STR(SequenceProto, name)
+      .def_property(
+          "elem_type",
+          [](const SequenceProto &self) -> SequenceProto::DataType { return self.elem_type_; },
+          [](SequenceProto &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.elem_type_ = static_cast<SequenceProto::DataType>(obj.cast<int>());
+            } else {
+              self.elem_type_ = obj.cast<SequenceProto::DataType>();
+            }
+          },
+          SequenceProto::DOC_elem_type)
+      .PYFIELD(SequenceProto, tensor_values)
+      .PYFIELD(SequenceProto, sparse_tensor_values)
+      .PYFIELD(SequenceProto, sequence_values)
+      .PYFIELD(SequenceProto, map_values)
+      .PYFIELD(SequenceProto, optional_values);
+  PYADD_PROTO_SERIALIZATION(SequenceProto);
+
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, MapProto);
+  py_MapProto.PYFIELD_STR(MapProto, name)
+      .def_property(
+          "key_type", [](const MapProto &self) -> TensorProto::DataType { return self.key_type_; },
+          [](MapProto &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.key_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
+            } else {
+              self.key_type_ = obj.cast<TensorProto::DataType>();
+            }
+          },
+          MapProto::DOC_key_type)
+      .PYFIELD(MapProto, keys)
+      .PYFIELD(MapProto, string_keys)
+      .PYFIELD(MapProto, values);
+  PYADD_PROTO_SERIALIZATION(MapProto);
+
+  PYDEFINE_PROTO_WITH_SUBTYPES(m, OptionalProto);
+  py::enum_<OptionalProto::DataType>(py_OptionalProto, "DataType", py::arithmetic())
+      .value("UNDEFINED", OptionalProto::DataType::UNDEFINED)
+      .value("TENSOR", OptionalProto::DataType::TENSOR)
+      .value("SPARSE_TENSOR", OptionalProto::DataType::SPARSE_TENSOR)
+      .value("SEQUENCE", OptionalProto::DataType::SEQUENCE)
+      .value("MAP", OptionalProto::DataType::MAP)
+      .value("OPTIONAL", OptionalProto::DataType::OPTIONAL)
+      .export_values();
+  py_OptionalProto.SHORTEN_CODE(OptionalProto::DataType, UNDEFINED)
+      .SHORTEN_CODE(OptionalProto::DataType, TENSOR)
+      .SHORTEN_CODE(OptionalProto::DataType, SPARSE_TENSOR)
+      .SHORTEN_CODE(OptionalProto::DataType, SEQUENCE)
+      .SHORTEN_CODE(OptionalProto::DataType, MAP)
+      .SHORTEN_CODE(OptionalProto::DataType, OPTIONAL);
+  py_OptionalProto.PYFIELD_STR(OptionalProto, name)
+      .def_property(
+          "elem_type",
+          [](const OptionalProto &self) -> OptionalProto::DataType { return self.elem_type_; },
+          [](OptionalProto &self, py::object obj) {
+            if (py::isinstance<py::int_>(obj)) {
+              self.elem_type_ = static_cast<OptionalProto::DataType>(obj.cast<int>());
+            } else {
+              self.elem_type_ = obj.cast<OptionalProto::DataType>();
+            }
+          },
+          OptionalProto::DOC_elem_type)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, tensor_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, sparse_tensor_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, sequence_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, map_value)
+      .PYFIELD_OPTIONAL_PROTO(OptionalProto, optional_value)
+      .def("HasField", [](const OptionalProto &self, const std::string &field_name) {
+        if (self.has_tensor_value() && field_name == "tensor_value")
+          return true;
+        if (self.has_sparse_tensor_value() && field_name == "sparse_tensor_value")
+          return true;
+        if (self.has_sequence_value() && field_name == "sequence_value")
+          return true;
+        if (self.has_map_value() && field_name == "map_value")
+          return true;
+        if (self.has_optional_value() && field_name == "optional_value")
+          return true;
+        return false;
+      });
+  PYADD_PROTO_SERIALIZATION(OptionalProto);
 }

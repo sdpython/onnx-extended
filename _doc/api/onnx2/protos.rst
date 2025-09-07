@@ -33,6 +33,12 @@ IntIntListEntryProto
 .. autoclass:: onnx_extended.onnx2.IntIntListEntryProto 
     :members:
 
+MapProto
+========
+
+.. autoclass:: onnx_extended.onnx2.MapProto
+    :members:
+
 Message
 =======
 
@@ -67,6 +73,18 @@ OperatorStatus
 ==============
 
 .. autoclass:: onnx_extended.onnx2.OperatorStatus 
+    :members:
+
+OptionalProto
+=============
+
+.. autoclass:: onnx_extended.onnx2.OptionalProto 
+    :members:
+
+SequenceProto
+=============
+
+.. autoclass:: onnx_extended.onnx2.SequenceProto 
     :members:
 
 ShardedDimProto

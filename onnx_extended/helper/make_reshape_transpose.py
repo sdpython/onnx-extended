@@ -21,9 +21,6 @@ def make_matmul_reshape_transpose_function_proto(
     :param index: which input it is, 0 for left, 1 for right
     :param transpose: transpose the input
     :return: FunctionProto
-
-    The function takes 1 input and returns 1 output.
-    See :func:`quantize_float8_matmul`.
     """
 
     if index == 0:
@@ -105,7 +102,6 @@ def make_matmul_reshape_transpose_back_function_proto(
     :return: FunctionProto
 
     The function takes 2 inputs `(x, shape)` and returns 1 output.
-    See :func:`quantize_float8_matmul`.
     """
 
     if index == 0:

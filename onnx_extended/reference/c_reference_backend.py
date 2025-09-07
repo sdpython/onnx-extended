@@ -151,6 +151,8 @@ class Runner:
                 skipped.append((name, f, es))
                 continue
             except Exception as e:
+                if "is till opset" in str(e):
+                    raise
                 if exc_cls is not None:
                     raise exc_cls(f"Test {i}-{name!r} failed.") from e
                 failed.append((name, f, e))

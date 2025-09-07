@@ -234,29 +234,6 @@ Output example::
 
 .. autofunction:: onnx_extended._command_lines.print_proto
 
-quantize
-========
-
-Prints a model or a tensor on the standard output.
-
-.. runpython::
-
-    from onnx_extended._command_lines_parser import get_parser_quantize
-    get_parser_quantize().print_help()
-
-Example::
-
-    python3 -m onnx_extended quantize -i bertsquad-12.onnx -o bertsquad-12-fp8-1.onnx -v -v -k fp8 -q
-
-Output example::
-
-    INFO:onnx-extended:Model initial size: 143
-    INFO:onnx-extended/transformer:[quantize_float8] upgrade model from opset 18 to 19
-    INFO:onnx-extended/transformer:[quantize_float8] 2/4 quantize Node(2, <parent>, <MatMul>) [X,mat] -> [Z]
-    INFO:onnx-extended:Model quantized size: 991
-
-.. autofunction:: onnx_extended._command_lines.cmd_quantize
-
 select
 ======
 

@@ -59,7 +59,7 @@ class TestOnnx2Helper(ExtTestCase):
             sequence_value_info.type,
         )
 
-    def test_make_sequence_value_info(self) -> None:
+    def test_make_sequence_value_info3(self) -> None:
         tensor_type_proto = oh.make_tensor_type_proto(elem_type=2, shape=None)
         sequence_type_proto = oh.make_sequence_type_proto(tensor_type_proto)
         sequence_val_info = oh.make_value_info(
@@ -392,6 +392,102 @@ class TestOnnx2Helper(ExtTestCase):
         dupe.key = "Title"
         dupe.value = "Other"
         self.assertRaises(pychecker.ValidationError, pychecker.check_model, model_def)
+
+    def test_make_optional(self) -> None:
+        values = [1.1, 2.2, 3.3, 4.4, 5.5]
+        values_tensor = oh.make_tensor(
+            name="test", data_type=onnx2.TensorProto.FLOAT, dims=(5,), vals=values
+        )
+        optional = oh.make_optional(
+            name="test", elem_type=onnx2.OptionalProto.TENSOR, value=values_tensor
+        )
+        self.assertEqual(optional.name, "test")
+        self.assertEqual(optional.elem_type, onnx2.OptionalProto.TENSOR)
+        self.assertEqual(optional.tensor_value, values_tensor)
+
+        # Test Sequence
+        values_sequence = oh.make_sequence(
+            name="test",
+            elem_type=onnx2.SequenceProto.TENSOR,
+            values=[values_tensor, values_tensor],
+        )
+        optional = oh.make_optional(
+            name="test", elem_type=onnx2.OptionalProto.SEQUENCE, value=values_sequence
+        )
+        self.assertEqual(optional.name, "test")
+        self.assertEqual(optional.elem_type, onnx2.OptionalProto.SEQUENCE)
+        self.assertEqual(optional.sequence_value, values_sequence)
+
+        # Test None
+        optional_none = oh.make_optional(
+            name="test", elem_type=onnx2.OptionalProto.UNDEFINED, value=None
+        )
+        self.assertEqual(optional_none.name, "test")
+        self.assertEqual(optional_none.elem_type, onnx2.OptionalProto.UNDEFINED)
+        self.assertFalse(optional_none.HasField("tensor_value"))
+
+    def test_make_optional_value_info2(self) -> None:
+        tensor_type_proto = oh.make_tensor_type_proto(elem_type=2, shape=[5])
+        tensor_val_into = oh.make_value_info(name="test", type_proto=tensor_type_proto)
+        optional_type_proto = oh.make_optional_type_proto(tensor_type_proto)
+        optional_val_info = oh.make_value_info(
+            name="test", type_proto=optional_type_proto
+        )
+
+        self.assertEqual(optional_val_info.name, "test")
+        self.assertTrue(optional_val_info.type.optional_type)
+        self.assertEqual(
+            optional_val_info.type.optional_type.elem_type, tensor_val_into.type
+        )
+
+        # Test Sequence
+        sequence_type_proto = oh.make_sequence_type_proto(tensor_type_proto)
+        optional_type_proto = oh.make_optional_type_proto(sequence_type_proto)
+        optional_val_info = oh.make_value_info(
+            name="test", type_proto=optional_type_proto
+        )
+
+        self.assertEqual(optional_val_info.name, "test")
+        self.assertTrue(optional_val_info.type.optional_type)
+        sequence_value_info = oh.make_value_info(
+            name="test", type_proto=tensor_type_proto
+        )
+        self.assertEqual(
+            optional_val_info.type.optional_type.elem_type.sequence_type.elem_type,
+            sequence_value_info.type,
+        )
+
+    def test_make_sequence_value_info(self) -> None:
+        tensor_type_proto = oh.make_tensor_type_proto(elem_type=2, shape=None)
+        sequence_type_proto = oh.make_sequence_type_proto(tensor_type_proto)
+        sequence_val_info = oh.make_value_info(
+            name="test", type_proto=sequence_type_proto
+        )
+        sequence_val_info_prim = oh.make_tensor_sequence_value_info(
+            name="test", elem_type=2, shape=None
+        )
+
+        self.assertEqual(sequence_val_info, sequence_val_info_prim)
+
+    def test_make_map(self):
+        m = oh.make_map(
+            "map",
+            onnx2.TensorProto.INT8,
+            [0],
+            oh.make_sequence(
+                "seq",
+                onnx2.SequenceProto.DataType.TENSOR,
+                [
+                    oh.make_tensor(
+                        name="test",
+                        data_type=onnx2.TensorProto.FLOAT,
+                        dims=(5,),
+                        vals=[1.1, 2.2, 3.3, 4.4, 5.5],
+                    )
+                ],
+            ),
+        )
+        self.assertIsInstance(m, onnx2.MapProto)
 
 
 if __name__ == "__main__":

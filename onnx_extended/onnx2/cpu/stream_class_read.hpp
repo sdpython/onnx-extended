@@ -172,7 +172,7 @@ void read_enum_field(utils::BinaryStream &stream, int wire_type, T &field, const
                      ParseOptions &) {
   EXT_ENFORCE(wire_type == FIELD_VARINT, "unexpected wire_type=", wire_type, " for field '", name,
               "' at position '", stream.tell_around(), "'");
-  field = static_cast<T>(stream.next_uint64());
+  field = static_cast<T>(static_cast<int32_t>(stream.next_uint64()));
 }
 
 template <typename T>

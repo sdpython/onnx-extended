@@ -148,6 +148,27 @@ public:
   inline iterator begin() { return iterator(this, 0); }
   inline iterator end() { return iterator(this, size()); }
 
+  class const_iterator {
+  private:
+    const RepeatedProtoField<T> *parent_;
+    size_t pos_;
+
+  public:
+    explicit const_iterator(const RepeatedProtoField<T> *parent, size_t pos = 0)
+        : parent_(parent), pos_(pos) {}
+    const_iterator &operator++() {
+      ++pos_;
+      return *this;
+    }
+    bool operator==(const const_iterator &other) const {
+      return pos_ == other.pos_ && parent_ == other.parent_;
+    }
+    bool operator!=(const const_iterator &other) const { return !(*this == other); }
+    const T &operator*() const { return (*parent_)[pos_]; }
+  };
+  inline const_iterator begin() const { return const_iterator(this, 0); }
+  inline const_iterator end() const { return const_iterator(this, size()); }
+
 private:
   std::vector<simple_unique_ptr<T>> values_;
 };
