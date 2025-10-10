@@ -14,7 +14,7 @@ ROOT = os.path.realpath(os.path.abspath(os.path.join(onnx_extended_file, "..", "
 try:
     from onnx_extended.ortcy.wrap.ortinf import OrtSession
 except ImportError as e:
-    msg = "libonnxruntime.so.1.22.0: cannot open shared object file"
+    msg = "libonnxruntime.so.1.23.1: cannot open shared object file"
     if msg in str(e):
         from onnx_extended.ortcy.wrap import __file__ as loc
 
@@ -60,7 +60,7 @@ class TestDocumentationExamples(ExtTestCase):
             cmds = [sys.executable, "-u", os.path.join(fold, name)]
             p = subprocess.Popen(cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             res = p.communicate()
-            out, err = res
+            _out, err = res
             st = err.decode("ascii", errors="ignore")
             if st and "Traceback" in st:
                 if "No module named 'onnxruntime'" in st:

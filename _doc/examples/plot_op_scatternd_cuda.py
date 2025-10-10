@@ -299,7 +299,7 @@ def benchmark(
             np.float32 if itype == TensorProto.FLOAT else np.float16
         )
         feeds = dict(shape=shape, indices=indices, updates=updates)
-        bind, cuda_feeds = move_inputs(sess, feeds)
+        bind, _cuda_feeds = move_inputs(sess, feeds)
 
         begin = time.perf_counter()
         for _i in range(script_args.warmup):

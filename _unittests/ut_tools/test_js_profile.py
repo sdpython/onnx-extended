@@ -13,7 +13,7 @@ from onnx.helper import (
 from onnx.numpy_helper import from_array
 from onnxruntime import InferenceSession, SessionOptions
 import matplotlib.pyplot as plt
-from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
+from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings, skipif_ci_windows
 from onnx_extended.tools.js_profile import (
     js_profile_to_dataframe,
     plot_ort_profile,
@@ -130,6 +130,7 @@ class TestJsProfile(ExtTestCase):
         os.remove(prof)
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_2(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
@@ -152,6 +153,7 @@ class TestJsProfile(ExtTestCase):
         os.remove(prof)
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_2_shape(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
@@ -174,6 +176,7 @@ class TestJsProfile(ExtTestCase):
         os.remove(prof)
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_agg(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
@@ -222,6 +225,7 @@ class TestJsProfile(ExtTestCase):
         return model_def0
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_domain_agg(self):
         from onnx_extended.ortops.tutorial.cpu import get_ort_ext_libs
 
@@ -273,6 +277,7 @@ class TestJsProfile(ExtTestCase):
         return model_def0
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_timeline(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
