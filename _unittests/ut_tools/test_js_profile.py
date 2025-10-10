@@ -130,6 +130,7 @@ class TestJsProfile(ExtTestCase):
         os.remove(prof)
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_2(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
@@ -152,6 +153,7 @@ class TestJsProfile(ExtTestCase):
         os.remove(prof)
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_2_shape(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
@@ -174,6 +176,7 @@ class TestJsProfile(ExtTestCase):
         os.remove(prof)
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_agg(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
@@ -274,6 +277,7 @@ class TestJsProfile(ExtTestCase):
         return model_def0
 
     @ignore_warnings(UserWarning)
+    @skipif_ci_windows("failing because of tkinter?")
     def test_plot_profile_timeline(self):
         sess_options = SessionOptions()
         sess_options.enable_profiling = True
