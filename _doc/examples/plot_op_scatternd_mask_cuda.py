@@ -331,7 +331,7 @@ def benchmark(sizes, config, itype, times_col: int = 1, times_indices: int = 1):
         for op_type in ["ScatterND", "ScatterNDOfShape", "MaskedScatterNDOfShape"]:
             model = get_model(op_type)
             sess = get_session(model)
-            bind, cuda_feeds = move_inputs(sess, feeds)
+            bind, _cuda_feeds = move_inputs(sess, feeds)
             begin = time.perf_counter()
             for _i in range(script_args.warmup):
                 sess._sess.run_with_iobinding(bind, None)

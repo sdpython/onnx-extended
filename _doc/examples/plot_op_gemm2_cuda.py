@@ -192,7 +192,7 @@ def benchmark(sess, sizes, label):
         y = np.random.randn(size, size).astype(dtype)
         z = np.random.randn(size, size).astype(dtype)
         feeds = dict(X=x, Y=y, Z=z)
-        bind, cuda_feeds = move_inputs(sess, feeds)
+        bind, _cuda_feeds = move_inputs(sess, feeds)
 
         begin = time.perf_counter()
         for _i in range(script_args.warmup):

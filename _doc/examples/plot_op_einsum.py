@@ -189,7 +189,7 @@ def benchmark_equation(equation):
     rs["numpy.einsum"] = 1.0
 
     # Graphs.
-    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+    _fig, ax = plt.subplots(1, 2, figsize=(14, 5))
     piv.plot(
         logx=True,
         logy=True,
