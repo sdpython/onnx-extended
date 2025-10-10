@@ -734,7 +734,7 @@ def get_ext_modules():
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.22.0"
+DEFAULT_ORT_VERSION = "1.23.1"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."
