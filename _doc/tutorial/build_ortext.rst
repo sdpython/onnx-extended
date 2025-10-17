@@ -11,11 +11,11 @@ build onnxruntime
 
 ::
 
-    clear&&CUDA_VERSION=12.6 CUDACXX=/usr/local/cuda-12.6/bin/nvcc python ./tools/ci_build/build.py \
+    clear&&CUDA_VERSION=13.0 CUDACXX=/usr/local/cuda-13.0/bin/nvcc python ./tools/ci_build/build.py \
             --config Release --build_wheel --build_dir ./build/linux_cuda \
-            --build_shared_lib --use_cuda --cuda_home /usr/local/cuda-12.6/ \
-            --cudnn_home /usr/local/cuda-12.6/ --cuda_version=12.6 --enable_training --enable_training_ops \
-            --cmake_extra_defines "CMAKE_CUDA_ARCHITECTURES=61" \
+            --build_shared_lib --use_cuda --cuda_home /usr/local/cuda-13.0/ \
+            --cudnn_home /usr/local/cuda-13.0/ --cuda_version=13.0 --enable_training --enable_training_ops \
+            --cmake_extra_defines "CMAKE_CUDA_ARCHITECTURES=89" \
             --parallel --skip_tests
 
     clear&&CUDA_VERSION=12.1 CUDACXX=/usr/local/cuda-12.1/bin/nvcc python ./tools/ci_build/build.py \

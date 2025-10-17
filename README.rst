@@ -115,11 +115,11 @@ It is possible to use a specific version of CUDA:
 
 ::
 
-    python setup.py build_ext --inplace --cuda-version=12.6
+    python setup.py build_ext --inplace --cuda-version=13.0
     # or (not working yet)
-    # pip install -e . --config-settings="--cuda-version=12.6"
-    # pip install -e . --global-option="--cuda-version=12.6"
-    export USE_CUDA=12.6
+    # pip install -e . --config-settings="--cuda-version=13.0"
+    # pip install -e . --global-option="--cuda-version=13.0"
+    export USE_CUDA=13.0
     pip install -e .
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_

@@ -246,6 +246,11 @@ class cmake_build_class_extension(Command):
             "H100, H100opt",
         ),
         (
+            "cuda-arch=",
+            None,
+            "CUDA architectures if known",
+        ),
+        (
             "cuda-link=",
             None,
             "CUDA can statically linked (STATIC) or dynamically "
@@ -287,6 +292,7 @@ class cmake_build_class_extension(Command):
         self.ort_version = DEFAULT_ORT_VERSION
         self.cuda_build = "DEFAULT"
         self.cuda_link = "SHARED"
+        self.cuda_arch = None
         self.noverbose = None
         self.cfg = None
         self.cuda_nvcc = None
@@ -316,6 +322,10 @@ class cmake_build_class_extension(Command):
             self.cuda_build = os.environ.get("CUDA_BUILD", None)
             if self.cuda_build not in ("", None):
                 print(f"-- setup: use env CUDA_BUILD={self.cuda_build}")
+        if self.cuda_arch is None:
+            self.cuda_arch = os.environ.get("CMAKE_CUDA_ARCHITECTURES", None)
+            if self.cuda_arch not in ("", None):
+                print(f"-- setup: use env CMAKE_CUDA_ARCHITECTURES={self.cuda_arch}")
         if self.cuda_version is None:
             self.cuda_version = os.environ.get("CUDA_VERSION", None)
             if self.cuda_version not in ("", None):
@@ -441,6 +451,8 @@ class cmake_build_class_extension(Command):
         cmake_args.append(f"-DUSE_CUDA={1 if self.use_cuda else 0}")
         if self.use_cuda:
             cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
+            if self.cuda_arch:
+                cmake_args.append(f"-DCMAKE_CUDA_ARCHITECTURES={self.cuda_arch}")
             cmake_args.append(f"-DCUDA_LINK={self.cuda_link}")
             if self.cuda_nvcc:
                 cmake_args.append(f"-DCMAKE_CUDA_COMPILER={self.cuda_nvcc}")
