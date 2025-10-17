@@ -4,6 +4,7 @@ Change Logs
 0.5.0
 +++++
 
+* :pr:`237`: switch to CUDA==13.0 as default
 * :pr:`193`: and a couple of other PR, draft about a way to read onnx file without protobuf
 * :pr:`236`: use onnxruntime==1.23.1
 * :pr:`199`: use pybind11==3.0.0
