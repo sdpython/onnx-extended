@@ -115,11 +115,9 @@ It is possible to use a specific version of CUDA:
 
 ::
 
-    python setup.py build_ext --inplace --cuda-version=13.0
+    python setup.py build_ext --inplace --cuda-version=13.0 --use-cuda=1
     # or (not working yet)
-    # pip install -e . --config-settings="--cuda-version=13.0"
-    # pip install -e . --global-option="--cuda-version=13.0"
-    export USE_CUDA=13.0
+    # USE_CUDA=1 CUDA_VERSION=13.0 pip install -e . -v --no-build-isolation
     pip install -e .
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_
@@ -129,8 +127,7 @@ can be enabled with the following command:
 
     python setup.py build_ext --inplace --use_nvtx 1
     # or (not working yet)
-    # pip install -e . --config-settings="--use_nvtx=1"
-    pip install -e . --global-option "--use_nvtx=1"
+    USE_NVTX=1 pip install -e . -v
 
 Experimental cython binding for onnxruntime
 +++++++++++++++++++++++++++++++++++++++++++

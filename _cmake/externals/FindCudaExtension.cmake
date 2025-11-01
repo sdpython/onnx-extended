@@ -84,12 +84,12 @@ if(CUDAToolkit_FOUND)
   else()  # H100, DEFAULT
 
     if(CUDA_BUILD STREQUAL "H100")
-      set(CMAKE_CUDA_ARCHITECTURES 52 70 80 90)
+      set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
     elseif(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
       if(NOT CUDA_BUILD STREQUAL "DEFAULT")
         message(FATAL_ERROR "Unexpected value for CUDA_BUILD='${CUDA_BUILD}'.")
       endif()
-      set(CMAKE_CUDA_ARCHITECTURES 52 70 80 90)
+      set(CMAKE_CUDA_ARCHITECTURES 70 80 90)
     else()
       if(NOT CUDA_BUILD STREQUAL "DEFAULT")
         message(FATAL_ERROR "Unexpected value for CUDA_BUILD='${CUDA_BUILD}'.")
@@ -106,10 +106,12 @@ if(CUDAToolkit_FOUND)
       # K80
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_37,code=sm_37")
       # M series
+      message(FATAL_ERROR "CMAKE_CUDA_ARCHITECTURES should not do that")
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_50,code=sm_50")
     endif()
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
       # M60
+      message(FATAL_ERROR "CMAKE_CUDA_ARCHITECTURES should not do that 2")
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_52,code=sm_52")
       # P series
       # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_60,code=sm_60")

@@ -111,7 +111,7 @@ If not, some extensions might not be available.
 
     python setup.py build_ext --inplace
     # or (not working yet)
-    pip install -e . --config-settings="--use_nvtx=1"
+    USE_NVTX=1 pip install -e . -v
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_
 can be enabled with the following command:
