@@ -323,9 +323,15 @@ class cmake_build_class_extension(Command):
             if self.cuda_build not in ("", None):
                 print(f"-- setup: use env CUDA_BUILD={self.cuda_build}")
         if self.cuda_arch is None:
-            self.cuda_arch = os.environ.get("CMAKE_CUDA_ARCHITECTURES", None)
+            self.cuda_arch = os.environ.get("CUDA_ARCH", None)
             if self.cuda_arch not in ("", None):
-                print(f"-- setup: use env CMAKE_CUDA_ARCHITECTURES={self.cuda_arch}")
+                print(f"-- setup: use env CUDA_ARCH={self.cuda_arch}")
+            if self.cuda_arch is None:
+                self.cuda_arch = os.environ.get("CMAKE_CUDA_ARCHITECTURES", None)
+                if self.cuda_arch not in ("", None):
+                    print(
+                        f"-- setup: use env CMAKE_CUDA_ARCHITECTURES={self.cuda_arch}"
+                    )
         if self.cuda_version is None:
             self.cuda_version = os.environ.get("CUDA_VERSION", None)
             if self.cuda_version not in ("", None):
@@ -746,7 +752,7 @@ def get_ext_modules():
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.23.1"
+DEFAULT_ORT_VERSION = "1.23.2"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."

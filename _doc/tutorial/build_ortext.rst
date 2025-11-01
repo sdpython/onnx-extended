@@ -18,13 +18,6 @@ build onnxruntime
             --cmake_extra_defines "CMAKE_CUDA_ARCHITECTURES=89" \
             --parallel --skip_tests
 
-    clear&&CUDA_VERSION=12.1 CUDACXX=/usr/local/cuda-12.1/bin/nvcc python ./tools/ci_build/build.py \
-            --config Release --build_wheel --build_dir ./build/linux_cuda \
-            --build_shared_lib --use_cuda --cuda_home /usr/local/cuda-12.1/ \
-            --cudnn_home /usr/local/cuda-12.1/ --cuda_version=12.1 --enable_training --enable_training_ops \
-            --cmake_extra_defines "CMAKE_CUDA_ARCHITECTURES=70;72" \
-            --parallel --skip_tests
-
 cmake
 +++++
 

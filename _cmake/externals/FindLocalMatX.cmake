@@ -7,7 +7,7 @@
 # matx
 #
 
-set(matx_TAG "v0.8.0")
+set(matx_TAG "v0.9.4")
 
 include(FetchContent)
 FetchContent_Declare(

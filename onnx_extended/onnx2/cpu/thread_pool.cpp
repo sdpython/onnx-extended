@@ -12,7 +12,7 @@ void ThreadPool::Start(int32_t num_threads) {
   if (num_threads == -1)
     num_threads = std::thread::hardware_concurrency();
 
-  for (size_t i = 0; i < num_threads; ++i) {
+  for (size_t i = 0; i < static_cast<size_t>(num_threads); ++i) {
     workers.emplace_back(&ThreadPool::worker_thread, this);
   }
 }
