@@ -111,7 +111,7 @@ If not, some extensions might not be available.
 
     python setup.py build_ext --inplace
     # or (not working yet)
-    USE_NVTX=1 pip install -e . -v
+    CMAKE_CXX_COMPILER_LAUNCHER=ccache USE_NVTX=1 USE_CUDA=1 CUDA_VERSION=13.0 pip install -e . -v --no-build-isolation --no-clean
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_
 can be enabled with the following command:

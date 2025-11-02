@@ -107,8 +107,9 @@ PYBIND11_MODULE(cuda_example_py, m) {
         res["concurrentKernels"] = prop.concurrentKernels;
         res["totalConstMem"] = prop.totalConstMem;
 #if CUDA_VERSION >= 13000
-        int clockRateKHz;
-        cuDeviceGetAttribute(&clockRateKHz, cudaDevAttrClockRate, device_id);
+        int clockRateKHz = 0;
+        // compilation issue
+        // cuDeviceGetAttribute(&clockRateKHz, cudaDevAttrClockRate, device_id);
         res["clockRate"] = clockRateKHz;
 #else
         res["clockRate"] = prop.clockRate;

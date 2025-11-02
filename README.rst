@@ -117,8 +117,8 @@ It is possible to use a specific version of CUDA:
 
     python setup.py build_ext --inplace --cuda-version=13.0 --use-cuda=1
     # or (not working yet)
-    # USE_CUDA=1 CUDA_VERSION=13.0 pip install -e . -v --no-build-isolation
-    pip install -e .
+    # CMAKE_CXX_COMPILER_LAUNCHER=ccache USE_CUDA=1 CUDA_VERSION=13.0 pip install -e . -v --no-build-isolation --no-clean
+    pip install -e . -v --no-build-isolation --no-clean
 
 `NVTX <https://github.com/NVIDIA/NVTX>`_
 can be enabled with the following command:
