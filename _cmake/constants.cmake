@@ -165,6 +165,9 @@ else()
   # Other possible flags
   # "-mavx512f", "-mavx512bw", "-mavx512dq", "-mavx512vl", "-mlzcnt"
   # See https://gcc.gnu.org/onlinedocs/gcc/x86-Built-in-Functions.html
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mf16c")
+  endif()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mf16c")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
