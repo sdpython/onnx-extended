@@ -24,6 +24,8 @@ if(CUDA_AVAILABLE)
     "${ORTOPS_INCLUDE_DIR}"
     "${matx_INCLUDE_DIR}")
 
-  target_link_libraries(ortops_tutorial_cuda PRIVATE matx::matx)
+  if(USE_MATX)
+    target_link_libraries(ortops_tutorial_cuda PRIVATE matx::matx)
+  endif()
 
 endif()

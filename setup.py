@@ -221,6 +221,7 @@ class cmake_build_class_extension(Command):
             "used by default unless this option is set to 0",
         ),
         ("use-nvtx=", None, "Enables compilation with NVTX events."),
+        ("use-matx=", None, "Uses MatX (CUDA)."),
         (
             "cuda-version=",
             None,
@@ -285,6 +286,7 @@ class cmake_build_class_extension(Command):
     def initialize_options(self):
         self.add_missing_files()
         self.use_nvtx = None
+        self.use_matx = None
         self.use_cuda = None
         self.cuda_version = None
         self.parallel = None
@@ -454,6 +456,8 @@ class cmake_build_class_extension(Command):
 
         if self.use_nvtx:
             cmake_args.append("-DUSE_NVTX=1")
+        if self.use_matx:
+            cmake_args.append("-DUSE_MATX=1")
         cmake_args.append(f"-DUSE_CUDA={1 if self.use_cuda else 0}")
         if self.use_cuda:
             cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")

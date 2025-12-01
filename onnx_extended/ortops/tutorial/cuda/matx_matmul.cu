@@ -1,3 +1,4 @@
+#if USE_MATX
 #include "cuda/common_kernels_cuda.h"
 #if defined(CUDA_VERSION) && CUDA_VERSION >= 12080
 #include "matx.h"
@@ -28,19 +29,15 @@ size_t MatXMatMulOp::GetInputTypeCount() const { return 2; };
 
 ONNXTensorElementDataType MatXMatMulOp::GetInputType(std::size_t index) const { return dtype_; }
 
-OrtCustomOpInputOutputCharacteristic
-MatXMatMulOp::GetInputCharacteristic(std::size_t index) const {
+OrtCustomOpInputOutputCharacteristic MatXMatMulOp::GetInputCharacteristic(std::size_t index) const {
   return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
 }
 
 size_t MatXMatMulOp::GetOutputTypeCount() const { return 1; }
 
-ONNXTensorElementDataType MatXMatMulOp::GetOutputType(std::size_t index) const {
-  return dtype_;
-}
+ONNXTensorElementDataType MatXMatMulOp::GetOutputType(std::size_t index) const { return dtype_; }
 
-OrtCustomOpInputOutputCharacteristic
-MatXMatMulOp::GetOutputCharacteristic(std::size_t index) const {
+OrtCustomOpInputOutputCharacteristic MatXMatMulOp::GetOutputCharacteristic(std::size_t index) const {
   return OrtCustomOpInputOutputCharacteristic::INPUT_OUTPUT_REQUIRED;
 }
 
@@ -53,14 +50,14 @@ MatXMatMulKernel::MatXMatMulKernel(const OrtApi &api, const OrtKernelInfo *info)
 static void check_device(const Ort::ConstValue &input, const char *name) {
   EXT_ENFORCE(input.HasValue(), "Input '", name, "' is not empty.");
   auto mem = input.GetTensorMemoryInfo();
-  EXT_ENFORCE(mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-              "Input '", name, "' is not on CUDA");
+  EXT_ENFORCE(mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU, "Input '",
+              name, "' is not on CUDA");
 }
 
 static void check_device(const Ort::UnownedValue &output, const char *name) {
   auto mem = output.GetTensorMemoryInfo();
-  EXT_ENFORCE(mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU,
-              "Output '", name, "' is not on CUDA");
+  EXT_ENFORCE(mem.GetDeviceType() == OrtMemoryInfoDeviceType::OrtMemoryInfoDeviceType_GPU, "Output '",
+              name, "' is not on CUDA");
 }
 
 template <typename TValue>
@@ -87,11 +84,10 @@ void ComputeMatMul(const std::vector<int64_t> &shape_A, const T *ptr_A,
     auto matx_td = make_tensor<T>({shape_D[0], shape_D[1]});
     (matx_td = matmul(matx_ta, matx_tb)).run(stream);
     CUDA_THROW_IF_ERROR(cudaMemcpyAsync((void *)ptr_D, (void *)matx_td.data(),
-                                        sizeof(T) * shape_D[0] * shape_D[1],
-                                        cudaMemcpyDeviceToDevice));
+                                        sizeof(T) * shape_D[0] * shape_D[1], cudaMemcpyDeviceToDevice));
   } else {
-    EXT_THROW("ComputeMatMul not implemented when ranks are ", shape_A.size(), " and ",
-              shape_B.size(), ".");
+    EXT_THROW("ComputeMatMul not implemented when ranks are ", shape_A.size(), " and ", shape_B.size(),
+              ".");
   }
 #else
   EXT_THROW("ComputeMatMul not implemented with CUDA_VERSION=", CUDA_VERSION, ".");
@@ -113,8 +109,8 @@ void MatXMatMulKernel::Compute(OrtKernelContext *context) {
   ONNXTensorElementDataType dtype_A, dtype_B;
   dtype_A = GetTypeAndShape(input_A, shape_A);
   dtype_B = GetTypeAndShape(input_B, shape_B);
-  EXT_ENFORCE(shape_A.size() == shape_B.size(), "Rank mismatch: ", shape_A.size(),
-              "!=", shape_B.size(), ".");
+  EXT_ENFORCE(shape_A.size() == shape_B.size(), "Rank mismatch: ", shape_A.size(), "!=", shape_B.size(),
+              ".");
   EXT_ENFORCE(dtype_A == dtype_B, "Unexpected type for A or B");
   cudaDataType_t cuda_type = ToCudaDataType(dtype_A);
 
@@ -127,9 +123,8 @@ void MatXMatMulKernel::Compute(OrtKernelContext *context) {
 
   switch (dtype_A) {
   case ONNXTensorElementDataType::ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
-    ComputeMatMul(shape_A, input_A.GetTensorData<float>(), shape_B,
-                  input_B.GetTensorData<float>(), shape_D, output.GetTensorMutableData<float>(),
-                  stream);
+    ComputeMatMul(shape_A, input_A.GetTensorData<float>(), shape_B, input_B.GetTensorData<float>(),
+                  shape_D, output.GetTensorMutableData<float>(), stream);
     break;
   default:
     EXT_THROW("Not implemented for type: ", (uint64_t)dtype_A, ".");
@@ -137,3 +132,4 @@ void MatXMatMulKernel::Compute(OrtKernelContext *context) {
 }
 
 } // namespace ortops
+#endif
