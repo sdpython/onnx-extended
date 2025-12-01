@@ -112,7 +112,7 @@ It calls function :func:`bench_virtual <onnx_extended.tools.run_onnx.bench_virtu
 
     runtimes = ["onnxruntime"]
     modules = [
-        {"onnx-extended": "0.5.0", "onnx": "1.18.0", "onnxruntime": "1.23.1"},
+        {"onnx-extended": "0.5.0", "onnx": "1.18.0", "onnxruntime": "1.23.2"},
         {"onnx-extended": "0.4.0", "onnx": "1.17.0", "onnxruntime": "1.21.0"},
         {"onnx-extended": "0.3.0", "onnx": "1.15.0", "onnxruntime": "1.19.2"},
         {"onnx-extended": "0.3.0", "onnx": "1.15.0", "onnxruntime": "1.18.0"},

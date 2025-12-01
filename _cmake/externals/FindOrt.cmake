@@ -5,8 +5,8 @@
 # functions ort_add_dependency, ort_add_custom_op
 
 if(NOT ORT_VERSION)
-  set(ORT_VERSION 1.16.1)
-  set(ORT_VERSION_INT 1161)
+  set(ORT_VERSION 1.23.2)
+  set(ORT_VERSION_INT 1232)
 endif()
 string(LENGTH "${ORT_VERSION}" ORT_VERSION_LENGTH)
 
@@ -47,8 +47,11 @@ if(ORT_VERSION_LENGTH LESS_EQUAL 12)
     OUTPUT_FORMAT DECIMAL)
 
   message(STATUS "ORT - ORT_URL=${ORT_URL}")
+  message(STATUS "declare")
   FetchContent_Declare(onnxruntime URL ${ORT_URL})
+  message(STATUS "make available")
   FetchContent_makeAvailable(onnxruntime)
+  message(STATUS "done")
   set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)
   set(ONNXRUNTIME_LIB_DIR ${onnxruntime_SOURCE_DIR}/lib)
 

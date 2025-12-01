@@ -156,7 +156,7 @@ else()
   message(FATAL_ERROR "Module eigen is not installed.")
 endif()
 
-if(USE_CUDA)
+if(USE_CUDA AND USE_MATX)
   message(STATUS "-------------------")
   find_package(LocalMatX REQUIRED)
   if(LocalMatX_FOUND)

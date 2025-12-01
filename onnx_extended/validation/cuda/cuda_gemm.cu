@@ -276,8 +276,8 @@ std::unordered_map<std::string, double> gemm_benchmark_test(int test, int N, int
   case 3:
     type_a = CUDA_R_16F;
     type_b = CUDA_R_16F;
-    type_d = CUDA_R_16F;
-    type_compute = CUBLAS_COMPUTE_16F;
+    type_d = CUDA_R_32F;
+    type_compute = CUBLAS_COMPUTE_32F;
     break;
   case 4:
     type_a = CUDA_R_16BF;

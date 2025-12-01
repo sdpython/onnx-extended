@@ -1,3 +1,4 @@
+#include <cuda.h>
 #include "cuda_fpemu.cuh"
 #include "cuda_gemm.cuh"
 
@@ -93,13 +94,26 @@ PYBIND11_MODULE(cuda_example_py, m) {
         res["name"] = py::str(prop.name);
         res["totalGlobalMem"] = prop.totalGlobalMem;
         res["maxThreadsPerBlock"] = prop.maxThreadsPerBlock;
+#if CUDA_VERSION >= 13000
+        int computeMode;
+        cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, device_id);
+        res["computeMode"] = computeMode;
+#else
         res["computeMode"] = prop.computeMode;
+#endif
         res["major"] = prop.major;
         res["minor"] = prop.minor;
         res["isMultiGpuBoard"] = prop.isMultiGpuBoard;
         res["concurrentKernels"] = prop.concurrentKernels;
         res["totalConstMem"] = prop.totalConstMem;
+#if CUDA_VERSION >= 13000
+        int clockRateKHz = 0;
+        // compilation issue
+        // cuDeviceGetAttribute(&clockRateKHz, cudaDevAttrClockRate, device_id);
+        res["clockRate"] = clockRateKHz;
+#else
         res["clockRate"] = prop.clockRate;
+#endif
         res["sharedMemPerBlock"] = prop.sharedMemPerBlock;
         res["multiProcessorCount"] = prop.multiProcessorCount;
         return res;

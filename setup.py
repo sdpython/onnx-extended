@@ -221,6 +221,7 @@ class cmake_build_class_extension(Command):
             "used by default unless this option is set to 0",
         ),
         ("use-nvtx=", None, "Enables compilation with NVTX events."),
+        ("use-matx=", None, "Uses MatX (CUDA)."),
         (
             "cuda-version=",
             None,
@@ -244,6 +245,11 @@ class cmake_build_class_extension(Command):
             "different architectures, this flag can optimize "
             "for a specific machine, possible values: DEFAULT, "
             "H100, H100opt",
+        ),
+        (
+            "cuda-arch=",
+            None,
+            "CUDA architectures if known",
         ),
         (
             "cuda-link=",
@@ -280,6 +286,7 @@ class cmake_build_class_extension(Command):
     def initialize_options(self):
         self.add_missing_files()
         self.use_nvtx = None
+        self.use_matx = None
         self.use_cuda = None
         self.cuda_version = None
         self.parallel = None
@@ -287,6 +294,7 @@ class cmake_build_class_extension(Command):
         self.ort_version = DEFAULT_ORT_VERSION
         self.cuda_build = "DEFAULT"
         self.cuda_link = "SHARED"
+        self.cuda_arch = None
         self.noverbose = None
         self.cfg = None
         self.cuda_nvcc = None
@@ -316,6 +324,16 @@ class cmake_build_class_extension(Command):
             self.cuda_build = os.environ.get("CUDA_BUILD", None)
             if self.cuda_build not in ("", None):
                 print(f"-- setup: use env CUDA_BUILD={self.cuda_build}")
+        if self.cuda_arch is None:
+            self.cuda_arch = os.environ.get("CUDA_ARCH", None)
+            if self.cuda_arch not in ("", None):
+                print(f"-- setup: use env CUDA_ARCH={self.cuda_arch}")
+            if self.cuda_arch is None:
+                self.cuda_arch = os.environ.get("CMAKE_CUDA_ARCHITECTURES", None)
+                if self.cuda_arch not in ("", None):
+                    print(
+                        f"-- setup: use env CMAKE_CUDA_ARCHITECTURES={self.cuda_arch}"
+                    )
         if self.cuda_version is None:
             self.cuda_version = os.environ.get("CUDA_VERSION", None)
             if self.cuda_version not in ("", None):
@@ -438,9 +456,13 @@ class cmake_build_class_extension(Command):
 
         if self.use_nvtx:
             cmake_args.append("-DUSE_NVTX=1")
+        if self.use_matx:
+            cmake_args.append("-DUSE_MATX=1")
         cmake_args.append(f"-DUSE_CUDA={1 if self.use_cuda else 0}")
         if self.use_cuda:
             cmake_args.append(f"-DCUDA_BUILD={self.cuda_build}")
+            if self.cuda_arch:
+                cmake_args.append(f"-DCMAKE_CUDA_ARCHITECTURES={self.cuda_arch}")
             cmake_args.append(f"-DCUDA_LINK={self.cuda_link}")
             if self.cuda_nvcc:
                 cmake_args.append(f"-DCMAKE_CUDA_COMPILER={self.cuda_nvcc}")
@@ -734,7 +756,7 @@ def get_ext_modules():
 # beginning of setup
 ######################
 
-DEFAULT_ORT_VERSION = "1.23.1"
+DEFAULT_ORT_VERSION = "1.23.2"
 here = os.path.dirname(__file__)
 if here == "":
     here = "."

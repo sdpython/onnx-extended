@@ -25,7 +25,7 @@ The CUDA driver must be installed as well. It can be downloaded from
 `NVIDIA Driver Downloads <https://www.nvidia.com/download/index.aspx>`_.
 Make sure you are using the one from your graphics card.
 Installation of required packages. The following instruction were tested
-with CUDA==12.6.
+with CUDA==13.0.
 
 ::
 
@@ -71,7 +71,7 @@ Installation of :epkg:`cmake`.
     # export PATH=~/install/cmake-${cmake_version}/bin/:$PATH
     cmake --version
 
-Installation of CUDA (choose a compatible version with :epkg:`pytorch`, 12.6 for example).
+Installation of CUDA (choose a compatible version with :epkg:`pytorch`, 13.0 for example).
 
 See `CUDA on WSL User Guide
 <https://docs.nvidia.com/cuda/wsl-user-guide/index.html#cuda-support-for-wsl-2>`_

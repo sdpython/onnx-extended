@@ -68,12 +68,7 @@ jobs:
   - script: |
       python -m pytest _unittests/ut_reference --durations=10
     displayName: 'Test ortcy'
-  - script: |
-      # --config-settings does not work yet.
-      # python -m pip wheel . --config-settings="--use_cuda=0" -v
-      # python -m pip wheel . --global-option "--use_cuda=0" -v
-      export USE_CUDA=0
-      python -m pip wheel . -v
+  - script: USE_CUDA=0 python -m pip wheel . -v
     displayName: 'Build Package0'
   - script: |
       mkdir dist
@@ -145,12 +140,7 @@ jobs:
   - script: |
       python -m pytest _unittests/ut_reference --durations=10
     displayName: 'Test ortcy'
-  - script: |
-      # --config-settings does not work yet.
-      # python -m pip wheel . --config-settings="--use_cuda=0" -v
-      # python -m pip wheel . --global-option "--use_cuda=0" -v
-      export USE_CUDA=0
-      python -m pip wheel . -v
+  - script: USE_CUDA=0 python -m pip wheel . -v
     displayName: 'Build Package0'
   - script: |
       mkdir dist
