@@ -84,6 +84,19 @@ def ignore_warnings(warns: List[Warning]) -> Callable:
     return wrapper
 
 
+def requires_onnxmltools(version: str, msg: str = "") -> Callable:
+    """Skips a unit test if :epkg:`onnxmltools` is not recent enough."""
+    import packaging.version as pv
+    import onnxmltools
+
+    if pv.Version(onnxmltools.__version__) < pv.Version(version):
+        msg = (
+            f"requires_onnxmltools version {onnxmltools.__version__} < {version}: {msg}"
+        )
+        return unittest.skip(msg)
+    return lambda x: x
+
+
 def measure_time(
     stmt: Union[str, Callable],
     context: Optional[Dict[str, Any]] = None,
