@@ -1,6 +1,6 @@
 import unittest
 import pandas
-from onnx_extended.ext_test_case import ExtTestCase, skipci_if_windows
+from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_windows
 from onnx_extended.plotting.data import hhistograms_data, vhistograms_data
 from onnx_extended.plotting.benchmark import hhistograms, vhistograms
 
@@ -14,7 +14,7 @@ class TestCReferenceEvaluator(ExtTestCase):
         ax = hhistograms(df, keys=("input", "name"))
         self.assertNotEmpty(ax)
 
-    @skipci_if_windows("issue with tk")
+    @skipif_ci_windows("issue with tk")
     def test_plotting_hhistograms2(self):
         import matplotlib.pyplot as plt
 
