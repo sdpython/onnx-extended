@@ -622,6 +622,9 @@ class TestOnnx2(ExtTestCase):
         )
         self.assertEqual(onnx2.TensorProto.UINT4, onnx.TensorProto.UINT4)
         self.assertEqual(onnx2.TensorProto.INT4, onnx.TensorProto.INT4)
+        if hasattr(onnx2.TensorProto, "UINT2"):
+            self.assertEqual(onnx2.TensorProto.UINT2, onnx.TensorProto.UINT2)
+            self.assertEqual(onnx2.TensorProto.INT2, onnx.TensorProto.INT2)
         self.assertEqual(onnx2.TensorProto.FLOAT4E2M1, onnx.TensorProto.FLOAT4E2M1)
         # self.assertEqual(onnx2.TensorProto.FLOAT8E8M0, onnx.TensorProto.FLOAT8E8M0)
 
