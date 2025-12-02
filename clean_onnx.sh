@@ -14,7 +14,9 @@ rm *.svg
 rm neural_coder_workspace -rf
 rm *.data
 rm .build_path.txt
+rm dump_test -rf
 
+rm _doc/examples/dump_test -rf
 rm _doc/examples/plot*.onnx
 rm _doc/examples/plot*.txt
 rm _doc/examples/ort*.onnx
