@@ -4,6 +4,7 @@ Change Logs
 0.6.0
 +++++
 
+* :pr:`242`: improves compilation settings
 * :pr:`241`: adds INT2, UINT2 to onnx2
 
 0.5.0
