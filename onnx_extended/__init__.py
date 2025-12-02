@@ -3,7 +3,7 @@ More operators for onnx reference implementation and onnxruntime.
 Experimentation with openmp, CUDA.
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __author__ = "Xavier Dupré"
 
 
