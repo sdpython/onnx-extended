@@ -202,11 +202,11 @@ enum DataType : int32_t {
 
   // E8M0 type used as the scale for microscaling (MX) formats:
   // https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf
-  FLOAT8E8M0 = 24
+  FLOAT8E8M0 = 24,
 
   // 2-bit integer data type
-  UINT2 = 25; // Unsigned integer in range [0, 3]
-  INT2 = 26;  // Signed integer in range [-2, 1], using two's complement representation
+  UINT2 = 25, // Unsigned integer in range [0, 3]
+  INT2 = 26  // Signed integer in range [-2, 1], using two's complement representation
   
   // Future extensions go here.
 };

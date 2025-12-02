@@ -16,13 +16,21 @@ import onnx
 import onnx_extended.onnx2 as onnx2
 
 
-data = []
-onnx_file = (
-    "dump_test/microsoft_Phi-4-mini-reasoning-onnx-dynamo-ir/"
-    "microsoft_Phi-4-mini-reasoning-onnx-dynamo-ir.onnx"
+model_id = (
+    "microsoft/Phi-3.5-mini-instruct"  # "microsoft/Phi-4-mini-reasoning", (too big)
 )
-onnx_data = onnx_file + ".data"
-if not os.path.exists(onnx_file):
+model_idf = model_id.replace("/", "_")
+exporter = "custom"  # or onnx-dynamo to use torch.onnx.export
+optimization = "default"  # or ir for onnx-dynamo
+data = []
+onnx_files_ = [
+    f"dump_test/{model_idf}/"
+    f"onnx-dynamo/ir/{model_idf}-{exporter}-{optimization}.onnx",
+    f"dump_test/{model_idf}/{exporter}/{optimization}/"
+    f"{model_idf}-{exporter}-{optimization}.onnx",
+]
+onnx_files = [f for f in onnx_files_ if os.path.exists(f)]
+if not onnx_files:
     print("Creates the model, starts with importing transformers...")
     import torch  # noqa: F401
     import transformers  # noqa: F401
@@ -33,23 +41,30 @@ if not os.path.exists(onnx_file):
     print("Starts creating the model...")
 
     validate_model(
-        "microsoft/Phi-4-mini-reasoning",
+        model_id,
         do_run=True,
         verbose=2,
-        exporter="onnx-dynamo",
+        exporter=exporter,
         do_same=True,
         patch=True,
         rewrite=True,
-        optimization="ir",
+        optimization=optimization,
         dump_folder="dump_test",
+        model_options=dict(num_hidden_layers=2),
     )
 
     print("done.")
 
+onnx_files = [f for f in onnx_files_ if os.path.exists(f)]
+assert onnx_files, f"Unable to find a file in {onnx_files}"
+onnx_file = onnx_files[0]
+onnx_data = onnx_file + ".data"
+
+
 # %%
 # Let's load and save the model to get one unique file.
 
-full_name = "dump_test/microsoft_Phi-4-mini-reasoning.onnx"
+full_name = onnx_file.replace(".onnx", ".single.onnx")
 if not os.path.exists(full_name):
     print("Loads the model and saves it as one unique file.")
     onx = onnx.load(onnx_file)
@@ -149,8 +164,8 @@ print(times)
 #
 # Let's do it with onnx2.
 
-full_name = "dump_test/microsoft_Phi-4-mini-reasoning.ext.onnx"
-full_weight = "dump_test/microsoft_Phi-4-mini-reasoning.ext.data"
+full_name = onnx_file.replace(".onnx", ".ext.onnx")
+full_weight = full_name.replace(".onnx", ".data")
 
 print("Saving time with onnx2 and external weights.")
 _, times = measure(
@@ -164,13 +179,14 @@ print(times)
 # about external data. The second run does not follow the same steps.
 
 print("Saving time with onnx and external weights.")
-full_weight += ".2"
+full_name_onnx = full_name.replace(".onnx", ".0.onnx")
+full_weight_onnx = full_name.replace(".data", ".0.data")
 _, times = measure(
     "save/onnx/ext",
     lambda: onnx.save(
         onx,
-        full_name,
-        location=os.path.split(full_weight)[-1],
+        full_name_onnx,
+        location=os.path.split(full_weight_onnx)[-1],
         save_as_external_data=True,
         all_tensors_to_one_file=True,
     ),

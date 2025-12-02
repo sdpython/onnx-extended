@@ -17,6 +17,7 @@ message(STATUS "CMAKE_VERSION=${CMAKE_VERSION}")
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "CMAKE_CXX_COMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "CMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "USE_SETUP_PYTHON=${USE_SETUP_PYTHON}")
 message(STATUS "USE_PYTHON_SETUP=${USE_PYTHON_SETUP}")
 message(STATUS "PYTHON_VERSION=${PYTHON_VERSION}")
@@ -165,7 +166,9 @@ else()
   # Other possible flags
   # "-mavx512f", "-mavx512bw", "-mavx512dq", "-mavx512vl", "-mlzcnt"
   # See https://gcc.gnu.org/onlinedocs/gcc/x86-Built-in-Functions.html
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mf16c")
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mf16c")
+  endif()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif()
 
