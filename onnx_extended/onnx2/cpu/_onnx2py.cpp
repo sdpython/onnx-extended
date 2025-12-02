@@ -631,6 +631,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("INT4", TensorProto::DataType::INT4)
       .value("FLOAT4E2M1", TensorProto::DataType::FLOAT4E2M1)
       .value("FLOAT8E8M0", TensorProto::DataType::FLOAT8E8M0)
+      .value("UINT2", TensorProto::DataType::UINT2)
+      .value("INT2", TensorProto::DataType::INT2)
       .export_values();
   py::enum_<TensorProto::DataLocation>(py_TensorProto, "DataLocation", py::arithmetic())
       .value("DEFAULT", TensorProto::DataLocation::DEFAULT)
@@ -661,6 +663,8 @@ PYBIND11_MODULE(_onnx2py, m) {
       .SHORTEN_CODE(TensorProto::DataType, INT4)
       .SHORTEN_CODE(TensorProto::DataType, FLOAT4E2M1)
       .SHORTEN_CODE(TensorProto::DataType, FLOAT8E8M0)
+      .SHORTEN_CODE(TensorProto::DataType, UINT2)
+      .SHORTEN_CODE(TensorProto::DataType, INT2)
       .PYFIELD(TensorProto, dims)
       .def_property(
           "data_type", [](const TensorProto &self) -> TensorProto::DataType { return self.data_type_; },

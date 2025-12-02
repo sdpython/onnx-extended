@@ -30,6 +30,8 @@
 #define TensorProto_DataType_INT4 INT4
 #define TensorProto_DataType_FLOAT4E2M1 FLOAT4E2M1
 #define TensorProto_DataType_FLOAT8E8M0 FLOAT8E8M0
+#define TensorProto_DataType_UINT2 UINT2
+#define TensorProto_DataType_INT2 INT2
 
 namespace onnx2 {
 
@@ -200,8 +202,12 @@ enum DataType : int32_t {
 
   // E8M0 type used as the scale for microscaling (MX) formats:
   // https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf
-  FLOAT8E8M0 = 24
+  FLOAT8E8M0 = 24,
 
+  // 2-bit integer data type
+  UINT2 = 25, // Unsigned integer in range [0, 3]
+  INT2 = 26  // Signed integer in range [-2, 1], using two's complement representation
+  
   // Future extensions go here.
 };
 
@@ -240,7 +246,8 @@ FIELD_REPEATED_PACKED(
     "bit-width of 8 or greater, each `int32_data` stores one element. - For 4-bit data "
     "types, each `int32_data` stores two elements. When this field is present, the data_type "
     "field MUST be INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, "
-    "FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0, FLOAT4E2M1")
+    "FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0, FLOAT4E2M1, "
+    "UINT2, INT2")
 FIELD_REPEATED(utils::String, string_data, 6,
                "For strings. Each element of string_data is a UTF-8 encoded Unicode string. No "
                "trailing null, no leading BOM. The 'string' scalar type is not used to match "

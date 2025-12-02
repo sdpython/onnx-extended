@@ -542,6 +542,8 @@ def make_tensor(
         # NumPy doesn't have INT4/FP4. It is packed in couples to UINT8 buffers.
         if data_type in {TensorProto.UINT4, TensorProto.INT4, TensorProto.FLOAT4E2M1}:
             expected_size_bytes = 0.5
+        elif data_type in {TensorProto.UINT2, TensorProto.INT2}:
+            expected_size_bytes = 0.25
         else:
             expected_size_bytes = np_dtype.itemsize
         expected_size_bytes *= math.prod(dims)

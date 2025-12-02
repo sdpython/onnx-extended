@@ -192,6 +192,8 @@ class TestProto(ExtTestCase):
                     INT4 = 22;
                     FLOAT4E2M1 = 23;
                     FLOAT8E8M0 = 24;
+                    UINT2 = 25;
+                    INT2 = 26;
                 }
 
                 repeated int64 dims = 1;
