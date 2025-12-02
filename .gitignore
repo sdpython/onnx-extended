@@ -44,6 +44,7 @@ _doc/CHANGELOGS.rst
 _doc/examples/_cache/*
 _doc/sg_execution_times.rst
 _doc/auto_examples/*
+_doc/examples/dump_test/*
 _doc/examples/*.xlsx
 _doc/examples/plot*.csv
 _doc/examples/plot*.onnx
