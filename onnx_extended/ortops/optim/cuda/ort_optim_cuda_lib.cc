@@ -7,6 +7,7 @@
 #include "ort_optim_cuda_lib.h"
 #include "ortapi_version.h"
 
+#include "attention.h"
 #include "add_or_mul_shared_input.h"
 #include "addaddaddmulmulmul.h"
 #include "addaddmulmul.h"
@@ -46,6 +47,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
   static ortops::AddMulOp<half, false> c_MulAddOp16;
   static ortops::AddMulOp<float, true> c_AddMulOp32;
   static ortops::AddMulOp<half, true> c_AddMulOp16;
+
+  static ortops::AttentionOp<float, float, float> c_AttentionOp32;
+  static ortops::AttentionOp<float, float, bool> c_AttentionOp32Bool;
 
   static ortops::SubMulOp<float, false> c_MulSubOp32;
   static ortops::SubMulOp<half, false> c_MulSubOp16;
@@ -104,6 +108,9 @@ OrtStatus *ORT_API_CALL RegisterCustomOps(OrtSessionOptions *options,
     domain.Add(&c_AddMulOp16);
     domain.Add(&c_MulAddOp32);
     domain.Add(&c_MulAddOp16);
+
+    domain.Add(&c_AttentionOp32);
+    domain.Add(&c_AttentionOp32_bool);
 
     domain.Add(&c_AddAddOp32);
     domain.Add(&c_AddAddOp16);
