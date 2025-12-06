@@ -105,8 +105,13 @@ AttentionOp<T1, T2, U>::GetOutputCharacteristic(std::size_t index) const {
 
 template <typename T1, typename T2, typename U>
 AttentionKernel<T1, T2, U>::AttentionKernel(const OrtApi &api, const OrtKernelInfo *info) {
-  switch_middle_axis_ =
-      KernelInfoGetOptionalAttributeInt64AsBool(api, info, "transposeMiddle", false);
+  is_causal_ = KernelInfoGetOptionalAttributeInt64AsBool(api, info, "is_causal", false);
+  kv_num_heads_ = KernelInfoGetOptionalAttributeInt64(api, info, "kv_num_heads", 0);
+  q_num_heads_ = KernelInfoGetOptionalAttributeInt64(api, info, "q_num_heads", 0);
+  qk_matmul_output_mode_ = KernelInfoGetOptionalAttributeInt64AsBool(api, info, "qk_matmul_output_mode", false);
+  scale_ = KernelInfoGetOptionalAttributeFloat(api, info, "scale", -1.0);
+  softcap_ = KernelInfoGetOptionalAttributeInt64(api, info, "softcap", 0);
+  softmax_precision_ = KernelInfoGetOptionalAttributeInt64(api, info, "softmax_precision", -1);
 }
 
 template <typename T1, typename T2, typename U>
