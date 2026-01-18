@@ -22,8 +22,7 @@ def documentation() -> List[str]:
     return list(
         map(
             textwrap.dedent,
-            [
-                """
+            ["""
     onnx_extended.ortops.tutorial.cuda.CustomGemm
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -48,7 +47,6 @@ def documentation() -> List[str]:
     **Constraints**
 
     * T: float, float16, bfloat16
-    """
-            ],
+    """],
         )
     )

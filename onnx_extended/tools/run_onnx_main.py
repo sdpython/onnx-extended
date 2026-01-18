@@ -8,11 +8,9 @@ from onnx_extended.tools.run_onnx import TestRun
 def get_parser():
     parser = ArgumentParser(
         prog="run_onnx_main",
-        description=dedent(
-            """
+        description=dedent("""
         Runs a Benchmark.
-        """
-        ),
+        """),
     )
     parser.add_argument(
         "-p", "--path", type=str, required=True, help="path to the test definition"

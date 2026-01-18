@@ -1,7 +1,6 @@
 from typing import Dict, Optional, Sequence, Tuple, Union
 import numpy
 
-
 _ml_transpose_coefs: Dict[str, float] = {
     "CST_": 0.4720163707200312,
     "begin": 0.0,

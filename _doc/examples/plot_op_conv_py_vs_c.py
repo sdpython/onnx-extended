@@ -32,7 +32,6 @@ from onnxruntime import InferenceSession
 from onnx_extended.ext_test_case import measure_time, unit_test_going
 from onnx_extended.reference import CReferenceEvaluator
 
-
 X = make_tensor_value_info("X", TensorProto.FLOAT, [None, None, None, None])
 Y = make_tensor_value_info("Y", TensorProto.FLOAT, [None, None, None, None])
 B = make_tensor_value_info("B", TensorProto.FLOAT, [None, None, None, None])

@@ -9,7 +9,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from onnx_extended.reference import CReferenceEvaluator
 from onnx_extended.ext_test_case import ExtTestCase, ignore_warnings
 
-
 TARGET_OPSET = 18
 
 

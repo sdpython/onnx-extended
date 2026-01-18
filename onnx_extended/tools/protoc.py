@@ -1,7 +1,6 @@
 import re
 from typing import List, Tuple
 
-
 TYPE_MAP = {
     "int32": "int32_t",
     "int64": "int64_t",
