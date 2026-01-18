@@ -28,8 +28,7 @@ def get_main_parser() -> ArgumentParser:
             "store",
             "protoc",
         ],
-        help=dedent(
-            """
+        help=dedent("""
         Selects a command.
 
         'bench'     runs a benchmark,
@@ -45,8 +44,7 @@ def get_main_parser() -> ArgumentParser:
         'stat'      produces statistics on the graph (initializer, tree ensemble),
         'store'     executes a model with class CReferenceEvaluator and stores every
                     intermediate results on disk with a short onnx to execute the node.
-        """
-        ),
+        """),
     )
     return parser
 
@@ -54,12 +52,10 @@ def get_main_parser() -> ArgumentParser:
 def get_parser_store() -> ArgumentParser:
     parser = ArgumentParser(
         prog="store",
-        description=dedent(
-            """
+        description=dedent("""
         Executes a model with class CReferenceEvaluator and stores every
         intermediate results on disk with a short onnx to execute the node.
-        """
-        ),
+        """),
         epilog="This is inspired from PR https://github.com/onnx/onnx/pull/5413. "
         "This command may disappear if this functionnality is not used.",
     )
@@ -114,11 +110,9 @@ def get_parser_store() -> ArgumentParser:
 def get_parser_display() -> ArgumentParser:
     parser = ArgumentParser(
         prog="display",
-        description=dedent(
-            """
+        description=dedent("""
         Executes shape inference on an ONNX model and displays the inferred shapes.
-        """
-        ),
+        """),
         epilog="This helps looking at a model from a terminal.",
     )
     parser.add_argument(
@@ -157,13 +151,11 @@ def get_parser_display() -> ArgumentParser:
 def get_parser_print() -> ArgumentParser:
     parser = ArgumentParser(
         prog="print",
-        description=dedent(
-            """
+        description=dedent("""
         Shows an onnx model or a protobuf string on stdout.
         Extension '.onnx' is considered a model,
         extension '.proto' or '.pb' is a protobuf string.
-        """
-        ),
+        """),
         epilog="The command can be used on short models, mostly coming "
         "from unittests. Big models are far too large to make this command "
         "useful. Use command display instead.",
@@ -198,11 +190,9 @@ def get_parser_print() -> ArgumentParser:
 def get_parser_select() -> ArgumentParser:
     parser = ArgumentParser(
         prog="select",
-        description=dedent(
-            """
+        description=dedent("""
         Selects a subpart of an onnx model.
-        """
-        ),
+        """),
         epilog="The function removes the unused nodes.",
     )
     parser.add_argument(
@@ -256,11 +246,9 @@ def get_parser_select() -> ArgumentParser:
 def get_parser_external() -> ArgumentParser:
     parser = ArgumentParser(
         prog="external",
-        description=dedent(
-            """
+        description=dedent("""
         Takes an onnx model and split the model and the coefficients.
-        """
-        ),
+        """),
         epilog="The functions stores the coefficients as external data. "
         "It calls the function convert_model_to_external_data.",
     )
@@ -381,12 +369,10 @@ def _cmd_external(argv: List[Any]):
 def get_parser_plot() -> ArgumentParser:
     parser = ArgumentParser(
         prog="plot",
-        description=dedent(
-            """
+        description=dedent("""
         Plots a graph representing the data loaded from a
         profiling stored in a filename.
-        """
-        ),
+        """),
         epilog="Plots a graph",
     )
     parser.add_argument(
@@ -396,14 +382,12 @@ def get_parser_plot() -> ArgumentParser:
             "profile_op",
             "profile_node",
         ],
-        help=dedent(
-            """
+        help=dedent("""
         Kind of plot to draw.
 
         'profile_op' shows the time spent in every kernel per operator type,
         'profile_node' shows the time spent in every kernel per operator node,
-        """
-        ),
+        """),
         required=True,
     )
     parser.add_argument(
@@ -481,11 +465,9 @@ def _cmd_merge(argv: List[Any]):
 def get_parser_merge() -> ArgumentParser:
     parser = ArgumentParser(
         prog="merge",
-        description=dedent(
-            """
+        description=dedent("""
         Merges two models.
-        """
-        ),
+        """),
     )
     parser.add_argument(
         "--m1",
@@ -525,11 +507,9 @@ def get_parser_merge() -> ArgumentParser:
 def get_parser_check() -> ArgumentParser:
     parser = ArgumentParser(
         prog="check",
-        description=dedent(
-            """
+        description=dedent("""
         Quickly checks the module is properly installed.
-        """
-        ),
+        """),
     )
     parser.add_argument(
         "-o",
@@ -572,11 +552,9 @@ def _cmd_check(argv: List[Any]):
 def get_parser_bench() -> ArgumentParser:
     parser = ArgumentParser(
         prog="bench",
-        description=dedent(
-            """
+        description=dedent("""
         Benchmarks kernel executions.
-        """
-        ),
+        """),
     )
     parser.add_argument(
         "-d",
@@ -677,11 +655,9 @@ def _cmd_bench(argv: List[Any]):
 def get_parser_stat() -> ArgumentParser:
     parser = ArgumentParser(
         prog="stat",
-        description=dedent(
-            """
+        description=dedent("""
         Computes statistics on initiliazer and tree ensemble nodes.
-        """
-        ),
+        """),
     )
     parser.add_argument(
         "-i",
@@ -723,12 +699,10 @@ def _cmd_stat(argv: List[Any]):
 def get_parser_cvt() -> ArgumentParser:
     parser = ArgumentParser(
         prog="stat",
-        description=dedent(
-            """
+        description=dedent("""
         Converts a file into another format, usually a csv file into an excel file.
         The extension defines the conversion.
-        """
-        ),
+        """),
     )
     parser.add_argument(
         "-i",
@@ -785,12 +759,10 @@ def _cmd_cvt(argv: List[Any]):
 def get_parser_protoc() -> ArgumentParser:
     parser = ArgumentParser(
         prog="protoc",
-        description=dedent(
-            """
+        description=dedent("""
         Parses a protoc file defining protobuf structures
         and outputs a C++ header.
-        """
-        ),
+        """),
         epilog="It does not use protobuf.",
     )
     parser.add_argument(

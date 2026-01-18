@@ -10,7 +10,6 @@ from .einsum_config import DEFAULT_OPSET, DEFAULT_IR_VERSION, guess_proto_dtype
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 from .einsum_ml import predict_transposition_cost
 
-
 _einsum_cache: Dict[int, Any] = {}
 
 

@@ -12,7 +12,6 @@ from onnx_extended.tools.einsum.einsum_impl_ext import (
     _common_check_numpy_extended_dot,
 )
 
-
 confs = [
     dict(shape1=(1, 5, 4, 1), shape2=(1, 1, 4, 6), axes=(2,), left=(0, 1), right=(3,)),
     dict(shape1=(1, 5, 1, 6), shape2=(1, 5, 1, 6), axes=(1, 3), left=(0,), right=()),

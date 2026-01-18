@@ -31,7 +31,6 @@ except ImportError:
 from onnx_extended.ext_test_case import ExtTestCase, skipif_ci_apple
 from onnx_extended.reference import CReferenceEvaluator
 
-
 light_model = os.path.join(
     os.path.dirname(onnx.__file__),
     "backend",

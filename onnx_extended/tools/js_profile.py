@@ -3,7 +3,6 @@ import warnings
 from typing import List, Optional, Union
 from pandas import DataFrame
 
-
 _mapping_types = {
     "float": "F",
     "double": "D",
