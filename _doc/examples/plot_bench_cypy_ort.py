@@ -28,7 +28,6 @@ from onnx_extended.ortcy.wrap.ortinf import OrtSession
 from onnx_extended.args import get_parsed_args
 from onnx_extended.ext_test_case import measure_time, unit_test_going
 
-
 script_args = get_parsed_args(
     "plot_bench_cypy_ort",
     description=__doc__,

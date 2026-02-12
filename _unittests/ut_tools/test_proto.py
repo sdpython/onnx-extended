@@ -6,8 +6,7 @@ from onnx_extended.tools.protoc import parse_proto
 
 class TestProto(ExtTestCase):
     def test_parse_proto(self):
-        text = textwrap.dedent(
-            """
+        text = textwrap.dedent("""
         message Company {
             string name = 1;
             message Employee {
@@ -16,16 +15,14 @@ class TestProto(ExtTestCase):
             }
             repeated Employee employees = 2;
         }
-        """
-        )
+        """)
         out = parse_proto(text)
         self.assertIn("std::vector<Employee> employees;", out)
         self.assertIn("struct Employee {", out)
 
     @hide_stdout()
     def test_onnx_ml_proto(self):
-        text = textwrap.dedent(
-            """
+        text = textwrap.dedent("""
             message AttributeProto {
                 reserved 12, 16 to 19;
                 reserved "v";
@@ -299,8 +296,7 @@ class TestProto(ExtTestCase):
                 repeated ValueInfoProto value_info = 12;
                 repeated StringStringEntryProto metadata_props = 14;
             }
-        """
-        )
+        """)
         out = parse_proto(text)
         self.assertIn("struct SparseTensorProto {", out)
         print(out)

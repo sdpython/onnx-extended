@@ -119,16 +119,14 @@ def onnx2string(proto: onnx.ModelProto, as_code: bool = False) -> str:
             lines.append(content)
             break
     slines = "\n".join([f'    "{li}"' for li in lines])
-    template = textwrap.dedent(
-        """
+    template = textwrap.dedent("""
     from onnx_extended.tools.onnx_io import string2onnx
 
     text = (
     {model}
     )
     model = string2onnx(text)
-    """
-    )
+    """)
     return template.format(model=slines)
 
 

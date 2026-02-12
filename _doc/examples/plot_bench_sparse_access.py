@@ -18,7 +18,6 @@ from onnx_extended.ext_test_case import unit_test_going
 from onnx_extended.args import get_parsed_args
 from onnx_extended.validation.cpu._validation import evaluate_sparse
 
-
 expose = "repeat,warmup,nrows,ncols,sparsity,nrnd,ntimes"
 script_args = get_parsed_args(
     "plot_bench_sparse_access",
