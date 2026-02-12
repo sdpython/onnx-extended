@@ -131,6 +131,7 @@ epkg_dictionary = {
     "gcc": "https://gcc.gnu.org/",
     "JIT": "https://en.wikipedia.org/wiki/Just-in-time_compilation",
     "Llama": "https://ai.meta.com/blog/large-language-model-llama-meta-ai/",
+    "nanobind": "https://github.com/wjakob/nanobind",
     "nccl": "https://developer.nvidia.com/nccl",
     "numpy": "https://numpy.org/",
     "numba": "https://numba.pydata.org/",

@@ -100,7 +100,8 @@ Build with CUDA, openmp, eigen, onnxruntime
 
 The package also contains some dummy examples on how to
 build with C++ functions (`pybind11 <https://github.com/pybind/pybind11>`_,
-`cython <https://cython.org/>`_), with `openmp
+`cython <https://cython.org/>`_,
+`nanobind <https://github.com/wjakob/nanobind>`_), with `openmp
 <https://www.openmp.org/>`_, `eigen <https://eigen.tuxfamily.org/index.php>`_
 with or without CUDA. It also shows how to create a custom operator
 for `onnxruntime <https://onnxruntime.ai/>`_ in C++.
