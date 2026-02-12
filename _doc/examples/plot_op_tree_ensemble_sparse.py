@@ -100,7 +100,7 @@ script_args = get_parsed_args(
 )
 
 
-################################
+# %%
 # Training a model
 # ++++++++++++++++
 
@@ -167,7 +167,7 @@ print(f"n_trees={n_trees}")
 print(f"max_depth={max_depth}")
 print(f"sparsity={sparsity}")
 
-##############################
+# %%
 # training
 
 filename, Xb, yb = train_model(batch_size, n_features, n_trees, max_depth, sparsity)
@@ -176,7 +176,7 @@ print(f"Xb.shape={Xb.shape}")
 print(f"yb.shape={yb.shape}")
 print(f"measured sparsity={measure_sparsity(Xb)}")
 
-#######################################
+# %%
 # Rewrite the onnx file to use a different kernel
 # +++++++++++++++++++++++++++++++++++++++++++++++
 #
@@ -189,7 +189,7 @@ with open(filename, "rb") as f:
     onx = onnx.load(f)
 print(onnx_simple_text_plot(onx))
 
-############################
+# %%
 # And then the modified model.
 
 
@@ -230,7 +230,7 @@ with open(filename + "modified.onnx", "wb") as f:
 print("done.")
 print(onnx_simple_text_plot(onx_modified))
 
-############################
+# %%
 # Same with sparse.
 
 
@@ -242,7 +242,7 @@ with open(filename + "modified.sparse.onnx", "wb") as f:
 print("done.")
 print(onnx_simple_text_plot(onx_modified_sparse))
 
-#######################################
+# %%
 # Comparing onnxruntime and the custom kernel
 # +++++++++++++++++++++++++++++++++++++++++++
 
@@ -278,7 +278,7 @@ print(f"Running modified sparse with shape {Xb_sp.shape}.")
 got_sparse = sess_cus_sparse.run(None, {"X": Xb_sp})[0]
 print("done.")
 
-#######################################
+# %%
 # Discrepancies?
 
 diff = numpy.abs(base - got).max()
@@ -287,7 +287,7 @@ print(f"Discrepancies: {diff}")
 diff = numpy.abs(base - got_sparse).max()
 print(f"Discrepancies sparse: {diff}")
 
-########################################
+# %%
 # Simple verification
 # +++++++++++++++++++
 #
@@ -295,17 +295,17 @@ print(f"Discrepancies sparse: {diff}")
 t1 = timeit.timeit(lambda: sess_ort.run(None, {"X": Xb}), number=50)
 print(f"baseline: {t1}")
 
-#################################
+# %%#
 # The custom implementation.
 t2 = timeit.timeit(lambda: sess_cus.run(None, {"X": Xb}), number=50)
 print(f"new time: {t2}")
 
-#################################
+# %%#
 # The custom sparse implementation.
 t3 = timeit.timeit(lambda: sess_cus_sparse.run(None, {"X": Xb_sp}), number=50)
 print(f"new time sparse: {t3}")
 
-#############################################
+# %%
 # Time for comparison
 # +++++++++++++++++++
 #
@@ -363,7 +363,7 @@ for att, value in optim_params.items():
 print("Full list of optimization parameters:")
 print(" ".join(cmds))
 
-##################################
+# %%
 # Then the optimization for dense
 
 
@@ -395,7 +395,7 @@ res = optimize_model(
     n_tries=script_args.tries,
 )
 
-##################################
+# %%
 # Then the optimization for sparse
 
 res_sparse = optimize_model(
@@ -413,7 +413,7 @@ res_sparse = optimize_model(
 )
 
 
-###############################
+# %%
 # And the results.
 
 df_dense = DataFrame(res)
@@ -426,7 +426,7 @@ df.to_excel("plot_op_tree_ensemble_sparse.xlsx", index=False)
 print(df.columns)
 print(df.head(5))
 
-################################
+# %%
 # Sorting
 # +++++++
 
@@ -444,14 +444,14 @@ small_df = df.drop(
 print(small_df.head(n=10))
 
 
-################################
+# %%
 # Worst
 # +++++
 
 print(small_df.tail(n=10))
 
 
-#################################
+# %%#
 # Plot
 # ++++
 
