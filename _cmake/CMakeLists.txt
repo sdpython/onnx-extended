@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.25.0)
 project(onnx_extended VERSION ${ONNX_EXTENDED_VERSION})
 
-
 # Don't let cmake set a default value for CMAKE_CUDA_ARCHITECTURES
 # see https://cmake.org/cmake/help/latest/policy/CMP0104.html
 # cmake_policy(SET CMP0104 OLD) # deprecated
@@ -15,7 +14,12 @@ list(APPEND CMAKE_MODULE_PATH
 #
 
 include("constants.cmake")
-include("load_externals.cmake")
+
+# MODIFICATION PRINCIPALE: Remplacer pybind11 par nanobind
+# Supprimer ou commenter: include("load_externals.cmake") 
+# Ajouter à la place:
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+find_package(nanobind CONFIG REQUIRED)
 
 #
 # modules

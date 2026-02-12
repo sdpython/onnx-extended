@@ -1,92 +1,93 @@
 #include "onnx2.h"
 #include "onnx2_helper.h"
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
-namespace py = pybind11;
+namespace nb = nanobind;
 using namespace onnx2;
 
 #define PYDEFINE_PROTO(m, cls)                                                                         \
-  py::class_<cls, Message> py_##cls(m, #cls, cls::DOC);                                                \
-  py_##cls.def(py::init<>())
+  nb::class_<cls, Message> nb_##cls(m, #cls, cls::DOC);                                                \
+  nb_##cls.def(nb::init<>())
 
 #define PYDEFINE_SUBPROTO(m, cls, subname)                                                             \
-  py::class_<cls::subname, Message> py_sub_##cls##subname(m, #subname, cls::subname::DOC);             \
-  py_sub_##cls##subname.def(py::init<>())
+  nb::class_<cls::subname, Message> nb_sub_##cls##subname(m, #subname, cls::subname::DOC);             \
+  nb_sub_##cls##subname.def(nb::init<>())
 
 #define PYDEFINE_PROTO_WITH_SUBTYPES(m, cls)                                                           \
-  py::class_<cls, Message> py_##cls(m, #cls, cls::DOC);                                                \
-  py_##cls.def(py::init<>());
+  nb::class_<cls, Message> nb_##cls(m, #cls, cls::DOC);                                                \
+  nb_##cls.def(nb::init<>());
 
 #define PYDEFINE_PROTO_WITH_SUBTYPES2(m, cls, subcls)                                                  \
-  py::class_<cls::subcls, Message> py_sub_##cls##subcls(py_##cls, #subcls, cls::subcls::DOC);          \
-  py_sub_##cls##subcls.def(py::init<>());
+  nb::class_<cls::subcls, Message> nb_sub_##cls##subcls(nb_##cls, #subcls, cls::subcls::DOC);          \
+  nb_sub_##cls##subcls.def(nb::init<>());
 
 #define _PYADD_PROTO_SERIALIZATION(cls, name_inst) pyadd_proto_serialization(name_inst);
 
-#define PYADD_PROTO_SERIALIZATION(cls) _PYADD_PROTO_SERIALIZATION(cls, py_##cls)
-#define PYADD_SUBPROTO_SERIALIZATION(cls, sub) _PYADD_PROTO_SERIALIZATION(cls::sub, py_sub_##cls##sub)
+#define PYADD_PROTO_SERIALIZATION(cls) _PYADD_PROTO_SERIALIZATION(cls, nb_##cls)
+#define PYADD_SUBPROTO_SERIALIZATION(cls, sub) _PYADD_PROTO_SERIALIZATION(cls::sub, nb_sub_##cls##sub)
 
 #define PYFIELD(cls, name)                                                                             \
-  def_readwrite(#name, &cls::name##_, cls::DOC_##name)                                                 \
+  def_rw(#name, &cls::name##_, cls::DOC_##name)                                                        \
       .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value.")
 
 #define PYFIELD_STR(cls, name)                                                                         \
-  def_property(                                                                                        \
+  def_prop_rw(                                                                                         \
       #name,                                                                                           \
       [](const cls &self) -> std::string {                                                             \
         std::string s = self.ref_##name().as_string();                                                 \
         return s;                                                                                      \
       },                                                                                               \
-      [](cls &self, py::object obj) {                                                                  \
-        if (py::isinstance<py::str>(obj)) {                                                            \
-          std::string st = obj.cast<std::string>();                                                    \
+      [](cls &self, nb::object obj) {                                                                  \
+        if (nb::isinstance<nb::str>(obj)) {                                                            \
+          std::string st = nb::cast<std::string>(obj);                                                 \
           self.set_##name(st);                                                                         \
-        } else if (py::isinstance<py::bytes>(obj)) {                                                   \
-          std::string st = obj.cast<py::bytes>();                                                      \
+        } else if (nb::isinstance<nb::bytes>(obj)) {                                                   \
+          std::string st = nb::cast<nb::bytes>(obj);                                                   \
           self.set_##name(st);                                                                         \
         } else {                                                                                       \
-          self.set_##name(obj.cast<cls::name##_t &>());                                                \
+          self.set_##name(nb::cast<cls::name##_t &>(obj));                                             \
         }                                                                                              \
       },                                                                                               \
       cls::DOC_##name)                                                                                 \
       .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
 
 #define PYFIELD_STR_AS_BYTES(cls, name)                                                                \
-  def_property(                                                                                        \
+  def_prop_rw(                                                                                         \
       #name,                                                                                           \
-      [](const cls &self) -> py::bytes {                                                               \
-        std::string s = py::bytes(self.ref_##name().as_string());                                      \
+      [](const cls &self) -> nb::bytes {                                                               \
+        std::string s = nb::bytes(self.ref_##name().as_string());                                      \
         return s;                                                                                      \
       },                                                                                               \
-      [](cls &self, py::object obj) {                                                                  \
-        if (py::isinstance<py::str>(obj)) {                                                            \
-          std::string st = obj.cast<std::string>();                                                    \
+      [](cls &self, nb::object obj) {                                                                  \
+        if (nb::isinstance<nb::str>(obj)) {                                                            \
+          std::string st = nb::cast<std::string>(obj);                                                 \
           self.set_##name(st);                                                                         \
-        } else if (py::isinstance<py::bytes>(obj)) {                                                   \
-          std::string st = obj.cast<py::bytes>();                                                      \
+        } else if (nb::isinstance<nb::bytes>(obj)) {                                                   \
+          std::string st = nb::cast<nb::bytes>(obj);                                                   \
           self.set_##name(st);                                                                         \
         } else {                                                                                       \
-          self.set_##name(obj.cast<cls::name##_t &>());                                                \
+          self.set_##name(nb::cast<cls::name##_t &>(obj));                                             \
         }                                                                                              \
       },                                                                                               \
       cls::DOC_##name)                                                                                 \
       .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
 
 #define _PYFIELD_OPTIONAL_CTYPE(cls, name, ctype)                                                      \
-  def_property(                                                                                        \
+  def_prop_rw(                                                                                         \
       #name,                                                                                           \
-      [](cls &self) -> py::object {                                                                    \
+      [](cls &self) -> nb::object {                                                                    \
         if (!self.has_##name())                                                                        \
-          return py::none();                                                                           \
-        return py::cast(self.ref_##name(), py::return_value_policy::reference);                        \
+          return nb::none();                                                                           \
+        return nb::cast(self.ref_##name(), nb::rv_policy::reference);                                  \
       },                                                                                               \
-      [](cls &self, py::object obj) {                                                                  \
+      [](cls &self, nb::object obj) {                                                                  \
         if (obj.is_none()) {                                                                           \
           self.reset_##name();                                                                         \
-        } else if (py::isinstance<py::ctype##_>(obj)) {                                                \
-          self.set_##name(obj.cast<ctype>());                                                          \
+        } else if (nb::isinstance<nb::ctype##_>(obj)) {                                                \
+          self.set_##name(nb::cast<ctype>(obj));                                                       \
         } else {                                                                                       \
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'.");         \
         }                                                                                              \
@@ -98,21 +99,21 @@ using namespace onnx2;
 #define PYFIELD_OPTIONAL_FLOAT(cls, name) _PYFIELD_OPTIONAL_CTYPE(cls, name, float)
 
 #define PYFIELD_OPTIONAL_PROTO(cls, name)                                                              \
-  def_property(                                                                                        \
+  def_prop_rw(                                                                                         \
       #name,                                                                                           \
-      [](cls &self) -> py::object {                                                                    \
+      [](cls &self) -> nb::object {                                                                    \
         if (!self.name##_.has_value()) {                                                               \
           if (self.has_oneof_##name())                                                                 \
-            return py::none();                                                                         \
+            return nb::none();                                                                         \
           self.name##_.set_empty_value();                                                              \
         }                                                                                              \
-        return py::cast(*self.name##_, py::return_value_policy::reference);                            \
+        return nb::cast(*self.name##_, nb::rv_policy::reference);                                      \
       },                                                                                               \
-      [](cls &self, py::object obj) {                                                                  \
+      [](cls &self, nb::object obj) {                                                                  \
         if (obj.is_none()) {                                                                           \
           self.name##_.reset();                                                                        \
-        } else if (py::isinstance<cls::name##_t>(obj)) {                                               \
-          self.name##_ = obj.cast<cls::name##_t &>();                                                  \
+        } else if (nb::isinstance<cls::name##_t>(obj)) {                                               \
+          self.name##_ = nb::cast<cls::name##_t &>(obj);                                               \
         } else {                                                                                       \
           EXT_THROW("unexpected value type, unable to set '" #name "' for class '" #cls "'.");         \
         }                                                                                              \
@@ -124,48 +125,48 @@ using namespace onnx2;
             self.name##_.set_empty_value();                                                            \
             return *self.name##_;                                                                      \
           },                                                                                           \
-          py::return_value_policy::reference, "Sets an empty value.")
+          nb::rv_policy::reference, "Sets an empty value.")
 
 #define SHORTEN_CODE(cls, dtype)                                                                       \
-  def_property_readonly_static(#dtype, [](py::object) -> int { return static_cast<int>(cls::dtype); })
+  def_prop_ro_static(#dtype, [](nb::handle) -> int { return static_cast<int>(cls::dtype); })
 
 #define DECLARE_REPEATED_FIELD(T, inst_name)                                                           \
-  py::class_<utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);
+  nb::class_<utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);
 
 #define DECLARE_REPEATED_FIELD_PROTO(T, inst_name)                                                     \
-  py::class_<utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);            \
-  py::class_<utils::RepeatedProtoField<T>> inst_name##_proto(m, "RepeatedProtoField" #T,               \
+  nb::class_<utils::RepeatedField<T>> inst_name(m, "RepeatedField" #T, "RepeatedField" #T);            \
+  nb::class_<utils::RepeatedProtoField<T>> inst_name##_proto(m, "RepeatedProtoField" #T,               \
                                                              "RepeatedProtoField" #T);
 
 #define DECLARE_REPEATED_FIELD_SUBPROTO(cls, T, inst_name)                                             \
-  py::class_<utils::RepeatedField<cls::T>> inst_name(m, "RepeatedField" #cls #T,                       \
+  nb::class_<utils::RepeatedField<cls::T>> inst_name(m, "RepeatedField" #cls #T,                       \
                                                      "RepeatedField" #cls #T);                         \
-  py::class_<utils::RepeatedProtoField<cls::T>> inst_name##_proto(m, "RepeatedProtoField" #cls #T,     \
+  nb::class_<utils::RepeatedProtoField<cls::T>> inst_name##_proto(m, "RepeatedProtoField" #cls #T,     \
                                                                   "RepeatedProtoField" #cls #T);
 
-template <typename cls> void pyadd_proto_serialization(py::class_<cls, Message> &name_inst) {
+template <typename cls> void pyadd_proto_serialization(nb::class_<cls, Message> &name_inst) {
   name_inst
       .def(
           "ParseFromString",
-          [](cls &self, py::bytes data, py::object options) {
-            std::string raw = data.cast<std::string>();
-            if (py::isinstance<ParseOptions &>(options)) {
-              self.ParseFromString(raw, options.cast<ParseOptions &>());
+          [](cls &self, nb::bytes data, nb::object options) {
+            std::string raw = nb::cast<std::string>(data);
+            if (nb::isinstance<ParseOptions &>(options)) {
+              self.ParseFromString(raw, nb::cast<ParseOptions &>(options));
             } else {
               self.ParseFromString(raw);
             }
           },
-          py::arg("data"), py::arg("options") = py::none(),
+          nb::arg("data"), nb::arg("options") = nb::none(),
           "Parses a sequence of bytes to fill this instance.")
       .def(
           "ParseFromFile",
-          [](cls &self, const std::string &file_path, py::object options,
+          [](cls &self, const std::string &file_path, nb::object options,
              const std::string &external_data_file) {
             utils::FileStream *stream = external_data_file.empty()
                                             ? new utils::FileStream(file_path)
                                             : new utils::TwoFilesStream(file_path, external_data_file);
-            if (py::isinstance<ParseOptions &>(options)) {
-              ParseOptions &coptions = options.cast<ParseOptions &>();
+            if (nb::isinstance<ParseOptions &>(options)) {
+              ParseOptions &coptions = nb::cast<ParseOptions &>(options);
               if (coptions.parallel) {
                 stream->StartThreadPool(coptions.num_threads);
               }
@@ -179,42 +180,42 @@ template <typename cls> void pyadd_proto_serialization(py::class_<cls, Message> 
             }
             delete stream;
           },
-          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",
+          nb::arg("name"), nb::arg("options") = nb::none(), nb::arg("external_data_file") = "",
           "Parses a binary file to fill this instance.")
       .def(
           "SerializeSize",
-          [](cls &self, py::object options) -> uint64_t {
-            if (py::isinstance<SerializeOptions &>(options)) {
+          [](cls &self, nb::object options) -> uint64_t {
+            if (nb::isinstance<SerializeOptions &>(options)) {
               utils::StringWriteStream out;
-              return self.SerializeSize(out, options.cast<SerializeOptions &>());
+              return self.SerializeSize(out, nb::cast<SerializeOptions &>(options));
             } else {
               return self.SerializeSize();
             }
           },
-          py::arg("options") = py::none(), "Returns the size once serialized without serializing.")
+          nb::arg("options") = nb::none(), "Returns the size once serialized without serializing.")
       .def(
           "SerializeToString",
-          [](cls &self, py::object options) {
+          [](cls &self, nb::object options) {
             std::string out;
-            if (py::isinstance<SerializeOptions &>(options)) {
-              self.SerializeToString(out, options.cast<SerializeOptions &>());
+            if (nb::isinstance<SerializeOptions &>(options)) {
+              self.SerializeToString(out, nb::cast<SerializeOptions &>(options));
             } else {
               SerializeOptions opts;
               self.SerializeToString(out, opts);
             }
-            return py::bytes(out);
+            return nb::bytes(out.data(), out.size());
           },
-          py::arg("options") = py::none(), "Serializes this instance into a sequence of bytes.")
+          nb::arg("options") = nb::none(), "Serializes this instance into a sequence of bytes.")
       .def(
           "SerializeToFile",
-          [](cls &self, const std::string &file_path, py::object options,
+          [](cls &self, const std::string &file_path, nb::object options,
              std::string &external_data_file) {
             utils::BinaryWriteStream *stream =
                 external_data_file.empty()
                     ? new utils::FileWriteStream(file_path)
                     : new utils::TwoFilesWriteStream(file_path, external_data_file);
-            if (py::isinstance<SerializeOptions &>(options)) {
-              SerializeProtoToStream(self, *stream, options.cast<SerializeOptions &>(),
+            if (nb::isinstance<SerializeOptions &>(options)) {
+              SerializeProtoToStream(self, *stream, nb::cast<SerializeOptions &>(options),
                                      !external_data_file.empty());
             } else {
               SerializeOptions opts;
@@ -222,7 +223,7 @@ template <typename cls> void pyadd_proto_serialization(py::class_<cls, Message> 
             }
             delete stream;
           },
-          py::arg("name"), py::arg("options") = py::none(), py::arg("external_data_file") = "",
+          nb::arg("name"), nb::arg("options") = nb::none(), nb::arg("external_data_file") = "",
           "Serializes this instance into a file. If ``external_data_size`` is not empty, big weights "
           "are stored in this (depending on ``options.raw_data_threshold``.")
       .def(
@@ -246,13 +247,12 @@ template <typename cls> void pyadd_proto_serialization(py::class_<cls, Message> 
             other.SerializeToString(s2, opts2);
             return s1 == s2;
           },
-          py::arg("other"), "Compares the serialized strings.");
+          nb::arg("other"), "Compares the serialized strings.");
 }
 
-template <typename T> void define_repeated_field_type(py::class_<utils::RepeatedField<T>> &pycls) {
-  pycls.def(py::init<>())
-      .def("add", &utils::RepeatedField<T>::add, py::return_value_policy::reference,
-           "Adds an empty element.")
+template <typename T> void define_repeated_field_type(nb::class_<utils::RepeatedField<T>> &nbcls) {
+  nbcls.def(nb::init<>())
+      .def("add", &utils::RepeatedField<T>::add, nb::rv_policy::reference, "Adds an empty element.")
       .def("clear", &utils::RepeatedField<T>::clear, "Removes every element.")
       .def("__len__", &utils::RepeatedField<T>::size, "Returns the number of elements.")
       .def(
@@ -264,11 +264,10 @@ template <typename T> void define_repeated_field_type(py::class_<utils::Repeated
                         " out of boundary");
             return self[index];
           },
-          py::return_value_policy::reference, py::arg("index"),
-          "Returns the element at position index.")
+          nb::rv_policy::reference, nb::arg("index"), "Returns the element at position index.")
       .def(
           "__delitem__",
-          [](utils::RepeatedField<T> &self, py::slice slice) {
+          [](utils::RepeatedField<T> &self, nb::slice slice) {
             size_t start, stop, step, slicelength;
             if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
               self.remove_range(start, stop, step);
@@ -277,84 +276,87 @@ template <typename T> void define_repeated_field_type(py::class_<utils::Repeated
           "Removes elements.")
       .def(
           "__iter__",
-          [](utils::RepeatedField<T> &self) { return py::make_iterator(self.begin(), self.end()); },
-          py::keep_alive<0, 1>(), "Iterates over the elements.");
+          [](utils::RepeatedField<T> &self) {
+            return nb::make_iterator(nb::type<utils::RepeatedField<T>>(), "iterator", self.begin(),
+                                     self.end());
+          },
+          nb::keep_alive<0, 1>(), "Iterates over the elements.");
 }
 
 template <typename T>
-void define_repeated_field_type_extend(py::class_<utils::RepeatedField<T>> &pycls) {
-  pycls
+void define_repeated_field_type_extend(nb::class_<utils::RepeatedField<T>> &nbcls) {
+  nbcls
       .def(
-          "append", [](utils::RepeatedField<T> &self, T v) { self.push_back(v); }, py::arg("item"),
+          "append", [](utils::RepeatedField<T> &self, T v) { self.push_back(v); }, nb::arg("item"),
           "Append one element to the list of values.")
       .def(
           "extend",
-          [](utils::RepeatedField<T> &self, py::iterable iterable) {
-            if (py::isinstance<utils::RepeatedField<T>>(iterable)) {
-              self.extend(iterable.cast<utils::RepeatedField<T> &>());
+          [](utils::RepeatedField<T> &self, nb::iterable iterable) {
+            if (nb::isinstance<utils::RepeatedField<T>>(iterable)) {
+              self.extend(nb::cast<utils::RepeatedField<T> &>(iterable));
             } else {
-              self.extend(iterable.cast<std::vector<T>>());
+              self.extend(nb::cast<std::vector<T>>(iterable));
             }
           },
-          py::arg("sequence"), "Extends the list of values.");
+          nb::arg("sequence"), "Extends the list of values.");
 }
 
 template <>
-void define_repeated_field_type_extend(py::class_<utils::RepeatedField<utils::String>> &pycls) {
-  pycls
+void define_repeated_field_type_extend(nb::class_<utils::RepeatedField<utils::String>> &nbcls) {
+  nbcls
       .def(
           "append",
           [](utils::RepeatedField<utils::String> &self, const utils::String &v) { self.push_back(v); },
-          py::arg("item"), "Append one element to the list of values.")
+          nb::arg("item"), "Append one element to the list of values.")
       .def(
           "extend",
-          [](utils::RepeatedField<utils::String> &self, py::iterable iterable) {
-            if (py::isinstance<utils::RepeatedField<utils::String>>(iterable)) {
-              self.extend(iterable.cast<utils::RepeatedField<utils::String> &>());
+          [](utils::RepeatedField<utils::String> &self, nb::iterable iterable) {
+            if (nb::isinstance<utils::RepeatedField<utils::String>>(iterable)) {
+              self.extend(nb::cast<utils::RepeatedField<utils::String> &>(iterable));
             } else {
               std::vector<utils::String> values;
               for (auto it : iterable) {
-                if (py::isinstance<utils::String>(it)) {
-                  values.push_back(it.cast<utils::String &>());
+                if (nb::isinstance<utils::String>(it)) {
+                  values.push_back(nb::cast<utils::String &>(it));
                 } else {
-                  values.emplace_back(utils::String(it.cast<std::string>()));
+                  values.emplace_back(utils::String(nb::cast<std::string>(it)));
                 }
               }
               self.extend(values);
             }
           },
-          py::arg("sequence"), "Extends the list of values.");
+          nb::arg("sequence"), "Extends the list of values.");
 }
 
 template <typename T>
-void define_repeated_field_type_proto(py::class_<utils::RepeatedField<T>> &pycls,
-                                      py::class_<utils::RepeatedProtoField<T>> &pycls_proto) {
-  define_repeated_field_type(pycls);
-  pycls
+void define_repeated_field_type_proto(nb::class_<utils::RepeatedField<T>> &nbcls,
+                                      nb::class_<utils::RepeatedProtoField<T>> &nbcls_proto) {
+  define_repeated_field_type(nbcls);
+  nbcls
       .def(
           "append", [](utils::RepeatedField<T> &self, const T &v) { self.push_back(v); },
-          py::arg("item"), "Append one element to the list of values.")
+          nb::arg("item"), "Append one element to the list of values.")
       .def(
           "extend",
-          [](utils::RepeatedField<T> &self, py::iterable iterable) {
-            if (py::isinstance<utils::RepeatedField<T>>(iterable)) {
-              self.extend(iterable.cast<utils::RepeatedField<T> &>());
+          [](utils::RepeatedField<T> &self, nb::iterable iterable) {
+            if (nb::isinstance<utils::RepeatedField<T>>(iterable)) {
+              self.extend(nb::cast<utils::RepeatedField<T> &>(iterable));
             } else {
-              py::list els = iterable.cast<py::list>();
+              nb::list els = nb::cast<nb::list>(iterable);
               for (auto it : els) {
-                if (py::isinstance<const T &>(it)) {
-                  self.push_back(it.cast<T>());
-                } else if (py::isinstance<T>(it)) {
-                  self.push_back(it.cast<T>());
+                if (nb::isinstance<const T &>(it)) {
+                  self.push_back(nb::cast<T>(it));
+                } else if (nb::isinstance<T>(it)) {
+                  self.push_back(nb::cast<T>(it));
                 } else {
                   EXT_THROW("Unable to cast an element of type into ", typeid(T).name());
                 }
               }
             }
           },
-          py::arg("sequence"), "Extends the list of values.");
-  pycls_proto.def(py::init<>())
-      .def("add", &utils::RepeatedProtoField<T>::add, py::return_value_policy::reference,
+          nb::arg("sequence"), "Extends the list of values.");
+  nbcls_proto.def(nb::init<>())
+      .def("add", &utils::RepeatedProtoField<T>::add, nb::rv_policy::reference,
            "Adds an empty element.")
       .def("clear", &utils::RepeatedProtoField<T>::clear, "Removes every element.")
       .def("__len__", &utils::RepeatedProtoField<T>::size, "Returns the number of elements.")
@@ -367,11 +369,10 @@ void define_repeated_field_type_proto(py::class_<utils::RepeatedField<T>> &pycls
                         " out of boundary");
             return self[index];
           },
-          py::return_value_policy::reference, py::arg("index"),
-          "Returns the element at position index.")
+          nb::rv_policy::reference, nb::arg("index"), "Returns the element at position index.")
       .def(
           "__delitem__",
-          [](utils::RepeatedProtoField<T> &self, py::slice slice) {
+          [](utils::RepeatedProtoField<T> &self, nb::slice slice) {
             size_t start, stop, step, slicelength;
             if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
               self.remove_range(start, stop, step);
@@ -381,20 +382,21 @@ void define_repeated_field_type_proto(py::class_<utils::RepeatedField<T>> &pycls
       .def(
           "__iter__",
           [](utils::RepeatedProtoField<T> &self) {
-            return py::make_iterator(self.begin(), self.end());
+            return nb::make_iterator(nb::type<utils::RepeatedProtoField<T>>(), "iterator", self.begin(),
+                                     self.end());
           },
-          py::keep_alive<0, 1>(), "Iterates over the elements.")
+          nb::keep_alive<0, 1>(), "Iterates over the elements.")
       .def(
           "__eq__",
-          [](utils::RepeatedField<T> &self, py::list &obj) -> bool {
+          [](utils::RepeatedField<T> &self, nb::list &obj) -> bool {
             if (self.size() != obj.size())
               return false;
             for (size_t i = 0; i < self.size(); ++i) {
-              if (!py::isinstance<T &>(obj[i]))
+              if (!nb::isinstance<T &>(obj[i]))
                 return false;
               std::string s1, s2;
               self[i].SerializeToString(s1);
-              obj[i].cast<T &>().SerializeToString(s2);
+              nb::cast<T &>(obj[i]).SerializeToString(s2);
               if (s1 != s2)
                 return false;
             }
@@ -403,85 +405,78 @@ void define_repeated_field_type_proto(py::class_<utils::RepeatedField<T>> &pycls
           "Compares the container to a list of objects.")
       .def(
           "append", [](utils::RepeatedProtoField<T> &self, const T &v) { self.push_back(v); },
-          py::arg("item"), "Append one element to the list of values.")
+          nb::arg("item"), "Append one element to the list of values.")
       .def(
           "extend",
-          [](utils::RepeatedProtoField<T> &self, py::iterable iterable) {
-            if (py::isinstance<utils::RepeatedProtoField<T>>(iterable)) {
-              self.extend(iterable.cast<utils::RepeatedProtoField<T> &>());
+          [](utils::RepeatedProtoField<T> &self, nb::iterable iterable) {
+            if (nb::isinstance<utils::RepeatedProtoField<T>>(iterable)) {
+              self.extend(nb::cast<utils::RepeatedProtoField<T> &>(iterable));
             } else {
-              py::list els = iterable.cast<py::list>();
+              nb::list els = nb::cast<nb::list>(iterable);
               for (auto it : els) {
-                if (py::isinstance<const T &>(it)) {
-                  self.push_back(it.cast<const T &>());
-                } else if (py::isinstance<T>(it)) {
-                  self.push_back(it.cast<T>());
+                if (nb::isinstance<const T &>(it)) {
+                  self.push_back(nb::cast<const T &>(it));
+                } else if (nb::isinstance<T>(it)) {
+                  self.push_back(nb::cast<T>(it));
                 } else {
                   EXT_THROW("Unable to cast an element of type into ", typeid(T).name());
                 }
               }
             }
           },
-          py::arg("sequence"), "Extends the list of values.");
+          nb::arg("sequence"), "Extends the list of values.");
 }
 
-PYBIND11_MODULE(_onnx2py, m) {
-  m.doc() =
-#if defined(__APPLE__)
-      "onnx from python without protobuf but using the same format"
-#else
-      R"pbdoc(onnx from python without protobuf but using the same format)pbdoc"
-#endif
-      ;
+NB_MODULE(_onnx2py, m) {
+  m.doc() = "onnx from python without protobuf but using the same format";
 
   m.def(
       "utils_onnx2_read_varint64",
-      [](py::bytes data) -> py::tuple {
-        std::string raw = data;
+      [](nb::bytes data) -> nb::tuple {
+        std::string raw = nb::cast<std::string>(data);
         const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
         utils::StringStream st(ptr, raw.size());
         int64_t value = st.next_int64();
-        return py::make_tuple(value, st.tell());
+        return nb::make_tuple(value, st.tell());
       },
-      py::arg("data"),
+      nb::arg("data"),
       R"pbdoc(Reads a int64_t (protobuf format)
 :param data: bytes
 :return: 2-tuple, value and number of read bytes
 )pbdoc");
 
-  py::class_<ParseOptions>(m, "ParseOptions", "Parsing options for proto classes")
-      .def(py::init<>())
-      .def_readwrite("skip_raw_data", &ParseOptions::skip_raw_data,
-                     "if true, raw data will not be read but skipped, tensors are not valid in that "
-                     "case  but the model structure is still available")
-      .def_readwrite(
-          "raw_data_threshold", &ParseOptions::raw_data_threshold,
-          "if skip_raw_data is true, raw data will be read only if it is larger than the threshold")
-      .def_readwrite("parallel", &ParseOptions::parallel, "parallelizes the reading of the big blocks")
-      .def_readwrite("num_threads", &ParseOptions::num_threads,
-                     "number of threads to run in parallel if parallel is true, -1 for as many threads "
-                     "as the number of cores");
+  nb::class_<ParseOptions>(m, "ParseOptions", "Parsing options for proto classes")
+      .def(nb::init<>())
+      .def_rw("skip_raw_data", &ParseOptions::skip_raw_data,
+              "if true, raw data will not be read but skipped, tensors are not valid in that "
+              "case  but the model structure is still available")
+      .def_rw("raw_data_threshold", &ParseOptions::raw_data_threshold,
+              "if skip_raw_data is true, raw data will be read only if it is larger than the threshold")
+      .def_rw("parallel", &ParseOptions::parallel, "parallelizes the reading of the big blocks")
+      .def_rw("num_threads", &ParseOptions::num_threads,
+              "number of threads to run in parallel if parallel is true, -1 for as many threads "
+              "as the number of cores");
 
-  py::class_<SerializeOptions>(m, "SerializeOptions", "Serializing options for proto classes")
-      .def(py::init<>())
-      .def_readwrite("skip_raw_data", &SerializeOptions::skip_raw_data,
-                     "if true, raw data will not be written but skipped, tensors are not valid in that "
-                     "case  but the model structure is still available")
-      .def_readwrite(
+  nb::class_<SerializeOptions>(m, "SerializeOptions", "Serializing options for proto classes")
+      .def(nb::init<>())
+      .def_rw("skip_raw_data", &SerializeOptions::skip_raw_data,
+              "if true, raw data will not be written but skipped, tensors are not valid in that "
+              "case  but the model structure is still available")
+      .def_rw(
           "raw_data_threshold", &SerializeOptions::raw_data_threshold,
           "if skip_raw_data is true, raw data will be written only if it is larger than the threshold");
 
-  py::class_<utils::PrintOptions>(m, "PrintOptions", "Printing options for proto classes")
-      .def(py::init<>())
-      .def_readwrite("skip_raw_data", &utils::PrintOptions::skip_raw_data,
-                     "if true, raw data will not be printed but skipped, tensors are not valid in that "
-                     "case  but the model structure is still available")
-      .def_readwrite(
+  nb::class_<utils::PrintOptions>(m, "PrintOptions", "Printing options for proto classes")
+      .def(nb::init<>())
+      .def_rw("skip_raw_data", &utils::PrintOptions::skip_raw_data,
+              "if true, raw data will not be printed but skipped, tensors are not valid in that "
+              "case  but the model structure is still available")
+      .def_rw(
           "raw_data_threshold", &utils::PrintOptions::raw_data_threshold,
           "if skip_raw_data is true, raw data will be printed only if it is larger than the threshold");
 
-  py::class_<utils::String>(m, "String", "Simplified string with no final null character.")
-      .def(py::init<std::string>())
+  nb::class_<utils::String>(m, "String", "Simplified string with no final null character.")
+      .def(nb::init<std::string>())
       .def(
           "__str__", [](const utils::String &self) -> std::string { return self.as_string(); },
           "Converts this instance into a python string.")
@@ -518,17 +513,17 @@ PYBIND11_MODULE(_onnx2py, m) {
   define_repeated_field_type(rep_double);
   define_repeated_field_type_extend(rep_double);
 
-  py::class_<utils::RepeatedField<utils::String>> rep_string(m, "RepeatedFieldString",
+  nb::class_<utils::RepeatedField<utils::String>> rep_string(m, "RepeatedFieldString",
                                                              "RepeatedFieldString");
   define_repeated_field_type(rep_string);
   define_repeated_field_type_extend(rep_string);
 
-  py::enum_<OperatorStatus>(m, "OperatorStatus", py::arithmetic())
+  nb::enum_<OperatorStatus>(m, "OperatorStatus")
       .value("EXPERIMENTAL", OperatorStatus::EXPERIMENTAL)
       .value("STABLE", OperatorStatus::STABLE)
       .export_values();
 
-  py::class_<Message>(m, "Message", "Message, base class for all onnx2 classes").def(py::init<>());
+  nb::class_<Message>(m, "Message", "Message, base class for all onnx2 classes").def(nb::init<>());
 
   PYDEFINE_PROTO(m, StringStringEntryProto)
       .PYFIELD_STR(StringStringEntryProto, key)
@@ -593,19 +588,19 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYADD_PROTO_SERIALIZATION(NodeDeviceConfigurationProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorShapeProto);
-  PYDEFINE_SUBPROTO(py_TensorShapeProto, TensorShapeProto, Dimension)
+  PYDEFINE_SUBPROTO(nb_TensorShapeProto, TensorShapeProto, Dimension)
       .PYFIELD_OPTIONAL_INT(TensorShapeProto::Dimension, dim_value)
       .PYFIELD_STR(TensorShapeProto::Dimension, dim_param)
       .PYFIELD_STR(TensorShapeProto::Dimension, denotation);
   PYADD_SUBPROTO_SERIALIZATION(TensorShapeProto, Dimension);
   DECLARE_REPEATED_FIELD_SUBPROTO(TensorShapeProto, Dimension, rep_tspd);
   define_repeated_field_type_proto(rep_tspd, rep_tspd_proto);
-  py_TensorShapeProto.PYFIELD(TensorShapeProto, dim);
+  nb_TensorShapeProto.PYFIELD(TensorShapeProto, dim);
   PYADD_PROTO_SERIALIZATION(TensorShapeProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorProto);
 
-  py::enum_<TensorProto::DataType>(py_TensorProto, "DataType", py::arithmetic())
+  nb::enum_<TensorProto::DataType>(nb_TensorProto, "DataType")
       .value("UNDEFINED", TensorProto::DataType::UNDEFINED)
       .value("FLOAT", TensorProto::DataType::FLOAT)
       .value("UINT8", TensorProto::DataType::UINT8)
@@ -634,11 +629,11 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("UINT2", TensorProto::DataType::UINT2)
       .value("INT2", TensorProto::DataType::INT2)
       .export_values();
-  py::enum_<TensorProto::DataLocation>(py_TensorProto, "DataLocation", py::arithmetic())
+  nb::enum_<TensorProto::DataLocation>(nb_TensorProto, "DataLocation")
       .value("DEFAULT", TensorProto::DataLocation::DEFAULT)
       .value("EXTERNAL", TensorProto::DataLocation::EXTERNAL)
       .export_values();
-  py_TensorProto.SHORTEN_CODE(TensorProto::DataType, UNDEFINED)
+  nb_TensorProto.SHORTEN_CODE(TensorProto::DataType, UNDEFINED)
       .SHORTEN_CODE(TensorProto::DataType, FLOAT)
       .SHORTEN_CODE(TensorProto::DataType, UINT8)
       .SHORTEN_CODE(TensorProto::DataType, INT8)
@@ -666,26 +661,26 @@ PYBIND11_MODULE(_onnx2py, m) {
       .SHORTEN_CODE(TensorProto::DataType, UINT2)
       .SHORTEN_CODE(TensorProto::DataType, INT2)
       .PYFIELD(TensorProto, dims)
-      .def_property(
+      .def_prop_rw(
           "data_type", [](const TensorProto &self) -> TensorProto::DataType { return self.data_type_; },
-          [](TensorProto &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.data_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
+          [](TensorProto &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.data_type_ = static_cast<TensorProto::DataType>(nb::cast<int>(obj));
             } else {
-              self.data_type_ = obj.cast<TensorProto::DataType>();
+              self.data_type_ = nb::cast<TensorProto::DataType>(obj);
             }
           },
           TensorProto::DOC_data_type)
-      .def_property(
+      .def_prop_rw(
           "data_location",
           [](const TensorProto &self) -> TensorProto::DataLocation {
             return self.has_data_location() ? *self.data_location_ : TensorProto::DataLocation::DEFAULT;
           },
-          [](TensorProto &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.data_location_ = static_cast<TensorProto::DataLocation>(obj.cast<int>());
+          [](TensorProto &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.data_location_ = static_cast<TensorProto::DataLocation>(nb::cast<int>(obj));
             } else {
-              self.data_location_ = obj.cast<TensorProto::DataLocation>();
+              self.data_location_ = nb::cast<TensorProto::DataLocation>(obj);
             }
           },
           TensorProto::DOC_data_location)
@@ -699,37 +694,37 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD(TensorProto, int64_data)
       .PYFIELD(TensorProto, int32_data)
       .PYFIELD(TensorProto, uint64_data)
-      .def_property(
+      .def_prop_rw(
           "string_data",
-          [](const TensorProto &self) -> py::list {
-            py::list result;
+          [](const TensorProto &self) -> nb::list {
+            nb::list result;
             for (const auto &s : self.string_data_) {
-              result.append(py::bytes(std::string(s.data(), s.size())));
+              result.append(nb::bytes(std::string(s.data(), s.size()).c_str(), s.size()));
             }
             return result;
           },
-          [](TensorProto &self, py::list data) {
-            self.string_data_.reserve(py::len(data));
+          [](TensorProto &self, nb::list data) {
+            self.string_data_.reserve(data.size());
 
             for (const auto &item : data) {
-              if (py::isinstance<py::bytes>(item)) {
-                self.string_data_.emplace_back(item.cast<std::string>());
-              } else if (py::isinstance<py::str>(item)) {
-                self.string_data_.emplace_back(item.cast<std::string>());
+              if (nb::isinstance<nb::bytes>(item)) {
+                self.string_data_.emplace_back(nb::cast<std::string>(item));
+              } else if (nb::isinstance<nb::str>(item)) {
+                self.string_data_.emplace_back(nb::cast<std::string>(item));
               } else {
                 EXT_THROW("unable to convert one item from the list into a string")
               }
             }
           },
           TensorProto::DOC_string_data)
-      .def_property(
+      .def_prop_rw(
           "raw_data",
-          [](const TensorProto &self) -> py::bytes {
-            return py::bytes(reinterpret_cast<const char *>(self.raw_data_.data()),
+          [](const TensorProto &self) -> nb::bytes {
+            return nb::bytes(reinterpret_cast<const char *>(self.raw_data_.data()),
                              self.raw_data_.size());
           },
-          [](TensorProto &self, py::bytes data) {
-            std::string raw = data;
+          [](TensorProto &self, nb::bytes data) {
+            std::string raw = nb::cast<std::string>(data);
             const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
             self.raw_data_.resize(raw.size());
             memcpy(self.raw_data_.data(), ptr, raw.size());
@@ -750,15 +745,15 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TypeProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES2(m, TypeProto, Tensor);
-  py_sub_TypeProtoTensor
-      .def_property(
+  nb_sub_TypeProtoTensor
+      .def_prop_rw(
           "elem_type",
           [](const TypeProto::Tensor &self) -> TensorProto::DataType { return *self.elem_type_; },
-          [](TypeProto::Tensor &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.elem_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
+          [](TypeProto::Tensor &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.elem_type_ = static_cast<TensorProto::DataType>(nb::cast<int>(obj));
             } else {
-              self.elem_type_ = obj.cast<TensorProto::DataType>();
+              self.elem_type_ = nb::cast<TensorProto::DataType>(obj);
             }
           },
           TypeProto::Tensor::DOC_elem_type)
@@ -766,15 +761,15 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, Tensor);
 
   PYDEFINE_PROTO_WITH_SUBTYPES2(m, TypeProto, SparseTensor);
-  py_sub_TypeProtoSparseTensor
-      .def_property(
+  nb_sub_TypeProtoSparseTensor
+      .def_prop_rw(
           "elem_type",
           [](const TypeProto::SparseTensor &self) -> TensorProto::DataType { return *self.elem_type_; },
-          [](TypeProto::SparseTensor &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.elem_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
+          [](TypeProto::SparseTensor &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.elem_type_ = static_cast<TensorProto::DataType>(nb::cast<int>(obj));
             } else {
-              self.elem_type_ = obj.cast<TensorProto::DataType>();
+              self.elem_type_ = nb::cast<TensorProto::DataType>(obj);
             }
           },
           TypeProto::SparseTensor::DOC_elem_type)
@@ -782,17 +777,17 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, SparseTensor);
 
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, SparseTensor);
-  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Sequence)
+  PYDEFINE_SUBPROTO(nb_TypeProto, TypeProto, Sequence)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Sequence, elem_type);
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, Sequence);
-  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Optional)
+  PYDEFINE_SUBPROTO(nb_TypeProto, TypeProto, Optional)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Optional, elem_type);
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, Optional);
-  PYDEFINE_SUBPROTO(py_TypeProto, TypeProto, Map)
+  PYDEFINE_SUBPROTO(nb_TypeProto, TypeProto, Map)
       .PYFIELD(TypeProto::Map, key_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto::Map, value_type);
   PYADD_SUBPROTO_SERIALIZATION(TypeProto, Map);
-  py_TypeProto.PYFIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
+  nb_TypeProto.PYFIELD_OPTIONAL_PROTO(TypeProto, tensor_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, sequence_type)
       .PYFIELD_OPTIONAL_PROTO(TypeProto, map_type)
       .PYFIELD_STR(TypeProto, denotation)
@@ -810,8 +805,7 @@ PYBIND11_MODULE(_onnx2py, m) {
   define_repeated_field_type_proto(rep_vip, rep_vip_proto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, AttributeProto);
-  py::enum_<AttributeProto::AttributeType> attribute_type(py_AttributeProto, "AttributeType",
-                                                          py::arithmetic());
+  nb::enum_<AttributeProto::AttributeType> attribute_type(nb_AttributeProto, "AttributeType");
   attribute_type.value("UNDEFINED", AttributeProto::AttributeType::UNDEFINED)
       .value("FLOAT", AttributeProto::AttributeType::FLOAT)
       .value("INT", AttributeProto::AttributeType::INT)
@@ -871,7 +865,7 @@ PYBIND11_MODULE(_onnx2py, m) {
           },
           "Returns the list of types.");
 
-  py_AttributeProto.SHORTEN_CODE(AttributeProto::AttributeType, UNDEFINED)
+  nb_AttributeProto.SHORTEN_CODE(AttributeProto::AttributeType, UNDEFINED)
       .SHORTEN_CODE(AttributeProto::AttributeType, FLOAT)
       .SHORTEN_CODE(AttributeProto::AttributeType, INT)
       .SHORTEN_CODE(AttributeProto::AttributeType, STRING)
@@ -887,14 +881,14 @@ PYBIND11_MODULE(_onnx2py, m) {
       .PYFIELD_STR(AttributeProto, name)
       .PYFIELD_STR(AttributeProto, ref_attr_name)
       .PYFIELD_STR(AttributeProto, doc_string)
-      .def_property(
+      .def_prop_rw(
           "type",
           [](const AttributeProto &self) -> AttributeProto::AttributeType { return self.type_; },
-          [](AttributeProto &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.type_ = static_cast<AttributeProto::AttributeType>(obj.cast<int>());
+          [](AttributeProto &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.type_ = static_cast<AttributeProto::AttributeType>(nb::cast<int>(obj));
             } else {
-              self.type_ = obj.cast<AttributeProto::AttributeType>();
+              self.type_ = nb::cast<AttributeProto::AttributeType>(obj);
             }
           },
           AttributeProto::DOC_type)
@@ -975,7 +969,7 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYADD_PROTO_SERIALIZATION(ModelProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, SequenceProto);
-  py::enum_<SequenceProto::DataType>(py_SequenceProto, "DataType", py::arithmetic())
+  nb::enum_<SequenceProto::DataType>(nb_SequenceProto, "DataType")
       .value("UNDEFINED", SequenceProto::DataType::UNDEFINED)
       .value("TENSOR", SequenceProto::DataType::TENSOR)
       .value("SPARSE_TENSOR", SequenceProto::DataType::SPARSE_TENSOR)
@@ -983,21 +977,21 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("MAP", SequenceProto::DataType::MAP)
       .value("OPTIONAL", SequenceProto::DataType::OPTIONAL)
       .export_values();
-  py_SequenceProto.SHORTEN_CODE(SequenceProto::DataType, UNDEFINED)
+  nb_SequenceProto.SHORTEN_CODE(SequenceProto::DataType, UNDEFINED)
       .SHORTEN_CODE(SequenceProto::DataType, TENSOR)
       .SHORTEN_CODE(SequenceProto::DataType, SPARSE_TENSOR)
       .SHORTEN_CODE(SequenceProto::DataType, SEQUENCE)
       .SHORTEN_CODE(SequenceProto::DataType, MAP)
       .SHORTEN_CODE(SequenceProto::DataType, OPTIONAL);
-  py_SequenceProto.PYFIELD_STR(SequenceProto, name)
-      .def_property(
+  nb_SequenceProto.PYFIELD_STR(SequenceProto, name)
+      .def_prop_rw(
           "elem_type",
           [](const SequenceProto &self) -> SequenceProto::DataType { return self.elem_type_; },
-          [](SequenceProto &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.elem_type_ = static_cast<SequenceProto::DataType>(obj.cast<int>());
+          [](SequenceProto &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.elem_type_ = static_cast<SequenceProto::DataType>(nb::cast<int>(obj));
             } else {
-              self.elem_type_ = obj.cast<SequenceProto::DataType>();
+              self.elem_type_ = nb::cast<SequenceProto::DataType>(obj);
             }
           },
           SequenceProto::DOC_elem_type)
@@ -1009,14 +1003,14 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYADD_PROTO_SERIALIZATION(SequenceProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, MapProto);
-  py_MapProto.PYFIELD_STR(MapProto, name)
-      .def_property(
+  nb_MapProto.PYFIELD_STR(MapProto, name)
+      .def_prop_rw(
           "key_type", [](const MapProto &self) -> TensorProto::DataType { return self.key_type_; },
-          [](MapProto &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.key_type_ = static_cast<TensorProto::DataType>(obj.cast<int>());
+          [](MapProto &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.key_type_ = static_cast<TensorProto::DataType>(nb::cast<int>(obj));
             } else {
-              self.key_type_ = obj.cast<TensorProto::DataType>();
+              self.key_type_ = nb::cast<TensorProto::DataType>(obj);
             }
           },
           MapProto::DOC_key_type)
@@ -1026,7 +1020,7 @@ PYBIND11_MODULE(_onnx2py, m) {
   PYADD_PROTO_SERIALIZATION(MapProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, OptionalProto);
-  py::enum_<OptionalProto::DataType>(py_OptionalProto, "DataType", py::arithmetic())
+  nb::enum_<OptionalProto::DataType>(nb_OptionalProto, "DataType")
       .value("UNDEFINED", OptionalProto::DataType::UNDEFINED)
       .value("TENSOR", OptionalProto::DataType::TENSOR)
       .value("SPARSE_TENSOR", OptionalProto::DataType::SPARSE_TENSOR)
@@ -1034,21 +1028,21 @@ PYBIND11_MODULE(_onnx2py, m) {
       .value("MAP", OptionalProto::DataType::MAP)
       .value("OPTIONAL", OptionalProto::DataType::OPTIONAL)
       .export_values();
-  py_OptionalProto.SHORTEN_CODE(OptionalProto::DataType, UNDEFINED)
+  nb_OptionalProto.SHORTEN_CODE(OptionalProto::DataType, UNDEFINED)
       .SHORTEN_CODE(OptionalProto::DataType, TENSOR)
       .SHORTEN_CODE(OptionalProto::DataType, SPARSE_TENSOR)
       .SHORTEN_CODE(OptionalProto::DataType, SEQUENCE)
       .SHORTEN_CODE(OptionalProto::DataType, MAP)
       .SHORTEN_CODE(OptionalProto::DataType, OPTIONAL);
-  py_OptionalProto.PYFIELD_STR(OptionalProto, name)
-      .def_property(
+  nb_OptionalProto.PYFIELD_STR(OptionalProto, name)
+      .def_prop_rw(
           "elem_type",
           [](const OptionalProto &self) -> OptionalProto::DataType { return self.elem_type_; },
-          [](OptionalProto &self, py::object obj) {
-            if (py::isinstance<py::int_>(obj)) {
-              self.elem_type_ = static_cast<OptionalProto::DataType>(obj.cast<int>());
+          [](OptionalProto &self, nb::object obj) {
+            if (nb::isinstance<nb::int_>(obj)) {
+              self.elem_type_ = static_cast<OptionalProto::DataType>(nb::cast<int>(obj));
             } else {
-              self.elem_type_ = obj.cast<OptionalProto::DataType>();
+              self.elem_type_ = nb::cast<OptionalProto::DataType>(obj);
             }
           },
           OptionalProto::DOC_elem_type)
