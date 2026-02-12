@@ -5,7 +5,7 @@ import onnx.helper as oh
 import onnx_extended.onnx2.helper as oh2
 import onnx.numpy_helper as onh
 from onnx_extended.ext_test_case import ExtTestCase
-import onnx_extended.onnx2.cpu._onnx2py as onnx2
+import onnx_extended.onnx2.onnx_proto._onnx2py as onnx2
 
 
 class TestOnnx2(ExtTestCase):

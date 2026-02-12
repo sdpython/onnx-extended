@@ -1,4 +1,4 @@
-#include "onnx_extended/onnx2/cpu/onnx2_helper.h"
+#include "onnx_extended/onnx2/onnx_proto/onnx2_helper.h"
 #include "onnx_extended_helpers.h"
 #include "onnx_extended_test_common.h"
 #include <atomic>

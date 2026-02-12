@@ -720,8 +720,8 @@ def get_ext_modules():
             f"onnx_extended/validation/cython/fp8.{ext}",
         ),
         CMakeExtension(
-            "onnx_extended.onnx2.cpu._onnx2py",
-            f"onnx_extended/onnx2/cpu/_onnx2py.{ext}",
+            "onnx_extended.onnx2.onnx_proto._onnx2py",
+            f"onnx_extended/onnx2/onnx_proto/_onnx2py.{ext}",
         ),
         CMakeExtension(
             "onnx_extended.validation.cpu._validation",
@@ -783,7 +783,7 @@ def get_package_data():
         "onnx_extended.include.common": known_extensions,
         "onnx_extended.include.cpu": known_extensions,
         "onnx_extended.include.cuda": known_extensions,
-        "onnx_extended.onnx2.cpu": known_extensions,
+        "onnx_extended.onnx2.onnx_proto": known_extensions,
         "onnx_extended.ortops.optim.cpu": known_extensions,
         "onnx_extended.ortops.optim.cuda": known_extensions,
         "onnx_extended.ortops.tutorial.cpu": known_extensions,

@@ -5,7 +5,7 @@ import math
 import numbers
 from typing import Any, NamedTuple, Optional, Sequence
 import numpy as np
-from .cpu._onnx2py import (
+from . import (
     AttributeProto,
     FunctionProto,
     GraphProto,
