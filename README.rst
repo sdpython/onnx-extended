@@ -126,7 +126,7 @@ can be enabled with the following command:
 ::
 
     python setup.py build_ext --inplace --use_nvtx 1
-    # or (not working yet)
+    # or (not fully tested)
     USE_NVTX=1 pip install -e . -v
 
 Experimental cython binding for onnxruntime
