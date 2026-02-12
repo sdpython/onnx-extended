@@ -15,7 +15,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(nanobind)
 
-# Fonction pour créer un module nanobind
+# Fonction pour crï¿½er un module nanobind
 function(local_nanobind_add_module target_name)
   nanobind_add_module(${target_name} ${ARGN})
 endfunction()

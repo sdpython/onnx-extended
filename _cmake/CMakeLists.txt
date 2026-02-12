@@ -15,12 +15,6 @@ list(APPEND CMAKE_MODULE_PATH
 
 include("constants.cmake")
 
-# MODIFICATION PRINCIPALE: Remplacer pybind11 par nanobind
-# Supprimer ou commenter: include("load_externals.cmake") 
-# Ajouter à la place:
-find_package(Python COMPONENTS Interpreter Development REQUIRED)
-find_package(nanobind CONFIG REQUIRED)
-
 #
 # modules
 #
