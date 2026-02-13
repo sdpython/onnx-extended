@@ -126,13 +126,12 @@ endforeach()
 get_property(imported_targets GLOBAL PROPERTY IMPORTED)
 message(STATUS "Imported targets: ${imported_targets}")
 
-function(list_all_cmake_targets)
-    get_property(all_targets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
-    foreach(target ${all_targets})
-        message(STATUS "Found target: ${target}")
-    endforeach()
-endfunction()
-
-list_all_cmake_targets()
+get_property(
+  all_targets DIRECTORY
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  PROPERTY BUILDSYSTEM_TARGETS)
+foreach(target ${all_targets})
+  message(STATUS "Found target: ${target}")
+endforeach()
 
 message(STATUS "-------------------")
