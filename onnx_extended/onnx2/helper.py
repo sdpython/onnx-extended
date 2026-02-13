@@ -25,8 +25,9 @@ from . import (
 _ATTRIBUTE_TYPE_TO_STR: dict[int, str] = {
     k: v for v, k in AttributeProto.AttributeType.items()
 }
+
 _ATTRIBUTE_TYPE_INT_TO_STR: dict[int, str] = {
-    int(k): v for v, k in AttributeProto.AttributeType.items()
+    k.value: v for v, k in AttributeProto.AttributeType.items()
 }
 
 

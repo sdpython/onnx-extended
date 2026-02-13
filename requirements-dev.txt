@@ -10,6 +10,7 @@ isort
 lightgbm
 matplotlib
 ml-dtypes
+nanobind
 onnx-array-api
 onnxmltools
 onnxruntime>=1.23.2

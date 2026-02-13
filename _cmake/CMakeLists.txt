@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.25.0)
 project(onnx_extended VERSION ${ONNX_EXTENDED_VERSION})
 
-
 # Don't let cmake set a default value for CMAKE_CUDA_ARCHITECTURES
 # see https://cmake.org/cmake/help/latest/policy/CMP0104.html
 # cmake_policy(SET CMP0104 OLD) # deprecated
@@ -124,4 +123,15 @@ message(STATUS "list of found packages")
 foreach(target ${targets_list})
   message(STATUS "  ${target}")
 endforeach()
+get_property(imported_targets GLOBAL PROPERTY IMPORTED)
+message(STATUS "Imported targets: ${imported_targets}")
+
+get_property(
+  all_targets DIRECTORY
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  PROPERTY BUILDSYSTEM_TARGETS)
+foreach(target ${all_targets})
+  message(STATUS "Found target: ${target}")
+endforeach()
+
 message(STATUS "-------------------")

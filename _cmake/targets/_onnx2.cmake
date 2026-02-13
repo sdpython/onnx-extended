@@ -1,7 +1,7 @@
 #
 # module: onnx_extended.onnx2.onnx_proto._onnx2py
 #
-message(STATUS "+ PYBIND11 onnx_extended.onnx2.onnx_proto._onnx2py")
+message(STATUS "+ NANOBIND onnx_extended.onnx2.onnx_proto._onnx2py")
 
 file(GLOB_RECURSE ONNX2_SOURCES
     "../onnx_extended/onnx2/onnx_proto/onnx*.cpp"
@@ -15,8 +15,9 @@ target_compile_definitions(lib_onnx2_cpp PRIVATE PYTHON_MANYLINUX=${PYTHON_MANYL
 target_include_directories(lib_onnx2_cpp PRIVATE "${ROOT_INCLUDE_PATH}")
 set_property(TARGET lib_onnx2_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-local_pybind11_add_module(
-  _onnx2py OpenMP::OpenMP_CXX
+local_nanobind_add_module(
+  _onnx2py
+  OpenMP::OpenMP_CXX
   ../onnx_extended/onnx2/onnx_proto/_onnx2py.cpp)
 message(STATUS "    LINK _onnx2py <- lib_onnx2_cpp")
 target_include_directories(_onnx2py PRIVATE "${ROOT_INCLUDE_PATH}")
@@ -38,6 +39,5 @@ target_link_libraries(
   lib_onnx2_cpp
   common
   gtest_main)
-
 
 gtest_discover_tests(test_onnx2_cpp)

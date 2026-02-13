@@ -5,7 +5,7 @@
 # functions ort_add_dependency, ort_add_custom_op
 
 if(NOT ORT_VERSION)
-  set(ORT_VERSION 1.23.2)
+  set(ORT_VERSION 1.24.1)
   set(ORT_VERSION_INT 1232)
 endif()
 string(LENGTH "${ORT_VERSION}" ORT_VERSION_LENGTH)
