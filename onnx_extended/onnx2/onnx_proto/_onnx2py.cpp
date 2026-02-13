@@ -45,18 +45,16 @@ using namespace onnx2;
         if (nb::isinstance<nb::str>(obj)) {                                                            \
           std::string st = nb::cast<std::string>(obj);                                                 \
           self.set_##name(st);                                                                         \
+        } else if (nb::isinstance<nb::bytes>(obj)) {                                                   \
+          nanobind::bytes bytes_obj = nb::borrow<nb::bytes>(obj);                                      \
+          std::string st(static_cast<const char *>(bytes_obj.data()), bytes_obj.size());               \
+          self.set_##name(st);                                                                         \
         } else {                                                                                       \
           self.set_##name(nb::cast<cls::name##_t &>(obj));                                             \
         }                                                                                              \
       },                                                                                               \
       cls::DOC_##name)                                                                                 \
       .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
-
-//}
-// else if (nb::isinstance<nb::bytes>(obj)) {
-// nanobind::bytes bytes_obj = nb::cast<nb::bytes>(obj);
-// std::string st(bytes_obj.data(), bytes_obj.size());
-// self.set_##name(st);
 
 #define PYFIELD_STR_AS_BYTES(cls, name)                                                                \
   def_prop_rw(                                                                                         \
@@ -69,17 +67,16 @@ using namespace onnx2;
         if (nb::isinstance<nb::str>(obj)) {                                                            \
           std::string st = nb::cast<std::string>(obj);                                                 \
           self.set_##name(st);                                                                         \
+        } else if (nb::isinstance<nb::bytes>(obj)) {                                                   \
+          nanobind::bytes bytes_obj = nb::borrow<nb::bytes>(obj);                                      \
+          std::string st(static_cast<const char *>(bytes_obj.data()), bytes_obj.size());               \
+          self.set_##name(st);                                                                         \
         } else {                                                                                       \
           self.set_##name(nb::cast<cls::name##_t &>(obj));                                             \
         }                                                                                              \
       },                                                                                               \
       cls::DOC_##name)                                                                                 \
       .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
-
-//}
-// else if (nb::isinstance<nb::bytes>(obj)) {
-//  std::string st = nb::cast<nb::bytes>(obj);
-// self.set_##name(st);
 
 #define _PYFIELD_OPTIONAL_CTYPE(cls, name, ctype)                                                      \
   def_prop_rw(                                                                                         \
@@ -127,7 +124,7 @@ using namespace onnx2;
       cls::DOC_##name)                                                                                 \
       .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value.")                        \
       .def(                                                                                            \
-          "add_" #name, [](cls & self) -> cls::name##_t & {                                            \
+          "add_" #name, [](cls & self)->cls::name##_t & {                                              \
             self.name##_.set_empty_value();                                                            \
             return *self.name##_;                                                                      \
           },                                                                                           \
@@ -323,6 +320,10 @@ void define_repeated_field_type_extend(nb::class_<utils::RepeatedField<utils::St
               for (auto it : iterable) {
                 if (nb::isinstance<utils::String>(it)) {
                   values.push_back(nb::cast<utils::String &>(it));
+                } else if (nb::isinstance<nb::bytes>(it)) {
+                  nanobind::bytes bytes_obj = nb::borrow<nb::bytes>(it);
+                  std::string st(static_cast<const char *>(bytes_obj.data()), bytes_obj.size());
+                  values.push_back(utils::String(st));
                 } else {
                   values.emplace_back(utils::String(nb::cast<std::string>(it)));
                 }
@@ -347,8 +348,7 @@ void define_repeated_field_type_proto(nb::class_<utils::RepeatedField<T>> &nbcls
             if (nb::isinstance<utils::RepeatedField<T>>(iterable)) {
               self.extend(nb::cast<utils::RepeatedField<T> &>(iterable));
             } else {
-              nb::list els = nb::cast<nb::list>(iterable);
-              for (auto it : els) {
+              for (auto it : iterable) {
                 if (nb::isinstance<const T &>(it)) {
                   self.push_back(nb::cast<T>(it));
                 } else if (nb::isinstance<T>(it)) {
@@ -416,8 +416,7 @@ void define_repeated_field_type_proto(nb::class_<utils::RepeatedField<T>> &nbcls
             if (nb::isinstance<utils::RepeatedProtoField<T>>(iterable)) {
               self.extend(nb::cast<utils::RepeatedProtoField<T> &>(iterable));
             } else {
-              nb::list els = nb::cast<nb::list>(iterable);
-              for (auto it : els) {
+              for (auto it : iterable) {
                 if (nb::isinstance<const T &>(it)) {
                   self.push_back(nb::cast<const T &>(it));
                 } else if (nb::isinstance<T>(it)) {
@@ -495,7 +494,14 @@ NB_MODULE(_onnx2py, m) {
           "Returns the length of the string.")
       .def(
           "__eq__", [](const utils::String &self, const std::string &s) -> int { return self == s; },
-          "Compares two strings.");
+          "Compares two strings.")
+      .def(
+          "__eq__",
+          [](const utils::String &self, const nb::bytes &bytes_obj) -> int {
+            std::string st(static_cast<const char *>(bytes_obj.data()), bytes_obj.size());
+            return self == st;
+          },
+          "Compares to a byte string.");
 
   DECLARE_REPEATED_FIELD(int64_t, rep_int64_t);
   define_repeated_field_type(rep_int64_t);
@@ -522,7 +528,7 @@ NB_MODULE(_onnx2py, m) {
   define_repeated_field_type(rep_string);
   define_repeated_field_type_extend(rep_string);
 
-  nb::enum_<OperatorStatus>(m, "OperatorStatus")
+  nb::enum_<OperatorStatus>(m, "OperatorStatus", nb::is_arithmetic())
       .value("EXPERIMENTAL", OperatorStatus::EXPERIMENTAL)
       .value("STABLE", OperatorStatus::STABLE)
       .export_values();
@@ -604,7 +610,7 @@ NB_MODULE(_onnx2py, m) {
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, TensorProto);
 
-  nb::enum_<TensorProto::DataType>(nb_TensorProto, "DataType")
+  nb::enum_<TensorProto::DataType>(nb_TensorProto, "DataType", nb::is_arithmetic())
       .value("UNDEFINED", TensorProto::DataType::UNDEFINED)
       .value("FLOAT", TensorProto::DataType::FLOAT)
       .value("UINT8", TensorProto::DataType::UINT8)
@@ -633,7 +639,7 @@ NB_MODULE(_onnx2py, m) {
       .value("UINT2", TensorProto::DataType::UINT2)
       .value("INT2", TensorProto::DataType::INT2)
       .export_values();
-  nb::enum_<TensorProto::DataLocation>(nb_TensorProto, "DataLocation")
+  nb::enum_<TensorProto::DataLocation>(nb_TensorProto, "DataLocation", nb::is_arithmetic())
       .value("DEFAULT", TensorProto::DataLocation::DEFAULT)
       .value("EXTERNAL", TensorProto::DataLocation::EXTERNAL)
       .export_values();
@@ -809,7 +815,8 @@ NB_MODULE(_onnx2py, m) {
   define_repeated_field_type_proto(rep_vip, rep_vip_proto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, AttributeProto);
-  nb::enum_<AttributeProto::AttributeType> attribute_type(nb_AttributeProto, "AttributeType");
+  nb::enum_<AttributeProto::AttributeType> attribute_type(nb_AttributeProto, "AttributeType",
+                                                          nb::is_arithmetic());
   attribute_type.value("UNDEFINED", AttributeProto::AttributeType::UNDEFINED)
       .value("FLOAT", AttributeProto::AttributeType::FLOAT)
       .value("INT", AttributeProto::AttributeType::INT)
@@ -819,6 +826,7 @@ NB_MODULE(_onnx2py, m) {
       .value("FLOATS", AttributeProto::AttributeType::FLOATS)
       .value("INTS", AttributeProto::AttributeType::INTS)
       .value("STRINGS", AttributeProto::AttributeType::STRINGS)
+      .value("TENSORS", AttributeProto::AttributeType::TENSORS)
       .value("GRAPHS", AttributeProto::AttributeType::GRAPHS)
       .value("SPARSE_TENSORS", AttributeProto::AttributeType::SPARSE_TENSORS)
       .export_values();
@@ -836,6 +844,7 @@ NB_MODULE(_onnx2py, m) {
                 {"FLOATS", AttributeProto::AttributeType::FLOATS},
                 {"INTS", AttributeProto::AttributeType::INTS},
                 {"STRINGS", AttributeProto::AttributeType::STRINGS},
+                {"TENSORS", AttributeProto::AttributeType::TENSORS},
                 {"GRAPHS", AttributeProto::AttributeType::GRAPHS},
                 {"SPARSE_TENSORS", AttributeProto::AttributeType::SPARSE_TENSORS},
             };
@@ -845,8 +854,8 @@ NB_MODULE(_onnx2py, m) {
           "keys",
           []() {
             return std::vector<std::string>{
-                "UNDEFINED", "FLOAT", "INT",     "STRING", "GRAPH",          "SPARSE_TENSOR",
-                "FLOATS",    "INTS",  "STRINGS", "GRAPHS", "SPARSE_TENSORS",
+                "UNDEFINED", "FLOAT", "INT",     "STRING",  "GRAPH",  "SPARSE_TENSOR",
+                "FLOATS",    "INTS",  "STRINGS", "TENSORS", "GRAPHS", "SPARSE_TENSORS",
             };
           },
           "Returns the list of names.")
@@ -854,17 +863,12 @@ NB_MODULE(_onnx2py, m) {
           "values",
           []() {
             return std::vector<AttributeProto::AttributeType>{
-                AttributeProto::AttributeType::UNDEFINED,
-                AttributeProto::AttributeType::FLOAT,
-                AttributeProto::AttributeType::INT,
-                AttributeProto::AttributeType::STRING,
-                AttributeProto::AttributeType::GRAPH,
-                AttributeProto::AttributeType::SPARSE_TENSOR,
-                AttributeProto::AttributeType::FLOATS,
-                AttributeProto::AttributeType::INTS,
-                AttributeProto::AttributeType::STRINGS,
-                AttributeProto::AttributeType::GRAPHS,
-                AttributeProto::AttributeType::SPARSE_TENSORS,
+                AttributeProto::AttributeType::UNDEFINED, AttributeProto::AttributeType::FLOAT,
+                AttributeProto::AttributeType::INT,       AttributeProto::AttributeType::STRING,
+                AttributeProto::AttributeType::GRAPH,     AttributeProto::AttributeType::SPARSE_TENSOR,
+                AttributeProto::AttributeType::FLOATS,    AttributeProto::AttributeType::INTS,
+                AttributeProto::AttributeType::STRINGS,   AttributeProto::AttributeType::TENSORS,
+                AttributeProto::AttributeType::GRAPHS,    AttributeProto::AttributeType::SPARSE_TENSORS,
             };
           },
           "Returns the list of types.");
@@ -973,7 +977,7 @@ NB_MODULE(_onnx2py, m) {
   PYADD_PROTO_SERIALIZATION(ModelProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, SequenceProto);
-  nb::enum_<SequenceProto::DataType>(nb_SequenceProto, "DataType")
+  nb::enum_<SequenceProto::DataType>(nb_SequenceProto, "DataType", nb::is_arithmetic())
       .value("UNDEFINED", SequenceProto::DataType::UNDEFINED)
       .value("TENSOR", SequenceProto::DataType::TENSOR)
       .value("SPARSE_TENSOR", SequenceProto::DataType::SPARSE_TENSOR)
@@ -1024,7 +1028,7 @@ NB_MODULE(_onnx2py, m) {
   PYADD_PROTO_SERIALIZATION(MapProto);
 
   PYDEFINE_PROTO_WITH_SUBTYPES(m, OptionalProto);
-  nb::enum_<OptionalProto::DataType>(nb_OptionalProto, "DataType")
+  nb::enum_<OptionalProto::DataType>(nb_OptionalProto, "DataType", nb::is_arithmetic())
       .value("UNDEFINED", OptionalProto::DataType::UNDEFINED)
       .value("TENSOR", OptionalProto::DataType::TENSOR)
       .value("SPARSE_TENSOR", OptionalProto::DataType::SPARSE_TENSOR)

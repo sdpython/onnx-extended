@@ -37,7 +37,7 @@ namespace onnx2 {
 
 enum OperatorStatus { EXPERIMENTAL = 0, STABLE = 1 };
 
-BEGIN_PROTO(StringStringEntryProto, "Defines a key value pair, both defines a strings.")
+BEGIN_PROTO(StringStringEntryProto, "Defines a key value pair, both defines a string.")
 FIELD_STR(key, 1, "the key")
 FIELD_STR(value, 2, "the value")
 END_PROTO()
