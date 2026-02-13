@@ -1,5 +1,6 @@
 #include "onnx2.h"
 #include "onnx2_helper.h"
+#include <nanobind/make_iterator.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
@@ -44,8 +45,29 @@ using namespace onnx2;
         if (nb::isinstance<nb::str>(obj)) {                                                            \
           std::string st = nb::cast<std::string>(obj);                                                 \
           self.set_##name(st);                                                                         \
-        } else if (nb::isinstance<nb::bytes>(obj)) {                                                   \
-          std::string st = nb::cast<nb::bytes>(obj);                                                   \
+        } else {                                                                                       \
+          self.set_##name(nb::cast<cls::name##_t &>(obj));                                             \
+        }                                                                                              \
+      },                                                                                               \
+      cls::DOC_##name)                                                                                 \
+      .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
+
+//}
+// else if (nb::isinstance<nb::bytes>(obj)) {
+// nanobind::bytes bytes_obj = nb::cast<nb::bytes>(obj);
+// std::string st(bytes_obj.data(), bytes_obj.size());
+// self.set_##name(st);
+
+#define PYFIELD_STR_AS_BYTES(cls, name)                                                                \
+  def_prop_rw(                                                                                         \
+      #name,                                                                                           \
+      [](const cls &self) -> nb::bytes {                                                               \
+        std::string s = self.ref_##name().as_string();                                                 \
+        return nb::bytes(s.data(), s.size());                                                          \
+      },                                                                                               \
+      [](cls &self, nb::object obj) {                                                                  \
+        if (nb::isinstance<nb::str>(obj)) {                                                            \
+          std::string st = nb::cast<std::string>(obj);                                                 \
           self.set_##name(st);                                                                         \
         } else {                                                                                       \
           self.set_##name(nb::cast<cls::name##_t &>(obj));                                             \
@@ -54,26 +76,10 @@ using namespace onnx2;
       cls::DOC_##name)                                                                                 \
       .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
 
-#define PYFIELD_STR_AS_BYTES(cls, name)                                                                \
-  def_prop_rw(                                                                                         \
-      #name,                                                                                           \
-      [](const cls &self) -> nb::bytes {                                                               \
-        std::string s = nb::bytes(self.ref_##name().as_string());                                      \
-        return s;                                                                                      \
-      },                                                                                               \
-      [](cls &self, nb::object obj) {                                                                  \
-        if (nb::isinstance<nb::str>(obj)) {                                                            \
-          std::string st = nb::cast<std::string>(obj);                                                 \
-          self.set_##name(st);                                                                         \
-        } else if (nb::isinstance<nb::bytes>(obj)) {                                                   \
-          std::string st = nb::cast<nb::bytes>(obj);                                                   \
-          self.set_##name(st);                                                                         \
-        } else {                                                                                       \
-          self.set_##name(nb::cast<cls::name##_t &>(obj));                                             \
-        }                                                                                              \
-      },                                                                                               \
-      cls::DOC_##name)                                                                                 \
-      .def("has_" #name, &cls::has_##name, "Tells if '" #name "' has a value")
+//}
+// else if (nb::isinstance<nb::bytes>(obj)) {
+//  std::string st = nb::cast<nb::bytes>(obj);
+// self.set_##name(st);
 
 #define _PYFIELD_OPTIONAL_CTYPE(cls, name, ctype)                                                      \
   def_prop_rw(                                                                                         \
@@ -268,10 +274,9 @@ template <typename T> void define_repeated_field_type(nb::class_<utils::Repeated
       .def(
           "__delitem__",
           [](utils::RepeatedField<T> &self, nb::slice slice) {
-            size_t start, stop, step, slicelength;
-            if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
-              self.remove_range(start, stop, step);
-            }
+            auto tup = slice.compute(self.size());
+            auto [start, stop, step, slice_length] = tup;
+            self.remove_range(start, stop, step);
           },
           "Removes elements.")
       .def(
@@ -373,10 +378,9 @@ void define_repeated_field_type_proto(nb::class_<utils::RepeatedField<T>> &nbcls
       .def(
           "__delitem__",
           [](utils::RepeatedProtoField<T> &self, nb::slice slice) {
-            size_t start, stop, step, slicelength;
-            if (slice.compute(self.size(), &start, &stop, &step, &slicelength)) {
-              self.remove_range(start, stop, step);
-            }
+            auto tup = slice.compute(self.size());
+            auto [start, stop, step, slice_length] = tup;
+            self.remove_range(start, stop, step);
           },
           "Removes elements.")
       .def(
