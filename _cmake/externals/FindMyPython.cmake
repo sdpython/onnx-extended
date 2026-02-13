@@ -76,6 +76,13 @@ else()
                 Interpreter Development.Module
                 REQUIRED)
     set(Python_NumPy_INCLUDE_DIRS ${PYTHON_NUMPY_INCLUDE_DIR})
+  elseif(WIN32)
+    find_package(Python3 ${PYTHON_VERSION} COMPONENTS
+                Interpreter NumPy Development.Module
+                REQUIRED)
+    find_package(Python ${PYTHON_VERSION} COMPONENTS
+                Interpreter NumPy Development.Module
+                REQUIRED)
   else()
     find_package(Python3 ${PYTHON_VERSION} COMPONENTS
                 Interpreter NumPy Development.Module

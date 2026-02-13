@@ -46,16 +46,20 @@ function(local_nanobind_add_module name omp_lib)
     ${nanobind_INCLUDE_DIR}
     ${NUMPY_INCLUDE_DIR}
     ${OMP_INCLUDE_DIR})
-  target_include_directories(nanobind-static PRIVATE ${Python3_INCLUDE_DIRS})
+  if(NOT WIN32)
+    target_include_directories(nanobind-static PRIVATE ${Python3_INCLUDE_DIRS})
+  endif()
+  # 
   target_link_libraries(
     ${name} PRIVATE
-    nanobind-static
     ${Python3_LIBRARY_RELEASE}  # use ${Python3_LIBRARIES} if python debug
     ${Python3_NumPy_LIBRARIES}
     ${omp_lib})
-  # if(MSVC) target_link_libraries(${target_name} PRIVATE
-  # nanobind::windows_extras nanobind::lto) endif()
-  # target_include_directories(nanobind PRIVATE ${Python3_INCLUDE_DIRS})
+  if(WIN32)
+    # target_link_libraries(${name} PRIVATE nanobind::windows_extras nanobind::lto)
+  else()
+    target_link_libraries(${name} PRIVATE nanobind-static)
+  endif()
   set_target_properties(
     ${name} PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION ON
@@ -82,7 +86,7 @@ function(cuda_nanobind_add_module name nanofine)
     PRIVATE
     CUDA_VERSION=${CUDA_VERSION_INT}
     PYTHON_MANYLINUX=${PYTHON_MANYLINUX})
-  target_include_directories(${name} PRIVATE ${CUDA_INCLUDE_DIRS})
+  # target_include_directories(${name} PRIVATE ${CUDA_INCLUDE_DIRS})
   message(STATUS "    LINK ${name} <- stdc++ ${CUDA_LIBRARIES}")
   target_link_libraries(${name} PRIVATE stdc++ ${CUDA_LIBRARIES})
   if(USE_NVTX)
