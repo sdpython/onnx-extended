@@ -80,9 +80,13 @@ else()
     find_package(Python3 ${PYTHON_VERSION} COMPONENTS
                 Interpreter NumPy Development.Module
                 REQUIRED)
+    set(Python_EXECUTABLE ${Python3_EXECUTABLE})
     find_package(Python ${PYTHON_VERSION} COMPONENTS
                 Interpreter NumPy Development.Module
                 REQUIRED)
+    if(NOT "${Python3_EXECUTABLE}" STREQUAL "${Python_EXECUTABLE}")
+      message(FATAL_ERROR "Python version mismatch detected! This will crash your build: ${Python_EXECUTABLE} != ${Python3_EXECUTABLE}.")
+    endif()                
   else()
     find_package(Python3 ${PYTHON_VERSION} COMPONENTS
                 Interpreter NumPy Development.Module
