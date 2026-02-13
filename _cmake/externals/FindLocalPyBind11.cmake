@@ -45,7 +45,7 @@ find_package_handle_standard_args(
 # \argn: additional c++ files to compile
 #
 function(local_pybind11_add_module name omp_lib)
-  message(STATUS "pybind11 module '${name}': ${pyx_file} ++ ${ARGN}")
+  message(STATUS "pybind11 module '${name}': ++ ${ARGN}")
   python3_add_library(${name} MODULE ${ARGN})
   target_include_directories(
     ${name} PRIVATE

@@ -17,6 +17,7 @@ set_property(TARGET lib_onnx2_cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 local_nanobind_add_module(
   _onnx2py
+  OpenMP::OpenMP_CXX
   ../onnx_extended/onnx2/onnx_proto/_onnx2py.cpp)
 message(STATUS "    LINK _onnx2py <- lib_onnx2_cpp")
 target_include_directories(_onnx2py PRIVATE "${ROOT_INCLUDE_PATH}")

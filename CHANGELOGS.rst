@@ -4,6 +4,7 @@ Change Logs
 0.6.0
 +++++
 
+* :pr:`248`: use onnxruntime==1.24.1
 * :pr:`242`: improves compilation settings
 * :pr:`241`: adds INT2, UINT2 to onnx2
 
