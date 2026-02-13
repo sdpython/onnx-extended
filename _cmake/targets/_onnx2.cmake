@@ -21,6 +21,7 @@ local_nanobind_add_module(
   ../onnx_extended/onnx2/onnx_proto/_onnx2py.cpp)
 message(STATUS "    LINK _onnx2py <- lib_onnx2_cpp")
 target_include_directories(_onnx2py PRIVATE "${ROOT_INCLUDE_PATH}")
+
 target_link_libraries(_onnx2py PRIVATE lib_onnx2_cpp common OpenMP::OpenMP_CXX)
 
 file(GLOB_RECURSE ONNX2_TESTS "../_unittests/ut_onnx2/*.cpp")

@@ -38,20 +38,20 @@ find_package_handle_standard_args(
 #
 function(local_nanobind_add_module name omp_lib)
   message(STATUS "nanobind module '${name}': ++ ${ARGN}")
-  nanobind_add_module(${name} NB_SHARED ${ARGN})
+  nanobind_add_module(${name} NB_SHARED STABLE_ABI LTO FREE_THREADED ${ARGN})
   target_include_directories(
     ${name} PRIVATE
     ${Python3_INCLUDE_DIRS}
-    ${PYTHON3_INCLUDE_DIR}
+    # ${PYTHON3_INCLUDE_DIR}
     ${Python3_NumPy_INCLUDE_DIRS}
-    #${nanobind_INCLUDE_DIR}
+    ${nanobind_INCLUDE_DIR}
     ${NUMPY_INCLUDE_DIR}
     ${OMP_INCLUDE_DIR})
   target_link_libraries(
     ${name} PRIVATE
     # nanobind::nanobind
-    #${Python3_LIBRARY_RELEASE}  # use ${Python3_LIBRARIES} if python debug
-    #${Python3_NumPy_LIBRARIES}
+    ${Python3_LIBRARY_RELEASE}  # use ${Python3_LIBRARIES} if python debug
+    ${Python3_NumPy_LIBRARIES}
     ${omp_lib})
   # if(MSVC) target_link_libraries(${target_name} PRIVATE
   # nanobind::windows_extras nanobind::lto) endif()
