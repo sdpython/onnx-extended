@@ -152,7 +152,7 @@ template <typename cls> void pyadd_proto_serialization(nb::class_<cls, Message> 
       .def(
           "ParseFromString",
           [](cls &self, nb::bytes data, nb::object options) {
-            std::string raw = nb::cast<std::string>(data);
+            std::string raw(static_cast<const char *>(data.data()), data.size());
             if (nb::isinstance<ParseOptions &>(options)) {
               self.ParseFromString(raw, nb::cast<ParseOptions &>(options));
             } else {
@@ -161,6 +161,16 @@ template <typename cls> void pyadd_proto_serialization(nb::class_<cls, Message> 
           },
           nb::arg("data"), nb::arg("options") = nb::none(),
           "Parses a sequence of bytes to fill this instance.")
+      .def(
+          "ParseFromString",
+          [](cls &self, const std::string &raw, nb::object options) {
+            if (nb::isinstance<ParseOptions &>(options)) {
+              self.ParseFromString(raw, nb::cast<ParseOptions &>(options));
+            } else {
+              self.ParseFromString(raw);
+            }
+          },
+          nb::arg("data"), nb::arg("options") = nb::none(), "Parses a string to fill this instance.")
       .def(
           "ParseFromFile",
           [](cls &self, const std::string &file_path, nb::object options,
@@ -436,7 +446,7 @@ NB_MODULE(_onnx2py, m) {
   m.def(
       "utils_onnx2_read_varint64",
       [](nb::bytes data) -> nb::tuple {
-        std::string raw = nb::cast<std::string>(data);
+        std::string raw(static_cast<const char *>(data.data()), data.size());
         const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
         utils::StringStream st(ptr, raw.size());
         int64_t value = st.next_int64();
@@ -718,7 +728,9 @@ NB_MODULE(_onnx2py, m) {
 
             for (const auto &item : data) {
               if (nb::isinstance<nb::bytes>(item)) {
-                self.string_data_.emplace_back(nb::cast<std::string>(item));
+                nanobind::bytes bytes_obj = nb::borrow<nb::bytes>(item);
+                self.string_data_.emplace_back(
+                    std::string(static_cast<const char *>(bytes_obj.data()), bytes_obj.size()));
               } else if (nb::isinstance<nb::str>(item)) {
                 self.string_data_.emplace_back(nb::cast<std::string>(item));
               } else {
@@ -734,7 +746,7 @@ NB_MODULE(_onnx2py, m) {
                              self.raw_data_.size());
           },
           [](TensorProto &self, nb::bytes data) {
-            std::string raw = nb::cast<std::string>(data);
+            std::string raw(static_cast<const char *>(data.data()), data.size());
             const uint8_t *ptr = reinterpret_cast<const uint8_t *>(raw.data());
             self.raw_data_.resize(raw.size());
             memcpy(self.raw_data_.data(), ptr, raw.size());
@@ -821,6 +833,7 @@ NB_MODULE(_onnx2py, m) {
       .value("FLOAT", AttributeProto::AttributeType::FLOAT)
       .value("INT", AttributeProto::AttributeType::INT)
       .value("STRING", AttributeProto::AttributeType::STRING)
+      .value("TENSOR", AttributeProto::AttributeType::TENSOR)
       .value("GRAPH", AttributeProto::AttributeType::GRAPH)
       .value("SPARSE_TENSOR", AttributeProto::AttributeType::SPARSE_TENSOR)
       .value("FLOATS", AttributeProto::AttributeType::FLOATS)
@@ -839,6 +852,7 @@ NB_MODULE(_onnx2py, m) {
                 {"FLOAT", AttributeProto::AttributeType::FLOAT},
                 {"INT", AttributeProto::AttributeType::INT},
                 {"STRING", AttributeProto::AttributeType::STRING},
+                {"TENSOR", AttributeProto::AttributeType::TENSOR},
                 {"GRAPH", AttributeProto::AttributeType::GRAPH},
                 {"SPARSE_TENSOR", AttributeProto::AttributeType::SPARSE_TENSOR},
                 {"FLOATS", AttributeProto::AttributeType::FLOATS},
@@ -854,7 +868,7 @@ NB_MODULE(_onnx2py, m) {
           "keys",
           []() {
             return std::vector<std::string>{
-                "UNDEFINED", "FLOAT", "INT",     "STRING",  "GRAPH",  "SPARSE_TENSOR",
+                "UNDEFINED", "FLOAT", "INT",     "STRING",  "TENSOR", "GRAPH",          "SPARSE_TENSOR",
                 "FLOATS",    "INTS",  "STRINGS", "TENSORS", "GRAPHS", "SPARSE_TENSORS",
             };
           },
@@ -863,12 +877,19 @@ NB_MODULE(_onnx2py, m) {
           "values",
           []() {
             return std::vector<AttributeProto::AttributeType>{
-                AttributeProto::AttributeType::UNDEFINED, AttributeProto::AttributeType::FLOAT,
-                AttributeProto::AttributeType::INT,       AttributeProto::AttributeType::STRING,
-                AttributeProto::AttributeType::GRAPH,     AttributeProto::AttributeType::SPARSE_TENSOR,
-                AttributeProto::AttributeType::FLOATS,    AttributeProto::AttributeType::INTS,
-                AttributeProto::AttributeType::STRINGS,   AttributeProto::AttributeType::TENSORS,
-                AttributeProto::AttributeType::GRAPHS,    AttributeProto::AttributeType::SPARSE_TENSORS,
+                AttributeProto::AttributeType::UNDEFINED,
+                AttributeProto::AttributeType::FLOAT,
+                AttributeProto::AttributeType::INT,
+                AttributeProto::AttributeType::STRING,
+                AttributeProto::AttributeType::TENSOR,
+                AttributeProto::AttributeType::GRAPH,
+                AttributeProto::AttributeType::SPARSE_TENSOR,
+                AttributeProto::AttributeType::FLOATS,
+                AttributeProto::AttributeType::INTS,
+                AttributeProto::AttributeType::STRINGS,
+                AttributeProto::AttributeType::TENSORS,
+                AttributeProto::AttributeType::GRAPHS,
+                AttributeProto::AttributeType::SPARSE_TENSORS,
             };
           },
           "Returns the list of types.");
